@@ -182,7 +182,7 @@ function localDateInput(){const d=new Date();return [d.getFullYear(),String(d.ge
 function expenseRestaurantId(){return document.getElementById('expenseRestaurant').value||''}
 async function loadExpenseWorkspace(){
  const select=document.getElementById('expenseRestaurant'), previous=select.value;
- const owned=access.memberships.filter(m=>m.role==='owner').map(m=>m.restaurant_id);
+ const owned=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>owned.includes(r.id));
  select.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('expenseRows').innerHTML='';document.getElementById('expenseEmpty').textContent='Is login ke saath Owner restaurant linked nahi hai.';document.getElementById('expenseEmpty').style.display='block';document.getElementById('expenseSaveBtn').disabled=true;return}
