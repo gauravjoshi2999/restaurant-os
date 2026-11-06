@@ -61,7 +61,7 @@ select l.id as entry_id,l.restaurant_id,l.customer_id,c.full_name,c.phone,l.entr
 from public.restaurant_customer_ledger_entries l
 join public.restaurant_customers c on c.id=l.customer_id and c.restaurant_id=l.restaurant_id
 union all
-select o.id,o.restaurant_id,o.restaurant_customer_id,c.full_name,c.phone,o.order_date::date,'debit'::text,
+select o.id,o.restaurant_id,o.restaurant_customer_id,c.full_name,c.phone,timezone('Asia/Kolkata',o.order_date)::date,'debit'::text,
  o.amount::numeric(14,2),null::text,o.order_code,('POS sale · '||replace(o.channel,'POS - ',''))::text,o.created_at,
  'pos_order'::text,o.id
 from public.orders o
@@ -84,3 +84,9 @@ from public.restaurant_customers c
 left join public.restaurant_customer_ledger l on l.customer_id=c.id and l.restaurant_id=c.restaurant_id
 group by c.id,c.restaurant_id,c.full_name,c.phone,c.status;
 grant select on public.restaurant_customer_balances to authenticated;
+
+-- Helper functions are not public APIs; authenticated trigger execution only.
+revoke all on function public.normalize_indian_phone(text) from public,anon;
+grant execute on function public.normalize_indian_phone(text) to authenticated;
+revoke all on function public.link_pos_order_customer() from public,anon;
+grant execute on function public.link_pos_order_customer() to authenticated;
