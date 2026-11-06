@@ -108,3 +108,15 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Rollback-only Owner test created a supplier, purchase and item; generated line total was ₹100.00. Transaction rolled back with no test data left.
 - Added mobile-responsive Purchases & Suppliers UI and passed JavaScript syntax validation. Deployment and real-device smoke test remain pending.
 - Purchase migration SQL is tracked under `supabase/`. The Expenses migration is live but its standalone SQL file is still not tracked.
+
+
+## Inventory and stock ledger — 2026-11-06
+
+- Live Supabase migrations applied: `20261106155919_restaurant_inventory_stock_ledger`, `20261106155927_restaurant_stock_movement_concurrency_guard`, `20261106155949_restaurant_inventory_fk_indexes`, and `20261106160036_restaurant_inventory_balance_view`.
+- Added `restaurant_inventory_items` and immutable `restaurant_stock_movements`, both with RLS. Owner/Manager can add inventory items and stock movements; only Owner can delete an item. Movement history has no client update/delete policy.
+- Stock-in types are Opening, Purchase, and Adjustment In. Stock-out types are Adjustment Out and Wastage. PostgreSQL rejects negative balances and locks the inventory item row to serialize concurrent movements.
+- Added `restaurant_inventory_balances` as a `security_invoker` view, so the balance calculation respects base-table RLS. Owner test verified 10 kg opening less 3 kg out = 7 kg; an 8 kg further outflow was rejected. Transaction rolled back and no test rows remain. An outsider identity saw zero rows in a rollback-only tenant-scope test.
+- Added Inventory & Stock page: item master, low-stock threshold, stock movement entry, current balances, low-stock count and latest 100 movement records. Balance totals use the database view across the full ledger, not just the 100-row history window.
+- Purchase records do not yet auto-create stock movements; stock-in is currently recorded manually to avoid incorrect item/unit matching. This integration remains a follow-up.
+- Added `supabase/restaurant_inventory_stock_ledger_reference.sql` as a consolidated schema reference. Live migration history remains authoritative.
+- GitHub Pages run `42248397819` succeeded and published the Expense, Purchase/Supplier and Inventory UI code. A real Android/desktop browser smoke test has not yet been performed; the direct site was not accessible to the automated page viewer.
