@@ -74,6 +74,10 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Supabase health advisor returned no findings.
 - No customer/business rows were deleted or modified during the audit.
 
+
+- Tenant-isolation smoke test: an authenticated user with Owner membership in one restaurant saw exactly 1 restaurant, 1 order and 1 membership in RLS-scoped queries; cross-restaurant rows were not visible. The second test identity is also the configured Super Admin, so its global visibility is expected and was not treated as a tenant-isolation failure.
+- Current live sample has only Owner memberships (no Manager or Staff memberships yet), so Manager/Staff denial behavior still needs dedicated test accounts before production role rollout.
+
 ## Remaining release gates
 
 - Verify GitHub Pages deployment run for the latest commit and perform actual browser/device smoke tests.
