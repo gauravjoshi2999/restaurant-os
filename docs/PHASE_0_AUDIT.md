@@ -157,3 +157,10 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Updated `create_order_financial_snapshot` only to recognize POS channels with 0% commission, preserving existing authorization, discount and financial-snapshot checks. The function remains SECURITY DEFINER as in the pre-existing architecture; its broader review remains a separate security task.
 - Added `supabase/patch_20261106_pos_order_payments.sql` as the SQL reference patch. JavaScript syntax validation passed. Latest POS UI commit is `53e38dab8de0e1a5959bb268b4401e0ae9fdf21d`; deployment confirmation pending.
 - Udhar/customer khata, refunds, online payment webhooks and provider settlements are not yet implemented. Unpaid POS balances are displayed as due, not falsely counted as received cash.
+
+
+## POS permissions hardening — 2026-11-06
+
+- Restricted manual order-payment recording at the database trigger to POS channels only. Own Platform and Zomato/Swiggy demo orders cannot be marked paid through the POS payment table; they require their own trusted payment/settlement source.
+- Revoked UPDATE/DELETE privileges on POS payment rows, stock movement history and cashbook closing rows. These ledgers are append-only/immutable; corrections require future reversal/adjustment records.
+- POS form now preserves the selected restaurant from the POS filter and uses full timestamp order codes to reduce collisions. Latest UI change commit: `f9bef54a137130db4f8cc5ba917584706cab6178`.
