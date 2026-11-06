@@ -1,29 +1,35 @@
 # RestaurantOS
 
-A mobile-friendly starter workspace for a multi-restaurant operations platform, beginning with a Rajsamand pilot.
+A mobile-friendly multi-restaurant operations platform prototype, starting with a Rajsamand pilot.
 
-## Current MVP
+## Current implemented foundation
 
-- Overview dashboard
-- Restaurant list and add-restaurant form
-- Demo order creation and status progression
-- Basic sales and payout reconciliation view
-- JSON export/reset for local demo data
+- Supabase Auth email/password login and session restore
+- Supabase PostgreSQL cloud storage for restaurants and orders
+- Row Level Security (RLS) policies for restaurant membership and tenant-scoped data
+- Restaurant creator is automatically added as the restaurant owner
+- Owner, manager, and staff membership roles exist in the database foundation
+- Restaurant and order dashboard, order status controls, and manual payout reconciliation UI
 
 ## Important limitations
 
-This is a front-end demo only. Data is stored in the current browser using localStorage and is not shared across devices or users. It does not provide secure authentication, a production database, live Zomato/Swiggy APIs, real payment collection, or bank settlement.
+- Role-specific dashboard permissions and the platform Super Admin role are not implemented yet.
+- Restaurant onboarding approval, staff invitations, menu management, inventory, audit logs, and full tenant-isolation testing are still pending.
+- Zomato/Swiggy live order APIs are not connected. Any such integration requires the relevant platform/technology partner approval and access.
+- Reconciliation is manual. Marketplace payouts are not rerouted; they continue according to the restaurant's platform agreement.
+- No customer payment collection or automatic restaurant settlement is implemented.
+- This is a development prototype, not production-ready software. Complete security review, backups, monitoring, and real-device testing are required before onboarding live restaurants.
 
-Zomato and Swiggy integrations require the relevant platform/technology partner approvals and access. Reconciliation does not reroute marketplace payouts.
+## Supabase setup
+
+1. Create a Supabase project.
+2. Run `supabase/schema.sql` in the Supabase SQL Editor for a fresh project.
+3. Configure the project URL and publishable key in `index.html`.
+4. Enable the desired email confirmation settings in Supabase Auth.
+5. Deploy the repository through GitHub Pages.
+
+Never put the Supabase `service_role` key or database password in browser code.
 
 ## Run locally
 
-Open `index.html` in a modern browser.
-
-## Planned next steps
-
-1. Review the demo UI and pilot workflow.
-2. Add backend API, PostgreSQL database, and tenant isolation.
-3. Add secure authentication and role-based access.
-4. Build partner integration adapters after approvals.
-5. Add payment-provider-approved checkout and settlement flow for own-platform orders.
+Serve the repository with a local static web server and open `index.html`. A deployed GitHub Pages build is also available from the repository's Pages settings.
