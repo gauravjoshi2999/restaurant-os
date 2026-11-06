@@ -156,3 +156,4 @@ async function resetData(){alert('Cloud data ko is demo screen se bulk delete na
 sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){currentUser=null;state={restaurants:[],orders:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex'}});
 (async()=>{const {data:{session}}=await sb.auth.getSession();if(session?.user)await activateSession(session.user);else setAuthMode(false)})();
 </script></body></html>
+<!-- Login diagnostic update pending verification -->
