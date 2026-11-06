@@ -189,3 +189,12 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Rollback-only test verified ₹1,000 debit less ₹300 Cash jama = ₹700 due; ₹300 jama appeared in Cashbook and day closing. Closed-day ledger entry was rejected. +91 formatted phone duplicate was rejected. Outsider saw zero customer balances and could not write ledger entries. All test rows rolled back.
 - POS orders are not yet automatically linked to Khata customers. POS order due is still shown on the order/POS screen; manual Khata debit entry is available until that integration is completed.
 - `supabase/patch_20261106_customer_khata.sql` tracks the SQL reference patch. JavaScript syntax validation passed. Deployment remains pending the latest GitHub Pages workflow.
+
+
+## POS → Customer Khata automatic linking — 2026-11-06
+
+- Added separate `orders.restaurant_customer_id` (the existing `orders.customer_id` is reserved for auth-user ownership and was not repurposed). POS order creation now matches the entered mobile number against the restaurant's active customer list using the same India phone normalization and links the order automatically.
+- Customer ledger now combines manual Khata debit/credit entries, linked POS order debits, and linked POS payment credits. Customer balance therefore includes outstanding POS bills without asking staff to enter the same debit again. Cashbook still records the POS payment once from `restaurant_order_payments`; the Khata view does not duplicate it as a second cash receipt.
+- Customer link is immutable after order creation, restaurant scope is validated, and customer deletion is restricted when order history exists.
+- Rollback-only test: a customer saved with `+91 98765 43210` was auto-linked to a POS sale entered with `9876543210`; ₹100 sale less ₹30 Cash payment showed ₹70 Khata due. A separate ₹200 debit less ₹50 jama brought total due to ₹220. Cashbook counted ₹80 actual cash receipts exactly once; day closing expected ₹1,080 from ₹1,000 opening. Customer link mutation and customer deletion with history were rejected. Test rows rolled back.
+- Updated POS and Khata page notices. `supabase/patch_20261106_pos_khata_customer_link.sql` tracks the live integration patch. Latest UI notice commit: `f3dc886cf8627776a37b2d1d678aa0026c564c48`.
