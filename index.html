@@ -302,7 +302,7 @@ function readPurchaseItems(){
  return [...document.querySelectorAll('#purchaseItemRows .purchase-item-row')].map(row=>({item_name:row.querySelector('.pi-name').value.trim(),quantity:Number(row.querySelector('.pi-qty').value),unit:row.querySelector('.pi-unit').value.trim()||'pcs',unit_cost:Number(row.querySelector('.pi-rate').value)}));
 }
 function updatePurchaseTotal(){
- const total=readPurchaseItems().reduce((sum,x)=>sum+(Number.isFinite(x.quantity)&&Number.isFinite(x.unit_cost)?x.quantity*x.unit_cost:0),0);
+ const total=readPurchaseItems().reduce((sum,x)=>sum+(Number.isFinite(x.quantity)&&Number.isFinite(x.unit_cost)?Math.round((x.quantity*x.unit_cost+Number.EPSILON)*100)/100:0),0);
  document.getElementById('purchaseTotal').textContent=money(total);return Math.round((total+Number.EPSILON)*100)/100;
 }
 function resetPurchaseForm(){
