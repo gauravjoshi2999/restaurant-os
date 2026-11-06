@@ -26,7 +26,7 @@ Open the project → SQL Editor → New query. For a fresh database, run each co
 10. supabase/automatic_order_financial_snapshots.sql — creates the immutable financial snapshot in the same transaction as every new order. Staff-created orders are limited to zero adjustments; owners/managers/Super Admins can use the snapshot RPC for approved adjustments.\n11. supabase/customer_storefront_foundation.sql — customer addresses, public menu catalog, customer-owned order access, customer checkout RPC, and Realtime order-status/location foundations. Run only after step 10 succeeds.
 12. supabase/customer_order_history.sql — secure customer order-history RPC and read access to only the signed-in customer's order items. Run after step 11 succeeds.
 13. supabase/customer_checkout_no_otp.sql — customer-entered name/mobile contact profile and checkout RPC that no longer requires SMS/phone OTP. Run after steps 11 and 12 succeed.
-14. supabase/phase4_external_channel_owner_guard.sql — enforces the Owner-only manual Zomato/Swiggy entry rule in the database. Run after step 13 succeeds.
+14. supabase/phase4_external_channel_owner_guard.sql — enforces Owner-only manual Zomato/Swiggy entry and Owner-only order-status updates in the database. Run after step 13 succeeds.
 
 Do not skip the order. Later SQL files depend on functions or tables created by earlier phases. These scripts are designed to be rerunnable in several places, but do not use rerunning migrations as a substitute for checking the current database state.
 
