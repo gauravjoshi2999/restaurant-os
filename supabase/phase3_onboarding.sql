@@ -37,6 +37,16 @@ to authenticated
 using (public.is_platform_admin())
 with check (public.is_platform_admin());
 
+
+-- Only platform Super Admins may delete onboarding records.
+-- The UI separately blocks deletion when orders are linked; the FK remains the final safeguard.
+drop policy if exists "platform admins can delete restaurants" on public.restaurants;
+create policy "platform admins can delete restaurants"
+on public.restaurants
+for delete
+to authenticated
+using (public.is_platform_admin());
+
 -- Verify expected columns and policy after running.
 select column_name
 from information_schema.columns
