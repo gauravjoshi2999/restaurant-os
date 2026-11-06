@@ -22,7 +22,7 @@ returns void
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_customer_payable numeric(14,2);
 begin
@@ -59,7 +59,7 @@ begin
     raise exception 'Order was already included in a settlement or could not be updated.';
   end if;
 end;
-$;
+$$;
 
 revoke execute on function public.record_order_payment_reconciliation(uuid,numeric,numeric)
   from public, anon;
