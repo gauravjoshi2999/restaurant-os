@@ -91,7 +91,13 @@ using (
     select 1 from public.restaurants r
     where r.id = menu_categories.restaurant_id and r.is_published
   )
-  or public.is_platform_admin()
+);
+
+drop policy if exists "restaurant teams can read all menu categories" on public.menu_categories;
+create policy "restaurant teams can read all menu categories"
+on public.menu_categories for select to authenticated
+using (
+  public.is_platform_admin()
   or public.is_restaurant_member(restaurant_id)
 );
 
@@ -115,7 +121,13 @@ using (
     select 1 from public.restaurants r
     where r.id = menu_items.restaurant_id and r.is_published
   )
-  or public.is_platform_admin()
+);
+
+drop policy if exists "restaurant teams can read all menu items" on public.menu_items;
+create policy "restaurant teams can read all menu items"
+on public.menu_items for select to authenticated
+using (
+  public.is_platform_admin()
   or public.is_restaurant_member(restaurant_id)
 );
 
@@ -295,7 +307,7 @@ begin
   left join public.profiles p on p.id = u.id
   where u.id = v_user;
 
-  if v_phone is null or length(regexp_replace(v_phone, '\\D', '', 'g')) < 10 then
+  if v_phone is null or length(regexp_replace(v_phone, '[^0-9]', '', 'g')) < 10 then
     raise exception 'A verified mobile number is required on your account.';
   end if;
   if v_name is null then raise exception 'Please add your name to your profile first.'; end if;
