@@ -133,3 +133,13 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Rollback-only Owner tests verified: mapped purchase added exactly 3 kg; payment-only edit did not duplicate stock; changing linked quantity was rejected; deleting linked purchase was rejected; unlinked purchase edits worked; unit mismatch was rejected. Cross-tenant purchase-item and stock-movement inserts were rejected. All tests rolled back; live purchase, purchase-item and stock-movement row counts remain zero.
 - `supabase/patch_20261106_purchase_inventory_auto_stock_link.sql` tracks the live SQL patch. This is a reference patch file; the Supabase SQL execution is the live source of truth and is not represented as a new Supabase migration-history entry.
 - JavaScript syntax validation passed. Latest UI commit is `28978a2488b1739f0b9566aad1682814e01c232a`; deployment still needs confirmation.
+
+
+## Daily cashbook and owner day closing — 2026-11-06
+
+- Added `restaurant_cashbook_manual_entries` (Owner-entered income/outflow), `restaurant_cashbook_closings` (one immutable close per restaurant/date), and `restaurant_cashbook_entries` SECURITY INVOKER view.
+- Cashbook view combines Expense ledger outflows, paid Purchase outflows, and manual income/outflow. It separates Cash, UPI, Card, Bank Transfer and Other. It intentionally does not count online orders as cash received until a trusted actual-payment/settlement record exists; POS receipts will connect with the POS payment phase.
+- Owner can add manual cashbook entries and close a day. Manager can view entries and closing summaries but cannot create manual entries or close the day. The close calculation is recomputed by a database trigger: opening cash + cash income − cash outflow = expected cash; counted cash difference is stored.
+- Closing locks manual entries and prevents expense/purchase insert, update or delete for that closed date. Closing records have no update/delete policy. One close per restaurant/date is enforced.
+- Rollback-only Owner test verified: ₹200 cash income, ₹100 expense and ₹50 purchase payment produced ₹200 cash in / ₹150 cash out; with ₹1,000 opening and ₹1,040 counted cash, expected cash was ₹1,050 and difference −₹10. Manual, expense and purchase changes after close were rejected. Test rows and closing were rolled back; no test data remains.
+- Added `supabase/patch_20261106_daily_cashbook_owner_closing.sql` as a reference patch; live SQL execution remains authoritative. Cashbook UI is in `index.html`; JavaScript syntax validation passed. Deployment is pending latest GitHub Pages workflow.
