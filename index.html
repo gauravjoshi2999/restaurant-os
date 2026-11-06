@@ -969,8 +969,9 @@ async function loadReportsData(){
  if(!rid||!from||!to||to<from){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
  document.getElementById('reportStatus').textContent='Reports load ho rahe hain…';
  try{
+  const endExclusive=new Date(to+'T00:00:00');endExclusive.setDate(endExclusive.getDate()+1);
   const [orders,cashbook,balances]=await Promise.all([
-   sb.from('orders').select('*').eq('restaurant_id',rid).gte('order_date',from+'T00:00:00').lt('order_date',to+'T23:59:59.999').order('order_date',{ascending:false}),
+   sb.from('orders').select('*').eq('restaurant_id',rid).gte('order_date',from+'T00:00:00').lt('order_date',endExclusive.toISOString()).order('order_date',{ascending:false}),
    sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}),
    sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('balance',{ascending:false})
   ]);
