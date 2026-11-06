@@ -13,10 +13,7 @@ declare
 begin
   if lower(btrim(coalesce(new.channel, ''))) in ('zomato', 'swiggy', 'zomato (demo)', 'swiggy (demo)')
      and jwt_role <> 'service_role'
-     and not (
-       public.is_platform_admin()
-       or public.has_restaurant_role(new.restaurant_id, array['owner'])
-     ) then
+     and not public.has_restaurant_role(new.restaurant_id, array['owner']) then
     raise exception 'Only the restaurant Owner can manually enter Zomato/Swiggy orders.';
   end if;
   return new;
@@ -43,10 +40,7 @@ declare
 begin
   if new.status is distinct from old.status
      and jwt_role <> 'service_role'
-     and not (
-       public.is_platform_admin()
-       or public.has_restaurant_role(new.restaurant_id, array['owner'])
-     ) then
+     and not public.has_restaurant_role(new.restaurant_id, array['owner']) then
     raise exception 'Only the restaurant Owner can update order status.';
   end if;
   return new;
