@@ -84,3 +84,15 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Configure leaked-password protection in Supabase Auth dashboard when the setting can be accessed.
 - Add automated tenant-isolation and role-based integration tests (Owner, Manager, Staff, Customer, Super Admin) before enabling more financial or staff-management operations.
 - Obtain a proper database export/backup before any future destructive schema or data changes. No downloadable backup was created as part of this phase.
+
+
+## Expense ledger module — 2026-11-06
+
+- Added live table `public.restaurant_expenses` with restaurant scoping, date, category, title, amount, payment mode, note, creator and timestamps.
+- Enabled RLS and verified it is active. Four policies: Owner/Manager read, Owner insert/update/delete. Super Admin read-only policy is included for platform oversight.
+- Verified indexes for restaurant/date and creator lookup.
+- A rollback-only authenticated Owner insert test succeeded; the test transaction was rolled back and no sample expense remains.
+- A rollback-only attempt by the platform-admin account against a restaurant where that account is not an Owner was correctly rejected by RLS.
+- Added an Expenses page to the owner workspace: restaurant selection, expense entry, edit/delete for Owner, read-only view for Manager, total and count.
+- Frontend JavaScript syntax was checked after the change. GitHub Pages deployment for the latest commits is still pending; do not treat the new screen as live until the Actions run succeeds.
+- The connected GitHub file-write action rejected creation of a separate SQL migration file. The live migration was applied successfully; repository migration-file synchronization remains an outstanding documentation/deployment task.
