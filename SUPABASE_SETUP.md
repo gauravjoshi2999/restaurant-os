@@ -21,7 +21,8 @@ Open the project → SQL Editor → New query. For a fresh database, run each co
 5. supabase/quality_hardening.sql — removes the legacy Owner restaurant-delete policy and adjusts creator membership behavior. Requires Phase 2 and Phase 3.
 6. supabase/order_lifecycle.sql — allowed order states, transition enforcement and order status history.
 7. supabase/order_details_multi_items.sql — customer details, order items and the create-order-with-items function.
-8. supabase/financial_settlement_foundation.sql — financial snapshots, settlement records, settlement line items and platform expenses. This is a development foundation only; it does not collect payments or execute payouts.
+8. supabase/financial_settlement_foundation.sql — financial snapshots, settlement records, settlement line items and platform expenses.
+9. supabase/weekly_settlement_drafts.sql — Super Admin-only manual payment-fee/refund reconciliation and seven-day settlement draft generation. It does not transfer money or connect to a payment provider.
 
 Do not skip the order. Later SQL files depend on functions or tables created by earlier phases. These scripts are designed to be rerunnable in several places, but do not use rerunning migrations as a substitute for checking the current database state.
 
@@ -67,7 +68,7 @@ The following are not active production capabilities yet:
 - Public customer-facing restaurant discovery, menu, checkout, and order tracking.
 - Restaurant-managed delivery zones and delivery workflow (the intended initial model is that each restaurant handles its own delivery; RestaurantOS does not provide a fleet).
 - Live Zomato/Swiggy API integration. This requires authorized partner/API access.
-- Payment-provider onboarding, marketplace payment collection, automated commission deduction during checkout, refunds, settlement creation/approval/payout processing, and production P&L reporting. The financial-settlement SQL migration creates the initial record structure only; it must be applied and tested separately.
+- Payment-provider onboarding, marketplace payment collection, automated commission deduction during checkout, automatic payment/refund updates, settlement approval/payout processing, and production P&L reporting. The financial migrations provide a manual, Super Admin-only ledger and seven-day draft generator; they do not transfer money or connect to a payment provider.
 - Production-grade security, tenant-isolation, backup, monitoring, and role-by-role testing.
 
 The intended commercial model is that Zomato/Swiggy continue paying restaurants directly under their existing agreements while RestaurantOS reconciles those payouts. RestaurantOS website orders are intended to use an authorized payment-aggregator/marketplace settlement arrangement, with agreed commission and restaurant settlement. These are product/business requirements, not implemented payment flows.
