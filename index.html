@@ -123,7 +123,17 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 </div></main></div>
 <div class="modal" id="restaurantModal"><div class="modal-box"><div class="modal-head"><h2>Add restaurant</h2><button class="close" onclick="closeModal('restaurantModal')">✕</button></div><form id="restaurantForm"><div class="form-row"><div class="field"><label>Restaurant name *</label><input name="name" required></div><div class="field"><label>Contact number</label><input name="phone" inputmode="tel" maxlength="10"></div><div class="field"><label>City</label><input name="city" value="Rajsamand"></div></div><button class="btn">Save restaurant</button></form></div></div>
 <div class="modal" id="orderModal"><div class="modal-box"><div class="modal-head"><h2>Add demo order</h2><button class="close" onclick="closeModal('orderModal')">✕</button></div><form id="orderForm"><div class="form-row"><div class="field"><label>Restaurant *</label><select name="restaurant" id="orderRestaurant" required></select></div><div class="field"><label>Channel</label><select name="channel"><option>Own Platform</option><option>Zomato (demo)</option><option>Swiggy (demo)</option></select></div><div class="field"><label>Order amount (₹) *</label><input name="amount" type="number" min="1" step=".01" required></div></div><button class="btn">Create demo order</button></form></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.addEventListener('error', function(e) {
+  const box = document.getElementById('authError');
+  if (box) { box.textContent = 'Website script error: ' + (e.message || 'JavaScript load failed'); box.style.display = 'block'; }
+});
+window.addEventListener('unhandledrejection', function(e) {
+  const box = document.getElementById('authError');
+  if (box) { box.textContent = 'Login error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)); box.style.display = 'block'; }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
 <script>
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
 const SUPABASE_KEY='sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn';
