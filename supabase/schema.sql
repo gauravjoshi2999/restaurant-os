@@ -52,27 +52,37 @@ create index if not exists restaurant_members_user_idx
 create or replace function public.is_restaurant_member(target_restaurant uuid)
 returns boolean
 language sql stable security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
     select 1 from public.restaurant_members rm
     where rm.restaurant_id = target_restaurant
-      and rm.user_id = auth.uid()
+      and rm.user_id = (select auth.uid())
   );
 $$;
 
 create or replace function public.has_restaurant_role(target_restaurant uuid, allowed_roles text[])
 returns boolean
 language sql stable security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
     select 1 from public.restaurant_members rm
     where rm.restaurant_id = target_restaurant
-      and rm.user_id = auth.uid()
+      and rm.user_id = (select auth.uid())
       and rm.role = any(allowed_roles)
   );
 $$;
+
+
+-- Restrict SECURITY DEFINER helpers to authenticated policy evaluation.
+-- Trigger functions are not callable through the client API.
+revoke execute on function public.is_restaurant_member(uuid) from public, anon;
+revoke execute on function public.has_restaurant_role(uuid, text[]) from public, anon;
+grant execute on function public.is_restaurant_member(uuid) to authenticated;
+grant execute on function public.has_restaurant_role(uuid, text[]) to authenticated;
+revoke execute on function public.add_creator_as_restaurant_owner() from public, anon, authenticated;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.restaurants enable row level security;
@@ -138,7 +148,7 @@ for delete to authenticated using (
 create or replace function public.add_creator_as_restaurant_owner()
 returns trigger
 language plpgsql security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.restaurant_members (restaurant_id, user_id, role)
@@ -157,7 +167,7 @@ for each row execute function public.add_creator_as_restaurant_owner();
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.profiles (id, full_name)
