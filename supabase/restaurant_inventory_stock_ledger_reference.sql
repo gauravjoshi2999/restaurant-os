@@ -70,3 +70,6 @@ from public.restaurant_inventory_items i
 left join public.restaurant_stock_movements m on m.inventory_item_id=i.id and m.restaurant_id=i.restaurant_id
 where i.is_active group by i.id,i.restaurant_id;
 grant select on public.restaurant_inventory_balances to authenticated;
+
+-- Stock movements are immutable; corrections should be recorded as new adjustment movements.
+revoke update,delete on public.restaurant_stock_movements from authenticated,anon;
