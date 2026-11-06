@@ -362,8 +362,8 @@ async function loadPurchases(){
 function renderPurchases(){
  const rows=document.getElementById('purchaseRows');
  rows.innerHTML=purchaseRecords.map(p=>{
-  const its=purchaseItems.filter(x=>x.purchase_id===p.id),supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—',balance=Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
-  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)</td><td>'+money(p.total_amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button><button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>';
+  const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—',balance=Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
+  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button><button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>';
  }).join('');
  document.getElementById('purchaseEmpty').style.display=purchaseRecords.length?'none':'block';
  document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records';
