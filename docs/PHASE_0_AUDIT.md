@@ -198,3 +198,11 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Customer link is immutable after order creation, restaurant scope is validated, and customer deletion is restricted when order history exists.
 - Rollback-only test: a customer saved with `+91 98765 43210` was auto-linked to a POS sale entered with `9876543210`; ₹100 sale less ₹30 Cash payment showed ₹70 Khata due. A separate ₹200 debit less ₹50 jama brought total due to ₹220. Cashbook counted ₹80 actual cash receipts exactly once; day closing expected ₹1,080 from ₹1,000 opening. Customer link mutation and customer deletion with history were rejected. Test rows rolled back.
 - Updated POS and Khata page notices. `supabase/patch_20261106_pos_khata_customer_link.sql` tracks the live integration patch. Latest UI notice commit: `f3dc886cf8627776a37b2d1d678aa0026c564c48`.
+
+
+## Business reports — 2026-11-06
+
+- Added Owner/Manager Reports workspace with restaurant and date-range filters. It summarizes order count/gross sales, actual cashbook income/outflow/net movement, POS outstanding, sales by channel, payment modes, expense categories, top-selling items, daily cash movement and current customer outstanding balances.
+- Added CSV export combining order sales and actual cashbook transactions. Date filtering uses a next-day exclusive boundary to include the full selected end date.
+- Reports deliberately do not show a final net-profit number: food cost/recipe quantities, taxes and trusted online-platform settlement flows are not yet fully integrated. Cashbook net movement is not the same as profit.
+- `index.html` Reports UI JavaScript syntax validation passed. Latest Reports UI commit `705fd74198304d88b6314d48926dfec91e041021`; deployment pending latest Pages workflow.
