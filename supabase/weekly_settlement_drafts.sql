@@ -11,6 +11,61 @@ alter table public.restaurant_settlement_items
 create unique index if not exists restaurant_settlements_one_period_per_restaurant
   on public.restaurant_settlements (restaurant_id, period_start, period_end);
 
+-- Admin records the actual provider-confirmed payment fee and refund figures.
+-- This is a manual ledger entry, not a payment-provider integration.
+create or replace function public.record_order_payment_reconciliation(
+  p_order_id uuid,
+  p_provider_fee_actual numeric,
+  p_refund_amount_actual numeric default 0
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_customer_payable numeric(14,2);
+begin
+  if auth.uid() is null or not public.is_platform_admin() then
+    raise exception 'Only a signed-in RestaurantOS Super Admin can record payment reconciliation.';
+  end if;
+
+  if p_provider_fee_actual is null or p_provider_fee_actual < 0
+     or coalesce(p_refund_amount_actual,0) < 0 then
+    raise exception 'Enter non-negative actual gateway fee and refund amounts.';
+  end if;
+
+  select customer_payable_amount into v_customer_payable
+  from public.order_financials
+  where order_id = p_order_id
+  for update;
+
+  if not found then
+    raise exception 'Create the order financial snapshot before recording payment reconciliation.';
+  end if;
+
+  if coalesce(p_refund_amount_actual,0) > v_customer_payable then
+    raise exception 'Refund amount cannot exceed the recorded customer payable amount.';
+  end if;
+
+  update public.order_financials
+  set payment_status = 'paid',
+      provider_fee_actual = round(p_provider_fee_actual,2),
+      refund_amount_actual = round(coalesce(p_refund_amount_actual,0),2)
+  where order_id = p_order_id
+    and settlement_status in ('not_ready','unsettled');
+
+  if not found then
+    raise exception 'Order was already included in a settlement or could not be updated.';
+  end if;
+end;
+$;
+
+revoke execute on function public.record_order_payment_reconciliation(uuid,numeric,numeric)
+  from public, anon;
+grant execute on function public.record_order_payment_reconciliation(uuid,numeric,numeric)
+  to authenticated;
+
 create or replace function public.create_weekly_settlement_draft(
   p_restaurant_id uuid,
   p_period_start date,
@@ -83,7 +138,7 @@ begin
     and o.status = 'Completed'
     and f.payment_status = 'paid'
     and o.order_date::date between p_period_start and p_period_end
-    and f.settlement_status = 'unsettled';
+    and f.settlement_status in ('not_ready','unsettled');
 
   if v_count = 0 then
     raise exception 'No eligible paid and completed Own Platform orders are available for this week.';
@@ -124,7 +179,7 @@ begin
     and o.status = 'Completed'
     and f.payment_status = 'paid'
     and o.order_date::date between p_period_start and p_period_end
-    and f.settlement_status = 'unsettled';
+    and f.settlement_status in ('not_ready','unsettled');
 
   update public.order_financials f
   set settlement_status = 'included'
@@ -147,7 +202,8 @@ commit;
 select routine_name
 from information_schema.routines
 where routine_schema = 'public'
-  and routine_name = 'create_weekly_settlement_draft';
+  and routine_name in ('record_order_payment_reconciliation','create_weekly_settlement_draft')
+order by routine_name;
 
 select indexname
 from pg_indexes
