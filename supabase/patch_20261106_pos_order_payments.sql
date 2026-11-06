@@ -145,3 +145,27 @@ grant execute on function public.create_pos_order_with_payment(uuid,text,text,te
 
 -- Payment rows are append-only; corrections are handled by a future refund/reversal flow.
 revoke update,delete on public.restaurant_order_payments from authenticated,anon;
+
+
+-- Later hardening: rejected/cancelled orders cannot accept new POS payments and do not carry a due balance.
+create or replace function public.guard_restaurant_order_payment()
+returns trigger language plpgsql set search_path='' as $$
+declare order_total numeric(14,2);order_channel text;order_status text;paid_total numeric(14,2);
+begin
+ if not public.has_restaurant_role(new.restaurant_id,array['owner','manager','staff']) then raise exception 'Restaurant team access required to record payment'; end if;
+ perform 1 from public.orders o where o.id=new.order_id and o.restaurant_id=new.restaurant_id for update;
+ if not found then raise exception 'Order must belong to the same restaurant'; end if;
+ select o.amount,o.channel,o.status into order_total,order_channel,order_status from public.orders o where o.id=new.order_id;
+ if order_status in ('Rejected','Cancelled') then raise exception 'Cannot record a payment for a rejected or cancelled order'; end if;
+ if order_channel not in ('POS - Counter','POS - Takeaway','POS - Dine-in') then raise exception 'Manual payment entry is only for POS orders; online platform payments are provider managed'; end if;
+ select coalesce(sum(p.amount),0) into paid_total from public.restaurant_order_payments p where p.order_id=new.order_id;
+ if paid_total+new.amount>order_total then raise exception 'Payment exceeds order balance'; end if;
+ if exists(select 1 from public.restaurant_cashbook_closings c where c.restaurant_id=new.restaurant_id and c.close_date=new.payment_date) then raise exception 'This cashbook day is already closed'; end if;
+ return new;
+end;$$;
+create or replace view public.restaurant_order_payment_summaries with (security_invoker=true) as
+select o.id as order_id,o.restaurant_id,o.amount as order_total,coalesce(sum(p.amount),0)::numeric(14,2) as paid_amount,
+ case when o.status in ('Rejected','Cancelled') then 0::numeric(14,2) else greatest(o.amount-coalesce(sum(p.amount),0),0)::numeric(14,2) end as balance_amount,
+ case when o.status in ('Rejected','Cancelled') then 'cancelled' when coalesce(sum(p.amount),0)>=o.amount and o.amount>0 then 'paid' when coalesce(sum(p.amount),0)>0 then 'partial' else 'unpaid' end as payment_status
+from public.orders o left join public.restaurant_order_payments p on p.order_id=o.id and p.restaurant_id=o.restaurant_id group by o.id,o.restaurant_id,o.amount,o.status;
+grant select on public.restaurant_order_payment_summaries to authenticated;
