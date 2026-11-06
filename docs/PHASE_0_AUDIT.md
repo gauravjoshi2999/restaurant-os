@@ -175,3 +175,6 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Payroll calculation, overtime calculation, payslip PDF and employee self-service login mapping are not yet implemented; salary amount/period are stored but no automatic payable amount is claimed.
 - Rollback-only Owner tests verified employee create, attendance update, leave approval audit, ₹500 salary cash payment in Cashbook, and cashbook day-close calculation. Closed-day employee payment was rejected. An outsider saw zero employee rows and could not write attendance/payments. Test data rolled back; no test rows remain.
 - `supabase/patch_20261106_staff_hr_module.sql` tracks the live SQL patch. JavaScript syntax validation passed. HR UI deployment is pending the latest GitHub Pages workflow.
+
+
+- HR UI follow-up commit `0396534b4e9dbdad9343332fcaf3c93ae5c6dd38` lets Owners record final payments for inactive employees; attendance and leave pickers remain active-employee-only.
