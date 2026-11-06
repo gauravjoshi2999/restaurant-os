@@ -133,11 +133,11 @@ window.addEventListener('unhandledrejection', function(e) {
   if (box) { box.textContent = 'Login error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)); box.style.display = 'block'; }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';"></script>
 <script>
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
 const SUPABASE_KEY='sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+if(!window.supabase || typeof window.supabase.createClient!=='function'){showAuthError('Login library start nahi hui. Page ko refresh karein; agar error rahe to support ko screenshot bhejein.');throw new Error('Supabase UMD library did not expose createClient');}\nconst sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null, state={restaurants:[],orders:[]}, isSignup=false;
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
