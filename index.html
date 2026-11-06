@@ -279,7 +279,7 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
  </div></div>
  <div class="grid section">
   <div class="card"><div class="metric-label">Active employees</div><div class="metric" id="hrActiveCount">0</div></div>
-  <div class="card"><div class="metric-label">Present today</div><div class="metric" id="hrPresentCount">0</div></div>
+  <div class="card"><div class="metric-label">Present / Half Day</div><div class="metric" id="hrPresentCount">0</div></div>
   <div class="card"><div class="metric-label">Pending leaves</div><div class="metric" id="hrPendingLeaves">0</div></div>
   <div class="card"><div class="metric-label">Paid this month</div><div class="metric" id="hrPaidMonth">₹0.00</div></div>
  </div>
@@ -723,8 +723,8 @@ async function loadHRData(){
  }catch(err){document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
 }
 function renderHREmployeeSelects(){
- const options='<option value="">Select employee</option>'+hrEmployees.filter(e=>e.status==='Active').map(e=>'<option value="'+esc(e.id)+'">'+esc(e.full_name)+(e.employee_code?' · '+esc(e.employee_code):'')+'</option>').join('');
- ['hrAttendanceEmployee','hrLeaveEmployee','hrPaymentEmployee'].forEach(id=>{const el=document.getElementById(id),old=el.value;el.innerHTML=options;if(hrEmployees.some(e=>e.id===old&&e.status==='Active'))el.value=old});
+ const optionRows=list=>'<option value="">Select employee</option>'+list.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.full_name)+(e.employee_code?' · '+esc(e.employee_code):'')+'</option>').join('');
+ [['hrAttendanceEmployee',hrEmployees.filter(e=>e.status==='Active')],['hrLeaveEmployee',hrEmployees.filter(e=>e.status==='Active')],['hrPaymentEmployee',hrEmployees]].forEach(([id,list])=>{const el=document.getElementById(id),old=el.value;el.innerHTML=optionRows(list);if(list.some(e=>e.id===old))el.value=old});
 }
 function renderHR(){
  const active=hrEmployees.filter(e=>e.status==='Active').length,today=document.getElementById('hrAttendanceDate').value;
