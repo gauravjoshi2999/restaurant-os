@@ -55,3 +55,28 @@
 - [ ] Inspect actual live Supabase schema/migration history and run tenant-isolation tests.
 
 **Phase 0 is partially complete.** The repository baseline and first permission correction are committed. Database application, live deployment verification and real-device testing remain outstanding.
+
+
+## Live Supabase verification update — 2026-11-06
+
+The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected through the connected Supabase integration. This section supersedes the earlier repository-only scope statement above.
+
+- Project status: ACTIVE_HEALTHY; PostgreSQL 17.
+- RLS is enabled on all inspected public application tables.
+- Live data counts at verification: 10 orders, 11 order items, 42 order-status history rows; these counts were unchanged by the hardening work.
+- The two order guard triggers are present on `public.orders`.
+- The live guard functions were verified to check restaurant Owner membership for external-channel entry and status changes; they do not rely on a Super Admin bypass.
+- Phase 5 migration applied successfully: ten missing foreign-key indexes added; profile own-row policies and order insert policy use initplan form for `auth.uid()`.
+- Post-migration verification confirmed all ten indexes, three optimized profile policies, both order guard triggers and unchanged order counts.
+- Security advisor still reports callable SECURITY DEFINER functions. These were reviewed as purpose-built RPCs/helpers: customer checkout is intentionally callable by customers, public restaurant listing returns only published restaurant fields, customer order history is scoped to `auth.uid()`, settlement draft and payment reconciliation require Super Admin, and permission helpers support RLS. Their EXECUTE grants were not blindly revoked because doing so could break RLS and required application workflows.
+- Supabase Auth leaked-password protection remains disabled. The connected database tool does not expose the Auth dashboard setting; this remains a dashboard-level configuration task.
+- Performance advisor no longer reports unindexed foreign keys or auth initplan warnings. It still reports overlapping permissive policies (intentional combinations of customer/team/platform-admin access) and unused indexes. Unused indexes were not dropped because current data volume is small and future query paths are expected.
+- Supabase health advisor returned no findings.
+- No customer/business rows were deleted or modified during the audit.
+
+## Remaining release gates
+
+- Verify GitHub Pages deployment run for the latest commit and perform actual browser/device smoke tests.
+- Configure leaked-password protection in Supabase Auth dashboard when the setting can be accessed.
+- Add automated tenant-isolation and role-based integration tests (Owner, Manager, Staff, Customer, Super Admin) before enabling more financial or staff-management operations.
+- Obtain a proper database export/backup before any future destructive schema or data changes. No downloadable backup was created as part of this phase.
