@@ -23,6 +23,7 @@ Open the project → SQL Editor → New query. For a fresh database, run each co
 7. supabase/order_details_multi_items.sql — customer details, order items and the create-order-with-items function.
 8. supabase/financial_settlement_foundation.sql — financial snapshots, settlement records, settlement line items and platform expenses.
 9. supabase/weekly_settlement_drafts.sql — Super Admin-only manual payment-fee/refund reconciliation and seven-day settlement draft generation. It does not transfer money or connect to a payment provider.
+10. supabase/automatic_order_financial_snapshots.sql — creates the immutable financial snapshot in the same transaction as every new order. Staff-created orders are limited to zero adjustments; owners/managers/Super Admins can use the snapshot RPC for approved adjustments.
 
 Do not skip the order. Later SQL files depend on functions or tables created by earlier phases. These scripts are designed to be rerunnable in several places, but do not use rerunning migrations as a substitute for checking the current database state.
 
@@ -61,7 +62,7 @@ https://gauravjoshi2999.github.io/restaurant-os/
 
 ## Current scope and limitations
 
-The current site is an authenticated operations prototype. It includes the restaurant/order workspace, role and Super Admin foundations, multi-item order data, order lifecycle history, and manual reconciliation fields.
+The current site is an authenticated operations prototype. It includes the restaurant/order workspace, role and Super Admin foundations, multi-item order data, order lifecycle history, automatic financial snapshots for newly created orders, and manual reconciliation fields.
 
 The following are not active production capabilities yet:
 
