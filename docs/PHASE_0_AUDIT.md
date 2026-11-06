@@ -178,3 +178,14 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 
 
 - HR UI follow-up commit `0396534b4e9dbdad9343332fcaf3c93ae5c6dd38` lets Owners record final payments for inactive employees; attendance and leave pickers remain active-employee-only.
+
+
+## Customer Khata ledger — 2026-11-06
+
+- Added `restaurant_customers` with restaurant-scoped customer profiles and normalized phone uniqueness (Indian +91/leading-zero formatting normalizes to the same 10-digit number).
+- Added append-only `restaurant_customer_ledger_entries`: Debit = Udhar/amount customer owes; Credit = Jama/payment received. Balance view shows due when positive and advance when negative. Payment methods are required for credit receipts; credit receipts automatically appear as Cashbook income.
+- Owner/Manager/Staff can view customer accounts and add ledger entries for their restaurant. Owner/Manager can update customer profiles; only Owner can delete. Ledger entries cannot be updated/deleted and are locked for a date already closed in Cashbook.
+- Customer Khata page includes customer creation, mobile number, account list, total due/advance, debit/credit entry form and customer-wise ledger with running balance.
+- Rollback-only test verified ₹1,000 debit less ₹300 Cash jama = ₹700 due; ₹300 jama appeared in Cashbook and day closing. Closed-day ledger entry was rejected. +91 formatted phone duplicate was rejected. Outsider saw zero customer balances and could not write ledger entries. All test rows rolled back.
+- POS orders are not yet automatically linked to Khata customers. POS order due is still shown on the order/POS screen; manual Khata debit entry is available until that integration is completed.
+- `supabase/patch_20261106_customer_khata.sql` tracks the SQL reference patch. JavaScript syntax validation passed. Deployment remains pending the latest GitHub Pages workflow.
