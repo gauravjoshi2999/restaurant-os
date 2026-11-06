@@ -1,6 +1,6 @@
 # RestaurantOS — Supabase setup
 
-This guide is for a **brand-new Supabase project**. The existing development project already has these SQL phases applied and verified. If you are working on that existing project, do not rerun the setup sequence just because this guide was updated.
+This guide documents the SQL setup sequence for a **brand-new Supabase project**. For the existing development project, do not rerun the setup sequence. The current live schema and migration history have not yet been independently re-verified in this audit; run the read-only preflight in `supabase/phase4_preflight_readonly.sql` before deciding whether any migration is pending.
 
 ## 1. Create the Supabase project
 
