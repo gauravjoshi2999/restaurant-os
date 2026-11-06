@@ -179,7 +179,7 @@ join public.restaurant_customers c on c.id=o.restaurant_customer_id and c.restau
 where r.refund_amount>0;
 
 create or replace view public.restaurant_cashbook_entries with (security_invoker=true) as
-select e.id,e.restaurant_id,e.expense_date,'out'::text,e.category,e.amount,e.payment_method,e.title,'expense'::text,e.id,e.created_at
+select e.id as entry_id,e.restaurant_id,e.expense_date as entry_date,'out'::text as direction,e.category,e.amount,e.payment_method,e.title as description,'expense'::text as source_type,e.id as source_id,e.created_at
 from public.restaurant_expenses e
 union all
 select p.id,p.restaurant_id,p.purchase_date,'out'::text,'Purchase payment'::text,p.paid_amount,p.payment_method,
