@@ -2,6 +2,11 @@
 
 RestaurantOS is a multi-restaurant ordering and operations platform prototype, beginning with a Rajsamand pilot.
 
+## Project planning
+
+- [Approved Product Blueprint & Delivery Roadmap](docs/PRODUCT_BLUEPRINT.md)
+- [Phase 0 Repository Audit](docs/PHASE_0_AUDIT.md)
+
 ## Product goal
 
 RestaurantOS is intended to give customers a public website where they can discover participating restaurants, place food orders, and pay online. Each restaurant should manage orders from three channels in one owner dashboard:
