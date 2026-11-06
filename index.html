@@ -390,7 +390,7 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
   <div class="card table-wrap"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Balance</th><th>Khata</th></tr></thead><tbody id="khataCustomerRows"></tbody></table><div class="empty" id="khataCustomerEmpty">No customer accounts added.</div></div>
  </div>
  <div class="section"><div class="section-head"><h2 id="khataLedgerTitle">Customer ledger</h2><span class="small" id="khataLedgerBalance">Select a customer</span></div>
-  <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Entry</th><th>Description</th><th>Payment mode</th><th>Amount</th><th>Balance effect</th></tr></thead><tbody id="khataLedgerRows"></tbody></table><div class="empty" id="khataLedgerEmpty">Select a customer to view their Khata.</div></div>
+  <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Entry</th><th>Description</th><th>Payment mode</th><th>Amount</th><th>Balance after entry</th></tr></thead><tbody id="khataLedgerRows"></tbody></table><div class="empty" id="khataLedgerEmpty">Select a customer to view their Khata.</div></div>
  </div>
 </section>
 <section class="page" id="settings"><div class="welcome"><div><h1>Workspace settings</h1><div class="muted">Initial pilot configuration</div></div></div><div class="card"><h3>Project setup</h3><p>Workspace: RestaurantOS</p><p>Pilot city: Rajsamand, Rajasthan</p><p>Mode: Supabase cloud database</p><p>Next technical milestones: secure backend, database, role-based login, partner API approval and payment-provider onboarding.</p><button class="btn secondary" onclick="exportData()">Export demo data (JSON)</button> <button class="btn secondary" onclick="resetData()">Reset demo data</button></div></section>
@@ -894,9 +894,9 @@ function renderKhataLedger(){
  const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),b=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId);
  document.getElementById('khataLedgerTitle').textContent=c?'Khata · '+c.full_name:'Customer ledger';
  const bal=Number(b?.balance||0);document.getElementById('khataLedgerBalance').textContent=c?(bal>0?'Due '+money(bal):bal<0?'Advance '+money(Math.abs(bal)):'Balance clear'):'Select a customer';
- const rows=khataEntries.filter(x=>x.customer_id===selectedKhataCustomerId).sort((a,b)=>b.entry_date.localeCompare(a.entry_date));
+ const rows=khataEntries.filter(x=>x.customer_id===selectedKhataCustomerId).sort((a,b)=>b.entry_date.localeCompare(a.entry_date)||b.created_at.localeCompare(a.created_at));
  let running=bal;
- document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{const effect=x.entry_type==='debit'?Number(x.amount):-Number(x.amount),current=running;running-=effect;return '<tr><td>'+esc(x.entry_date)+'</td><td><span class="pill '+(x.entry_type==='debit'?'amber':'green')+'">'+(x.entry_type==='debit'?'Udhar':'Jama')+'</span></td><td>'+esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'')+'</td><td>'+esc(x.payment_method||'—')+'</td><td>'+money(x.amount)+'</td><td>'+money(effect)+'</td></tr>'}).join('');
+ document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{const effect=x.entry_type==='debit'?Number(x.amount):-Number(x.amount),current=running;running-=effect;return '<tr><td>'+esc(x.entry_date)+'</td><td><span class="pill '+(x.entry_type==='debit'?'amber':'green')+'">'+(x.entry_type==='debit'?'Udhar':'Jama')+'</span></td><td>'+esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'')+'</td><td>'+esc(x.payment_method||'—')+'</td><td>'+money(x.amount)+'</td><td>'+money(current)+'</td></tr>'}).join('');
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
  if(!c)document.getElementById('khataLedgerEmpty').textContent='Select a customer to view their Khata.';
 }
