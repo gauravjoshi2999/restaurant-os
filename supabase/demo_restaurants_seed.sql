@@ -71,12 +71,47 @@ begin
     where restaurant_id = v_restaurant_id and name = 'Popular';
 
     for v_item in
-      select * from (values
-        ('Royal Veg Thali', 189::numeric, true, 'Popular'),
-        ('Paneer Butter Masala', 219::numeric, true, 'Popular'),
-        ('Dal Tadka with Rice', 159::numeric, true, 'More to try'),
-        ('Butter Roti', 20::numeric, true, 'More to try')
-      ) as m(item_name, item_price, veg, category_name)
+      select * from (
+        select * from (values
+          ('Royal Veg Thali', 189::numeric, true, 'Popular'),
+          ('Paneer Butter Masala', 219::numeric, true, 'Popular'),
+          ('Dal Tadka with Rice', 159::numeric, true, 'More to try'),
+          ('Butter Roti', 20::numeric, true, 'More to try')
+        ) as m(item_name, item_price, veg, category_name)
+        where r.name = 'Demo Royal Thali House'
+        union all
+        select * from (values
+          ('Margherita Pizza', 199::numeric, true, 'Popular'),
+          ('Farmhouse Pizza', 279::numeric, true, 'Popular'),
+          ('Garlic Bread', 119::numeric, true, 'More to try'),
+          ('Cheese Burst Pizza', 329::numeric, true, 'More to try')
+        ) as m(item_name, item_price, veg, category_name)
+        where r.name = 'Demo Pizza Junction'
+        union all
+        select * from (values
+          ('Paneer Lababdar', 229::numeric, true, 'Popular'),
+          ('Veg Hakka Noodles', 169::numeric, true, 'Popular'),
+          ('Jeera Rice', 119::numeric, true, 'More to try'),
+          ('Chilli Paneer', 199::numeric, true, 'More to try')
+        ) as m(item_name, item_price, veg, category_name)
+        where r.name = 'Demo Spice & Curry'
+        union all
+        select * from (values
+          ('Masala Dosa', 119::numeric, true, 'Popular'),
+          ('Idli Sambar', 79::numeric, true, 'Popular'),
+          ('Medu Vada', 69::numeric, true, 'More to try'),
+          ('Plain Uttapam', 99::numeric, true, 'More to try')
+        ) as m(item_name, item_price, veg, category_name)
+        where r.name = 'Demo South Street'
+        union all
+        select * from (values
+          ('Pani Puri', 49::numeric, true, 'Popular'),
+          ('Aloo Tikki Chaat', 79::numeric, true, 'Popular'),
+          ('Gulab Jamun', 59::numeric, true, 'More to try'),
+          ('Kesar Rasmalai', 89::numeric, true, 'More to try')
+        ) as m(item_name, item_price, veg, category_name)
+        where r.name = 'Demo Sweet & Snacks'
+      ) as menu_items_demo(item_name, item_price, veg, category_name)
     loop
       select id into v_category_id
       from public.menu_categories
