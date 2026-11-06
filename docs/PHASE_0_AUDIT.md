@@ -120,3 +120,16 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Purchase records do not yet auto-create stock movements; stock-in is currently recorded manually to avoid incorrect item/unit matching. This integration remains a follow-up.
 - Added `supabase/restaurant_inventory_stock_ledger_reference.sql` as a consolidated schema reference. Live migration history remains authoritative.
 - GitHub Pages run `42248397819` succeeded and published the Expense, Purchase/Supplier and Inventory UI code. A real Android/desktop browser smoke test has not yet been performed; the direct site was not accessible to the automated page viewer.
+
+
+## Purchase → Inventory automatic stock posting — 2026-11-06
+
+- Fixed two tenant-correlated RLS expressions on purchase-item and stock-movement inserts. Earlier policy text compared the inner table's restaurant ID to itself; policies now explicitly compare the referenced purchase/inventory row to the outer row's `restaurant_id`.
+- Tightened existing purchase and purchase-item UPDATE policies to Owner-only (plus platform admin oversight), matching the UI and role model. Managers can create purchases and stock entries, but cannot alter existing purchase records.
+- Added `inventory_item_id` to purchase items and `purchase_item_id` to stock movements. A purchase line mapped to an active inventory item with the exact same unit now automatically creates one immutable `purchase` stock movement in the same database transaction.
+- Added guards: purchase and inventory item must belong to the same restaurant; unit must match; posted purchase item identity/quantity/unit/cost cannot be changed; linked purchase header supplier/date/invoice/total cannot be changed and the purchase cannot be deleted. Payment amount/mode and notes remain editable through the Owner workflow.
+- Added `save_restaurant_purchase` RPC as SECURITY INVOKER, callable by authenticated users only. It atomically creates/updates purchase header and lines; it prevents stock from being duplicated on edits. `anon` EXECUTE is false, `authenticated` EXECUTE is true, and `prosecdef=false` verified.
+- Frontend now offers an optional “Map to inventory” selector on each purchase line. Choosing an inventory item automatically fills its unit. Saving the purchase posts stock automatically; purchase history shows how many lines were stock-linked. Unmapped items remain purchase-only.
+- Rollback-only Owner tests verified: mapped purchase added exactly 3 kg; payment-only edit did not duplicate stock; changing linked quantity was rejected; deleting linked purchase was rejected; unlinked purchase edits worked; unit mismatch was rejected. Cross-tenant purchase-item and stock-movement inserts were rejected. All tests rolled back; live purchase, purchase-item and stock-movement row counts remain zero.
+- `supabase/patch_20261106_purchase_inventory_auto_stock_link.sql` tracks the live SQL patch. This is a reference patch file; the Supabase SQL execution is the live source of truth and is not represented as a new Supabase migration-history entry.
+- JavaScript syntax validation passed. Latest UI commit is `28978a2488b1739f0b9566aad1682814e01c232a`; deployment still needs confirmation.
