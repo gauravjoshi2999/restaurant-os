@@ -142,3 +142,6 @@ end;
 $$;
 revoke all on function public.create_pos_order_with_payment(uuid,text,text,text,text,jsonb,numeric,text,date,text) from public,anon;
 grant execute on function public.create_pos_order_with_payment(uuid,text,text,text,text,jsonb,numeric,text,date,text) to authenticated;
+
+-- Payment rows are append-only; corrections are handled by a future refund/reversal flow.
+revoke update,delete on public.restaurant_order_payments from authenticated,anon;
