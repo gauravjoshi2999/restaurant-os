@@ -164,3 +164,14 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Restricted manual order-payment recording at the database trigger to POS channels only. Own Platform and Zomato/Swiggy demo orders cannot be marked paid through the POS payment table; they require their own trusted payment/settlement source.
 - Revoked UPDATE/DELETE privileges on POS payment rows, stock movement history and cashbook closing rows. These ledgers are append-only/immutable; corrections require future reversal/adjustment records.
 - POS form now preserves the selected restaurant from the POS filter and uses full timestamp order codes to reduce collisions. Latest UI change commit: `f9bef54a137130db4f8cc5ba917584706cab6178`.
+
+
+## Staff & HR module — 2026-11-06
+
+- Added `restaurant_employees`, `restaurant_employee_attendance`, `restaurant_employee_leaves`, and append-only `restaurant_employee_payments`, all with RLS enabled and restaurant/employee tenant checks.
+- Owner/Manager can manage employee profiles, attendance and leave records. New leave records are forced to Pending; approval/rejection records the acting user and timestamp. Employee payment records are Owner-only, immutable, and cannot be backdated into a cashbook day already closed.
+- Salary, Advance and Bonus payments automatically appear as cashbook outflows. Deduction records are retained for payroll tracking but are not treated as money paid out. Cashbook day close therefore includes real employee cash payments.
+- Staff & HR page includes employee profile create/edit, active/inactive status, date-wise attendance, leave records and approve/reject controls, Owner-only salary/advance/bonus/deduction entry, and payment history. Summary cards show active staff, present/half-day count, pending leave and recorded payments for selected salary month.
+- Payroll calculation, overtime calculation, payslip PDF and employee self-service login mapping are not yet implemented; salary amount/period are stored but no automatic payable amount is claimed.
+- Rollback-only Owner tests verified employee create, attendance update, leave approval audit, ₹500 salary cash payment in Cashbook, and cashbook day-close calculation. Closed-day employee payment was rejected. An outsider saw zero employee rows and could not write attendance/payments. Test data rolled back; no test rows remain.
+- `supabase/patch_20261106_staff_hr_module.sql` tracks the live SQL patch. JavaScript syntax validation passed. HR UI deployment is pending the latest GitHub Pages workflow.
