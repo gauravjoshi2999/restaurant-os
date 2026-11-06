@@ -39,7 +39,7 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 .field input,.field select{border-radius:9px;background:#fafafa}.modal-box{border-radius:17px}.page .welcome h1{font-family:Manrope,sans-serif}
 @media(max-width:1000px){.content{padding:25px}}@media(max-width:700px){.side{padding:13px 14px 10px}.sub{margin:3px 0 12px 41px}.nav button.active{background:#30323a}.top{height:55px;padding:0 15px}.content{padding:16px 13px 30px}.welcome h1{font-size:23px}.grid{gap:9px}.grid .card{padding:14px;border-radius:13px;min-height:112px}.metric{font-size:23px;margin-top:12px}.metric-label{font-size:10px}.notice{font-size:10px}.card{padding:14px}}
 
-.purchase-item-row{display:grid;grid-template-columns:minmax(130px,2fr) minmax(75px,.7fr) minmax(85px,.8fr) minmax(100px,1fr) auto;gap:9px;align-items:end;padding:11px;background:#fafafa;border:1px solid #eeeef1;border-radius:11px;margin:8px 0}.purchase-item-row .field{min-width:0}.purchase-item-row input{min-width:0;width:100%}@media(max-width:700px){.purchase-item-row{grid-template-columns:1fr 1fr}.purchase-item-row .field:first-child{grid-column:1/-1}.purchase-item-row .pi-remove{grid-column:1/-1;justify-self:end}}
+.purchase-item-row{display:grid;grid-template-columns:minmax(130px,1.8fr) minmax(150px,1.5fr) minmax(75px,.7fr) minmax(85px,.8fr) minmax(100px,1fr) auto;gap:9px;align-items:end;padding:11px;background:#fafafa;border:1px solid #eeeef1;border-radius:11px;margin:8px 0}.purchase-item-row .field{min-width:0}.purchase-item-row input,.purchase-item-row select{min-width:0;width:100%}@media(max-width:700px){.purchase-item-row{grid-template-columns:1fr 1fr}.purchase-item-row .field:first-child,.purchase-item-row .field:nth-child(2){grid-column:1/-1}.purchase-item-row .pi-remove{grid-column:1/-1;justify-self:end}}
 .inventory-movement-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media(max-width:700px){#inventory .form-row{grid-template-columns:1fr!important}}
 /* Final mobile layout overrides */
 @media (max-width:700px){
@@ -176,7 +176,7 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 
 <section class="page" id="inventory">
  <div class="welcome"><div><h1>Inventory & stock</h1><div class="muted">Raw material ka stock, inward/outward aur low-stock alert.</div></div><button class="btn secondary" type="button" onclick="loadInventory()">Refresh</button></div>
- <div class="notice">Purchase module se stock abhi automatic update nahi hota. Purchase aane par yahan “Purchase / Stock In” movement record karein. Har stock movement ka audit record rahega; purani movement edit/delete nahi hoti.</div>
+ <div class="notice">Purchase item ko Inventory item se map karte hi stock automatically add hoga. Unmapped items purchase ledger me rahenge, stock me nahi. Stock movement history audit ke liye locked rahegi.</div>
  <div class="card">
   <div class="section-head"><h2>New inventory item</h2><span class="small">Item master</span></div>
   <div class="form-row" style="align-items:end">
@@ -301,7 +301,12 @@ async function loadPurchaseWorkspace(){
  document.getElementById('purchaseSaveBtn').disabled=!['owner','manager'].includes(access.role);
  document.getElementById('supplierSaveBtn').disabled=!['owner','manager'].includes(access.role);
  document.getElementById('purchaseDate').value=localDateInput();
- resetPurchaseForm();await loadSuppliers();await loadPurchases();
+ resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases();
+}
+async function loadPurchaseInventoryItems(){
+ const rid=purchaseRestaurantId();if(!rid)return;
+ const {data,error}=await sb.from('restaurant_inventory_items').select('id,name,unit').eq('restaurant_id',rid).eq('is_active',true).order('name');
+ if(error)throw error;inventoryItems=data||[];
 }
 async function loadSuppliers(){
  const rid=purchaseRestaurantId();if(!rid)return;
@@ -327,13 +332,15 @@ async function saveSupplier(){
 }
 function addPurchaseItemRow(item={}){
  const wrap=document.getElementById('purchaseItemRows'),row=document.createElement('div');row.className='purchase-item-row';
- row.innerHTML='<div class="field"><label>Item name *</label><input class="pi-name" maxlength="160" placeholder="Rice, oil, vegetables..." value="'+esc(item.item_name||'')+'"></div><div class="field"><label>Qty *</label><input class="pi-qty" type="number" min="0.001" step="0.001" value="'+(item.quantity??1)+'"></div><div class="field"><label>Unit</label><input class="pi-unit" maxlength="24" value="'+esc(item.unit||'pcs')+'"></div><div class="field"><label>Rate (₹) *</label><input class="pi-rate" type="number" min="0" step="0.01" value="'+(item.unit_cost??0)+'"></div><button class="btn danger pi-remove" type="button">Remove</button>';
+ row.innerHTML='<div class="field"><label>Item name *</label><input class="pi-name" maxlength="160" placeholder="Rice, oil, vegetables..." value="'+esc(item.item_name||'')+'"></div><div class="field"><label>Map to inventory (optional)</label><select class="pi-inventory"><option value="">Do not add to stock</option>'+inventoryItems.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.name)+' · '+esc(i.unit)+'</option>').join('')+'</select></div><div class="field"><label>Qty *</label><input class="pi-qty" type="number" min="0.001" step="0.001" value="'+(item.quantity??1)+'"></div><div class="field"><label>Unit</label><input class="pi-unit" maxlength="24" value="'+esc(item.unit||'pcs')+'"></div><div class="field"><label>Rate (₹) *</label><input class="pi-rate" type="number" min="0" step="0.01" value="'+(item.unit_cost??0)+'"></div><button class="btn danger pi-remove" type="button">Remove</button>';
+ row.querySelector('.pi-inventory').value=item.inventory_item_id||'';
+ row.querySelector('.pi-inventory').addEventListener('change',e=>{const selected=inventoryItems.find(i=>i.id===e.target.value);if(selected){row.querySelector('.pi-unit').value=selected.unit;updatePurchaseTotal()}});
  row.querySelectorAll('input').forEach(el=>el.addEventListener('input',updatePurchaseTotal));
  row.querySelector('.pi-remove').addEventListener('click',()=>{row.remove();updatePurchaseTotal()});
  wrap.appendChild(row);updatePurchaseTotal();
 }
 function readPurchaseItems(){
- return [...document.querySelectorAll('#purchaseItemRows .purchase-item-row')].map(row=>({item_name:row.querySelector('.pi-name').value.trim(),quantity:Number(row.querySelector('.pi-qty').value),unit:row.querySelector('.pi-unit').value.trim()||'pcs',unit_cost:Number(row.querySelector('.pi-rate').value)}));
+ return [...document.querySelectorAll('#purchaseItemRows .purchase-item-row')].map(row=>({item_name:row.querySelector('.pi-name').value.trim(),quantity:Number(row.querySelector('.pi-qty').value),unit:row.querySelector('.pi-unit').value.trim()||'pcs',unit_cost:Number(row.querySelector('.pi-rate').value),inventory_item_id:row.querySelector('.pi-inventory').value||null}));
 }
 function updatePurchaseTotal(){
  const total=readPurchaseItems().reduce((sum,x)=>sum+(Number.isFinite(x.quantity)&&Number.isFinite(x.unit_cost)?Math.round((x.quantity*x.unit_cost+Number.EPSILON)*100)/100:0),0);
@@ -363,8 +370,9 @@ function renderPurchases(){
 }
 function editPurchase(id){
  if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;
+ const its=purchaseItems.filter(x=>x.purchase_id===id);if(its.some(x=>x.inventory_item_id)){document.getElementById('purchaseMessage').textContent='Ye purchase stock me post ho chuka hai. Stock history ko safe rakhne ke liye item edit/delete locked hai.';return}
  editingPurchaseId=id;document.getElementById('purchaseSupplier').value=p.supplier_id||'';document.getElementById('purchaseSupplierName').value=p.supplier_name_snapshot||'';document.getElementById('purchaseDate').value=p.purchase_date;document.getElementById('purchaseInvoice').value=p.invoice_number||'';document.getElementById('purchasePaid').value=p.paid_amount;document.getElementById('purchasePayment').value=p.payment_method==='Unpaid'?'Cash':p.payment_method;document.getElementById('purchaseNotes').value=p.notes||'';document.getElementById('purchaseItemRows').innerHTML='';
- const its=purchaseItems.filter(x=>x.purchase_id===id);its.forEach(x=>addPurchaseItemRow(x));if(!its.length)addPurchaseItemRow();
+ const editItems=purchaseItems.filter(x=>x.purchase_id===id);editItems.forEach(x=>addPurchaseItemRow(x));if(!editItems.length)addPurchaseItemRow();
  document.getElementById('purchaseSaveBtn').textContent='Update purchase';document.getElementById('purchaseCancelBtn').style.display='inline-flex';document.getElementById('purchaseMessage').textContent='Purchase selected for editing';
 }
 async function savePurchase(){
@@ -372,27 +380,20 @@ async function savePurchase(){
  const rid=purchaseRestaurantId(),supplierId=document.getElementById('purchaseSupplier').value||null,supplierName=document.getElementById('purchaseSupplierName').value.trim(),date=document.getElementById('purchaseDate').value,invoice=document.getElementById('purchaseInvoice').value.trim(),paid=Number(document.getElementById('purchasePaid').value),items=readPurchaseItems(),total=updatePurchaseTotal(),notes=document.getElementById('purchaseNotes').value.trim();
  if(!rid||!date||(!supplierId&&!supplierName)||!items.length||items.some(x=>!x.item_name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_cost)||x.unit_cost<0)||!Number.isFinite(paid)||paid<0||paid>total){document.getElementById('purchaseMessage').textContent='Supplier, date, valid item details aur paid amount (total se zyada nahi) check karein.';return}
  const method=paid===0?'Unpaid':document.getElementById('purchasePayment').value;
- const payload={restaurant_id:rid,supplier_id:supplierId,supplier_name_snapshot:supplierId?(purchaseSuppliers.find(x=>x.id===supplierId)?.name||supplierName||null):supplierName,purchase_date:date,invoice_number:invoice||null,total_amount:total,paid_amount:paid,payment_method:method,notes:notes||null};
+ const header={supplier_id:supplierId||'',supplier_name_snapshot:supplierId?(purchaseSuppliers.find(x=>x.id===supplierId)?.name||supplierName||''):supplierName,purchase_date:date,invoice_number:invoice,total_amount:total,paid_amount:paid,payment_method:method,notes};
  const btn=document.getElementById('purchaseSaveBtn');btn.disabled=true;
  try{
-  let purchaseId=editingPurchaseId;
-  if(editingPurchaseId){
-   if(access.role!=='owner')throw new Error('Existing purchase edit sirf Owner kar sakta hai.');
-   const up=await sb.from('restaurant_purchases').update(payload).eq('id',editingPurchaseId).eq('restaurant_id',rid);if(up.error)throw up.error;
-   const del=await sb.from('restaurant_purchase_items').delete().eq('purchase_id',editingPurchaseId).eq('restaurant_id',rid);if(del.error)throw del.error;
-  }else{
-   const ins=await sb.from('restaurant_purchases').insert({...payload,created_by:currentUser.id}).select('id').single();if(ins.error)throw ins.error;purchaseId=ins.data.id;
-  }
-  const detail=items.map(x=>({...x,purchase_id:purchaseId,restaurant_id:rid}));
-  const insItems=await sb.from('restaurant_purchase_items').insert(detail);if(insItems.error)throw insItems.error;
-  resetPurchaseForm();document.getElementById('purchaseMessage').textContent='Purchase saved';await loadPurchases();
+  if(editingPurchaseId&&access.role!=='owner')throw new Error('Existing purchase edit sirf Owner kar sakta hai.');
+  const {data,error}=await sb.rpc('save_restaurant_purchase',{p_restaurant_id:rid,p_purchase_id:editingPurchaseId,p_header:header,p_items:items});
+  if(error)throw error;
+  resetPurchaseForm();document.getElementById('purchaseMessage').textContent='Purchase saved'+(items.some(x=>x.inventory_item_id)?' · Inventory stock auto updated':'');await loadPurchases();
  }catch(e){document.getElementById('purchaseMessage').textContent='Save mein dikkat: '+e.message;console.error(e)}finally{btn.disabled=!['owner','manager'].includes(access.role)}
 }
 async function deletePurchase(id){
- if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p||!confirm('Is purchase ko delete karna hai?'))return;
+ if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;if(purchaseItems.some(x=>x.purchase_id===id&&x.inventory_item_id)){alert('Ye purchase stock me post ho chuka hai. Inventory history ko safe rakhne ke liye delete locked hai.');return}if(!confirm('Is purchase ko delete karna hai?'))return;
  try{const {error}=await sb.from('restaurant_purchases').delete().eq('id',id).eq('restaurant_id',purchaseRestaurantId());if(error)throw error;await loadPurchases()}catch(e){alert('Delete nahi hua: '+e.message)}
 }
-document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadSuppliers();await loadPurchases()});
+document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases()});
 
 let inventoryItems=[],stockMovements=[],inventoryBalances={};
 function inventoryRestaurantId(){return document.getElementById('inventoryRestaurant').value||''}
