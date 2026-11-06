@@ -503,7 +503,7 @@ async function saveStockMovement(){
 }
 document.getElementById('inventoryRestaurant').addEventListener('change',loadInventory);
 
-let cashbookEntries=[],cashbookClosing=null;
+let cashbookEntries=[],cashbookClosing=null,cashbookLastLoadedKey=null;
 function cashbookRestaurantId(){return document.getElementById('cashbookRestaurant').value||''}
 function cashbookDateValue(){return document.getElementById('cashbookDate').value}
 async function loadCashbookWorkspace(){
@@ -527,7 +527,9 @@ async function loadCashbook(){
    sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle()
   ]);
   if(entries.error)throw entries.error;if(closing.error)throw closing.error;
-  cashbookEntries=entries.data||[];cashbookClosing=closing.data||null;renderCashbook();
+  cashbookEntries=entries.data||[];cashbookClosing=closing.data||null;
+  const key=rid+'|'+date;if(key!==cashbookLastLoadedKey&&!cashbookClosing)document.getElementById('cashbookOpeningCash').value='0';cashbookLastLoadedKey=key;
+  document.getElementById('cashbookEntryMessage').textContent='';document.getElementById('cashbookCloseMessage').textContent='';renderCashbook();
  }catch(e){empty.textContent='Cashbook load nahi hua: '+e.message;document.getElementById('cashbookStatus').textContent='Error';console.error(e)}
 }
 function renderCashbook(){
