@@ -978,9 +978,14 @@ async function loadReportsData(){
   for(const x of [orders,cashbook,balances])if(x.error)throw x.error;
   reportOrders=orders.data||[];reportCashbook=cashbook.data||[];reportCustomerBalances=balances.data||[];
   const ids=reportOrders.map(o=>o.id);
-  if(ids.length){const items=await sb.from('order_items').select('*').in('order_id',ids);if(items.error)throw items.error;reportItems=items.data||[];}
-  else reportItems=[];
-  reportPaymentSummaries=(state.paymentSummaries||[]).filter(p=>ids.includes(p.order_id));
+  if(ids.length){
+   const [items,payments]=await Promise.all([
+    sb.from('order_items').select('*').in('order_id',ids),
+    sb.from('restaurant_order_payment_summaries').select('*').in('order_id',ids)
+   ]);
+   if(items.error)throw items.error;if(payments.error)throw payments.error;
+   reportItems=items.data||[];reportPaymentSummaries=payments.data||[];
+  }else{reportItems=[];reportPaymentSummaries=[]}
   renderReports();
  }catch(e){document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
 }
