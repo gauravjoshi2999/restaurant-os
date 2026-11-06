@@ -7,6 +7,7 @@ begin;
 
 -- Public storefront controls and restaurant delivery settings.
 alter table public.restaurants
+  add column if not exists address text,
   add column if not exists is_published boolean not null default false,
   add column if not exists public_description text,
   add column if not exists cuisine_tags text[] not null default '{}',
@@ -283,6 +284,7 @@ declare
   v_user uuid := auth.uid();
   v_name text;
   v_phone text;
+  v_phone_confirmed boolean := false;
   v_address jsonb := null;
   v_order_id uuid;
   v_item jsonb;
@@ -301,13 +303,15 @@ begin
   end if;
 
   select coalesce(nullif(btrim(p.full_name),''), nullif(btrim(u.raw_user_meta_data->>'full_name'),'')),
-         u.phone
-    into v_name, v_phone
+         u.phone,
+         (u.phone_confirmed_at is not null)
+    into v_name, v_phone, v_phone_confirmed
   from auth.users u
   left join public.profiles p on p.id = u.id
   where u.id = v_user;
 
-  if v_phone is null or length(regexp_replace(v_phone, '[^0-9]', '', 'g')) < 10 then
+  if v_phone is null or length(regexp_replace(v_phone, '[^0-9]', '', 'g')) < 10
+     or not v_phone_confirmed then
     raise exception 'A verified mobile number is required on your account.';
   end if;
   if v_name is null then raise exception 'Please add your name to your profile first.'; end if;
