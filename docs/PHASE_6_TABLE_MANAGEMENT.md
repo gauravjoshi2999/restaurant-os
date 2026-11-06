@@ -1,7 +1,7 @@
 # Phase 6 — Table Management
 
 **Date:** 2026-11-06  
-**Status:** Database implementation and UI code committed; Pages deployment pending.
+**Status:** Database and UI implementation complete; Tables workspace deployed successfully in GitHub Pages run #167 (commit `31671d2d1481d230aebf8f1df4f0a9ccb840a817`).
 
 ## Delivered
 
@@ -35,4 +35,4 @@
 
 ## Release gate
 
-The Pages workflow must complete successfully for the latest commit before this UI is described as live. The last successful Pages run before this phase was #166; this phase's UI changes have not yet been deployed.
+The Tables workspace is live after successful Pages run #167. The later POS Refunds UI is a separate phase and still awaits its own successful deployment.
