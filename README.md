@@ -16,7 +16,7 @@ The intended payment model is:
 
 - Zomato and Swiggy continue paying each restaurant under that restaurant's existing platform agreement. RestaurantOS will reconcile those payouts; it will not redirect them.
 - RestaurantOS website payments are intended to use an appropriately authorized payment-aggregator/marketplace settlement arrangement. The platform may deduct the agreed platform commission and settle the balance to the restaurant.
-- The proposed pilot pricing is free Zomato/Swiggy order management, no RestaurantOS website-order commission during the first two pilot months, then a proposed 5% commission on food value. This is a business proposal only; it is not yet implemented in the application or payment system and must be finalized in restaurant agreements.
+- Proposed pricing policy: Zomato/Swiggy order management is free; RestaurantOS website orders carry a proposed standard platform commission of 18% of the agreed commissionable food value. The 18% rate is a business decision for planning, not yet implemented in the application or payment system. The commission base, gateway fees, taxes, refunds, discounts, and settlement deductions must be clearly defined in restaurant agreements before launch. Any introductory offers or negotiated restaurant-specific rates must be explicitly agreed rather than assumed.
 
 ## Implemented prototype foundation
 
