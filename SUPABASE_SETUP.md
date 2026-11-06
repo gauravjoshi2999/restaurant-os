@@ -23,7 +23,7 @@ Open the project → SQL Editor → New query. For a fresh database, run each co
 7. supabase/order_details_multi_items.sql — customer details, order items and the create-order-with-items function.
 8. supabase/financial_settlement_foundation.sql — financial snapshots, settlement records, settlement line items and platform expenses.
 9. supabase/weekly_settlement_drafts.sql — Super Admin-only manual payment-fee/refund reconciliation and seven-day settlement draft generation. It does not transfer money or connect to a payment provider.
-10. supabase/automatic_order_financial_snapshots.sql — creates the immutable financial snapshot in the same transaction as every new order. Staff-created orders are limited to zero adjustments; owners/managers/Super Admins can use the snapshot RPC for approved adjustments.
+10. supabase/automatic_order_financial_snapshots.sql — creates the immutable financial snapshot in the same transaction as every new order. Staff-created orders are limited to zero adjustments; owners/managers/Super Admins can use the snapshot RPC for approved adjustments.\n11. supabase/customer_storefront_foundation.sql — customer addresses, public menu catalog, customer-owned order access, customer checkout RPC, and Realtime order-status/location foundations. Run only after step 10 succeeds. Configure Supabase Phone OTP/SMS before customer login testing.
 
 Do not skip the order. Later SQL files depend on functions or tables created by earlier phases. These scripts are designed to be rerunnable in several places, but do not use rerunning migrations as a substitute for checking the current database state.
 
@@ -66,7 +66,7 @@ The current site is an authenticated operations prototype. It includes the resta
 
 The following are not active production capabilities yet:
 
-- Public customer-facing restaurant discovery, menu, checkout, and order tracking.
+- Public customer-facing restaurant discovery, menu, checkout, and order tracking UI; the database foundation is in customer_storefront_foundation.sql but is not active until that migration is run and the customer frontend is deployed.
 - Restaurant-managed delivery zones and delivery workflow (the intended initial model is that each restaurant handles its own delivery; RestaurantOS does not provide a fleet).
 - Live Zomato/Swiggy API integration. This requires authorized partner/API access.
 - Payment-provider onboarding, marketplace payment collection, automated commission deduction during checkout, automatic payment/refund updates, settlement approval/payout processing, and production P&L reporting. The financial migrations provide a manual, Super Admin-only ledger and seven-day draft generator; they do not transfer money or connect to a payment provider.
