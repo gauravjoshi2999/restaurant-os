@@ -81,8 +81,6 @@ revoke execute on function public.is_restaurant_member(uuid) from public, anon;
 revoke execute on function public.has_restaurant_role(uuid, text[]) from public, anon;
 grant execute on function public.is_restaurant_member(uuid) to authenticated;
 grant execute on function public.has_restaurant_role(uuid, text[]) to authenticated;
-revoke execute on function public.add_creator_as_restaurant_owner() from public, anon, authenticated;
-revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 alter table public.profiles enable row level security;
 alter table public.restaurants enable row level security;
@@ -156,7 +154,9 @@ begin
   on conflict do nothing;
   return new;
 end;
-$$;
+$;
+
+revoke execute on function public.add_creator_as_restaurant_owner() from public, anon, authenticated;
 
 drop trigger if exists restaurant_creator_membership on public.restaurants;
 create trigger restaurant_creator_membership
@@ -175,7 +175,9 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$;
+$;
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
