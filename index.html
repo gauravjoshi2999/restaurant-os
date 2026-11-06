@@ -394,7 +394,7 @@ async function deletePurchase(id){
 }
 document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadSuppliers();await loadPurchases()});
 
-let inventoryItems=[],stockMovements=[];
+let inventoryItems=[],stockMovements=[],inventoryBalances={};
 function inventoryRestaurantId(){return document.getElementById('inventoryRestaurant').value||''}
 async function loadInventoryWorkspace(){
  const select=document.getElementById('inventoryRestaurant'),previous=select.value;
@@ -410,17 +410,16 @@ async function loadInventoryWorkspace(){
 async function loadInventory(){
  const rid=inventoryRestaurantId();if(!rid)return;
  try{
-  const [items,moves]=await Promise.all([
+  const [items,balances,moves]=await Promise.all([
    sb.from('restaurant_inventory_items').select('*').eq('restaurant_id',rid).eq('is_active',true).order('name'),
+   sb.from('restaurant_inventory_balances').select('inventory_item_id,current_stock').eq('restaurant_id',rid),
    sb.from('restaurant_stock_movements').select('*').eq('restaurant_id',rid).order('movement_date',{ascending:false}).order('created_at',{ascending:false}).limit(100)
   ]);
-  if(items.error)throw items.error;if(moves.error)throw moves.error;
-  inventoryItems=items.data||[];stockMovements=moves.data||[];renderInventory();
+  if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
+  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,Number(b.current_stock)]));stockMovements=moves.data||[];renderInventory();
  }catch(e){document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;console.error(e)}
 }
-function stockBalance(itemId){
- return stockMovements.reduce((sum,m)=>m.inventory_item_id===itemId?sum+(['opening','purchase','adjustment_in'].includes(m.movement_type)?Number(m.quantity):-Number(m.quantity)):sum,0);
-}
+function stockBalance(itemId){return Number(inventoryBalances[itemId]||0)}
 function renderInventory(){
  const active=inventoryItems.length,low=inventoryItems.filter(i=>stockBalance(i.id)<=Number(i.reorder_level)).length;
  document.getElementById('inventoryItemCount').textContent=String(active);document.getElementById('inventoryLowCount').textContent=String(low);
