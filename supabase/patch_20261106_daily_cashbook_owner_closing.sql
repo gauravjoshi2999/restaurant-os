@@ -170,3 +170,6 @@ end;
 $$;
 revoke all on function public.close_restaurant_cashbook_day(uuid,date,numeric,numeric,text) from public,anon;
 grant execute on function public.close_restaurant_cashbook_day(uuid,date,numeric,numeric,text) to authenticated;
+
+-- Closing rows are immutable once written; manual rows remain Owner-managed.
+revoke update,delete on public.restaurant_cashbook_closings from authenticated,anon;
