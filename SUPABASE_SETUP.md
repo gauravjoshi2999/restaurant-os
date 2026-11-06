@@ -29,5 +29,9 @@ Only the Project URL and publishable/anon key are intended for the website. **Ne
 ## 4. Send the two public values for website connection
 Send the Project URL and publishable/anon key here. They are designed to be used by a browser client; database access is still controlled by the SQL Row Level Security policies.
 
+## Apply the security hardening update
+
+If the project already has the original schema installed, run the new file `supabase/migrations/20261106_security_hardening.sql` in Supabase SQL Editor. It tightens function search paths and execution grants without deleting existing data. Check that the query completes successfully before continuing.
+
 ## Current limitations
-The current live website is still the demo/local-browser version until the Supabase client and login UI are connected and tested. Do not enter real customer, order, bank, or settlement data yet. Zomato/Swiggy partner integrations and real money movement are not included in this database setup.
+The current website is an early authenticated pilot workspace, not a production restaurant-management product. The current order creation, restaurant onboarding, and reconciliation screens are limited MVP functions. Do not enter real customer, order, bank, or settlement data yet. Zomato/Swiggy partner integrations and real money movement are not included in this database setup.
