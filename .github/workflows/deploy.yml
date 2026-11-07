@@ -31,7 +31,7 @@ jobs:
               html = pathlib.Path(page).read_text(encoding="utf-8")
               for number, match in enumerate(re.finditer(r"<script([^>]*)>(.*?)</script>", html, re.I | re.S), 1):
                   attrs, source = match.group(1), match.group(2)
-                  if re.search(r"\\bsrc\\s*=", attrs, re.I) or not source.strip():
+                  if re.search(r"\bsrc\s*=", attrs, re.I) or not source.strip():
                       continue
                   check_file = pathlib.Path("/tmp") / f"{page.replace('.html', '')}-{number}.js"
                   check_file.write_text(source, encoding="utf-8")
