@@ -1517,6 +1517,47 @@ function updateOrderSoundButton(){const b=document.getElementById('orderSoundTog
 async function toggleOrderSound(){if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
 function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&['website','zomato','swiggy'].includes(orderChannelKey(order.channel))&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound()}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
 function orderChannelKey(channel){const c=String(channel||'').toLowerCase();if(c.includes('zomato'))return 'zomato';if(c.includes('swiggy'))return 'swiggy';if(c.includes('own platform')||c.includes('website')||c.includes('web'))return 'website';if(c.startsWith('pos')||c.includes('counter')||c.includes('takeaway')||c.includes('dine-in')||c.includes('offline'))return 'pos';return 'other'}
+
+function renderPlatformRestaurantDirectory(){
+ if(access.role!=='super_admin')return;
+ const list=document.getElementById('platformRestaurantList');if(!list)return;
+ const search=String(document.getElementById('platformRestaurantSearch')?.value||'').trim().toLowerCase();
+ const restaurants=state.restaurants.filter(r=>[r.name,r.city,r.phone,r.contact_person].some(v=>String(v||'').toLowerCase().includes(search))).sort((a,b)=>{
+  const pending=x=>state.orders.filter(o=>o.restaurant===x.id&&orderChannelKey(o.channel)==='website'&&o.status==='Received').length;
+  return pending(b)-pending(a)||String(a.name||'').localeCompare(String(b.name||''));
+ });
+ const count=document.getElementById('platformRestaurantCount');if(count)count.textContent=state.restaurants.length;
+ list.innerHTML=restaurants.length?restaurants.map(r=>{
+  const orders=state.orders.filter(o=>o.restaurant===r.id&&orderChannelKey(o.channel)==='website');
+  const active=orders.filter(o=>!['Rejected','Cancelled'].includes(o.status));
+  const pending=orders.filter(o=>o.status==='Received').length;
+  const sales=active.reduce((n,o)=>n+Number(o.amount||0),0);
+  const selected=selectedPlatformRestaurantId===r.id;
+  return '<button type="button" class="platform-restaurant-item'+(selected?' active':'')+'" onclick="selectPlatformRestaurant('+JSON.stringify(r.id)+')"><div class="platform-restaurant-item-top"><strong>'+esc(r.name||'Restaurant')+'</strong><span class="platform-restaurant-state '+(r.status==='active'?'':'off')+'">'+esc(r.status||'Registered')+'</span></div><div class="platform-restaurant-city">'+esc([r.city,r.phone].filter(Boolean).join(' · ')||'Details not added')+'</div><div class="platform-restaurant-stats"><span>Website orders<b>'+orders.length+'</b></span><span>New orders<b>'+pending+'</b></span><span>Website sales<b>'+money(sales)+'</b></span></div></button>';
+ }).join(''):'<div class="platform-restaurant-empty">Is search se koi restaurant nahi mila.</div>';
+ const chosen=state.restaurants.find(r=>r.id===selectedPlatformRestaurantId);
+ const summary=document.getElementById('platformSelectedSummary');
+ if(summary){
+  if(!chosen){summary.style.display='none';summary.innerHTML=''}
+  else{
+   const os=state.orders.filter(o=>o.restaurant===chosen.id&&orderChannelKey(o.channel)==='website');
+   const fs=(state.financials||[]).filter(f=>f.channel==='Own Platform'&&f.restaurant_id===chosen.id);
+   const sum=key=>fs.reduce((n,f)=>n+Number(f[key]||0),0);
+   summary.style.display='flex';
+   summary.innerHTML='<div><span>Selected restaurant</span><b>'+esc(chosen.name)+'</b></div><div><span>Total website orders</span><b>'+os.length+'</b></div><div><span>Commission recorded</span><b>'+money(sum('commission_amount'))+'</b></div><div><span>Settlement payable recorded</span><b>'+money(sum('net_payable'))+'</b></div>';
+  }
+ }
+}
+function selectPlatformRestaurant(id){
+ if(access.role!=='super_admin')return;
+ selectedPlatformRestaurantId=state.restaurants.some(r=>r.id===id)?id:null;
+ activeOrderChannel='website';activeOrderStatus='all';
+ document.querySelectorAll('[data-order-channel]').forEach(b=>{b.style.display=b.dataset.orderChannel==='website'?'':'none';b.classList.toggle('active',b.dataset.orderChannel==='website')});
+ document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus==='all'));
+ const title=document.getElementById('activeChannelTitle');if(title)title.textContent='Website Orders';
+ renderPlatformRestaurantDirectory();renderOrderBoard();
+}
+
 function setOrderChannel(channel){if(access.role==='super_admin'&&channel!=='website')channel='website';activeOrderChannel=channel;document.querySelectorAll('[data-order-channel]').forEach(b=>{b.style.display=access.role==='super_admin'&&b.dataset.orderChannel!=='website'?'none':'';b.classList.toggle('active',b.dataset.orderChannel===channel)});const names={all:'All Orders',website:'Our Website Orders',zomato:'Zomato Orders',swiggy:'Swiggy Orders',pos:'POS / Counter Orders'};const title=document.getElementById('activeChannelTitle');if(title)title.textContent=names[channel]||'Orders';renderOrderBoard()}
 function setOrderStatus(status){activeOrderStatus=status;document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus===status));renderOrderBoard()}
 function renderChannelCounts(){const visibleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'):state.orders;const counts={all:visibleOrders.length,website:0,zomato:0,swiggy:0,pos:0};visibleOrders.forEach(o=>{const k=orderChannelKey(o.channel);if(counts[k]!==undefined)counts[k]++});Object.keys(counts).forEach(k=>{const el=document.getElementById('channelCount'+k[0].toUpperCase()+k.slice(1));if(el)el.textContent=counts[k]})}
