@@ -53,7 +53,7 @@ async function load(){
   $('mapButton').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
   if(h.customer_note){$('instructions').textContent='Customer instructions: '+h.customer_note;$('instructions').classList.remove('hidden');}
   $('itemsList').innerHTML=(h.items||[]).map(i=>'<div class="item"><span>'+safe(i.item_name)+' × '+safe(i.quantity)+'</span><strong>₹'+Number(i.line_total||0).toLocaleString('en-IN',{maximumFractionDigits:2})+'</strong></div>').join('')||'<div class="muted">Item details unavailable.</div>';
-  if(h.order_status!=='Handed Over'){$('otpForm').classList.add('hidden');$('resultMsg').textContent='Restaurant abhi order handover mark nahi kiya. Handover hone ke baad customer OTP verify karein.';$('resultMsg').classList.remove('hidden');}
+  if(h.order_status!=='Handed Over'){$('otpForm').classList.add('hidden');$('resultMsg').textContent='Restaurant abhi handover mark nahi kiya. Handover ke baad delivery page refresh karein, phir customer OTP verify karein.';$('resultMsg').classList.remove('hidden');}
  }catch(e){showError(e.message||'Link load nahi hua.');}
 }
 $('otpForm').addEventListener('submit',async e=>{e.preventDefault();const otp=$('otpInput').value.trim();if(!/^[0-9]{4}$/.test(otp)){ $('resultMsg').textContent='4 digit OTP enter karein.';$('resultMsg').className='msg error';$('resultMsg').classList.remove('hidden');return;}
