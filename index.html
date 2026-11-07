@@ -219,7 +219,19 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 @media(max-width:700px){.nav .nav-icon{width:18px;height:18px;flex-basis:18px}.nav .nav-icon svg{width:18px;height:18px}}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-<style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}</style>
+<style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}<style id="platformRestaurantManagerStyles">
+.platform-restaurant-manager{background:#fff;border:1px solid #e7eaf0;border-radius:16px;padding:18px;margin:0 0 16px;box-shadow:0 5px 18px #17203308}
+.platform-manager-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.platform-manager-kicker{font-size:9px;font-weight:900;letter-spacing:1.4px;color:#778397}.platform-manager-head h2{font-size:19px;margin:4px 0}.platform-manager-head p{font-size:11px;color:#7b8492;margin:0;line-height:1.5}
+.platform-restaurant-total{min-width:72px;text-align:center;padding:9px 12px;border-radius:12px;background:#f3f6fa}.platform-restaurant-total strong{display:block;font-size:20px}.platform-restaurant-total span{font-size:9px;color:#788293}
+.platform-manager-tools{display:flex;align-items:center;gap:12px;margin:15px 0 12px;flex-wrap:wrap}.platform-search{display:flex;align-items:center;gap:8px;border:1px solid #e4e8ef;border-radius:10px;padding:0 11px;min-width:min(100%,310px);height:40px;flex:1}.platform-search span{font-size:20px;color:#7b8492}.platform-search input{border:0;outline:0;min-width:0;width:100%;font-size:12px;background:transparent}.platform-manager-hint{font-size:10px;color:#8a93a1}
+.platform-restaurant-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px;max-height:310px;overflow:auto;padding:2px}
+.platform-restaurant-item{width:100%;text-align:left;border:1px solid #e8ebf0;border-radius:12px;background:#fff;padding:11px;cursor:pointer}.platform-restaurant-item:hover,.platform-restaurant-item.active{border-color:#303946;background:#f7f9fc}.platform-restaurant-item.active{box-shadow:inset 3px 0 #303946}
+.platform-restaurant-item-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.platform-restaurant-item-top strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.platform-restaurant-state{font-size:8px;font-weight:800;border-radius:20px;padding:4px 7px;background:#edf7f0;color:#287343;white-space:nowrap}.platform-restaurant-state.off{background:#f1f2f4;color:#727987}
+.platform-restaurant-city{font-size:9px;color:#8992a0;margin-top:3px}.platform-restaurant-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px}.platform-restaurant-stats span{font-size:8px;color:#858e9c}.platform-restaurant-stats b{display:block;font-size:11px;color:#303744;margin-top:2px}
+.platform-selected-summary{border-top:1px solid #edf0f4;margin-top:12px;padding-top:11px;display:flex;gap:16px;flex-wrap:wrap}.platform-selected-summary span{font-size:9px;color:#8992a0}.platform-selected-summary b{display:block;font-size:12px;color:#303744;margin-top:3px}
+.platform-restaurant-empty{grid-column:1/-1;padding:22px;text-align:center;color:#8a93a1;font-size:11px;background:#fafbfc;border-radius:10px}
+@media(max-width:650px){.platform-restaurant-manager{padding:13px}.platform-restaurant-list{grid-template-columns:1fr;max-height:260px}.platform-manager-head h2{font-size:17px}.platform-manager-hint{width:100%}}
+</style>
 <style id="partnerOrderQueueStyles">
 .order-status-tabs{display:flex;gap:7px;overflow-x:auto;padding:4px 0 12px;margin-top:14px;scrollbar-width:thin}
 .order-status-tabs button{flex:0 0 auto;display:flex;align-items:center;gap:8px;border:1px solid #e7e9ee;background:#fff;color:#555d6b;border-radius:9px;padding:10px 13px;font-size:11px;font-weight:800;cursor:pointer}
@@ -338,6 +350,12 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
  <div class="section"><div class="section-head"><h2>Refund history</h2><span class="small">Immutable records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Sale cancelled</th><th>Money returned</th><th>Mode</th><th>Reason</th></tr></thead><tbody id="refundHistoryRows"></tbody></table><div class="empty" id="refundHistoryEmpty">No refunds recorded.</div></div></div>
 </section>
 <section class="page" id="orders"><div class="welcome"><div><h1>Online & Offline Orders</h1><div class="muted">Website, Zomato, Swiggy aur counter ke orders ko alag-alag dekhein.</div></div><button class="btn" data-order-create onclick="openOrder()">＋ Add test order</button></div>
+<section class="platform-restaurant-manager" id="platformRestaurantManager">
+ <div class="platform-manager-head"><div><span class="platform-manager-kicker">NETWORK CONTROL</span><h2>Restaurant Network</h2><p>Ek restaurant chunein. Uske website orders aur payment ka hisaab alag khulega.</p></div><div class="platform-restaurant-total"><strong id="platformRestaurantCount">0</strong><span>Restaurants</span></div></div>
+ <div class="platform-manager-tools"><label class="platform-search"><span>⌕</span><input id="platformRestaurantSearch" type="search" placeholder="Restaurant name, city ya phone search karein..." oninput="renderPlatformRestaurantDirectory()"></label><span class="platform-manager-hint">Restaurant select karne par usi ke orders dikhenge</span></div>
+ <div class="platform-restaurant-list" id="platformRestaurantList"></div>
+ <div class="platform-selected-summary" id="platformSelectedSummary" style="display:none"></div>
+</section>
 <div class="orders-page-layout"><div class="orders-main-column">
 <div class="channel-grid">
  <button class="channel-card channel-all active" data-order-channel="all" onclick="setOrderChannel('all')"><span class="channel-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><strong id="channelCountAll">0</strong><b>All Orders</b><small>orders</small></button>
@@ -1490,6 +1508,7 @@ function renderPOSWorkspace(){
 }
 let activeOrderChannel='all';
 let activeOrderStatus='all';
+let selectedPlatformRestaurantId=null;
 let orderRealtimeChannel=null,orderAlertsEnabled=(()=>{try{return localStorage.getItem('restaurantos_order_sound')==='on'}catch(e){return false}})(),orderAudioContext=null,orderToastTimer=null,orderRefreshTimer=null;
 function setOrderLiveState(label,state){const el=document.getElementById('orderLiveState'),dot=document.getElementById('orderLiveDot');if(el)el.textContent=label;if(dot)dot.className='order-live-dot'+(state?' '+state:'')}
 function showOrderLiveToast(message){const el=document.getElementById('orderLiveToast');if(!el)return;el.textContent=message;el.classList.add('show');if(orderToastTimer)clearTimeout(orderToastTimer);orderToastTimer=setTimeout(()=>el.classList.remove('show'),6500)}
