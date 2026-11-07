@@ -114,6 +114,45 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 
 .channel-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}.channel-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:#fff;border:1px solid #e9eaf0;border-radius:13px;padding:13px;min-width:0;cursor:pointer;color:#252936}.channel-card.active{border:2px solid #343946;box-shadow:0 5px 16px #1c24300e}.channel-mark{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;font:800 16px Manrope,sans-serif;background:#f0f1f4;color:#353946}.channel-zomato .channel-mark{background:#fff0eb;color:#d94b25}.channel-swiggy .channel-mark{background:#fff3e6;color:#e87520}.channel-website .channel-mark{background:#eaf4ff;color:#2474b8}.channel-pos .channel-mark{background:#eaf7ee;color:#27824b}.channel-card b{font:800 12px Manrope,sans-serif}.channel-card strong{font:800 22px Manrope,sans-serif}.channel-card small{font-size:10px;color:#858995}.channel-connection-note{margin:8px 0 16px}.channel-filter-title{display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px}.channel-filter-title strong{font:800 15px Manrope,sans-serif}
 @media(max-width:760px){.channel-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.channel-card{padding:11px}.channel-card:first-child{grid-column:span 2}.channel-card strong{font-size:20px}}
+
+/* RestaurantOS daily-use left navigation refresh */
+.app{grid-template-columns:260px minmax(0,1fr)!important;min-height:100vh}
+.side{position:sticky!important;top:0;height:100vh;min-height:100vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#454955 transparent}
+.side::-webkit-scrollbar{width:5px}.side::-webkit-scrollbar-thumb{background:#454955;border-radius:8px}
+.main{min-width:0}.top{display:flex;align-items:center;gap:14px}
+.sidebar-toggle{display:none;border:1px solid #e7e8ec;background:#fff;color:#242832;border-radius:9px;width:38px;height:38px;font-size:20px;line-height:1;cursor:pointer;flex:0 0 auto}
+.sidebar-overlay{display:none}
+.nav{gap:10px}.nav-group{padding-bottom:7px;border-bottom:1px solid #ffffff12}.nav-group:last-child{border-bottom:0}
+.nav-label{font-size:9px;letter-spacing:.14em;color:#858b98;padding:8px 12px 4px}
+.nav button{min-height:39px;font-size:12px;border-radius:10px}
+.nav button.active{background:linear-gradient(100deg,#343944,#292d36);border-color:#454a55}
+.owner-home-banner{background:linear-gradient(110deg,#202631,#35404d)!important}
+.owner-kpi{box-shadow:0 4px 16px #17191f08}
+.owner-quick,.owner-module-grid button{transition:background .15s,border-color .15s,transform .15s}
+.owner-quick:active,.owner-module-grid button:active{transform:scale(.98)}
+@media(max-width:700px){
+ .app{display:block!important;min-height:100vh}
+ .side{position:fixed!important;left:0;top:0;bottom:0;width:min(290px,84vw)!important;height:100dvh;min-height:0;z-index:40;padding:18px 14px!important;overflow-y:auto;transform:translateX(-105%);transition:transform .22s ease;box-shadow:18px 0 45px #0003}
+ .side.sidebar-open{transform:translateX(0)}
+ .nav{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;overflow:visible!important;width:100%;padding:8px 0 20px!important}
+ .nav-group{display:block!important;padding-bottom:9px!important}
+ .nav-label{display:block!important;padding:8px 11px 5px!important}
+ .nav button{display:flex!important;width:100%!important;flex:0 0 auto!important;justify-content:flex-start;white-space:normal!important;min-height:42px;margin:2px 0!important;padding:10px 12px!important;font-size:12px!important}
+ .nav button:before{display:none!important}
+ .nav button.active:after{display:block!important}
+ .sidebar-overlay{display:block;position:fixed;inset:0;background:#10152288;z-index:35;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+ .sidebar-overlay.visible{opacity:1;visibility:visible}
+ .main{width:100%;min-width:0}
+ .top{position:sticky!important;top:0!important;z-index:25;min-height:58px!important;height:auto!important;display:flex!important;flex-direction:row!important;align-items:center!important;padding:9px 12px!important;gap:9px!important}
+ .sidebar-toggle{display:grid;place-items:center}
+ #pageTitle{font-size:13px;flex:1;min-width:0}
+ .top>div{gap:5px!important}
+ #accountEmail{display:none}
+ .top .tag{font-size:8px;padding:5px 7px}
+ .top #logoutBtn{font-size:10px;padding:7px 8px!important;min-height:32px}
+ .content{padding:15px 12px 30px!important}
+}
+@media(min-width:701px){.side{transform:none!important}.sidebar-overlay{display:none!important}}
 </style>
 </head>
 <body>
@@ -126,7 +165,7 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 <div class="nav-group"><div class="nav-label">STOCK & TEAM</div><button data-page="purchases">＋ &nbsp;Purchases & Suppliers</button><button data-page="inventory">▦ &nbsp;Inventory</button><button data-page="hr">♙ &nbsp;Employees & HR</button></div>
 <div class="nav-group"><div class="nav-label">INSIGHTS & SETUP</div><button data-page="reports">▥ &nbsp;Reports</button><button data-page="settings">⚙ &nbsp;Settings</button></div>
 </nav></aside>
-<main class="main"><header class="top"><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag">CLOUD WORKSPACE</span></div></header>
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)" aria-hidden="true"></div><main class="main"><header class="top"><button class="sidebar-toggle" type="button" aria-label="Menu kholein" aria-expanded="false" onclick="toggleSidebar()">☰</button><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag">CLOUD WORKSPACE</span></div></header>
 <div class="content">
 <div class="notice">Cloud database connected. Restaurant and order records sync across signed-in devices. Zomato/Swiggy integrations and automatic money settlement are not active yet.</div>
 <section class="page active" id="overview"><div data-owner-dashboard style="display:none">
@@ -1126,8 +1165,9 @@ function exportReportsCSV(){
 document.getElementById('reportRestaurant').addEventListener('change',loadReportsData);
 document.getElementById('reportFrom').addEventListener('change',loadReportsData);
 document.getElementById('reportTo').addEventListener('change',loadReportsData);
+function toggleSidebar(force){const side=document.querySelector('.side'),overlay=document.getElementById('sidebarOverlay'),btn=document.querySelector('.sidebar-toggle');if(!side||!overlay)return;const open=typeof force==='boolean'?force:!side.classList.contains('sidebar-open');side.classList.toggle('sidebar-open',open);overlay.classList.toggle('visible',open);if(btn)btn.setAttribute('aria-expanded',open?'true':'false');document.body.style.overflow=open?'hidden':''}
 function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
-document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace()}));
+document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{toggleSidebar(false);showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace()}));
 let menuCategories=[],menuItems=[],activeMenuRestaurant=null;
 function menuRestaurantId(){return document.getElementById('menuRestaurantSelect').value||''}
 async function loadMenuWorkspace(){const select=document.getElementById('menuRestaurantSelect');const previous=select.value;select.innerHTML='';const eligible=state.restaurants.filter(r=>access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===r.id&&['owner','manager'].includes(m.role)));eligible.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.appendChild(o)});if(!eligible.length){document.getElementById('menuItemRows').innerHTML='';document.getElementById('menuItemEmpty').textContent='Is account ke saath koi restaurant linked nahi hai.';document.getElementById('menuItemEmpty').style.display='block';return}select.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;await fetchMenuData()}
