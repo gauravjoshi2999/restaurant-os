@@ -1,223 +1,151 @@
-# Bite — Eat. Repeat. | Product Blueprint & Delivery Roadmap
+# Bite — Eat. Repeat. | Master Product Specification
 
-**Document status:** Approved requirements baseline from the 120-question product interview  
-**Current delivery focus:** Restaurant operations and ordering only  
-**Future scope:** Hotel module is intentionally deferred; the long-term platform may support Restaurant, Hotel, Cafe, Bakery and Cloud Kitchen business modules.
+**Status: AUTHORITATIVE REQUIREMENTS — supersedes the previous 120-question interview, the older Product Blueprint, and all earlier feature decisions.**
+**Source of truth:** User's Complete Master Prompt — Restaurant Marketplace Website, 2026-11-07.
+**Initial release:** India; one restaurant per Owner account; three product panels only.
 
-## 1. Product vision
+## 1. Product and architecture
 
-Bite is a responsive, multi-tenant restaurant business platform. It connects a restaurant's own customer ordering website, dine-in/counter/takeaway sales, and (subject to authorized partner access) Zomato and Swiggy orders in one owner workspace. It also provides the restaurant's day-to-day operating tools: billing, cashbook, purchases, stock, staff, customer records, reporting and branch oversight.
+Bite is a full-stack, multi-tenant restaurant marketplace connecting Customers with Restaurants. It has exactly three primary panels:
+1. Customer Website
+2. Restaurant Owner Dashboard
+3. Platform Admin Dashboard
 
-The first release is a restaurant product. Hotel room bookings, guest folios and housekeeping are not part of the current build.
+The product must be genuinely connected to persistent Supabase data and trusted backend operations. No fake payment success, hardcoded sales, demo orders presented as real, or UI-only controls.
 
-## 2. Users and access
+Brand: **Bite**. Tagline: **Eat. Repeat.**
 
-- **Platform Super Admin:** one initial administrator account, securely provisioned; platform-wide onboarding, subscription, support, oversight and company reporting. All privileged support actions must be audited. Financial actions require appropriate approvals.
-- **Restaurant Owner:** owns one business account; manages its profile, branches, staff permissions, orders, cash closing, expenses, menu, stock, purchases, reports and business settings.
-- **Manager:** only the capabilities explicitly granted by the Owner; may manage day-to-day operations and order status, but cannot perform Owner-only controls such as expense entry or daily cash closing unless a future permission explicitly grants it.
-- **Staff:** limited, configurable access; may create permitted orders, but cannot manually create Zomato/Swiggy orders.
-- **Customer:** browses published restaurants and menus, places online orders, sees their own order history and tracks order status.
+Current technical foundation discovered in the repository: GitHub Pages static frontend, Supabase Auth/PostgreSQL/RLS, customer page `customer.html`, owner/admin page `index.html`, and public delivery handoff page `delivery.html`. GitHub Pages is only static hosting; privileged payment, refund, OTP, webhook and time-triggered work must run in trusted server-side functions (e.g. Supabase Edge Functions), never in browser code. Keep only browser-safe Supabase project URL and publishable key in frontend.
 
-A business account may contain multiple branches and optional modules. Each branch has separate operational records and a combined Owner dashboard. The Owner has one business account; separate businesses are not silently merged.
+## 2. Customer Website
 
-## 3. Order channels and workflow
+### Discovery and restaurant pages
+- Search restaurants by name, area, food or category; choose delivery address/location.
+- Only show restaurants that serve the customer's delivery area.
+- Categories, featured restaurants, popular dishes, ratings/reviews, offers/coupons.
+- Filters: open now, veg/non-veg, low price, low delivery charge, rating.
+- Restaurant details: name/logo, address/location, phone, hours, rating/reviews, minimum order, delivery charge, ETA, menu.
+- Browse menu and prices without login.
 
-All channels appear in one order workspace with clear channel labels and filters:
-1. RestaurantOS customer website.
-2. Zomato.
-3. Swiggy.
-4. Offline POS: counter sale, takeaway, dine-in, table order and walk-in customer.
+### Customer account
+- Register/login with mobile+password or email+password; forgot password.
+- Do not require SMS OTP for normal login.
+- Require login only to place an order.
+- Profile: name, mobile, email, password, saved Home/Office/Other addresses, edit profile, order history, downloadable bills, favourites.
 
-Order board uses attractive cards and lanes. New orders generate a live dashboard alert and sound. The Owner manually accepts or rejects and manually advances the status; no automatic timeout or kitchen display/KDS is required. The selected lifecycle is Received → Accepted → Preparing → Ready → Handed Over → Completed, with Rejected/Cancelled outcomes and reason/history. Customers see a live status timeline and an estimated fulfilment time when available.
+### Menu and cart
+- Dish name/photo/price/description, veg/non-veg, category, availability, special instructions.
+- Customer can request less spicy, no onion, no garlic, or other instructions.
+- Cart add/remove/change quantity; automatic totals, delivery charge and coupon discount.
+- Persist cart across return visits. One restaurant per order; different restaurants require separate orders.
 
-The restaurant manages its own delivery/pickup. RestaurantOS does not operate a delivery fleet in the initial model. The Owner may choose to share delivery location when applicable. Customer cancellation after acceptance is a request for Owner approval; the Owner records approval/rejection, reason and refund details.
+### Checkout and order lifecycle
+- Delivery or self pickup. Online payment only; never show COD.
+- Customer pays the displayed total; no separate gateway fee line added to customer.
+- Confirm order only after trusted provider confirms successful payment.
+- Use an approved marketplace payment provider with restaurant KYC, split settlement, commission, payouts, refunds and reconciliation.
+- Statuses: Order Placed → Order Accepted → Preparing → Ready → Out for Delivery / Ready for Pickup → Delivered.
+- Customer may cancel before restaurant acceptance. After acceptance, allow cancellation request. If preparation has started, owner approval is required. Delivered orders cannot be cancelled.
+- Complaints/refund requests must be trackable and refunds must use provider-supported refund operations.
+- Order history: detail, PDF bill, reorder, date search and payment status.
 
-**Explicit exclusions:** no KOT workflow, no KOT printer, and no kitchen screen.
+### Reviews and support
+- Only completed-order customers may submit 1–5 star rating and written review.
+- Owner can view and reply. Customer can report inappropriate review; Admin investigates.
+- Support tickets: wrong item, missing item, payment, refund and order issue; customer sees ticket status.
 
-### External platform integration safeguards
-Zomato/Swiggy order ingestion, menu sync and status updates are dependent on authorized partner/API access and platform approval. Until approved, use a clearly labelled manual fallback. Only the Owner may manually enter an external-platform order. When APIs recover, reconciliation must prevent duplicate orders. Never represent a manual entry as an automatically received API order.
+## 3. Restaurant Owner Dashboard
 
-## 4. Customer ordering website
+### Registration and approval
+- Register mobile, restaurant name/address/location/category, menu/photos, bank settlement details and required business documents.
+- New restaurant remains Pending until Platform Admin approval.
 
-- Restaurant discovery by location, search, categories, filters and favourites.
-- Restaurant pages with menu photos, descriptions, prices, veg/non-veg markers, categories, ratings/reviews, customization, add-ons, offers and availability.
-- Cart, customer contact/address details, online checkout and customer order history.
-- Customer account/session should reduce repeated entry of details, without requiring SMS OTP in the currently selected checkout flow.
-- Live order timeline, status timestamps and ETA; customer sees only their own orders.
-- Reviews: stars, written review, food photos, Owner reply, report and moderation.
-- CRM: customer contact, order history, spend, last order, favourites, feedback, notes, groups and offers.
-- Marketing: coupons, loyalty, referrals, membership, personalized offers and campaigns. Campaign delivery must respect consent, opt-outs and applicable messaging rules.
+### Dashboard and order management
+- Show today's sales, online orders, pending orders, expenses, estimated profit, payment collection summary and quick links to Orders, Menu, Accounts, Reports, Settings.
+- New order alert with sound and browser push notification (where supported/permission granted).
+- Accept/reject with reason; acceptance deadline is 5 minutes. If unanswered, trigger configured automatic cancellation and provider refund workflow.
+- Show order details, customer address after appropriate stage, payment status, date-wise search/history.
+- No separate Kitchen Staff login, KDS or KOT. Owner manages kitchen verbally.
+- Owner advances order through preparation and clicks **Delivery Ke Liye Taiyar** when ready.
 
-## 5. Payment, commission and settlement policy
+### Restaurant-managed delivery handoff
+- On ready, reveal customer address/location and allow generation of secure, time-limited delivery link shareable by WhatsApp with restaurant's own delivery person.
+- Link works without delivery login; shows customer name, address, map and order details; expires on successful delivery or expiry time.
+- 4-digit delivery OTP is provided by customer at handoff; delivery person enters it on link. OTP is never exposed in link. Validate securely with attempt limits; successful OTP marks Delivered and notifies customer/owner.
+- If OTP unavailable, escalate to Support.
+- Delivery person's personal number is never exposed to customer. Customer contacts owner, who can relay messages.
+- Initial release does NOT include platform delivery-partner registration/login/dashboard/assignment/tracking.
 
-- Customer payments on the RestaurantOS website are intended to use an appropriately authorized payment-aggregator/marketplace settlement structure.
-- Proposed own-platform commission: **18%** on the agreed commissionable food value. The agreed base, discount treatment, tax, gateway fees, refunds and settlement deductions must be specified in signed agreements before launch.
-- Zomato/Swiggy order-management commission from RestaurantOS: **0%**. Those platforms continue paying the restaurant directly under its existing agreements; RestaurantOS records platform sales, fees, refunds and reported payout data and reconciles it against actual bank credits.
-- Payment states must come from trusted provider/platform webhooks or APIs, not browser-side assertions.
-- Subscription payments: online UPI, card and net banking. Restaurant subscription expiry preserves login and historical records while locking paid features and showing renewal reminders.
+### Menu, offers and settings
+- Full menu CRUD, photo upload, price, description, veg/non-veg, category, availability.
+- Restaurant coupons/discounts with dates, terms and minimum order.
+- Owner can edit restaurant profile, logo/photos, phone, hours, temporary closure, delivery timing, minimum order, delivery areas/pincodes and area-wise delivery charge.
+- Pause delivery without closing restaurant; accepted orders must still be fulfilled.
+- Restaurant name, address and bank detail changes require Admin approval.
+- One Owner account manages one Restaurant only. No multiple branches.
 
-**Not production-enabled:** no live payment collection, marketplace split, automatic commission deduction, refund execution or bank payout is claimed as implemented. Do not collect customer funds into an ordinary company bank account and manually forward them. Complete provider approval, contracts, legal/tax review and end-to-end reconciliation before enabling real money.
+### Simple business accounts and bills
+- Daily online order sales, daily income, daily expenses, category/amount/date, optional bill photo.
+- Automatic daily calculations; monthly sales/expense summaries; date-wise historical records; PDF and Excel exports.
+- No complex accounting, no inventory/stock management, no daily closing button. Each date remains separate.
+- Order invoice PDF and WhatsApp share; include restaurant, items, quantities, prices, delivery charge, discount and total.
+- Reviews view/reply/report.
 
-## 6. POS, billing and accounts
+## 4. Platform Admin Dashboard
 
-- POS supports counter, takeaway, dine-in, table orders and walk-ins.
-- Payment modes: cash, UPI, card, bank transfer, split payment, partial payment and customer credit/udhar.
-- Customer khata: customer name, credit amount, date, jama payments and remaining balance.
-- Counter invoice: GST/non-GST, discount, payment details, PDF; broader billing requirements include thermal print, WhatsApp share, refunds and bill history.
-- Daily cashbook: cash, UPI, card and online payments, opening/closing cash, expenses, refunds, reconciliation and daily closing report.
-- Only Owner closes the day. Closing includes payment reconciliation, opening/closing cash, sales, expenses, refunds, udhar, differences and Owner approval.
-- Expenses: name, amount, date, category, payment mode and description. Only Owner enters expenses under the selected policy.
-- GST: GSTIN, CGST/SGST/IGST, HSN/SAC, tax configuration, exportable reports and branch-wise settings.
+- Summary: total/pending/active/suspended restaurants, customers, orders, sales, commission, pending refunds and settlement summary.
+- Restaurant onboarding: documents, approve/reject, activate/suspend/reactivate, details, orders, commission.
+- Customer list/details and justified suspend/reactivate.
+- All orders with detail, status, payment status, restaurant/date filters and search.
+- Payments: transactions, commission, restaurant settlements, pending settlements, refunds, decisions and reconciliation.
+- Commission: default proposed 10%, configurable globally and per restaurant; transparent calculation; restaurant cannot bypass it.
+- Marketplace provider: KYC, split settlement, platform commission, payout, refunds and reconciliation. Follow provider's approved marketplace model and Indian law. Do not hold customer funds in an unauthorized platform account.
+- Gateway fees may be deducted from restaurant settlement only when provider agreement supports it and this is disclosed. Settlement timing follows actual provider cycle (next-day only if available).
+- Support tickets: complaints, refunds, wrong/missing item, payment and delivery issues.
+- Website management: food categories, featured restaurants, platform coupons/offers, website settings, reported reviews, commission.
+- Audit logs: profile/bank changes, approvals, suspensions, commission changes, refund decisions, order status changes.
 
-## 7. Menu, purchases and inventory
+## 5. Payment and revenue rules
 
-- Menu management: manual entry, Excel bulk import, menu copy, bulk edit, duplicate and category management.
-- Item details: photo, name, price, description, ingredients, allergens, nutrition, portion, customization, add-ons, availability and channel-specific details.
-- Pricing may vary by size, add-ons, branch, platform and time.
-- Availability supports manual control, stock-based control, breakfast/lunch/dinner schedules and Owner/Manager override.
-- Recipe module, as selected: recipe name and ingredients only. Do not assume ingredient quantities or automatic recipe-based stock deduction.
-- Purchase entry: item, quantity, rate, total, date, supplier and payment status.
-- Stock: current stock, purchases, manual adjustments, low-stock alert and expiry alert.
-- Supplier profile: name, mobile, address and purchase history.
-- The selected scope does not yet include full supplier ledger, wastage valuation or automatic recipe/BOM consumption. These require a later explicit decision.
+- Commission-based; no monthly subscription in initial release.
+- No COD. Online payment only.
+- Proposed default platform commission 10%.
+- No separate gateway fee charged to customer.
+- Gateway fee is not platform profit; actual provider fee and settlement rules must be used.
+- Test calculation only: ₹500 order, 10% commission ₹50, assumed provider fee ₹11.51, illustrative restaurant settlement ₹438.49.
+- Actual settlement is provider-controlled and depends on approved agreement, fees, taxes, refunds and payout cycle.
+- Test mode until merchant/provider onboarding and approval are complete. Never represent test mode as live collection.
 
-## 8. Staff and HR
+## 6. Notifications
 
-- Employee profile: name, mobile, address, position and joining date.
-- Attendance: Owner/Manager manually marks Present/Absent.
-- One common shift for all employees in the initial scope.
-- Owner records leave date and reason; no employee leave-request workflow in the initial scope.
-- Employee management includes salary and leave records.
-- Payroll scope selected earlier includes salary, attendance, paid/pending status, advances, deductions, overtime, salary slips, leave, bonus and reports. The final Q120 choice is Employee Profile + Attendance + Salary + Leave Records; detailed payroll subfeatures must be phased and permission-tested before launch.
+Real-time notifications for new order, accepted/rejected/cancelled, ready, delivery confirmation, refund status, restaurant approval, complaint and admin updates. Owner gets in-dashboard notification, sound and browser push where supported and permitted.
 
-## 9. Tables, reports and insights
+## 7. Security and privacy
 
-- Table management: table status, customer/order details, table-wise billing and split bill. No reservations in the initial scope.
-- Reports: sales, orders, payments, expenses, P&L, GST, customers, menu, inventory, employees, platform-wise, branch-wise and custom dates.
-- Export/share: PDF, Excel, CSV, WhatsApp/email share and print.
-- Owner profit view: revenue, expenses, food cost, commission and net profit separately, with daily/weekly/monthly views.
-- Dashboard comparisons: charts, trends and performance indicators.
-- Public-information market intelligence: competitor pricing, ratings, popular items and market insights; no private competitor data.
-- Optional advisory AI suggestions only for sales/profit, menu, pricing, stock and customer marketing. AI is not an ERP command executor and must not silently edit business records.
+Secure Auth, RBAC, strict customer and restaurant tenant isolation, Admin-only platform access, secure password handling, protected backend endpoints, verified provider webhooks, secure OTP, expiring delivery links, audit logs, backup, input validation, rate limiting and secure uploads. No user-metadata-based authorization. Never expose Supabase service-role/payment secrets in browser. Every exposed public table must have appropriate RLS; review SECURITY DEFINER functions and grants.
 
-## 10. SaaS / Super Admin
+## 8. Design
 
-- Owner self-registration and Super Admin-assisted onboarding; Super Admin decides approval, verification, pending or rejection.
-- Free and premium subscriptions; monthly/annual plans; Super Admin controls prices, features, limits, offers, trials, upgrades/downgrades and suspension.
-- One Master Dashboard for businesses, branches, online/offline sales, orders, expenses, stock, staff and net profit; detailed module screens remain separate.
-- Branch-level data separation with combined reports.
-- Support: tickets, WhatsApp, email and live chat with tracking, priority, assignment, history and feedback.
-- Notifications: in-app/web, email, WhatsApp and mobile push, with user preferences and consent.
-- Super Admin company analytics: restaurants, users, orders, sales, commission, subscriptions, settlements, refunds, expenses, profit and growth.
-- Super Admin oversight/support access is audited. No unapproved financial alteration.
-- Only one Super Admin; initial account is provisioned privately, never through open public admin signup.
+Professional mobile-first responsive experience for Android, tablet and desktop. Simple Hindi/English option, easy navigation, clear touch targets, attractive restaurant cards and quality food imagery, fast loading. Owner UI must be understandable to non-technical small-business operators. Avoid unnecessary features.
 
-## 11. Security, privacy and reliability
+## 9. Explicit exclusions for initial release
 
-- Supabase Auth email/password for restaurant/platform users; password reset by email. Customer checkout currently uses the selected no-SMS-OTP flow.
-- PostgreSQL Row Level Security and strict tenant/branch scoping for every business table.
-- Configurable staff permissions enforced in database policies/RPCs, not just hidden UI buttons.
-- Audit trail records actor, time, action, entity and old/new values for sensitive changes.
-- Data remains available while the account exists; closure retention follows legal requirements.
-- Regular backups, manual backup, restore testing, disaster recovery and monitoring.
-- Never ship service-role keys, database passwords or payment secrets to browser code.
-- Complete DPDP/privacy, GST, FSSAI e-commerce FBO, payment-aggregator/RBI and contractual review with qualified professionals before production launch.
+The following older prototype features are NOT part of this Master Prompt and must not appear as active product modules or navigation: POS/counter sales, dine-in tables, KOT/KDS, inventory/stock, suppliers/purchases, employee HR/attendance/payroll, customer khata/ledger, daily cashbook/closing, multiple branches, Zomato/Swiggy integrations/manual channel workflows, hotel modules, platform delivery-partner fleet, subscriptions. Existing database objects/data are not to be destructively dropped merely to hide these features; archive/deprecate safely and preserve records unless a separately approved data migration explicitly authorizes deletion.
 
-## 12. Current repository baseline (audited)
+## 10. Technical delivery and phased implementation
 
-Repository: `gauravjoshi2999/restaurant-os`, default branch `main`. Frontend is currently a single responsive `index.html` owner workspace and a separate `customer.html` storefront, backed by Supabase Auth/PostgreSQL.
+Full-stack application: frontend, backend, database, Auth/RBAC, protected APIs, marketplace payment integration, realtime orders, notifications, PDF invoice, Excel reports, secure image upload, Admin dashboard, production deployment. Maintainable architecture; all important data persistent.
 
-The README and setup guide describe an existing prototype foundation:
-- Auth/session restoration, restaurant memberships and role foundation.
-- Restaurant onboarding and Super Admin foundation.
-- Order creation with multiple line items, order lifecycle and status history.
-- Manual payout reconciliation fields and financial snapshot/settlement-draft foundations.
-- Menu catalog and public restaurant/storefront/customer-order database foundations.
-- Customer checkout SQL was revised to a no-OTP contact flow.
+Provide complete source, schema, setup instructions, env documentation, Admin bootstrap, deployment instructions, development test credentials (never production passwords) and testing checklist.
 
-The repository explicitly states these are not yet complete production capabilities:
-- Full customer checkout UI/payment collection and end-to-end production flow.
-- Authorized live Zomato/Swiggy integrations.
-- POS, complete accounting/reporting and the broader modules in this blueprint.
-- Payment provider onboarding, split settlement, automated commission/refunds/payouts.
-- Production security, tenant-isolation, backups, monitoring and complete role-by-role tests.
+Phases:
+1. Database, Auth, RBAC and tenant isolation.
+2. Customer storefront and restaurant discovery.
+3. Owner dashboard and menu management.
+4. Order management and online payment provider integration.
+5. Delivery link, OTP and confirmation.
+6. Admin dashboard and restaurant approval.
+7. Business accounts, reports, PDF bills and Excel exports.
+8. Notifications, security, tests and deployment.
 
-The existing Supabase project has already had its documented SQL phases applied and verified during development. **Do not rerun the initial schema or the existing migration chain on the live project merely to start the next phase.** Inspect the live schema and migration history first, then add small forward-only migrations.
-
-## 13. Implementation roadmap and acceptance gates
-
-### Phase 0 — Baseline and safety (first)
-1. Capture current Git commit and deployment workflow state.
-2. Inventory all frontend pages, event handlers, SQL migrations, RPCs, policies and storage/realtime configuration.
-3. Compare repository migrations with the actual Supabase schema; verify current Owner, Manager, Staff, Super Admin and Customer access.
-4. Create a test matrix and a safe test restaurant/account. Never test destructive changes against real business data.
-5. Confirm GitHub Pages build and mobile/desktop baseline before edits.
-
-**Gate:** current login, session restoration, restaurant selection, order create/status history, menu and customer storefront must be reproducible; no existing data is modified.
-
-### Phase 1 — Stabilize the existing core
-- Refactor the single-file frontend incrementally without changing existing behavior.
-- Fix and test responsive navigation, session handling, role-based screens and loading/error states.
-- Add consistent data access helpers and input validation.
-- Verify order status transitions and customer ownership with RLS tests.
-
-**Gate:** Owner/Manager/Staff/Super Admin/Customer test matrix passes; no cross-tenant reads/writes.
-
-### Phase 2 — Complete the own-platform ordering journey
-- Publish restaurant discovery/menu pages from real database data.
-- Complete cart, checkout, customer profile/contact/address, order placement and customer order history.
-- Add realtime order status and ETA; validate duplicate-submit and failed-network recovery.
-- Keep real payment collection disabled until payment provider approval and legal structure are complete.
-
-**Gate:** test order can be placed and tracked end-to-end in sandbox/test mode, with tenant and customer isolation verified.
-
-### Phase 3 — Owner order operations and POS
-- Unified order board, channel filters, manual order creation rules, offline POS and table billing.
-- Payment-mode records, split/partial payments and customer credit/khata.
-- Owner-controlled accept/reject/status workflow and cancellation approvals.
-
-**Gate:** each channel and POS path produces correct immutable order/financial records; no KOT/KDS added.
-
-### Phase 4 — Menu, purchase and stock
-- Complete menu management, bulk import, branch availability and schedules.
-- Purchase entry, supplier directory, current stock, manual adjustments, low-stock and expiry alerts.
-- Recipe name/ingredient directory only unless scope is explicitly expanded.
-
-**Gate:** quantities, totals, permissions and alerts pass test cases; no unsupported automatic recipe deduction.
-
-### Phase 5 — Cashbook, billing, GST and reporting
-- Invoices, payment reconciliation, daily cashbook and Owner-only day closing.
-- Expenses, GST configuration, P&L, daily/monthly/custom reports and exports.
-- Clearly distinguish platform-reported payout from verified bank credit.
-
-**Gate:** sample transactions reconcile exactly across order, invoice, cashbook and report.
-
-### Phase 6 — Staff, CRM and customer growth
-- Employee profiles, attendance, salary/leave records and phased payroll.
-- Customer CRM, reviews, offers, coupons, loyalty/referral and consent-aware campaigns.
-
-**Gate:** role permissions, customer privacy, campaign opt-out and payroll calculations verified.
-
-### Phase 7 — Super Admin SaaS and branches
-- Multi-branch operations, subscription plans/billing, support and company analytics.
-- Audited support access, backup/restore and monitoring.
-- Market intelligence and optional advisory AI suggestions.
-
-**Gate:** subscription lifecycle, branch isolation, admin audit and restore drill pass.
-
-### Phase 8 — External integrations and production launch
-- Apply for/secure authorized Zomato and Swiggy API/partner access; integrate only approved endpoints.
-- Onboard an authorized payment aggregator/marketplace settlement provider; implement webhook verification, commission, refunds and settlement approvals.
-- Complete legal, privacy, security, load, disaster recovery and real-device reviews.
-
-**Gate:** provider certification/approval, legal sign-off, independent security review and full reconciliation tests. Until then, integrations and live payments remain clearly marked unavailable/manual.
-
-## 14. Development rules
-
-1. Work from this baseline; do not silently reinterpret selected answers.
-2. Do not deploy untested code or claim an integration is live when it is not.
-3. Make small, reviewable commits and forward-only database migrations.
-4. Preserve current user data; use test accounts and reversible migrations.
-5. Every phase must include its test results, known limitations and exact user action (if any).
-6. Never ask the user to paste secrets, passwords or service-role keys into chat.
-7. Hotel/room/guest/housekeeping features remain deferred until the Owner explicitly starts that phase.
+Before implementation: verify dependencies, inspect live schema/data/migrations, design target schema and architecture, and confirm marketplace provider onboarding requirements. Implement and test each phase end-to-end. Do not claim a feature is complete based only on a UI, syntax check, or deployment.
