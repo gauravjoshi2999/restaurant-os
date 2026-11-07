@@ -630,6 +630,9 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
  <div class="grid section">
   <div class="card"><div class="metric-label">Orders</div><div class="metric" id="reportOrderCount">0</div></div>
   <div class="card"><div class="metric-label">Gross sales</div><div class="metric" id="reportGrossSales">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Cancelled sale</div><div class="metric" id="reportCancelledSales">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="reportActualRefunds">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Net sales</div><div class="metric" id="reportNetSales">₹0.00</div></div>
   <div class="card"><div class="metric-label">Cashbook income</div><div class="metric" id="reportCashIn">₹0.00</div></div>
   <div class="card"><div class="metric-label">Cashbook outflow</div><div class="metric" id="reportCashOut">₹0.00</div></div>
   <div class="card"><div class="metric-label">Net cash movement</div><div class="metric" id="reportNetCash">₹0.00</div></div>
@@ -1218,7 +1221,7 @@ async function loadReportsData(){
   ]);
   for(const x of [orders,cashbook,balances])if(x.error)throw x.error;
   reportOrders=orders.data||[];reportCashbook=cashbook.data||[];reportCustomerBalances=balances.data||[];
-  const ids=reportOrders.filter(o=>!['Rejected','Cancelled'].includes(o.status)).map(o=>o.id);
+  const ids=reportOrders.map(o=>o.id);
   if(ids.length){
    const [items,payments]=await Promise.all([
     sb.from('order_items').select('*').in('order_id',ids),
@@ -1230,15 +1233,26 @@ async function loadReportsData(){
   renderReports();
  }catch(e){document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
 }
+function reportSummaryFor(orderId){
+ return reportPaymentSummaries.find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:0,cancelled_sale_amount:0,refunded_amount:0};
+}
 function renderReports(){
  const sum=(arr,fn)=>arr.reduce((n,x)=>n+fn(x),0);
  const salesOrders=reportOrders.filter(o=>!['Rejected','Cancelled'].includes(o.status));
- const sales=sum(salesOrders,o=>Number(o.amount)),cashIn=sum(reportCashbook,e=>e.direction==='in'?Number(e.amount):0),cashOut=sum(reportCashbook,e=>e.direction==='out'?Number(e.amount):0);
- const posDue=sum(salesOrders.filter(o=>o.channel.startsWith('POS - ')),o=>Number(paymentSummaryFor(o.id).balance_amount??o.amount));
- document.getElementById('reportOrderCount').textContent=String(salesOrders.length);document.getElementById('reportGrossSales').textContent=money(sales);
+ const grossSales=sum(salesOrders,o=>Number(o.amount||0));
+ const cancelledSales=sum(salesOrders,o=>Number(reportSummaryFor(o.id).cancelled_sale_amount||0));
+ const actualRefunds=sum(reportOrders,o=>Number(reportSummaryFor(o.id).refunded_amount||0));
+ const netSales=Math.max(0,grossSales-cancelledSales);
+ const cashIn=sum(reportCashbook,e=>e.direction==='in'?Number(e.amount):0),cashOut=sum(reportCashbook,e=>e.direction==='out'?Number(e.amount):0);
+ const posDue=sum(salesOrders.filter(o=>String(o.channel||'').startsWith('POS - ')),o=>Number(reportSummaryFor(o.id).balance_amount??o.amount));
+ document.getElementById('reportOrderCount').textContent=String(salesOrders.length);
+ document.getElementById('reportGrossSales').textContent=money(grossSales);
+ document.getElementById('reportCancelledSales').textContent=money(cancelledSales);
+ document.getElementById('reportActualRefunds').textContent=money(actualRefunds);
+ document.getElementById('reportNetSales').textContent=money(netSales);
  document.getElementById('reportCashIn').textContent=money(cashIn);document.getElementById('reportCashOut').textContent=money(cashOut);
  document.getElementById('reportNetCash').textContent=money(cashIn-cashOut);document.getElementById('reportPosDue').textContent=money(posDue);
- const channels={};salesOrders.forEach(o=>{channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=Number(o.amount)});
+ const channels={};salesOrders.forEach(o=>{const s=reportSummaryFor(o.id),net=Math.max(0,Number(o.amount||0)-Number(s.cancelled_sale_amount||0));channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=net});
  document.getElementById('reportChannelRows').innerHTML=Object.entries(channels).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No orders</td></tr>';
  const modes=['Cash','UPI','Card','Bank Transfer','Other'];
  const total=(direction,mode)=>sum(reportCashbook.filter(e=>e.direction===direction&&e.payment_method===mode),e=>Number(e.amount));
@@ -1257,9 +1271,13 @@ function renderReports(){
  document.getElementById('reportStatus').textContent=reportOrders.length+' orders · '+reportCashbook.length+' cashbook entries';
 }
 function exportReportsCSV(){
- const rows=[['Date','Record type','Category','Description','Payment mode','Amount','Direction','Source']];
- reportOrders.forEach(o=>rows.push([String(o.order_date).slice(0,10),'Sale',o.channel,o.order_code+' '+(o.customer_name||''),'',Number(o.amount).toFixed(2),o.status,'Order']));
- reportCashbook.forEach(e=>rows.push([e.entry_date,'Cashbook',e.category,e.description||'',e.payment_method,Number(e.amount).toFixed(2),e.direction,e.source_type]));
+ const rows=[['Date','Record type','Category','Description','Payment mode','Gross amount','Cancelled sale','Actual refund','Net sale / amount','Direction','Status','Source']];
+ reportOrders.forEach(o=>{
+  const s=reportSummaryFor(o.id),gross=!['Rejected','Cancelled'].includes(o.status)?Number(o.amount||0):0;
+  const cancelled=Number(s.cancelled_sale_amount||0),refund=Number(s.refunded_amount||0);
+  rows.push([String(o.order_date).slice(0,10),'Sale',o.channel,o.order_code+' '+(o.customer_name||''),'',gross.toFixed(2),cancelled.toFixed(2),refund.toFixed(2),Math.max(0,gross-cancelled).toFixed(2),'',o.status,'Order']);
+ });
+ reportCashbook.forEach(e=>rows.push([e.entry_date,'Cashbook',e.category,e.description||'',e.payment_method,'','','',Number(e.amount).toFixed(2),e.direction,'',e.source_type]));
  const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download='restaurantos-report-'+document.getElementById('reportFrom').value+'-to-'+document.getElementById('reportTo').value+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
