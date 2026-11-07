@@ -1,6 +1,6 @@
-# RestaurantOS
+# Bite — Eat. Repeat.
 
-RestaurantOS is a multi-restaurant ordering and operations platform prototype, beginning with a Rajsamand pilot.
+Bite is a multi-restaurant ordering and operations platform prototype, beginning with a Rajsamand pilot.
 
 ## Project planning
 
