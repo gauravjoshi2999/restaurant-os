@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bite Delivery Handoff</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#201a16;background:#f7f4ef;--brand:#b84d2b;--line:#e5ddd3;--muted:#746b63}
+*{box-sizing:border-box}body{margin:0;padding:20px}.wrap{max-width:680px;margin:0 auto}.brand{font-weight:900;letter-spacing:-.5px;color:var(--brand);font-size:24px;margin:10px 0 18px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 8px 30px #3120140a}h1{font-size:24px;line-height:1.2;margin:0 0 8px}h2{font-size:16px;margin:0 0 12px}.muted{color:var(--muted);font-size:13px}.pill{display:inline-block;background:#fff2e8;color:#a34220;border-radius:99px;padding:5px 10px;font-size:12px;font-weight:800;margin:8px 0}.detail{margin:10px 0;line-height:1.5;font-size:14px}.items{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.item{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13px}.btn{display:inline-flex;justify-content:center;align-items:center;border:0;border-radius:10px;background:var(--brand);color:white;font-weight:800;padding:12px 15px;text-decoration:none;cursor:pointer;width:100%;font:inherit;font-weight:800}.btn:disabled{opacity:.5;cursor:not-allowed}input{width:100%;border:1px solid var(--line);border-radius:10px;padding:14px;font:inherit;letter-spacing:3px;font-size:20px;margin:8px 0 12px}.msg{padding:12px;border-radius:10px;background:#f8f3ed;font-size:13px;margin-top:12px}.error{color:#a5281c;background:#fff0ed}.success{color:#176c49;background:#ecf8f1}.hidden{display:none!important}
+</style>
+</head>
+<body><main class="wrap">
+<div class="brand">Bite <span class="muted">• Eat. Repeat.</span></div>
+<div class="card" id="loading"><h1>Delivery details load ho rahe hain…</h1><p class="muted">Secure handoff link verify kiya ja raha hai.</p></div>
+<div class="card hidden" id="details">
+<h1 id="orderTitle">Delivery Order</h1><div class="pill" id="statusPill"></div>
+<h2>Restaurant</h2><div class="detail" id="restaurantName"></div>
+<h2>Customer / Drop location</h2><div class="detail"><strong id="customerName"></strong><br><a id="customerPhone" href="#"></a><br><span id="addressText"></span></div>
+<a class="btn" id="mapButton" target="_blank" rel="noopener noreferrer">Open customer location in Maps</a>
+<div id="instructions" class="msg hidden"></div>
+<div class="items"><h2>Order items</h2><div id="itemsList"></div></div>
+</div>
+<div class="card hidden" id="verifyCard">
+<h2>Customer OTP se delivery confirm karein</h2>
+<p class="muted">Restaurant handover mark karne ke baad customer se uske Bite My Orders page par dikh raha 4-digit OTP poochhein. 5 galat attempts ke baad link lock ho jayega.</p>
+<form id="otpForm"><label for="otpInput">Customer OTP</label><input id="otpInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="••••" required><button class="btn" id="confirmBtn" type="submit">Confirm delivery</button></form>
+<div class="msg hidden" id="resultMsg" role="status"></div>
+</div>
+<div class="card hidden" id="errorCard"><h1>Delivery link open nahi hua</h1><div class="msg error" id="errorText"></div><p class="muted">Restaurant se naya link share karne ko kahen.</p></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
+const SUPABASE_KEY='sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const token=new URLSearchParams(location.search).get('token');
+const $=id=>document.getElementById(id);
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showError(message){$('loading').classList.add('hidden');$('details').classList.add('hidden');$('verifyCard').classList.add('hidden');$('errorCard').classList.remove('hidden');$('errorText').textContent=message||'Link invalid ya expired hai.';}
+async function load(){
+ if(!token){showError('Delivery token missing hai. WhatsApp se poora link open karein.');return;}
+ try{
+  const {data,error}=await sb.rpc('get_delivery_handoff',{p_token:token});if(error)throw error;
+  const h=Array.isArray(data)?data[0]:data;if(!h)throw new Error('Link expire ho gaya hai, order complete ho chuka hai, ya link invalid hai.');
+  $('loading').classList.add('hidden');$('details').classList.remove('hidden');$('verifyCard').classList.remove('hidden');
+  $('orderTitle').textContent='Order '+h.order_code;$('statusPill').textContent='Order status: '+h.order_status;
+  $('restaurantName').textContent=h.restaurant_name||'Restaurant';$('customerName').textContent=h.customer_name||'Customer';
+  const phone=String(h.customer_phone||'').replace(/[^0-9+]/g,'');$('customerPhone').textContent=h.customer_phone||'Phone not provided';$('customerPhone').href=phone?'tel:'+phone:'#';
+  const a=h.delivery_address||{};const address=[a.address_line,a.landmark,a.city,a.state,a.postal_code].filter(Boolean).join(', ');
+  $('addressText').textContent=address||'Customer address unavailable';
+  const lat=Number(a.latitude),lng=Number(a.longitude);const query=Number.isFinite(lat)&&Number.isFinite(lng)&&lat!==0&&lng!==0?lat+','+lng:address;
+  $('mapButton').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query);
+  if(h.customer_note){$('instructions').textContent='Customer instructions: '+h.customer_note;$('instructions').classList.remove('hidden');}
+  $('itemsList').innerHTML=(h.items||[]).map(i=>'<div class="item"><span>'+safe(i.item_name)+' × '+safe(i.quantity)+'</span><strong>₹'+Number(i.line_total||0).toLocaleString('en-IN',{maximumFractionDigits:2})+'</strong></div>').join('')||'<div class="muted">Item details unavailable.</div>';
+  if(h.order_status!=='Handed Over'){$('otpForm').classList.add('hidden');$('resultMsg').textContent='Restaurant abhi order handover mark nahi kiya. Handover hone ke baad customer OTP verify karein.';$('resultMsg').classList.remove('hidden');}
+ }catch(e){showError(e.message||'Link load nahi hua.');}
+}
+$('otpForm').addEventListener('submit',async e=>{e.preventDefault();const otp=$('otpInput').value.trim();if(!/^[0-9]{4}$/.test(otp)){ $('resultMsg').textContent='4 digit OTP enter karein.';$('resultMsg').className='msg error';$('resultMsg').classList.remove('hidden');return;}
+ const btn=$('confirmBtn');btn.disabled=true;btn.textContent='Verifying…';$('resultMsg').classList.add('hidden');
+ try{const {data,error}=await sb.rpc('confirm_delivery_handoff',{p_token:token,p_otp:otp});if(error)throw error;if(data===true){$('otpForm').classList.add('hidden');$('statusPill').textContent='Delivery completed';$('resultMsg').textContent='Delivery successfully confirm ho gayi. Thank you!';$('resultMsg').className='msg success';$('resultMsg').classList.remove('hidden');}else{$('resultMsg').textContent='OTP sahi nahi hai. Customer se dobara verify karein.';$('resultMsg').className='msg error';$('resultMsg').classList.remove('hidden');$('otpInput').value='';$('otpInput').focus();}}
+ catch(e){$('resultMsg').textContent=e.message||'OTP verify nahi hua.';$('resultMsg').className='msg error';$('resultMsg').classList.remove('hidden');}
+ finally{btn.disabled=false;btn.textContent='Confirm delivery';}
+});
+load();
+</script></body></html>
