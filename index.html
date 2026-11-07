@@ -217,6 +217,42 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 .nav button:hover .nav-icon,.nav button.active .nav-icon{color:#ff9278}
 .nav .nav-text{min-width:0;line-height:1.25}
 @media(max-width:700px){.nav .nav-icon{width:18px;height:18px;flex-basis:18px}.nav .nav-icon svg{width:18px;height:18px}}
+/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}<style id="platformRestaurantManagerStyles">
@@ -231,6 +267,42 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 .platform-selected-summary{border-top:1px solid #edf0f4;margin-top:12px;padding-top:11px;display:flex;gap:16px;flex-wrap:wrap}.platform-selected-summary span{font-size:9px;color:#8992a0}.platform-selected-summary b{display:block;font-size:12px;color:#303744;margin-top:3px}
 .platform-restaurant-empty{grid-column:1/-1;padding:22px;text-align:center;color:#8a93a1;font-size:11px;background:#fafbfc;border-radius:10px}
 @media(max-width:650px){.platform-restaurant-manager{padding:13px}.platform-restaurant-list{grid-template-columns:1fr;max-height:260px}.platform-manager-head h2{font-size:17px}.platform-manager-hint{width:100%}}
+/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
 </style>
 <style id="partnerOrderQueueStyles">
 .order-status-tabs{display:flex;gap:7px;overflow-x:auto;padding:4px 0 12px;margin-top:14px;scrollbar-width:thin}
@@ -248,14 +320,158 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 .order-new-flag{display:inline-flex;align-items:center;gap:5px;background:#fff1eb;color:#c34c2f;border-radius:6px;padding:5px 8px;font-size:9px;font-weight:900;letter-spacing:.04em}.order-new-dot{width:6px;height:6px;border-radius:50%;background:#e65b3d}
 .order-card .order-history{grid-column:1/-1;margin-top:0}.order-card-empty{border:1px dashed #dfe2e8;background:#fafbfc;border-radius:12px;padding:22px;text-align:center;color:#858995;font-size:12px}
 @media(max-width:650px){.order-card{grid-template-columns:minmax(0,1fr);padding:13px;gap:9px}.order-card-side{align-items:flex-start;flex-direction:row;justify-content:space-between;min-width:0}.order-card-footer{align-items:stretch;flex-direction:column}.order-actions .btn{flex:1 1 auto}.order-status-tabs button{padding:9px 11px}}
-</style><style>.order-item-photo-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}.order-item-photo-row{display:flex;align-items:center;gap:10px;min-width:0}.order-item-photo,.order-item-photo-fallback{width:54px;height:54px;flex:0 0 54px;object-fit:cover;border-radius:9px;background:#f3f3f3}.order-item-photo-fallback{display:grid;place-items:center;font-size:24px;color:#999}.order-item-photo-row>span:last-child{min-width:0}.order-item-photo-row strong{display:block;font-size:11px;color:var(--ink)}.order-item-photo-row small{display:block;font-size:10px;color:var(--muted);margin-top:3px}</style>
-<style>.order-item-photo,.order-item-photo-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover}.order-item-photo-row{gap:8px}.order-item-photo-list{gap:6px;margin:7px 0}.order-item-photo-row strong{font-size:10px}.order-item-photo-row small{font-size:9px}.orders-page-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}.orders-main-column{min-width:0}.order-workspace{display:block}.order-board-area{min-width:0}.order-inbox{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#f8fafc;border:1px solid #e6eaf0;border-radius:14px;padding:12px}.order-inbox-head{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 11px;border-bottom:1px solid #e7ebf0}.order-inbox-head strong{display:block;font-size:13px}.order-inbox-head small{display:block;color:#7c8492;font-size:10px;margin-top:3px}.order-inbox-count{display:grid;place-items:center;min-width:25px;height:25px;padding:0 6px;border-radius:50%;background:#e94e3d;color:#fff;font-weight:900;font-size:11px}.order-inbox-list{display:flex;flex-direction:column;gap:9px;padding-top:10px}.order-inbox-card{background:#fff;border:1px solid #e5e9ef;border-radius:12px;padding:11px;box-shadow:0 2px 8px #11182708}.order-inbox-card-top{display:flex;justify-content:space-between;align-items:center;gap:6px}.order-inbox-card-top time{font-size:9px;color:#858d99}.order-inbox-source{font-size:9px;font-weight:900;border-radius:20px;padding:4px 8px;background:#eef2f7;color:#3f4856}.source-zomato{background:#fff0ed;color:#c83f2e}.source-swiggy{background:#fff4e5;color:#a65b00}.source-website{background:#eaf5ff;color:#1765a5}.order-inbox-order{display:block;font-size:13px;margin-top:9px}.order-inbox-customer{font-size:10px;color:#626b79;margin-top:4px}.order-inbox-items{font-size:10px;line-height:1.65;color:#333d4b;margin-top:8px;padding:8px;background:#f7f8fa;border-radius:8px}.order-inbox-items small{display:block;color:#858d99}.order-inbox-actions{display:flex;gap:7px;margin-top:10px}.order-inbox-actions .btn{flex:1;min-width:0;padding:8px 5px;font-size:10px;min-height:34px}.order-inbox-empty{text-align:center;padding:22px 8px;color:#7d8794;font-size:11px;line-height:1.7}.order-inbox-empty small{font-size:9px}@media(max-width:1100px){.orders-page-layout{grid-template-columns:minmax(0,1fr) 260px;gap:10px}}@media(max-width:760px){.orders-page-layout{grid-template-columns:minmax(0,1fr)}.order-inbox{position:relative;top:auto;max-height:360px;order:-1}.order-inbox-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}} </style>
+/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
+</style><style>.order-item-photo-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}.order-item-photo-row{display:flex;align-items:center;gap:10px;min-width:0}.order-item-photo,.order-item-photo-fallback{width:54px;height:54px;flex:0 0 54px;object-fit:cover;border-radius:9px;background:#f3f3f3}.order-item-photo-fallback{display:grid;place-items:center;font-size:24px;color:#999}.order-item-photo-row>span:last-child{min-width:0}.order-item-photo-row strong{display:block;font-size:11px;color:var(--ink)}.order-item-photo-row small{display:block;font-size:10px;color:var(--muted);margin-top:3px}/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
+</style>
+<style>.order-item-photo,.order-item-photo-fallback{width:40px;height:40px;flex:0 0 40px;border-radius:50%;object-fit:cover}.order-item-photo-row{gap:8px}.order-item-photo-list{gap:6px;margin:7px 0}.order-item-photo-row strong{font-size:10px}.order-item-photo-row small{font-size:9px}.orders-page-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}.orders-main-column{min-width:0}.order-workspace{display:block}.order-board-area{min-width:0}.order-inbox{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#f8fafc;border:1px solid #e6eaf0;border-radius:14px;padding:12px}.order-inbox-head{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 11px;border-bottom:1px solid #e7ebf0}.order-inbox-head strong{display:block;font-size:13px}.order-inbox-head small{display:block;color:#7c8492;font-size:10px;margin-top:3px}.order-inbox-count{display:grid;place-items:center;min-width:25px;height:25px;padding:0 6px;border-radius:50%;background:#e94e3d;color:#fff;font-weight:900;font-size:11px}.order-inbox-list{display:flex;flex-direction:column;gap:9px;padding-top:10px}.order-inbox-card{background:#fff;border:1px solid #e5e9ef;border-radius:12px;padding:11px;box-shadow:0 2px 8px #11182708}.order-inbox-card-top{display:flex;justify-content:space-between;align-items:center;gap:6px}.order-inbox-card-top time{font-size:9px;color:#858d99}.order-inbox-source{font-size:9px;font-weight:900;border-radius:20px;padding:4px 8px;background:#eef2f7;color:#3f4856}.source-zomato{background:#fff0ed;color:#c83f2e}.source-swiggy{background:#fff4e5;color:#a65b00}.source-website{background:#eaf5ff;color:#1765a5}.order-inbox-order{display:block;font-size:13px;margin-top:9px}.order-inbox-customer{font-size:10px;color:#626b79;margin-top:4px}.order-inbox-items{font-size:10px;line-height:1.65;color:#333d4b;margin-top:8px;padding:8px;background:#f7f8fa;border-radius:8px}.order-inbox-items small{display:block;color:#858d99}.order-inbox-actions{display:flex;gap:7px;margin-top:10px}.order-inbox-actions .btn{flex:1;min-width:0;padding:8px 5px;font-size:10px;min-height:34px}.order-inbox-empty{text-align:center;padding:22px 8px;color:#7d8794;font-size:11px;line-height:1.7}.order-inbox-empty small{font-size:9px}@media(max-width:1100px){.orders-page-layout{grid-template-columns:minmax(0,1fr) 260px;gap:10px}}@media(max-width:760px){.orders-page-layout{grid-template-columns:minmax(0,1fr)}.order-inbox{position:relative;top:auto;max-height:360px;order:-1}.order-inbox-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}} /* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
+</style>
 <style>
 /* Complete Zomato/Swiggy wordmark inside circular badges */
 .channel-zomato .channel-mark,.channel-swiggy .channel-mark{width:78px;height:78px;flex:0 0 78px;padding:5px;border-radius:50%;overflow:hidden;display:grid;place-items:center}
 .channel-mark .channel-full-logo{display:block!important;width:100%!important;height:100%!important;overflow:visible}
 .channel-zomato,.channel-swiggy{align-items:center!important;text-align:center!important}
 @media(max-width:760px){.channel-zomato .channel-mark,.channel-swiggy .channel-mark{width:70px;height:70px;flex-basis:70px}}
+/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
 </style></head>
 <body>
 <div class="auth-screen" id="authScreen"><div class="auth-card"><div class="auth-brand">Bite</div><div class="small">Eat. Repeat.</div><h1 id="authTitle">Login to your account</h1><div class="small" id="authSubtitle">Sign in to access your cloud data.</div><form id="authForm"><div class="field" id="fullNameField" style="display:none"><label>Your name</label><input id="authName" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Mobile number / Email</label><input id="authEmail" type="text" autocomplete="username" required placeholder="10-digit mobile number or email"></div><div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters"></div><button class="btn" id="authSubmit" type="button">Login</button></form><div class="auth-error" id="authError"></div><div class="auth-actions"><span class="small" id="authSwitchLabel">New to Bite?</span><button type="button" id="authSwitch">Create account</button></div><div class="auth-help">Your restaurant and order data is stored in your Supabase cloud database. Owner login: mobile number aur password. Super Admin email se bhi login kar sakta hai. Password kisi se share na karein.</div></div></div><div class="app" id="mainApp" style="display:none">
@@ -1778,6 +1994,42 @@ sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){currentUser
 .channel-zomato .channel-brand-image,.channel-swiggy .channel-brand-image{display:block!important;width:58px!important;height:58px!important;max-width:none!important;object-fit:contain!important;object-position:center!important;border-radius:13px!important;opacity:1!important;filter:none!important;image-rendering:auto!important}
 .channel-card{overflow:hidden!important}
 @media(max-width:760px){.channel-zomato .channel-mark,.channel-swiggy .channel-mark{width:50px!important;height:50px!important;flex-basis:50px!important}.channel-zomato .channel-brand-image,.channel-swiggy .channel-brand-image{width:50px!important;height:50px!important;border-radius:11px!important}}
+/* Mobile-first app comfort, readable dashboard and safe-area handling */
+html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,input,select,textarea{touch-action:manipulation}button,.btn{min-height:42px}
+@media(max-width:700px){
+ .app{display:flex;flex-direction:column;min-height:100dvh}
+ .side{position:sticky;top:0;z-index:12;padding:12px 12px 10px;box-shadow:0 4px 14px #17191f12}
+ .brand{font-size:19px}.brand:before{width:30px;height:30px}
+ .sub{font-size:9px;margin:3px 0 9px 40px;letter-spacing:.05em}
+ .nav{gap:6px;margin:0 -2px;padding:0 0 4px;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
+ .nav button{flex:0 0 auto;min-height:42px;border-radius:11px;padding:9px 12px;font-size:12px}
+ .top{position:sticky;top:104px;z-index:10;height:52px;padding:0 13px}
+ .top strong{font-size:13px;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .tag{font-size:9px;padding:6px 9px;white-space:nowrap}
+ .content{padding:15px 12px calc(28px + env(safe-area-inset-bottom));width:100%}
+ .welcome{gap:10px;margin-bottom:17px}.welcome h1{font-size:22px;line-height:1.25}
+ .welcome .btn{min-height:44px;padding:10px 12px}
+ .notice{line-height:1.55;margin-bottom:16px}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .grid .card{min-height:105px;padding:13px;border-radius:14px}
+ .metric{font-size:23px;margin-top:11px;overflow-wrap:anywhere}
+ .metric-label{font-size:10px;line-height:1.4;max-width:85%}
+ .section{margin-top:19px}.section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+ .section-head h2{font-size:15px;line-height:1.35}
+ .section-head button,.actions button{min-height:42px}
+ .card{padding:14px;border-radius:14px}
+ .form-row{grid-template-columns:1fr;gap:12px;margin:14px 0}
+ .field input,.field select{min-height:46px;font-size:16px!important;padding:11px 12px}
+ .table-wrap{border:1px solid #efedf2;border-radius:12px;max-width:100%;overscroll-behavior-x:contain}
+ table{min-width:590px}th,td{padding:11px 10px;font-size:11px}
+ .actions{gap:7px}.actions .btn{min-height:42px;padding:9px 12px}
+ .modal{padding:9px;align-items:center}
+ .modal-box{width:100%;max-height:calc(100dvh - 18px);padding:16px;border-radius:17px;overflow:auto}
+ .modal-head h2{font-size:18px}
+ .modal-box input,.modal-box select,.modal-box textarea{font-size:16px!important;min-height:44px}
+ .page{min-width:0}.page.active{width:100%}
+}
+@media(max-width:380px){.grid{gap:7px}.grid .card{padding:11px}.metric{font-size:21px}.nav button{padding:8px 10px;font-size:11px}}
 </style><div class="modal" id="resetPasswordResultModal"><div class="modal-box"><div class="modal-head"><h2>Password reset successful</h2><button class="close" type="button" onclick="closeModal('resetPasswordResultModal')">✕</button></div><div class="notice">Owner ko yeh temporary password privately bhejein. Login ke baad Owner apna naya password set karega.</div><div class="field" style="margin-top:16px"><label>Restaurant</label><input id="resetPasswordRestaurant" readonly></div><div class="field"><label>Owner mobile</label><input id="resetPasswordPhone" readonly></div><div class="field"><label>Temporary password</label><input id="resetPasswordValue" type="text" readonly autocomplete="off" autocapitalize="off" spellcheck="false" style="font:700 18px monospace;letter-spacing:1px;user-select:all;-webkit-user-select:all"></div><div class="actions"><button class="btn secondary" type="button" onclick="copyResetPassword()">📋 Copy Password</button><button class="btn" type="button" onclick="shareResetPassword()">WhatsApp par Owner ko bhejein</button><button class="btn secondary" type="button" onclick="selectResetPassword()">Select Password</button><button class="btn secondary" type="button" onclick="closeModal('resetPasswordResultModal')">Close</button></div><div class="small" id="resetPasswordCopyStatus" style="margin-top:10px" aria-live="polite">Copy Password dabayein. Agar copy na ho, Select Password dabakar Copy karein.</div></div></div><div class="order-live-toast" id="orderLiveToast" role="status" aria-live="polite"></div></body></html>
 <!-- Login diagnostic update pending verification -->
 
