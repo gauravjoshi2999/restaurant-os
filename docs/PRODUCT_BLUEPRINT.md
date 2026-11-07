@@ -1,4 +1,4 @@
-# RestaurantOS — Product Blueprint & Delivery Roadmap
+# Bite — Eat. Repeat. | Product Blueprint & Delivery Roadmap
 
 **Document status:** Approved requirements baseline from the 120-question product interview  
 **Current delivery focus:** Restaurant operations and ordering only  
@@ -6,7 +6,7 @@
 
 ## 1. Product vision
 
-RestaurantOS is a responsive, multi-tenant restaurant business platform. It connects a restaurant's own customer ordering website, dine-in/counter/takeaway sales, and (subject to authorized partner access) Zomato and Swiggy orders in one owner workspace. It also provides the restaurant's day-to-day operating tools: billing, cashbook, purchases, stock, staff, customer records, reporting and branch oversight.
+Bite is a responsive, multi-tenant restaurant business platform. It connects a restaurant's own customer ordering website, dine-in/counter/takeaway sales, and (subject to authorized partner access) Zomato and Swiggy orders in one owner workspace. It also provides the restaurant's day-to-day operating tools: billing, cashbook, purchases, stock, staff, customer records, reporting and branch oversight.
 
 The first release is a restaurant product. Hotel room bookings, guest folios and housekeeping are not part of the current build.
 
