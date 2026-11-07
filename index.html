@@ -351,7 +351,20 @@ th,td{padding:14px 13px;font-size:11px}th{background:#fafafa;color:#9699a2;font-
 <div class="channel-filter-title"><strong id="activeChannelTitle">All Orders</strong><span class="small">Status ke hisaab se order cards</span></div>
 <div class="order-status-tabs" id="orderStatusTabs"><button class="active" data-order-status="all" onclick="setOrderStatus('all')">All <b id="statusCountAll">0</b></button><button data-order-status="Received" onclick="setOrderStatus('Received')">New <b id="statusCountReceived">0</b></button><button data-order-status="Accepted" onclick="setOrderStatus('Accepted')">Accepted <b id="statusCountAccepted">0</b></button><button data-order-status="Preparing" onclick="setOrderStatus('Preparing')">Preparing <b id="statusCountPreparing">0</b></button><button data-order-status="Ready" onclick="setOrderStatus('Ready')">Ready <b id="statusCountReady">0</b></button><button data-order-status="Handed Over" onclick="setOrderStatus('Handed Over')">Handover <b id="statusCountHandedOver">0</b></button><button data-order-status="Completed" onclick="setOrderStatus('Completed')">Completed <b id="statusCountCompleted">0</b></button></div><div class="order-workspace"><div class="order-board-area"><div class="order-board" id="orderBoard"></div><div class="empty" id="orderEmpty">Abhi koi order nahi hai.</div></div></div></div><aside class="order-inbox" aria-label="New live order notifications"><div class="order-inbox-head"><div><strong>Live order alerts</strong><small>New orders · Accept ya reject karein</small></div><span class="order-inbox-count" id="orderInboxCount">0</span></div><div id="orderInboxList" class="order-inbox-list"><div class="order-inbox-empty">Naye orders yahan aayenge.</div></div></aside></div></section>
 <section class="page" id="reconciliation"><div class="welcome"><div><h1>Payment reconciliation</h1><div class="muted">Compare platform-reported amount with bank payout entered by you.</div></div></div><div class="notice">Zomato/Swiggy payouts continue to the restaurant under its existing agreement. This demo only records and compares figures; it does not collect or transfer money.</div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Platform reported (₹)</th><th>Bank payout (₹)</th><th>Difference (₹)</th><th>Action</th></tr></thead><tbody id="reconRows"></tbody></table><div class="empty" id="reconEmpty">No orders to reconcile yet.</div></div></section>
-<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard अभी केवल financial records दिखाता है। यह payment collect, bank transfer या settlement approve नहीं करता। नए orders के automatic snapshots की जाँच अलग SQL test के बाद होगी।</div><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section"><div class="section-head"><h2>Order financial snapshots</h2><span class="small" id="finSnapshotCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Food value</th><th>Commission</th><th>Payment</th><th>Settlement</th></tr></thead><tbody id="financialRows"></tbody></table><div class="empty" id="financialEmpty">Abhi koi financial snapshot nahi mila. Automatic snapshot SQL test ke baad naye order yahan dikhne chahiye.</div></div></div><div class="section"><div class="section-head"><h2>Weekly settlement drafts</h2><span class="small" id="settlementCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Week</th><th>Gross</th><th>Commission</th><th>Gateway fee</th><th>Refund</th><th>Net payable</th><th>Status</th></tr></thead><tbody id="settlementRows"></tbody></table><div class="empty" id="settlementEmpty">Abhi koi settlement draft nahi bana hai.</div></div></div></section>
+<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard अभी केवल financial records दिखाता है। यह payment collect, bank transfer या settlement approve नहीं करता। नए orders के automatic snapshots की जाँच अलग SQL test के बाद होगी।</div><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
+ <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
+ <div class="card">
+  <div class="notice">यह केवल settlement का draft बनाएगा। कोई payment collect, approve या bank transfer नहीं होगा। Actual gateway fee gateway statement से देखकर ही दर्ज करें। Draft केवल RestaurantOS Super Admin बना सकता है।</div>
+  <div class="form-row" style="align-items:end">
+   <div class="field"><label>Restaurant</label><select id="settlementRestaurantSelect"></select></div>
+   <div class="field"><label>Week start (Monday)</label><input id="settlementPeriodStart" type="date"></div>
+   <div class="field"><label>Week end (Sunday)</label><input id="settlementPeriodEnd" type="date"></div>
+   <div class="field"><button class="btn" type="button" id="createSettlementDraftBtn" onclick="createWeeklySettlementDraft()">Prepare draft</button></div>
+  </div>
+  <div class="small" id="settlementDraftMessage" role="status" aria-live="polite">Draft banane se pehle paid completed orders aur actual gateway fees verify honge.</div>
+ </div>
+</div>
+<div class="section"><div class="section-head"><h2>Order financial snapshots</h2><span class="small" id="finSnapshotCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Food value</th><th>Commission</th><th>Actual gateway fee</th><th>Payment</th><th>Settlement</th></tr></thead><tbody id="financialRows"></tbody></table><div class="empty" id="financialEmpty">Abhi koi financial snapshot nahi mila. Automatic snapshot SQL test ke baad naye order yahan dikhne chahiye.</div></div></div><div class="section"><div class="section-head"><h2>Weekly settlement drafts</h2><span class="small" id="settlementCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Week</th><th>Gross</th><th>Commission</th><th>Gateway fee</th><th>Refund</th><th>Net payable</th><th>Status</th></tr></thead><tbody id="settlementRows"></tbody></table><div class="empty" id="settlementEmpty">Abhi koi settlement draft nahi bana hai.</div></div></div></section>
 <section class="page" id="expenses">
  <div class="welcome"><div><h1>Expense ledger</h1><div class="muted">Restaurant ke roz ke kharche record karein aur date-wise hisaab dekhein.</div></div><button class="btn secondary" type="button" onclick="loadExpenses()">Refresh</button></div>
  <div class="notice">Sirf Restaurant Owner expense add, edit aur delete kar sakta hai. Manager sirf dekh sakta hai. Ye entry ledger hai; bank payment apne aap nahi hota.</div>
@@ -1524,7 +1537,85 @@ renderOrderBoard();renderPOSWorkspace();if(document.getElementById('tables')?.cl
 document.getElementById('recentOrders').innerHTML=state.orders.slice(0,5).map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'</td><td>'+esc(r?.name||'Unknown')+'</td><td>'+esc(o.channel)+'</td><td>'+money(o.amount)+'</td><td><span class="pill">'+esc(o.status)+'</span></td></tr>'}).join('');document.getElementById('recentEmpty').style.display=state.orders.length?'none':'block';
 document.getElementById('reconRows').innerHTML=state.orders.map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);let reported=o.reported??o.amount;let payout=o.payout;let diff=Number(reported)-(payout==null?0:Number(payout));return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'<br><span class="small">'+esc(r?.name||'Unknown')+'</span></td><td>'+esc(o.channel)+'</td><td><input id="reported-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+esc(reported)+'" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td><input id="payout-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+(payout==null?'':esc(payout))+'" placeholder="Bank payout" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td>'+money(diff)+'</td><td><button class="btn secondary" onclick="saveReconciliation(\''+esc(o.id)+'\')">Save</button></td></tr>'}).join('');document.getElementById('reconEmpty').style.display=state.orders.length?'none':'block';renderFinancials()}
 
-function renderFinancials(){if(!access.isPlatformAdmin)return;const fs=state.financials||[],own=fs.filter(x=>x.channel==='Own Platform');const sum=(arr,key)=>arr.reduce((n,x)=>n+Number(x[key]||0),0);document.getElementById('finFoodValue').textContent=money(sum(own,'food_subtotal'));document.getElementById('finCommission').textContent=money(sum(own,'commission_amount'));document.getElementById('finGateway').textContent=money(sum(own,'provider_fee_actual'));document.getElementById('finRefunds').textContent=money(sum(own,'refund_amount_actual'));document.getElementById('finSnapshotCount').textContent=fs.length+' records';document.getElementById('financialRows').innerHTML=fs.slice(0,100).map(f=>{const r=state.restaurants.find(x=>x.id===f.restaurant_id);const o=state.orders.find(x=>x.id===f.order_id);return '<tr><td><strong>'+esc(o?.code||String(f.order_id).slice(0,8))+'</strong><br><span class="small">'+esc(r?.name||'Restaurant')+'</span></td><td>'+esc(f.channel)+'</td><td>'+money(f.food_subtotal)+'</td><td>'+money(f.commission_amount)+' <span class="small">('+esc(f.commission_rate)+'%)</span></td><td><span class="financial-status '+esc(f.payment_status)+'">'+esc(f.payment_status)+'</span></td><td><span class="financial-status '+esc(f.settlement_status)+'">'+esc(f.settlement_status)+'</span></td></tr>'}).join('');document.getElementById('financialEmpty').style.display=fs.length?'none':'block';const ss=state.settlements||[];document.getElementById('settlementCount').textContent=ss.length+' records';document.getElementById('settlementRows').innerHTML=ss.map(s=>{const r=state.restaurants.find(x=>x.id===s.restaurant_id);return '<tr><td>'+esc(r?.name||'Restaurant')+'</td><td>'+esc(s.period_start)+' – '+esc(s.period_end)+'</td><td>'+money(s.gross_order_value)+'</td><td>'+money(s.commission_total)+'</td><td>'+money(s.provider_fees_actual)+'</td><td>'+money(s.refunds_actual)+'</td><td><strong>'+money(s.net_payable)+'</strong></td><td><span class="financial-status '+esc(s.status)+'">'+esc(s.status)+'</span></td></tr>'}).join('');document.getElementById('settlementEmpty').style.display=ss.length?'none':'block'}
+function defaultSettlementWeek(){
+ const today=new Date(),end=new Date(today.getFullYear(),today.getMonth(),today.getDate()-1);
+ end.setDate(end.getDate()-((end.getDay()+6)%7));
+ const start=new Date(end);start.setDate(start.getDate()-6);
+ const fmt=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+ return {start:fmt(start),end:fmt(end)};
+}
+async function createWeeklySettlementDraft(){
+ if(!access.isPlatformAdmin){alert('Sirf RestaurantOS Super Admin settlement draft bana sakta hai.');return}
+ const rid=document.getElementById('settlementRestaurantSelect').value;
+ const start=document.getElementById('settlementPeriodStart').value;
+ const end=document.getElementById('settlementPeriodEnd').value;
+ const msg=document.getElementById('settlementDraftMessage'),btn=document.getElementById('createSettlementDraftBtn');
+ if(!rid||!start||!end){msg.textContent='Restaurant aur dono dates select karein.';return}
+ const a=new Date(start+'T00:00:00'),b=new Date(end+'T00:00:00');
+ if(!Number.isFinite(a.getTime())||!Number.isFinite(b.getTime())||Math.round((b-a)/86400000)!==6){msg.textContent='Settlement week exactly 7 din ka hona chahiye: Monday se Sunday.';return}
+ const today=localDateInput();
+ if(end>=today){msg.textContent='Sirf poore ho chuke past week ka draft ban sakta hai.';return}
+ if(!confirm('Is restaurant aur 7-day period ke liye settlement draft banana hai? Isse koi bank transfer nahi hoga.'))return;
+ btn.disabled=true;msg.textContent='Eligibility aur actual gateway fees verify ho rahi hain…';
+ try{
+  const {data,error}=await sb.rpc('create_weekly_settlement_draft',{p_restaurant_id:rid,p_period_start:start,p_period_end:end});
+  if(error)throw error;
+  msg.textContent='Settlement draft ban gaya. Reference: '+String(data||'created');
+  await loadCloudData();
+ }catch(e){msg.textContent='Draft nahi bana: '+e.message;console.error(e)}
+ finally{btn.disabled=false}
+}
+async function saveActualGatewayFee(id){
+ if(!access.isPlatformAdmin)return;
+ const input=document.getElementById('gatewayFee-'+id),msg=document.getElementById('settlementDraftMessage');
+ if(!input||input.value.trim()===''){msg.textContent='Gateway statement se actual fee enter karein.';return}
+ const amount=Number(input.value);
+ if(!Number.isFinite(amount)||amount<0){msg.textContent='Actual gateway fee zero ya usse zyada honi chahiye.';return}
+ msg.textContent='Actual gateway fee save ho rahi hai…';
+ try{
+  const {error}=await sb.rpc('record_actual_gateway_fee',{p_order_financial_id:id,p_provider_fee_actual:amount});
+  if(error)throw error;
+  msg.textContent='Actual gateway fee save ho gayi.';
+  await loadCloudData();
+ }catch(e){msg.textContent='Fee save nahi hui: '+e.message;console.error(e)}
+}
+function renderFinancials(){
+ if(!access.isPlatformAdmin)return;
+ const fs=state.financials||[],own=fs.filter(x=>x.channel==='Own Platform');
+ const sum=(arr,key)=>arr.reduce((n,x)=>n+Number(x[key]||0),0);
+ document.getElementById('finFoodValue').textContent=money(sum(own,'food_subtotal'));
+ document.getElementById('finCommission').textContent=money(sum(own,'commission_amount'));
+ document.getElementById('finGateway').textContent=money(sum(own,'provider_fee_actual'));
+ document.getElementById('finRefunds').textContent=money(sum(own,'refund_amount_actual'));
+ document.getElementById('finSnapshotCount').textContent=fs.length+' records';
+ const restaurantSelect=document.getElementById('settlementRestaurantSelect');
+ if(restaurantSelect){
+  const previous=restaurantSelect.value;
+  restaurantSelect.innerHTML=state.restaurants.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
+  if(state.restaurants.some(r=>r.id===previous))restaurantSelect.value=previous;
+  else if(state.restaurants.length)restaurantSelect.value=state.restaurants[0].id;
+  const week=defaultSettlementWeek();
+  const startInput=document.getElementById('settlementPeriodStart'),endInput=document.getElementById('settlementPeriodEnd');
+  if(startInput&&!startInput.value)startInput.value=week.start;
+  if(endInput&&!endInput.value)endInput.value=week.end;
+ }
+ document.getElementById('financialRows').innerHTML=fs.slice(0,100).map(f=>{
+  const r=state.restaurants.find(x=>x.id===f.restaurant_id),o=state.orders.find(x=>x.id===f.order_id);
+  const canRecord=f.channel==='Own Platform'&&f.payment_status==='paid'&&o?.status==='Completed'&&!['included','paid'].includes(f.settlement_status);
+  const feeCell=canRecord
+   ? '<div class="actions"><input id="gatewayFee-'+esc(f.id)+'" type="number" min="0" step="0.01" value="'+(f.provider_fee_actual==null?'':esc(f.provider_fee_actual))+'" placeholder="0.00" style="width:105px;padding:7px;border:1px solid #e3e7ef;border-radius:8px"><button class="btn secondary" type="button" onclick="saveActualGatewayFee(\''+esc(f.id)+'\')">Save</button></div>'
+   : (f.provider_fee_actual==null?'<span class="small">Not eligible yet</span>':money(f.provider_fee_actual));
+  return '<tr><td><strong>'+esc(o?.code||String(f.order_id).slice(0,8))+'</strong><br><span class="small">'+esc(r?.name||'Restaurant')+'</span></td><td>'+esc(f.channel)+'</td><td>'+money(f.food_subtotal)+'</td><td>'+money(f.commission_amount)+' <span class="small">('+esc(f.commission_rate)+'%)</span></td><td>'+feeCell+'</td><td><span class="financial-status '+esc(f.payment_status)+'">'+esc(f.payment_status)+'</span></td><td><span class="financial-status '+esc(f.settlement_status)+'">'+esc(f.settlement_status)+'</span></td></tr>';
+ }).join('');
+ document.getElementById('financialEmpty').style.display=fs.length?'none':'block';
+ const ss=state.settlements||[];
+ document.getElementById('settlementCount').textContent=ss.length+' records';
+ document.getElementById('settlementRows').innerHTML=ss.map(s=>{
+  const r=state.restaurants.find(x=>x.id===s.restaurant_id);
+  return '<tr><td>'+esc(r?.name||'Restaurant')+'</td><td>'+esc(s.period_start)+' – '+esc(s.period_end)+'</td><td>'+money(s.gross_order_value)+'</td><td>'+money(s.commission_total)+'</td><td>'+money(s.provider_fees_actual)+'</td><td>'+money(s.refunds_actual)+'</td><td><strong>'+money(s.net_payable)+'</strong></td><td><span class="financial-status '+esc(s.status)+'">'+esc(s.status)+'</span></td></tr>';
+ }).join('');
+ document.getElementById('settlementEmpty').style.display=ss.length?'none':'block';
+}
 async function saveReconciliation(id){const reportedInput=document.getElementById('reported-'+id),payoutInput=document.getElementById('payout-'+id);const reported=Number(reportedInput?.value),payoutText=payoutInput?.value.trim();if(!Number.isFinite(reported)||reported<0){alert('Valid platform reported amount enter karein.');return}if(payoutText!==''&&(!Number.isFinite(Number(payoutText))||Number(payoutText)<0)){alert('Valid bank payout amount enter karein.');return}const patch={platform_reported:reported,bank_payout:payoutText===''?null:Number(payoutText)};const {error}=await sb.from('orders').update(patch).eq('id',id);if(error){alert('Reconciliation save nahi hua: '+error.message);return}await loadCloudData();alert('Reconciliation details cloud mein save ho gayi.')}
 function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='restaurantos-cloud-export.json';a.click();URL.revokeObjectURL(a.href)}
 async function resetData(){alert('Cloud data ko is demo screen se bulk delete nahi kiya jayega. Supabase dashboard se admin review ke baad hi delete karein.')}
