@@ -1,77 +1,45 @@
 # Bite — Eat. Repeat.
 
-Bite is a multi-restaurant ordering and operations platform prototype, beginning with a Rajsamand pilot.
+Bite is an India-focused, full-stack restaurant marketplace connecting Customers, Restaurants and Platform Admins.
 
-## Project planning
+## Authoritative product requirements
 
-- [Approved Product Blueprint & Delivery Roadmap](docs/PRODUCT_BLUEPRINT.md)
-- [Phase 0 Repository Audit](docs/PHASE_0_AUDIT.md)
+The current requirements baseline is [Master Product Specification](docs/PRODUCT_BLUEPRINT.md). It was replaced on 2026-11-07 by the user's **Complete Master Prompt — Restaurant Marketplace Website**. It supersedes the older 120-question interview and earlier product decisions. If older code or database structures conflict with the current specification, the current specification wins.
 
-## Product goal
+## Three product panels
 
-RestaurantOS is intended to give customers a public website where they can discover participating restaurants, place food orders, and pay online. Each restaurant should manage orders from three channels in one owner dashboard:
+1. Customer Website
+2. Restaurant Owner Dashboard
+3. Platform Admin Dashboard
 
-1. Orders placed through the RestaurantOS customer website.
-2. Orders received through Zomato.
-3. Orders received through Swiggy.
+## Current technical foundation
 
-For RestaurantOS website orders, the restaurant is responsible for delivery using its own staff or delivery partner. RestaurantOS is not planning to operate its own delivery fleet in the initial model.
+- Repository: `gauravjoshi2999/restaurant-os`
+- Frontend: `customer.html` and `index.html`; public delivery handoff page `delivery.html`
+- Hosting: GitHub Pages (static frontend)
+- Backend/database/auth: Supabase PostgreSQL + Auth + RLS
+- Server-side privileged workflows must use trusted backend functions (e.g. Supabase Edge Functions); never expose service-role or payment secrets in browser code.
 
-The intended payment model is:
+## Delivery status
 
-- Zomato and Swiggy continue paying each restaurant under that restaurant's existing platform agreement. RestaurantOS will reconcile those payouts; it will not redirect them.
-- RestaurantOS website payments are intended to use an appropriately authorized payment-aggregator/marketplace settlement arrangement. The platform may deduct the agreed platform commission and settle the balance to the restaurant.
-- Proposed pricing policy: Zomato/Swiggy order management is free; RestaurantOS website orders carry a proposed standard platform commission of 18% of the agreed commissionable food value. The 18% rate is a business decision for planning, not yet implemented in the application or payment system. The commission base, gateway fees, taxes, refunds, discounts, and settlement deductions must be clearly defined in restaurant agreements before launch. Any introductory offers or negotiated restaurant-specific rates must be explicitly agreed rather than assumed.
+This repository is a development prototype, not a production marketplace. Existing foundations include Supabase authentication, restaurant membership/RLS, restaurants, menus, customer addresses, orders/order items, order status history, financial snapshots, delivery handoff schema/RPCs, customer cancellation/complaint and review foundations.
 
-## Implemented prototype foundation
+Not yet production-ready: approved payment aggregator, live collection/split settlement, trusted payment webhooks, automated refunds/payouts, complete restaurant onboarding/admin approval, all business reports, push notification delivery, full support management, and complete browser end-to-end and security testing.
 
-The current main branch includes:
+Do not present test data or seeded demo restaurants/orders as real customers or live marketplace activity.
 
-- Supabase email/password authentication and session restoration.
-- Cloud-backed restaurant and order records.
-- Restaurant membership roles (owner, manager, staff) and a platform Super Admin foundation.
-- Super Admin restaurant onboarding records and onboarding fields.
-- Restaurant/order dashboard and order creation UI.
-- Multi-item orders with customer name and phone fields.
-- Order lifecycle controls and database-recorded status history.
-- Manual reconciliation fields for comparing reported platform amounts with bank payouts.
-- Responsive layouts intended for desktop and mobile browsers.
+## Initial-release exclusions
 
-Some UI paths and role combinations still require dedicated testing with separate Owner, Manager, and Staff accounts. The current interface is a prototype and should not be treated as a finished restaurant POS.
+Do not expose legacy POS/counter sales, dine-in tables, KOT/KDS, inventory/stock, suppliers/purchases, HR/payroll, customer khata, daily cashbook/closing, multiple branches, Zomato/Swiggy channel integrations, hotel modules, platform delivery fleet or subscriptions as active modules. Legacy database tables may be retained temporarily for data safety; they must not drive the new product UI or business logic.
 
-## Not implemented yet
+## Deployment
 
-The following are product milestones, not working production features today:
+GitHub Pages workflow: `.github/workflows/deploy.yml`  
+Live customer site: https://gauravjoshi2999.github.io/restaurant-os/customer.html  
+Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 
-- Public customer-facing restaurant discovery, menu, cart, checkout, and order tracking website.
-- Restaurant menu/catalogue management and inventory.
-- Live Zomato and Swiggy order/menu/status integrations. These require the relevant authorized partner/API access and approval.
-- Automated order ingestion from external platforms.
-- Payment gateway onboarding and collection for RestaurantOS website orders.
-- Marketplace payment splitting, commission deduction, refunds, and automated restaurant settlements.
-- Restaurant-managed delivery zones, delivery fees, delivery assignment, and delivery status workflow.
-- Production-grade reporting, notifications, audit/monitoring, backup and recovery, and complete role-by-role security testing.
+## Safety
 
-## Architecture and safety notes
-
-- Current frontend: a single-page HTML/CSS/JavaScript application in index.html.
-- Backend and database: Supabase Auth and PostgreSQL with Row Level Security.
-- This is a development prototype, not production-ready software.
-- Never put a Supabase service_role key, secret key, database password, or payment-provider secret in browser code.
-- Do not collect customer funds into an ordinary company bank account and manually pass them on without an approved legal and payment-provider structure. Obtain professional advice and use an authorized payment/marketplace settlement arrangement.
-- Do not promise live Zomato/Swiggy integration until partner access and technical approval are secured.
-- Before live launch, complete security review, tenant-isolation tests, backups, monitoring, payment/refund tests, privacy and legal review, and real-device testing.
-
-## Supabase setup
-
-For a brand-new Supabase project, follow SUPABASE_SETUP.md. It documents the SQL files and their required order.
-
-For the existing project, do not rerun the initial schema or migrations just because this documentation changed. The current project has already had the foundation, role/onboarding, security-hardening, order-lifecycle, and multi-item-order SQL applied and verified during development.
-
-Never expose secret credentials. Only the project URL and publishable browser key belong in the frontend.
-
-## Run locally
-
-Serve the repository with a local static web server and open index.html. The deployed GitHub Pages site is available at:
-
-https://gauravjoshi2999.github.io/restaurant-os/
+- Never put Supabase service-role/secret keys, database passwords, or payment secrets in browser code.
+- Do not collect real customer funds until an approved marketplace provider and required legal/merchant onboarding are complete.
+- A successful static deployment or JavaScript syntax check is not proof that payment, order, tenant isolation or other end-to-end workflows work.
