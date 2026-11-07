@@ -128,7 +128,44 @@ body{background:#f8f8fb;color:#252936}
 .desc{min-height:24px!important;color:#777b88!important}
 @media(max-width:650px){.cover{height:145px!important}.restaurants{gap:12px!important}.restaurant{border-radius:17px!important}}
 
-.account-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;max-width:620px;box-shadow:0 5px 18px #28243b09}.account-panel h2{margin:4px 0 16px}.account-panel h3{font-size:15px;margin:22px 0 10px}.account-profile{padding:14px;border-radius:12px;background:#faf8f6;line-height:1.8;font-size:13px}.account-address{padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}.account-address small{color:var(--muted)}#accountLogoutBtn{margin-top:18px;color:#b42318;border-color:#f0d6d2}</style>
+.account-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;max-width:620px;box-shadow:0 5px 18px #28243b09}.account-panel h2{margin:4px 0 16px}.account-panel h3{font-size:15px;margin:22px 0 10px}.account-profile{padding:14px;border-radius:12px;background:#faf8f6;line-height:1.8;font-size:13px}.account-address{padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}.account-address small{color:var(--muted)}#accountLogoutBtn{margin-top:18px;color:#b42318;border-color:#f0d6d2}/* Mobile app-grade usability pass */
+html{scroll-behavior:smooth;overflow-x:hidden}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,a,input,select,textarea{touch-action:manipulation}button{min-height:42px}
+@media(max-width:650px){
+ .wrap{padding-left:14px;padding-right:14px}
+ .ordercard{position:relative;margin:14px 0 16px;padding:15px;border:1px solid #e8e5ef;border-radius:20px;background:linear-gradient(145deg,#fff 0%,#fff 72%,#fff8f4 100%);box-shadow:0 5px 18px #29213b0b;overflow:hidden}
+ .ordercard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(#e95436,#f4a17d)}
+ .ordercard:nth-child(even):before{background:linear-gradient(#6c5ce7,#a69bff)}
+ .orderhead{gap:9px;align-items:flex-start}
+ .ordercode{font-size:15px;letter-spacing:.2px;line-height:1.35}
+ .orderrestaurant{font-size:12px;line-height:1.5;margin-top:6px;color:#6d707a}
+ .orderamount{font-size:15px;padding:5px 8px;background:#f7f6fb;border:1px solid #eeedf3;border-radius:9px}
+ .orderstatus{margin-top:12px;padding:7px 11px;font-size:11px;letter-spacing:.02em}
+ .orderactions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}
+ .orderactions button,.orderactions .secondary,.orderactions .primary{min-width:0;min-height:46px;padding:10px 9px;border-radius:12px;font-size:12px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
+ .orderactions button:first-child{background:#f7f7fb;border:1px solid #e9e7ef;color:#353541}
+ .orderdetail{background:#faf9fc;border:1px solid #efedf4;border-radius:13px;margin-top:13px;padding:12px}
+ .orderitem{font-size:12px;gap:8px}
+ .ordersbar{margin:12px 0 16px;align-items:center}
+ .ordersbar h2{font-size:21px!important}
+ .ordersbar button{min-height:44px;border-radius:12px;padding:10px 14px}
+ .checkoutbox,.cart-modal-box,.authbox{width:100%;max-width:100%;max-height:calc(100dvh - 20px);overflow:auto;border-radius:18px;padding:16px}
+ .modalback{padding:10px;align-items:center}
+ .checkoutgrid{grid-template-columns:1fr}
+ .checkoutactions{position:sticky;bottom:0;padding-top:10px;background:#fff}
+ .checkoutactions button{min-height:48px}
+ .cart-modal-actions button{min-height:48px}
+ .home-bottom-nav{padding-bottom:calc(10px + env(safe-area-inset-bottom));}
+ .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+ .cart-floating{bottom:calc(78px + env(safe-area-inset-bottom))}
+ .restauranthead{padding:10px 0 15px}
+ .menuitem{gap:10px;padding:14px 0}
+ .add{min-height:42px;padding:8px 13px}
+ .chip,.tool-chip,.home-category{min-height:42px}
+ .search input{font-size:16px}
+ input,select,textarea{font-size:16px!important}
+}
+@media(max-width:380px){.orderactions{grid-template-columns:1fr}.orderamount{font-size:13px}.ordercode{font-size:14px}}
+</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
 .address-add-row{display:flex;gap:8px;align-items:center;margin:8px 0 4px}
@@ -138,6 +175,43 @@ body{background:#f8f8fb;color:#252936}
 #addressMap{height:260px;width:100%;border:1px solid #e7e1dc;border-radius:13px;overflow:hidden;background:#f2f2f2;margin-top:10px;z-index:1}
 .address-map-hint{font-size:11px;color:var(--muted);margin-top:7px}
 @media(max-width:520px){#addressMap{height:245px}} .nearby-btn{border:1px solid #f1c7bb;background:#fff8f5;color:#c8492e;border-radius:10px;padding:9px 12px;font-weight:750;font-size:12px;white-space:nowrap;align-self:center}.nearby-btn:disabled{opacity:.65}.distance-label{font-size:12px;color:#c8492e;font-weight:750;margin-top:6px}
+/* Mobile app-grade usability pass */
+html{scroll-behavior:smooth;overflow-x:hidden}body{overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:pan-y}button,a,input,select,textarea{touch-action:manipulation}button{min-height:42px}
+@media(max-width:650px){
+ .wrap{padding-left:14px;padding-right:14px}
+ .ordercard{position:relative;margin:14px 0 16px;padding:15px;border:1px solid #e8e5ef;border-radius:20px;background:linear-gradient(145deg,#fff 0%,#fff 72%,#fff8f4 100%);box-shadow:0 5px 18px #29213b0b;overflow:hidden}
+ .ordercard:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(#e95436,#f4a17d)}
+ .ordercard:nth-child(even):before{background:linear-gradient(#6c5ce7,#a69bff)}
+ .orderhead{gap:9px;align-items:flex-start}
+ .ordercode{font-size:15px;letter-spacing:.2px;line-height:1.35}
+ .orderrestaurant{font-size:12px;line-height:1.5;margin-top:6px;color:#6d707a}
+ .orderamount{font-size:15px;padding:5px 8px;background:#f7f6fb;border:1px solid #eeedf3;border-radius:9px}
+ .orderstatus{margin-top:12px;padding:7px 11px;font-size:11px;letter-spacing:.02em}
+ .orderactions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}
+ .orderactions button,.orderactions .secondary,.orderactions .primary{min-width:0;min-height:46px;padding:10px 9px;border-radius:12px;font-size:12px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}
+ .orderactions button:first-child{background:#f7f7fb;border:1px solid #e9e7ef;color:#353541}
+ .orderdetail{background:#faf9fc;border:1px solid #efedf4;border-radius:13px;margin-top:13px;padding:12px}
+ .orderitem{font-size:12px;gap:8px}
+ .ordersbar{margin:12px 0 16px;align-items:center}
+ .ordersbar h2{font-size:21px!important}
+ .ordersbar button{min-height:44px;border-radius:12px;padding:10px 14px}
+ .checkoutbox,.cart-modal-box,.authbox{width:100%;max-width:100%;max-height:calc(100dvh - 20px);overflow:auto;border-radius:18px;padding:16px}
+ .modalback{padding:10px;align-items:center}
+ .checkoutgrid{grid-template-columns:1fr}
+ .checkoutactions{position:sticky;bottom:0;padding-top:10px;background:#fff}
+ .checkoutactions button{min-height:48px}
+ .cart-modal-actions button{min-height:48px}
+ .home-bottom-nav{padding-bottom:calc(10px + env(safe-area-inset-bottom));}
+ .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+ .cart-floating{bottom:calc(78px + env(safe-area-inset-bottom))}
+ .restauranthead{padding:10px 0 15px}
+ .menuitem{gap:10px;padding:14px 0}
+ .add{min-height:42px;padding:8px 13px}
+ .chip,.tool-chip,.home-category{min-height:42px}
+ .search input{font-size:16px}
+ input,select,textarea{font-size:16px!important}
+}
+@media(max-width:380px){.orderactions{grid-template-columns:1fr}.orderamount{font-size:13px}.ordercode{font-size:14px}}
 </style>
 </head>
 <body>
