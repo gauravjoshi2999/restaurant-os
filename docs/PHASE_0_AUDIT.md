@@ -206,3 +206,37 @@ The live Supabase project `wedbgpybbgsszcmffoha` was subsequently inspected thro
 - Added CSV export combining order sales and actual cashbook transactions. Date filtering uses a next-day exclusive boundary to include the full selected end date.
 - Reports deliberately do not show a final net-profit number: food cost/recipe quantities, taxes and trusted online-platform settlement flows are not yet fully integrated. Cashbook net movement is not the same as profit.
 - `index.html` Reports UI JavaScript syntax validation passed. Latest Reports UI commit `705fd74198304d88b6314d48926dfec91e041021`; deployment pending latest Pages workflow.
+
+## Live system audit — 2026-11-07 (read-only; no business data changed)
+
+### Repository and owner UI checks
+- Re-inspected the current index.html on main (251 KB). The 17 sidebar navigation targets each have a matching page section; no duplicate HTML IDs were found in the static source scan.
+- Existing Owner workspace already contains sections for Overview, Restaurants, All Orders, POS & Billing, Menu, Tables, Customer Khata, Cashbook, Expenses, Refunds, Settlements, Platform Finance, Purchases & Suppliers, Inventory, Employees & HR, Reports and Settings.
+- The All Orders workspace already has source filters/counters for All Orders, Our Website, Zomato, Swiggy and POS/Counter, plus status filters, realtime connection status and optional sound alerts.
+- Current Zomato/Swiggy channel marks are only the text initials Z and S; they are not recognizable app-style brand icons/logos. This is a confirmed UI improvement item, not a live integration.
+- Source notice explicitly says Zomato/Swiggy real-time integration is not active. Existing external orders are manual/demo records until authorized API access is obtained.
+- A static source scan found 140 named JavaScript functions and 67 distinct inline-handler function names. This is not a behavioral test and does not prove every control works.
+- Latest customer checkout deployment run 42343861908 completed successfully. That deployment result does not replace owner-workspace end-to-end browser testing.
+
+### Live Supabase schema snapshot
+- Connected project wedbgpybbgsszcmffoha responded successfully to read-only table and advisor checks.
+- 33 public application tables were listed; RLS is enabled on all 33.
+- Current row counts are test/business data and were not modified. Tables with existing sample rows include profiles (6), restaurants (10), restaurant_members (7), orders (13), order_items (16), order_status_history (51), order_financials (6), customer_addresses (2), menu_categories (10), menu_items (40), customer_contact_profiles (2) and restaurant_order_payments (1). New operational ledgers currently have zero rows in this snapshot.
+- The health advisor returned no findings.
+- The security advisor reported: one anon-callable SECURITY DEFINER function (list_public_restaurants()), ten authenticated-callable SECURITY DEFINER functions, and leaked-password protection disabled. Function definitions and grants were inspected read-only. Several are intentional, purpose-built workflows and include auth/role checks; they must not be blindly revoked. The public listing function is intentionally public but should remain limited to published restaurant fields.
+- The performance advisor reports 16 cases of multiple permissive policies and 33 unused-index notices. These are review items; no policy or index was changed during this audit.
+
+### Current module readiness (code/schema presence is not equal to production readiness)
+- Present in repository and live schema: order lifecycle/history, multi-item orders, menu, POS payment ledger, tables, refunds recording, customer khata, cashbook/day closing, expenses, suppliers/purchases, inventory/stock ledger, staff/attendance/leaves/payments and business reports.
+- Verified limitations from product documentation: no live payment collection or automatic bank settlement; no live Zomato/Swiggy API; no full KOT/KDS workflow; no automatic recipe-based ingredient consumption; no payroll engine/payslip; no full net-profit calculation because food-cost/tax/provider-settlement data is incomplete.
+- Purchase-to-inventory mapping, cashbook and ledger workflows have rollback-only database tests documented. However, a full browser/mobile end-to-end test across Owner, Manager, Staff and Customer accounts remains incomplete.
+- The public HTML/JS app has no root package.json or automated frontend test/lint suite. Existing static deployment workflow is not a full test suite.
+
+### Audit conclusion and next controlled implementation
+1. Do not rebuild or replace the existing modules wholesale: significant operational schema and UI already exist.
+2. First run an owner-workspace functional test matrix against the deployed site: login/session, restaurant selection, All Orders/source filters, order create/status/history, POS payment/split/due, Menu, Tables, Khata, Cashbook close, Expenses, Purchase-to-Stock, Inventory, HR, Refunds, Reports and role restrictions.
+3. Fix confirmed defects one module at a time, preserving existing data and tenant RLS.
+4. Then improve the All Orders source cards with recognizable, accessible Zomato/Swiggy brand marks and retain the honest manual/demo until API approval status.
+5. Any security-policy or schema changes require a focused SQL preflight, reviewed migration and post-change verification. No destructive change is authorized by this audit.
+
+Audit outcome: the platform has a substantial working prototype foundation, but it is not yet accurate to call every module production-ready or fully tested. No SQL writes, business-row changes, or frontend changes were made as part of this read-only audit.
