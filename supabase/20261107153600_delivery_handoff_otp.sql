@@ -21,6 +21,28 @@ create index if not exists restaurant_delivery_handoffs_restaurant_idx
 alter table public.restaurant_delivery_handoffs enable row level security;
 revoke all on public.restaurant_delivery_handoffs from anon, authenticated;
 
+-- Permit only the narrowly scoped server-side OTP transition Handed Over -> Completed.
+create or replace function public.enforce_owner_order_status_updates()
+returns trigger
+language plpgsql security definer set search_path=''
+as $function$
+declare
+  jwt_role text := coalesce((select auth.jwt())->>'role', '');
+begin
+  if new.status is distinct from old.status
+     and current_setting('app.delivery_handoff_confirm',true)='true'
+     and old.status='Handed Over' and new.status='Completed' then
+    return new;
+  end if;
+  if new.status is distinct from old.status
+     and jwt_role <> 'service_role'
+     and not public.has_restaurant_role(new.restaurant_id,array['owner']) then
+    raise exception 'Only the restaurant Owner can update order status.';
+  end if;
+  return new;
+end;
+$function$;
+
 -- Include customer map pin in address snapshot for future marketplace orders.
 do $do$
 declare v_def text;
@@ -112,6 +134,7 @@ begin
     return false;
   end if;
   update public.restaurant_delivery_handoffs set is_active=false,verified_at=now() where id=v_handoff.id;
+  perform set_config('app.delivery_handoff_confirm','true',true);
   update public.orders set status='Completed',status_note='Delivery confirmed by customer OTP' where id=v_order.id;
   insert into public.order_status_history(order_id,restaurant_id,from_status,to_status,note,changed_by)
     values(v_order.id,v_order.restaurant_id,v_order.status,'Completed','Delivery confirmed by customer OTP',null);
