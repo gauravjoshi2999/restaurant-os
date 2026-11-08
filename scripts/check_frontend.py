@@ -51,6 +51,10 @@ customer = Path("customer.html").read_text(encoding="utf-8")
 owner = Path("index.html").read_text(encoding="utf-8")
 delivery = Path("delivery.html").read_text(encoding="utf-8")
 
+check('id="addrSave"' in customer and "data-aedit" in customer and "data-adelete" in customer and "data-adefault" in customer,
+      "Customer can independently save, edit, delete and choose a default address")
+check("customer_addresses" in customer and "addrError" in customer,
+      "Customer address book is connected to Supabase with visible error handling")
 check("list_public_restaurants" in customer and "place_customer_order" in customer,
       "Customer discovery and guarded checkout RPCs are wired")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
