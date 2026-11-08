@@ -66,6 +66,16 @@ The platform must obtain written confirmation of eligibility, KYC/document requi
 - Live test: using a non-admin restaurant owner JWT context, attempted to change the restaurant onboarding state; database rejected it with SQLSTATE 42501. The test transaction rolled back; no test data was changed.
 - Migration files: `supabase/20261108083000_bite_phase1_restaurant_onboarding_guard.sql` and `supabase/20261108083500_bite_phase1_public_function_grants.sql`.
 
+
+### Additional Phase 1 work — configurable commission and approval enforcement
+
+- Added `platform_settings` with a database-enforced default commission of 10.00%. Only Platform Admins can read or update this settings row through authenticated access.
+- Added optional per-restaurant `platform_commission_rate` override (nullable; null inherits the global default). A database trigger prevents owners/managers from changing this field; the attempted owner update was rejected with SQLSTATE 42501.
+- Updated `create_order_financial_snapshot` to read the restaurant override or global default rather than hardcoding the old 18% rate. The function is no longer executable by anon.
+- Updated public restaurant discovery and the customer checkout eligibility check to require `onboarding_status='approved'`. Live check: 5 restaurants listed and 5 restaurants both approved, active and published.
+- Checkout still explicitly refuses to create an order until an approved marketplace payment provider is configured; no fake payment/order success was introduced.
+- Migration files: `supabase/20261108090000_bite_phase1_configurable_commission.sql` and `supabase/20261108091000_bite_phase1_enforce_approved_restaurant_discovery.sql`.
+
 ### Still open in Phase 1
 
 - Auth leaked-password protection remains disabled; the current connected tooling does not expose the Auth security setting. Enable it in Supabase Dashboard → Authentication → Security and confirm it before production.
