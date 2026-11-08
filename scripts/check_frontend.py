@@ -57,6 +57,13 @@ check("customer_addresses" in customer and "addrError" in customer,
       "Customer address book is connected to Supabase with visible error handling")
 check("resetPasswordForEmail" in customer and "PASSWORD_RECOVERY" in customer and "updateUser({password})" in customer,
       "Customer forgot-password email and recovery-session password update are wired")
+check("customerSupportForm" in customer and "customer_support_tickets" in customer and "loadCustomerSupportTickets" in customer,
+      "Customer can create and track support tickets from the Account page")
+check("const platformPages=['overview','restaurants','orders','financials','audit','support']" in owner and "loadSupportWorkspace" in owner and "saveSupportTicket" in owner,
+      "Platform Admin has a customer support queue with status and reply controls")
+support_migration = Path("supabase/20261108140000_bite_customer_support_tickets.sql").read_text(encoding="utf-8")
+check("ENABLE ROW LEVEL SECURITY" in support_migration and "Customers and admins read support tickets" in support_migration and "audit_support_ticket_change" in support_migration,
+      "Support tickets are tenant-scoped and their lifecycle is audit logged")
 check("if(!recovery&&(!email.includes('@')" in customer and "emailLabel" in customer,
       "Password recovery does not require the email field after the secure reset link returns")
 check("list_public_restaurants" in customer and "place_customer_order" in customer,
