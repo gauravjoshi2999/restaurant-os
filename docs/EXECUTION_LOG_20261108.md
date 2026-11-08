@@ -38,3 +38,14 @@ Existing Owner membership conflicts remain in the database because the intended 
 ## Release safety
 
 Cashfree merchant review / marketplace split-settlement approval is external to this repository. Checkout remains fail-closed; no payment success, order creation, refund or settlement is simulated. The Supabase Auth leaked-password protection setting is still reported disabled by Security Advisor and must be enabled in the Supabase Auth security settings before production acceptance.
+
+
+## Additional RPC privilege hardening — 8 November 2026
+
+- Audited the five anon-callable SECURITY DEFINER RPCs against the live Customer and Delivery frontend call sites.
+- The public Customer storefront uses `list_public_restaurants()`; the public delivery handoff page requires `get_delivery_handoff(text)` and `confirm_delivery_handoff(text,text)`.
+- `check_restaurant_delivery_area(uuid,text)` and `is_restaurant_public(uuid)` are not called by the current public frontend. Anonymous EXECUTE was revoked for these two helpers while authenticated access was retained.
+- Live privilege verification passed: both helpers now return `anon_can_execute=false`; the three required public endpoints remain callable by anon.
+- Security Advisor anon-callable SECURITY DEFINER findings reduced from 5 to 3. Authenticated-callable findings remain 23; no blanket revocations were made because the app's authenticated RPCs and RLS helpers require role-aware access.
+- RLS remains enabled on all 40 public tables. The RPC-only delivery handoff table intentionally remains without direct table policies and continues to deny direct table access.
+- The latest Pages deployment run 42451337908 and BITE QA run 42451337932 both completed successfully. QA's browser job is still the public Customer smoke suite; it is not authenticated Owner/Admin E2E.
