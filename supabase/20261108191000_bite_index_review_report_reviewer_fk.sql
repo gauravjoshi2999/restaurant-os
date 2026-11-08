@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS restaurant_review_reports_reviewed_by_idx ON public.restaurant_review_reports(reviewed_by);
