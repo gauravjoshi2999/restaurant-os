@@ -66,3 +66,9 @@ This run verifies the Phase 1 foundation and the three existing application surf
 - Owner order model now carries delivery type/address snapshot so the Ready delivery action can show the WhatsApp handoff option for eligible customer delivery orders.
 - Updated legacy `invite-restaurant-owner` Edge Function to reject Platform Admin accounts and existing accounts already linked to another restaurant; deployed active version 3. The primary Owner provisioning function already had the same single-restaurant guard.
 - Customer order-history RPC test returned only 3 orders for the signed-in customer identity while the database held 80 total orders. Note: the available test identity is also a Platform Admin, so this does not replace a dedicated customer-only RLS test.
+
+
+### Legacy POS RPC access hardening — 2026-11-08
+- Applied `20261108034400_bite_phase1_disable_legacy_manual_order_rpcs.sql` to revoke browser `anon`/`authenticated` execution on the three legacy manual/POS order-creation RPCs. `service_role` remains available for controlled backend operations.
+- Verified live grants for all three functions: anon=false, authenticated=false, service_role=true.
+- Supabase Security Advisor authenticated-callable SECURITY DEFINER warnings decreased from 24 to 23. Remaining function warnings are not blanket-revoked because customer, owner and Admin workflows still depend on reviewed RPCs.
