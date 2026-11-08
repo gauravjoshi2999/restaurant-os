@@ -56,3 +56,5 @@ Continue Phase 1 by auditing and hardening role resolution, one-restaurant owner
 ## 2026-11-08 QA evidence
 
 See [Phase 1 QA Run](PHASE_1_QA_RUN_20261108.md) for live SQL test results, demo dataset counts, CI/deployment results and remaining production blockers. The month of simulated data is marked with `is_demo=true` in orders, order financials and expenses. Demo financials are unpaid and excluded from settlement eligibility.
+
+- Follow-up security check: public delivery-area RPC now requires `onboarding_status='approved'`; direct anon access to handoff table is denied and invalid handoff token yields no record.
