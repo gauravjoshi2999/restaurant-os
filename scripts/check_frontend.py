@@ -66,7 +66,7 @@ check("const platformPages=['overview','restaurants','orders','financials','audi
 review_report_migration = Path("supabase/20261108190000_bite_customer_review_reporting.sql").read_text(encoding="utf-8")
 check("ENABLE ROW LEVEL SECURITY" in review_report_migration and "Customers report published reviews" in review_report_migration and "Hide Review" in review_report_migration,
       "Review reporting is customer-owned and Admin moderation is guarded")
-check("const platformPages=['overview','restaurants','orders','financials','audit','support']" in owner and "loadSupportWorkspace" in owner and "saveSupportTicket" in owner,
+check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation']" in owner and "loadSupportWorkspace" in owner and "saveSupportTicket" in owner,
       "Platform Admin has a customer support queue with status and reply controls")
 support_migration = Path("supabase/20261108140000_bite_customer_support_tickets.sql").read_text(encoding="utf-8")
 check("ENABLE ROW LEVEL SECURITY" in support_migration and "Customers and admins read support tickets" in support_migration and "audit_support_ticket_change" in support_migration,
@@ -114,7 +114,7 @@ check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DE
       "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
-check("const platformPages=['overview','restaurants','orders','financials','audit']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
+check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
