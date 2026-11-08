@@ -51,3 +51,8 @@ Continue Phase 1 by auditing and hardening role resolution, one-restaurant owner
 - Initial-version owner navigation is restricted to Overview, Orders, Menu, Expenses, Reports and Settings. Legacy POS, tables, khata, cashbook, purchases, inventory and HR remain stored but are hidden from the Owner workspace.
 - Manager/staff login is not enabled in this MVP because the supplied Master Prompt defines one Owner Account per Restaurant.
 - UI source update commit: `1daf47af2aa2d24fa39b751eaf2c30b397a6e37d`. Deployment workflow is running.
+
+
+## 2026-11-08 QA evidence
+
+See [Phase 1 QA Run](PHASE_1_QA_RUN_20261108.md) for live SQL test results, demo dataset counts, CI/deployment results and remaining production blockers. The month of simulated data is marked with `is_demo=true` in orders, order financials and expenses. Demo financials are unpaid and excluded from settlement eligibility.
