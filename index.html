@@ -278,6 +278,59 @@ body{overscroll-behavior:none}
 .nav button[data-page]{pointer-events:auto!important;position:relative;z-index:2;cursor:pointer!important}
 .nav{pointer-events:auto!important}
 @media(max-width:700px){.side.sidebar-open{z-index:50!important}.sidebar-overlay.visible{z-index:45!important}.nav button[data-page]{min-height:46px;touch-action:manipulation}}
+
+/* Bite Owner Partner Workspace — fresh Zomato-inspired operational UI */
+.bite-owner-home{--bite-ink:#252936;--bite-muted:#777d89;--bite-line:#ececf0;--bite-coral:#ef624b;color:var(--bite-ink);max-width:1400px;margin:0 auto}
+.bite-owner-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin:4px 0 22px}
+.bite-eyebrow,.bite-section-title>div>span,.bite-panel-heading>div>span{font-size:9px;letter-spacing:.16em;font-weight:900;color:#e65e48}
+.bite-owner-heading h1{font-size:29px;line-height:1.2;letter-spacing:-.8px;margin:7px 0 5px;font-weight:850}
+.bite-owner-heading p{margin:0;color:var(--bite-muted);font-size:13px}
+.bite-heading-actions{display:flex;align-items:center;gap:9px}
+.bite-live-dot,.bite-date-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--bite-line);border-radius:999px;padding:9px 12px;background:#fff;color:#535967;font-size:11px;font-weight:750;white-space:nowrap}
+.bite-live-dot i{width:7px;height:7px;border-radius:50%;background:#25a56b;box-shadow:0 0 0 4px #e8f7ef}
+.bite-date-chip{border-radius:10px;cursor:default}
+.bite-outlet-card{display:flex;align-items:center;gap:17px;padding:22px 24px;border-radius:18px;background:linear-gradient(110deg,#242936 0%,#333746 70%,#57413f 100%);color:#fff;box-shadow:0 9px 25px #24293616;margin-bottom:25px}
+.bite-outlet-symbol{width:54px;height:54px;border-radius:16px;background:#ffffff17;display:grid;place-items:center;font-size:27px;flex:0 0 auto}
+.bite-outlet-copy{min-width:0;flex:1}
+.bite-outlet-copy>span{font-size:9px;letter-spacing:.16em;color:#ffb29f;font-weight:900}
+.bite-outlet-copy h2{font-size:20px;margin:4px 0;font-weight:850;letter-spacing:-.3px}
+.bite-outlet-copy p{font-size:11px;color:#d5d6dd;margin:0}
+.bite-outline-light{border:1px solid #ffffff45;background:#ffffff12;color:#fff;border-radius:10px;padding:10px 13px;font-size:11px;font-weight:750;cursor:pointer;min-height:40px}
+.bite-section-title{display:flex;align-items:flex-end;justify-content:space-between;margin:0 0 12px}
+.bite-section-title h2,.bite-panel-heading h2{font-size:17px;margin:4px 0 0;font-weight:850;letter-spacing:-.35px}
+.bite-text-link{border:0;background:none;color:#e65e48;font-weight:800;font-size:11px;cursor:pointer}
+.bite-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:23px}
+.bite-metric-card{background:#fff;border:1px solid var(--bite-line);border-radius:15px;padding:16px 17px;min-width:0;box-shadow:0 3px 12px #24293605}
+.bite-metric-card.bite-sales{background:#fff8f5;border-color:#f6d9d1}
+.bite-metric-top{display:flex;align-items:center;gap:9px}
+.bite-metric-icon{width:29px;height:29px;border-radius:9px;background:#f4f4f6;display:grid;place-items:center;color:#555b68;font-weight:900;font-size:14px}
+.bite-sales .bite-metric-icon{background:#ffe5de;color:#e65e48}
+.bite-metric-label{font-size:9px;letter-spacing:.1em;font-weight:900;color:#858a95}
+.bite-metric-arrow{margin-left:auto;color:#e65e48}
+.bite-metric-card>strong{display:block;font-size:27px;letter-spacing:-.8px;margin:14px 0 4px;font-weight:900;overflow-wrap:anywhere}
+.bite-metric-card>small{display:block;font-size:10px;color:#858a95;line-height:1.45}
+.bite-work-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:15px;align-items:start}
+.bite-panel{background:#fff;border:1px solid var(--bite-line);border-radius:16px;padding:18px;min-width:0;box-shadow:0 3px 14px #24293605}
+.bite-panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.bite-panel-heading p{font-size:10px;color:#858a95;margin:5px 0 0}
+.bite-round-link{width:34px;height:34px;border-radius:10px;border:1px solid var(--bite-line);background:#fff;color:#e65e48;font-size:17px;cursor:pointer}
+.bite-order-empty{display:none;min-height:138px;border:1px dashed #e7e7ec;border-radius:12px;align-items:center;justify-content:center;flex-direction:column;gap:5px;color:#7b808b}
+.bite-order-empty>div{width:39px;height:39px;display:grid;place-items:center;border-radius:12px;background:#fff1ed;font-size:19px;margin-bottom:3px}
+.bite-order-empty b{font-size:12px;color:#343945}.bite-order-empty span{font-size:10px}
+.bite-recent-table{max-width:100%;overflow-x:auto}.bite-recent-table table{width:100%;min-width:420px;border-collapse:collapse}
+.bite-recent-table th{font-size:9px;letter-spacing:.08em;color:#8a8f99;text-align:left;padding:10px 8px;border-bottom:1px solid #f0f0f3}
+.bite-recent-table td{font-size:11px;padding:12px 8px;border-bottom:1px solid #f4f4f6}
+.bite-panel-footer{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;border-top:1px solid #f0f0f3;background:#fff;color:#e65e48;font-size:11px;font-weight:850;padding:14px 2px 0;margin-top:8px;cursor:pointer}
+.bite-action-row{display:flex;align-items:center;gap:11px;width:100%;padding:12px 0;border:0;border-bottom:1px solid #f1f1f4;background:#fff;text-align:left;cursor:pointer;color:var(--bite-ink)}
+.bite-action-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:17px;font-weight:850;flex:0 0 auto}
+.bite-action-icon.coral{background:#fff0ec;color:#e65e48}.bite-action-icon.amber{background:#fff6e8;color:#bd8229}.bite-action-icon.green{background:#eaf7f0;color:#27865b}.bite-action-icon.blue{background:#edf3ff;color:#5275bd}
+.bite-action-row>span:nth-child(2){flex:1;min-width:0}.bite-action-row b{display:block;font-size:11px}.bite-action-row small{display:block;color:#858a95;font-size:9px;margin-top:3px}.bite-action-row i{font-style:normal;color:#a1a5ad;font-size:17px}
+.bite-tip{display:flex;gap:10px;background:#fff8f4;border-radius:11px;padding:12px;margin-top:15px;color:#e65e48}.bite-tip>span{font-size:17px}.bite-tip b{font-size:10px;color:#48404a}.bite-tip p{font-size:9px;line-height:1.5;color:#85808a;margin:4px 0 0}
+.bite-owner-foot{display:flex;justify-content:center;gap:8px;color:#969aa3;font-size:9px;margin:20px 0 5px}.bite-owner-foot span:first-child{color:#e65e48}
+@media(max-width:1050px){.bite-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.bite-work-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.bite-owner-heading{align-items:flex-start;flex-direction:column;margin:2px 0 15px;gap:10px}.bite-owner-heading h1{font-size:23px}.bite-owner-heading p{font-size:11px}.bite-heading-actions{width:100%;justify-content:space-between}.bite-outlet-card{padding:15px;gap:11px;border-radius:14px;margin-bottom:19px}.bite-outlet-symbol{width:42px;height:42px;font-size:22px;border-radius:12px}.bite-outlet-copy h2{font-size:15px}.bite-outlet-copy p{font-size:9px}.bite-outline-light{font-size:9px;padding:8px}.bite-section-title h2,.bite-panel-heading h2{font-size:15px}.bite-metric-grid{gap:8px;margin-bottom:15px}.bite-metric-card{padding:12px;border-radius:12px}.bite-metric-icon{width:25px;height:25px;font-size:12px}.bite-metric-label{font-size:8px}.bite-metric-card>strong{font-size:22px;margin:10px 0 3px}.bite-metric-card>small{font-size:9px}.bite-work-grid{gap:10px}.bite-panel{padding:14px;border-radius:13px}.bite-panel-heading{margin-bottom:12px}.bite-panel-heading p{font-size:9px}.bite-action-row{padding:11px 0}.bite-owner-foot{padding-bottom:8px}}
+@media(max-width:360px){.bite-outlet-copy h2{font-size:13px}.bite-outline-light{font-size:8px;padding:7px}.bite-metric-card>strong{font-size:20px}}
+
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}<style id="platformRestaurantManagerStyles">
@@ -505,33 +558,39 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)" aria-hidden="true"></div><main class="main"><header class="top"><button class="sidebar-toggle" type="button" aria-label="Menu kholein" aria-expanded="false" onclick="toggleSidebar()">☰</button><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><select id="tenantSwitcher" aria-label="Restaurant select karein" style="display:none;max-width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px"></select><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag">CLOUD WORKSPACE</span></div></header>
 <div class="content">
 <div id="workspaceRuntimeNotice" role="status" aria-live="polite"></div><div class="notice">Cloud database connected. Restaurant and order records sync across signed-in devices. Zomato/Swiggy integrations and automatic money settlement are not active yet.</div>
-<section class="page active" id="overview"><div data-owner-dashboard style="display:none">
- <div class="daily-welcome"><div><div class="daily-kicker">AAJ KA KAAM</div><h1 id="ownerHomeTitle">Namaste 👋</h1><p id="ownerHomeSubtitle">Aaj aapke restaurant ka kaam yahan se sambhalein.</p></div><button class="daily-primary" onclick="showPage('pos')">＋ Nayi billing shuru karein</button></div>
- <div class="owner-home-banner daily-banner"><div><div class="owner-home-eyebrow">AAPKA RESTAURANT</div><h2 id="ownerHomeRestaurant">Aapka Restaurant</h2><p>Roz ke orders aur hisaab ek hi jagah.</p></div><span>🍽️</span></div>
- <div class="daily-stats">
-  <div class="owner-kpi"><span>💰 Aaj ki sale</span><strong id="ownerTodaySales">₹0</strong><small>Aaj ka total business</small></div>
-  <div class="owner-kpi"><span>🛎️ Aaj ke orders</span><strong id="ownerTodayOrders">0</strong><small>Aaj mile kul orders</small></div>
-  <div class="owner-kpi"><span>⏳ Pending orders</span><strong id="ownerPendingOrders">0</strong><small>Jin par kaam baaki hai</small></div>
-  <div class="owner-kpi"><span>🌐 Online orders</span><strong id="ownerOnlineOrders">0</strong><small>Website / connected channels</small></div>
+<section class="page active" id="overview"><div data-owner-dashboard class="bite-owner-home" style="display:none">
+ <div class="bite-owner-heading">
+  <div><div class="bite-eyebrow">BITE • RESTAURANT PARTNER</div><h1 id="ownerHomeTitle">Namaste 👋</h1><p id="ownerHomeSubtitle">Aaj ke business ka poora haal ek nazar mein.</p></div>
+  <div class="bite-heading-actions"><span class="bite-live-dot"><i></i> Live workspace</span><button class="bite-date-chip" type="button" aria-label="Aaj ki date">📅 <span id="biteTodayDate">Aaj</span></button></div>
  </div>
- <div class="daily-section"><div class="daily-section-head"><div><h2>Roz ke zaroori kaam</h2><p>Jis kaam ki zaroorat ho, seedha yahan dabayein.</p></div></div>
-  <div class="daily-actions">
-   <button class="daily-action daily-action-main" onclick="showPage('pos')"><span>🧾</span><b>Nayi Billing</b><small>Customer ka bill banayein</small><i>Shuru karein →</i></button>
-   <button class="daily-action" onclick="showPage('orders')"><span>🔔</span><b>Orders Dekhein</b><small>Naye aur pending orders</small><i>Orders kholein →</i></button>
-   <button class="daily-action" onclick="showPage('menu')"><span>🍽️</span><b>Menu / Rate</b><small>Dish aur price badlein</small><i>Menu kholein →</i></button>
-   <button class="daily-action" onclick="showPage('cashbook')"><span>💵</span><b>Jama / Kharch</b><small>Aaj ka paisa likhein</small><i>Cashbook kholein →</i></button>
-  </div>
+ <div class="bite-outlet-card">
+  <div class="bite-outlet-symbol">🍽️</div><div class="bite-outlet-copy"><span>YOUR OUTLET</span><h2 id="ownerHomeRestaurant">Aapka Restaurant</h2><p>Restaurant ka aaj ka performance aur operations</p></div>
+  <button class="bite-outline-light" onclick="showPage('settings')">Outlet settings <b>↗</b></button>
  </div>
- <div class="daily-bottom">
-  <div class="daily-section daily-orders"><div class="daily-section-head"><div><h2>Haaliya orders</h2><p>Sabse naye orders ki jankari.</p></div><button class="daily-link" onclick="showPage('orders')">Sab dekhein →</button></div><div class="card table-wrap"><table><thead><tr><th>Order</th><th>Source</th><th>Amount</th><th>Status</th></tr></thead><tbody id="ownerRecentOrders"></tbody></table><div class="empty" id="ownerRecentEmpty">Abhi koi order nahi hai.</div></div></div>
-  <div class="daily-section daily-guide"><div class="daily-section-head"><div><h2>Baaki kaam</h2><p>Side menu se zaroorat par kholein.</p></div></div>
-   <button onclick="showPage('tables')"><span>🪑</span><b>Tables</b><small>Table aur seating</small><strong>→</strong></button>
-   <button onclick="showPage('inventory')"><span>📦</span><b>Stock</b><small>Saaman ki jankari</small><strong>→</strong></button>
-   <button onclick="showPage('purchases')"><span>🛒</span><b>Purchase</b><small>Saaman kharid</small><strong>→</strong></button>
-   <button onclick="showPage('reports')"><span>📊</span><b>Reports</b><small>Kamai ka hisaab</small><strong>→</strong></button>
-  </div>
+ <div class="bite-section-title"><div><span>AT A GLANCE</span><h2>Aaj ka business</h2></div><button class="bite-text-link" onclick="showPage('reports')">Full report <b>→</b></button></div>
+ <div class="bite-metric-grid">
+  <article class="bite-metric-card bite-sales"><div class="bite-metric-top"><span class="bite-metric-icon">₹</span><span class="bite-metric-label">TOTAL SALES</span><span class="bite-metric-arrow">↗</span></div><strong id="ownerTodaySales">₹0</strong><small>Aaj ke completed business ka total</small></article>
+  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">▤</span><span class="bite-metric-label">TOTAL ORDERS</span></div><strong id="ownerTodayOrders">0</strong><small>Aaj receive hue orders</small></article>
+  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">◷</span><span class="bite-metric-label">NEEDS ATTENTION</span></div><strong id="ownerPendingOrders">0</strong><small>Orders jin par action baaki hai</small></article>
+  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">⌁</span><span class="bite-metric-label">ONLINE ORDERS</span></div><strong id="ownerOnlineOrders">0</strong><small>Bite website se aaye orders</small></article>
  </div>
- <div class="owner-home-footnote">Zomato aur Swiggy ke live orders ke liye official integration connect hona zaroori hai; abhi automatic connection active nahi hai.</div>
+ <div class="bite-work-grid">
+  <section class="bite-panel bite-order-panel">
+   <div class="bite-panel-heading"><div><span>ORDER CONTROL</span><h2>Orders at a glance</h2><p>Naye orders ko jaldi dekhein aur manage karein.</p></div><button class="bite-round-link" onclick="showPage('orders')" aria-label="Sabhi orders dekhein">↗</button></div>
+   <div class="bite-order-empty" id="biteOrderEmpty"><div>🧾</div><b>Abhi koi naya order nahi</b><span>Naya order aate hi yahan dikhai dega.</span></div>
+   <div class="bite-recent-table"><table><thead><tr><th>ORDER</th><th>CHANNEL</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody id="ownerRecentOrders"></tbody></table><div class="empty" id="ownerRecentEmpty">Abhi koi order nahi hai.</div></div>
+   <button class="bite-panel-footer" onclick="showPage('orders')">Open order management <b>→</b></button>
+  </section>
+  <section class="bite-panel bite-shortcuts">
+   <div class="bite-panel-heading"><div><span>QUICK ACTIONS</span><h2>Kaam shuru karein</h2><p>Roz ke zaroori kaam, ek click mein.</p></div></div>
+   <button class="bite-action-row" onclick="showPage('orders')"><span class="bite-action-icon coral">↗</span><span><b>Manage orders</b><small>Accept aur update orders</small></span><i>→</i></button>
+   <button class="bite-action-row" onclick="showPage('menu')"><span class="bite-action-icon amber">☷</span><span><b>Update your menu</b><small>Dishes, prices aur availability</small></span><i>→</i></button>
+   <button class="bite-action-row" onclick="showPage('expenses')"><span class="bite-action-icon green">₹</span><span><b>Add an expense</b><small>Aaj ka kharcha record karein</small></span><i>→</i></button>
+   <button class="bite-action-row" onclick="showPage('reports')"><span class="bite-action-icon blue">▥</span><span><b>Business reports</b><small>Sales aur expenses ka hisaab</small></span><i>→</i></button>
+   <div class="bite-tip"><span>✦</span><div><b>Small steps, better business</b><p>Menu aur orders updated rakhein, taaki customer ko sahi jankari mile.</p></div></div>
+  </section>
+ </div>
+ <div class="bite-owner-foot"><span>♥</span> Bite Partner Workspace <span>•</span> Eat. Repeat.</div>
 </div>
 <div data-platform-dashboard><div class="welcome"><div><h1 id="ownerWelcomeTitle">Good morning 👋</h1><div class="muted" id="ownerWelcomeSubtitle">Your complete restaurant business, managed from one place.</div></div><button class="btn" data-admin-only onclick="showPage('restaurants');openRestaurant()">＋ Add restaurant</button></div><div style="background:linear-gradient(112deg,#252936 0%,#303444 58%,#563b3b 100%);border-radius:17px;padding:22px 25px;color:white;margin:0 0 18px;display:flex;align-items:center;justify-content:space-between;gap:18px;overflow:hidden"><div><div style="font-size:9px;letter-spacing:.13em;color:#ffb39e;font-weight:800;margin-bottom:7px">YOUR RESTAURANT COMMAND CENTER</div><div style="font:800 20px/1.3 Manrope,sans-serif;letter-spacing:-.5px">One place to run it all.</div><div style="font-size:11px;color:#d0d1d8;margin-top:6px">Orders · Partners · Settlements · Growth</div></div><div style="font-size:48px;line-height:1;filter:drop-shadow(0 7px 15px #0005)">🍽️</div></div>
 <div class="grid"><div class="card"><div class="metric-label">🏪 &nbsp;Restaurants onboarded</div><div class="metric" id="metricRestaurants">0</div></div><div class="card"><div class="metric-label">🛵 &nbsp;Orders in demo</div><div class="metric" id="metricOrders">0</div></div><div class="card"><div class="metric-label">💳 &nbsp;Gross order value</div><div class="metric" id="metricSales">₹0</div></div><div class="card"><div class="metric-label">↗ &nbsp;Pending reconciliation</div><div class="metric" id="metricPending">₹0</div></div></div>
