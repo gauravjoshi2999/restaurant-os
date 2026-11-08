@@ -50,6 +50,14 @@ try:
         check("payment setup pending" in button.inner_text().lower(), "Checkout explains that payment setup is pending")
         check("cash on delivery" not in page.locator("body").inner_text().lower(), "No cash-on-delivery option is offered")
 
+        # Forgot-password UI must be reachable and validate the email before sending.
+        page.locator("#loginBtn").click()
+        page.locator("#authModal.show").wait_for(state="visible", timeout=5000)
+        check(page.locator("#forgotPasswordBtn").is_visible(), "Customer login exposes a forgot-password action")
+        page.locator("#forgotPasswordBtn").click()
+        check("sahi email" in page.locator("#authError").inner_text().lower(),
+              "Forgot-password flow validates email before requesting a reset link")
+
         # Android-sized viewport smoke check.
         mobile = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
         mobile.goto("http://127.0.0.1:4173/customer.html", wait_until="domcontentloaded")
