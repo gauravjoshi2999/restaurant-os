@@ -121,6 +121,8 @@ check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DE
       "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
+check("document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none')" in owner,
+      "Platform-wide restaurant network is hidden from tenant Owner accounts")
 check("loadPOSWorkspace()" in owner and "loadTablesWorkspace()" in owner and "loadCashbookWorkspace()" in owner and "loadPurchaseWorkspace()" in owner and "loadInventoryWorkspace()" in owner and "loadHRWorkspace()" in owner,
       "Owner overview provides quick actions into POS, tables, cashbook, purchases, inventory and HR")
 check('#mainApp[style*="display:none"]{display:none!important}' in owner,
