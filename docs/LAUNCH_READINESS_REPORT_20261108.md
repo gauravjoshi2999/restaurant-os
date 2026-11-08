@@ -142,3 +142,13 @@ Source-level verification:
 - Chromium smoke coverage now includes Customer forgot-password entry and the mobile Owner/Admin sign-in gate. This is additional test coverage, not evidence that the latest GitHub Actions browser run has passed.
 
 **Production acceptance remains withheld.** Cashfree merchant review and marketplace split-settlement approval are external prerequisites; no real paid checkout, refund or bank settlement has been enabled. Existing Owner mapping conflicts were not reassigned or deleted without verified identity mapping. Supabase Auth leaked-password protection remains disabled in Security Advisor. Authenticated Owner/Admin browser acceptance and the reset-email delivery round-trip have not yet been verified.
+
+
+## Follow-up security verification — 8 November 2026
+
+- Revoked anonymous EXECUTE on the two SECURITY DEFINER helper RPCs `check_restaurant_delivery_area(uuid,text)` and `is_restaurant_public(uuid)` after confirming neither is called by the current public frontend.
+- Kept the three required public endpoints available: `list_public_restaurants()`, `get_delivery_handoff(text)`, and `confirm_delivery_handoff(text,text)`.
+- Verified privileges live: the two unused helpers deny anon execution; the three required public endpoints remain anon-callable.
+- Security Advisor anonymous SECURITY DEFINER warnings decreased from 5 to 3. Authenticated SECURITY DEFINER warnings remain 23 and require per-function review; no blanket revocation was applied.
+- All 40 public tables continue to have RLS enabled.
+- Latest deployment run 42451337908 and QA run 42451337932 completed successfully. The QA browser job tests public Customer flows only; Owner/Admin authenticated E2E is not certified by that run.
