@@ -81,6 +81,8 @@ check("Manual POS / offline order entry Bite ke initial marketplace version mein
       "Legacy manual POS order creation is disabled in the marketplace MVP")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
+check("orderChannelKey(order.channel)==='website'" in owner and "['website','zomato','swiggy']" not in owner,
+      "Owner new-order alerts are limited to BITE website orders")
 check("isDemo:!!x.is_demo" in owner and "biteDemoBanner" in owner,
       "Simulated order records are explicitly marked in the Owner workspace")
 check("get_delivery_handoff" in delivery and "confirm_delivery_handoff" in delivery,
