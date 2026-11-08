@@ -61,3 +61,15 @@ Cashfree merchant review / marketplace split-settlement approval is external to 
 - SQL transaction tests passed: closed restaurant rejects marketplace pickup; delivery-paused restaurant rejects delivery; pickup is not blocked by delivery pause. Test transaction was rolled back.
 - Live schema check: 40/40 public tables retain RLS; public listing RPC still has anon execution; trigger function denies anon/authenticated execution.
 - Added static QA assertions and Chromium smoke assertions for the new availability response fields and customer closure state. These new CI assertions still require a completed Actions run before being marked passed.
+
+
+## Audited Owner mapping repair workspace — 8 November 2026
+
+- Added Platform Admin-only RPCs `admin_list_owner_assignments()` and `admin_resolve_owner_mapping(uuid,uuid)`.
+- The list RPC returns each restaurant's Owner count and each Owner login's restaurant count, plus account contact fields for Platform Admin review. Anonymous execution is revoked; only authenticated callers can invoke the RPC, and the function enforces `is_platform_admin()`.
+- The resolver requires Platform Admin, refuses Platform Admin accounts as Owners, uses transaction advisory locks, keeps the selected account as the sole Owner for the selected restaurant, removes that account's memberships from other restaurants, removes competing Owner assignments on the selected restaurant, and records the before-state in `platform_audit_logs`.
+- Added a Platform Admin Owner mapping workspace on the Restaurants page. It identifies missing/duplicate assignments and requires an explicit confirmation before changing membership; a read-only audit does not change accounts.
+- Added `platform_audit_logs` with RLS enabled. Anonymous SELECT is denied; authenticated SELECT is granted but RLS restricts rows to Platform Admins; direct authenticated INSERT is denied.
+- SQL test executed as a Platform Admin inside a transaction: mapping list RPC and resolver success path both executed; audit row was created inside the transaction. Transaction was rolled back. Follow-up query confirmed no test audit row persisted and the original mapping conflicts remain unchanged.
+- Live grants verified: both mapping RPCs deny anon execution and allow authenticated invocation subject to the internal Platform Admin check.
+- Actual production membership mapping has intentionally not been changed: the correct person-to-restaurant choice must be selected by the Platform Admin using the new review panel. No customer, order, restaurant or historical financial data was deleted.
