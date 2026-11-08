@@ -72,3 +72,13 @@ This run verifies the Phase 1 foundation and the three existing application surf
 - Applied `20261108034400_bite_phase1_disable_legacy_manual_order_rpcs.sql` to revoke browser `anon`/`authenticated` execution on the three legacy manual/POS order-creation RPCs. `service_role` remains available for controlled backend operations.
 - Verified live grants for all three functions: anon=false, authenticated=false, service_role=true.
 - Supabase Security Advisor authenticated-callable SECURITY DEFINER warnings decreased from 24 to 23. Remaining function warnings are not blanket-revoked because customer, owner and Admin workflows still depend on reviewed RPCs.
+
+
+### Customer Phase A — Signup and address book regression — 2026-11-08
+- Live signup reported successful by the operator; Auth user exists and the matching `public.profiles` row was created by `on_auth_user_created` / `handle_new_user()`. The latest confirmed account was verified against its matching profile UUID.
+- Verified `profiles` RLS: the signed-in identity sees its own profile (1 row) and a different identity's profile (0 rows).
+- A2 code audit found the initial customer address flow saved a new address only during order submission. Because payment is deliberately fail-closed pending provider onboarding, this made address-book setup unavailable independently of checkout.
+- Added an independent Account → Saved addresses form with create, edit, delete and default-address actions, client-side validation, and user-visible errors. Added mobile-friendly input styling and static QA guards.
+- Live database regression: under an authenticated Customer JWT context, address INSERT, own-row SELECT, UPDATE and DELETE assertions passed; cross-customer address visibility returned 0 rows. The entire test transaction was rolled back; no QA address was retained.
+- JavaScript syntax compilation of the updated customer page passed. The newly-triggered GitHub Actions run for the latest commits was not yet available at the time of this note; do not count CI as passed until its run is completed.
+- Remaining A2 acceptance: perform one real signed-in browser save/edit/default/delete/refresh cycle with a dedicated Customer-only identity. The current available test identity is not yet proven Customer-only. No actual order/payment was created.
