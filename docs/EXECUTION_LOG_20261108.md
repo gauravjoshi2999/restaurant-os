@@ -80,3 +80,14 @@ Cashfree merchant review / marketplace split-settlement approval is external to 
 - Added a dedicated Audit Log navigation page to the Platform Admin workspace; Owner navigation remains exactly six approved sections.
 - The Admin viewer reads the latest 200 rows from `platform_audit_logs`, displaying timestamp, actor identifier, action, entity and JSON details. It relies on the table's Platform Admin-only SELECT RLS policy; no direct authenticated INSERT permission exists.
 - Added static QA coverage for the Admin-only audit page and the Owner mapping controls. The updated CI workflow has not yet been independently confirmed green in this session.
+
+
+## Customer support ticket workflow — 8 November 2026
+
+- Added `customer_support_tickets` with category, subject, message, optional customer-owned order link, status, Admin response and timestamps.
+- RLS is enabled. Customers can read only their own tickets and create tickets only for themselves; an attached order must belong to the same customer. Customers have no UPDATE or DELETE policy. Platform Admins can read and update tickets.
+- Added update timestamp handling and an audit trigger that records ticket creation and Admin status/response changes in `platform_audit_logs`.
+- Added Customer Account support form and support history, including optional order selection; added Platform Admin Customer Support queue with status and response controls.
+- SQL test ran as an authenticated Customer: ticket insert succeeded, own-ticket read succeeded, customer update was denied by RLS. The test transaction was rolled back and a follow-up query confirmed zero persisted QA tickets.
+- Live schema check now reports 42 public tables and 42 with RLS enabled.
+- Static QA assertions were added for Customer ticket submission/history, Admin queue and RLS/audit migration. Updated GitHub Actions results still need independent confirmation.
