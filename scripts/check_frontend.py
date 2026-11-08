@@ -161,3 +161,14 @@ check("Refund is not shown as completed" in customer and "payment-provider confi
       "Customer cancellation timeline never claims a refund without provider confirmation")
 check("Refund is not marked paid: provider confirmation is required" in owner,
       "Owner cancellation response does not claim refund success")
+
+
+# Customer review visibility and strict role separation regression checks
+check('data-owner-review-workspace' in owner and "e.style.display=role==='owner'?'':'none'" in owner,
+      "Customer review management is visible only in the Restaurant Owner workspace")
+check("if(!list||access.role!=='owner'||!access.restaurantId)return" in owner and ".eq('restaurant_id',access.restaurantId)" in owner,
+      "Owner review workspace loads only its own restaurant reviews")
+check("Save hidden reply" not in owner and "access.role!=='owner'||!access.restaurantId" in owner,
+      "Owner cannot hide customer reviews and reply action is owner-only")
+check("p_publish:true" in owner and "Reply to customer" in owner,
+      "Owner can respond without changing customer review visibility")
