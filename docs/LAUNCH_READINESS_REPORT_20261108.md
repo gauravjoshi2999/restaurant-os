@@ -112,3 +112,33 @@ Latest implementation commits:
 - Final small date/source-label polish commit `f31e253a82f1a73835eeba120c02fec892688252` triggered a fresh QA run and Pages deployment; these final runs were still in progress when this report update was prepared: https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451280082 and https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451280041
 
 **Limit of this follow-up:** the automated browser suite still tests the public Customer storefront, not a signed-in Owner session. The Owner profile save form, selected-restaurant isolation in a real browser, and each of the six Owner sections still require authenticated role-based browser acceptance testing. These changes do not activate Zomato/Swiggy APIs or automatic settlement, and do not change the production payment blocker.
+
+
+## Additional hardening and database verification — 8 November 2026
+
+Execution record: [docs/EXECUTION_LOG_20261108.md](EXECUTION_LOG_20261108.md)
+
+Changes now applied after the previous report:
+- Owner online-order KPI corrected; Owner and Super Admin live sales metrics now use only paid, non-demo BITE financial snapshots, and demo rows do not inflate live-order counts.
+- The 62 October 1–31 `Bite Demo Simulation` orders for Demo Royal Thali House are now included in the BITE website order board with a visible `DEMO ONLY` label. They remain excluded from live metrics and settlement totals.
+- Owner new-order realtime alerts are restricted to BITE website orders.
+- Customer forgot-password flow now sends a Supabase Auth reset email, handles the recovery session, confirms the new password and updates it without requiring email re-entry after the reset link returns.
+- Checkout financial snapshot now uses the restaurant commission override or configured platform default (10%), rather than the legacy 18% literal.
+- Duplicate Owner assignments are blocked by the Owner login guard, both Owner provisioning Edge Functions, and a database trigger with a transaction-scoped advisory lock. Platform Admin accounts cannot be newly assigned as Owners.
+- Supabase Owner and invite Edge Functions deployed as versions 7 and 4 respectively.
+
+Live SQL verification:
+- 40/40 public tables have RLS enabled.
+- Owner profile update succeeds; Owner commission-rate modification is rejected.
+- Duplicate Owner assignment and Platform Admin-as-Owner inserts are rejected.
+- A valid checkout attempt is rejected before order creation while the payment provider is unconfigured.
+- Delivery handoff positive path passed through customer-only OTP retrieval, bearer-link lookup, Owner handover and successful OTP completion.
+- Five incorrect OTP attempts are counted; the sixth attempt is blocked.
+- All SQL workflow tests were run in transactions and rolled back; no QA order or handoff rows remain.
+
+Source-level verification:
+- Inline JavaScript in Customer, Owner/Admin and Delivery pages parses successfully.
+- Static assertions pass for password recovery, Owner mapping guards, dashboard sales calculations, demo labelling, BITE-only alerts and client-side secret-key absence.
+- Chromium smoke coverage now includes Customer forgot-password entry and the mobile Owner/Admin sign-in gate. This is additional test coverage, not evidence that the latest GitHub Actions browser run has passed.
+
+**Production acceptance remains withheld.** Cashfree merchant review and marketplace split-settlement approval are external prerequisites; no real paid checkout, refund or bank settlement has been enabled. Existing Owner mapping conflicts were not reassigned or deleted without verified identity mapping. Supabase Auth leaked-password protection remains disabled in Security Advisor. Authenticated Owner/Admin browser acceptance and the reset-email delivery round-trip have not yet been verified.
