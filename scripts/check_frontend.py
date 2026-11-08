@@ -185,7 +185,7 @@ check("replace(v_policy.qual, 'is_platform_admin()', 'false')" in platform_role_
 
 
 # Marketplace orders are customer-created and must remain auditable.
-order_boundary_migration = Path("supabase/20261108073420_bite_lock_marketplace_order_mutations.sql").read_text(encoding="utf-8")
+order_boundary_migration = Path("supabase/20261108073727_bite_lock_marketplace_order_mutations.sql").read_text(encoding="utf-8")
 check('DROP POLICY IF EXISTS "members can create orders"' in order_boundary_migration and 'DROP POLICY IF EXISTS "owners can delete orders"' in order_boundary_migration,
       "Restaurant members cannot directly create or delete marketplace orders")
 check("guard_owner_order_mutable_fields" in order_boundary_migration and "to_jsonb(NEW) - ARRAY['status','status_note']" in order_boundary_migration,
