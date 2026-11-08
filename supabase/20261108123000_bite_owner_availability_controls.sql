@@ -60,3 +60,8 @@ AS $function$
   GROUP BY r.id ORDER BY r.name;
 $function$;
 GRANT EXECUTE ON FUNCTION public.list_public_restaurants() TO anon, authenticated, service_role;
+
+-- Keep public discovery explicitly callable by only the expected API roles.
+REVOKE ALL ON FUNCTION public.list_public_restaurants() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_public_restaurants() TO anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.guard_marketplace_order_availability() FROM PUBLIC, anon, authenticated;
