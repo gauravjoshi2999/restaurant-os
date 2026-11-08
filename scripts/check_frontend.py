@@ -61,6 +61,14 @@ check("This account is linked to more than one restaurant" in owner,
       "Ambiguous multi-restaurant Owner accounts are blocked")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
+check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
+      "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
+check("access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)" in owner,
+      "Owner route guard blocks legacy POS, stock, tables, khata and HR pages")
+check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
+      "Legacy manual POS order creation is disabled in the marketplace MVP")
+check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
+      "Owner order model carries delivery type for delivery handoff actions")
 check("isDemo:!!x.is_demo" in owner and "biteDemoBanner" in owner,
       "Simulated order records are explicitly marked in the Owner workspace")
 check("get_delivery_handoff" in delivery and "confirm_delivery_handoff" in delivery,
