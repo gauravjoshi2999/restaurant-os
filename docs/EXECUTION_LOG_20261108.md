@@ -11,14 +11,14 @@ This log records changes actually applied during the 8 November hardening pass. 
   - `create-restaurant-owner-login` version 7
   - `invite-restaurant-owner` version 4
 - Added a frontend Owner access guard that blocks accounts linked to multiple restaurants and restaurants with more than one Owner assignment.
-- Added a database trigger that blocks a second Owner assignment to the same restaurant and rejects Platform Admin accounts being newly assigned as restaurant Owners. Existing ambiguous membership rows were deliberately not reassigned or deleted.
+- Added a database trigger that blocks a second Owner assignment to the same restaurant, rejects Platform Admin accounts being newly assigned as restaurant Owners, and serializes concurrent Owner assignments with a transaction-scoped advisory lock. Existing ambiguous membership rows were deliberately not reassigned or deleted.
 - Version-controlled the live Owner provisioning Edge Function sources and the database migrations in `supabase/`.
 
 ## Live database verification performed
 
 - 40/40 public tables have RLS enabled.
 - The commission function no longer contains the old 18% literal; the platform default is 10.00%.
-- A conflicting Owner insert was rejected by the database trigger; the test transaction left the existing membership count unchanged.
+- A conflicting Owner insert was rejected by the database trigger; the test transaction left the existing membership count unchanged. The same-owner idempotent update was also accepted, and the concurrency-safe trigger re-test passed.
 - A Platform Admin account could not be inserted as a restaurant Owner; the test transaction was rolled back.
 - Owner restaurant profile update was permitted, while an Owner attempt to change the protected commission rate was rejected; transaction rolled back.
 - Checkout was exercised with a valid customer, saved address, restaurant and menu item. The unconfigured payment provider guard rejected the checkout before an order was created; transaction rolled back.
