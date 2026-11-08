@@ -73,6 +73,8 @@ check("if(ooo)ooo.textContent=String(onlineToday);" in owner and "String(onlineT
       "Owner online-order KPI renders its numeric count without undefined")
 check("const liveOrders=dashboardOrders.filter(o=>!o.isDemo)" in owner and "verifiedPaidSales" in owner and "customer_payable_amount" in owner and "money(verifiedPaidSales)" in owner,
       "Owner and Admin sales KPIs exclude demo and unpaid orders")
+check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DEMO ONLY" in owner,
+      "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
