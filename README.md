@@ -54,3 +54,6 @@ Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 - October 2026 demo dataset for Demo Royal Thali House: 62 clearly flagged simulated orders, 124 items, 314 status events, 62 unpaid demo financial snapshots and 31 demo expenses. No real payments or settlements were recorded.
 - Static frontend QA and GitHub Pages deployment workflows passed. See [Phase 1 QA report](docs/PHASE_1_QA_RUN_20261108.md).
 - Customer checkout remains intentionally disabled until an approved marketplace payment provider is connected. Production release is not approved while Auth leaked-password protection, owner membership cleanup, customer-only RLS test identity, positive delivery handoff browser test and SECURITY DEFINER review remain open.
+
+- Admin Restaurants now has explicit Approve / Reject / Suspend / Reactivate actions that write the database onboarding status and reviewer audit fields. Owner route access is restricted to Overview, Website Orders, Menu, Expenses, Reports and Settings; legacy POS creation is blocked.
+- Legacy Owner invitation Edge Function version 3 also rejects Platform Admin accounts and accounts already linked to a different restaurant.
