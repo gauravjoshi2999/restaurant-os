@@ -162,3 +162,12 @@ Source-level verification:
 - The public restaurant listing RPC returns the new availability fields. Live verification confirms the listing remains anon-callable and the trigger function is not callable by anon/authenticated roles.
 - All 40 public tables still have RLS enabled.
 - New static and Chromium Customer smoke assertions were committed; their GitHub Actions result has not yet been retrieved, so this report does not mark those CI checks as passed.
+
+
+## Owner mapping resolution workspace — 8 November 2026
+
+- Added Platform Admin-only mapping audit and resolution RPCs, with transaction locks and an audit record of the previous membership state.
+- Added an Owner mapping workspace on the Admin Restaurants page. It identifies restaurants with zero/multiple Owners and Owner logins linked to multiple restaurants. Admin must explicitly confirm which account-to-restaurant assignment to keep; the read-only scan does not alter membership.
+- The mapping RPCs deny anonymous execution; the audit table has RLS enabled, denies anonymous SELECT and authenticated direct INSERT, and restricts authenticated SELECT by the Platform Admin RLS policy.
+- The mapping list and resolver success path were executed as a Platform Admin inside a transaction and rolled back. A follow-up query confirmed no test audit row persisted and existing mappings were unchanged.
+- Actual conflicting assignments have not been changed because the intended person-to-restaurant mapping must be confirmed in the Admin workspace. This is a security decision, not an automatic guess.
