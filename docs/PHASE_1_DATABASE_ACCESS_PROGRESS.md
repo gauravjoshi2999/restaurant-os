@@ -34,3 +34,13 @@ Date: 2026-11-08
 ## Next
 
 Continue Phase 1 by auditing and hardening role resolution, one-restaurant ownership, RLS and SECURITY DEFINER RPCs. Then proceed to the customer storefront and restaurant onboarding screens.
+
+## Additional Phase 1 work
+
+- Default marketplace commission is now 10.00%, stored in a single platform settings row and protected by RLS for Platform Admin access only.
+- Restaurants can optionally have an admin-controlled commission override; non-admin attempts to modify it are blocked at the database layer.
+- Financial snapshots now use the configured commission rate instead of the legacy hardcoded 18%.
+- Restaurant discovery and checkout both require explicit Admin approval.
+- Verified: exactly 5 currently approved + active + published restaurants are returned by discovery; checkout still blocks order creation while no payment provider is configured.
+- Added migrations: `20261108090000_bite_phase1_configurable_commission.sql`, `20261108091000_bite_phase1_enforce_approved_restaurant_discovery.sql`.
+
