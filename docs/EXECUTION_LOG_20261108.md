@@ -49,3 +49,15 @@ Cashfree merchant review / marketplace split-settlement approval is external to 
 - Security Advisor anon-callable SECURITY DEFINER findings reduced from 5 to 3. Authenticated-callable findings remain 23; no blanket revocations were made because the app's authenticated RPCs and RLS helpers require role-aware access.
 - RLS remains enabled on all 40 public tables. The RPC-only delivery handoff table intentionally remains without direct table policies and continues to deny direct table access.
 - The latest Pages deployment run 42451337908 and BITE QA run 42451337932 both completed successfully. QA's browser job is still the public Customer smoke suite; it is not authenticated Owner/Admin E2E.
+
+
+## Owner availability controls — 8 November 2026
+
+- Added restaurant fields for opening/closing time, temporary closure flag and optional reopen timestamp, plus a separate delivery-paused flag.
+- Added a database BEFORE INSERT guard for `Own Platform` orders. It blocks new marketplace orders while a restaurant is temporarily closed and blocks delivery orders while delivery is paused; pickup remains permitted when only delivery is paused.
+- Updated `list_public_restaurants()` to return the new availability fields to the public Customer storefront. Public execution is explicitly granted to `anon`, `authenticated` and `service_role`; PUBLIC grant is revoked. The trigger function has no anon/authenticated EXECUTE grant.
+- Added Owner Settings controls and corrected delivery-zone loading to use the signed-in Owner's restaurant membership instead of `state.restaurants[0]`.
+- Customer restaurant cards and restaurant detail now display temporary closure / delivery pause; the Continue button is disabled while a restaurant is temporarily closed.
+- SQL transaction tests passed: closed restaurant rejects marketplace pickup; delivery-paused restaurant rejects delivery; pickup is not blocked by delivery pause. Test transaction was rolled back.
+- Live schema check: 40/40 public tables retain RLS; public listing RPC still has anon execution; trigger function denies anon/authenticated execution.
+- Added static QA assertions and Chromium smoke assertions for the new availability response fields and customer closure state. These new CI assertions still require a completed Actions run before being marked passed.
