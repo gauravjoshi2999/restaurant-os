@@ -698,6 +698,49 @@ body[data-role="owner"] #mainApp .page.active{display:block!important;min-height
  body[data-role="owner"] .bite-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 </style>
+<style id="bite-zomato-partner-dashboard-v6">
+body[data-role="owner"]{background:#f6f7f9!important;color:#20232b!important}
+body[data-role="owner"] #mainApp.app{grid-template-columns:248px minmax(0,1fr)!important}
+body[data-role="owner"] #mainApp .content{padding:22px clamp(16px,2.4vw,36px) 48px!important}
+body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:1500px;margin:0 auto;color:#242832}
+.zp-welcome{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:0}
+.zp-kicker,.zp-section-head>div>span,.zp-box-head>div>span{font-size:10px;font-weight:850;letter-spacing:.13em;color:#8b909a}
+.zp-welcome h1{font-size:28px;line-height:1.2;letter-spacing:-.8px;margin:7px 0 4px;color:#20232b}
+.zp-welcome p{margin:0;color:#777e89;font-size:13px}
+.zp-header-actions{display:flex;gap:9px;align-items:center}.zp-date,.zp-settings{border:1px solid #e8e9ed;background:white;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:700;color:#414651}
+.zp-outlet{display:flex;align-items:center;gap:15px;background:#fff;border:1px solid #e9eaee;border-radius:13px;padding:16px 19px;margin-bottom:22px}
+.zp-outlet-mark{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#fff0ed;color:#e34e38;font-weight:900;font-size:24px}
+.zp-outlet-info{flex:1;min-width:0}.zp-outlet-info small{font-size:9px;letter-spacing:.13em;color:#9297a1;font-weight:800}.zp-outlet-info h2{font-size:17px;margin:3px 0;color:#242832}.zp-outlet-info p{font-size:11px;color:#7c828d;margin:0}
+.zp-outlet-status{font-size:11px;color:#63716a;background:#f0f8f2;padding:8px 10px;border-radius:20px;white-space:nowrap}.zp-outlet-status i{display:inline-block;width:7px;height:7px;background:#24a36b;border-radius:50%;margin-right:5px}
+.zp-section-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 11px}.zp-section-head h2,.zp-box-head h2{font-size:19px;letter-spacing:-.4px;margin:4px 0;color:#252934}.zp-section-head button,.zp-box-head button{border:0;background:transparent;color:#df533e;font-size:12px;font-weight:800}
+.zp-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:13px}
+.zp-kpi{background:#fff;border:1px solid #e9eaee;border-radius:12px;padding:16px;min-width:0}
+.zp-kpi>div{display:flex;justify-content:space-between;align-items:center;color:#777e89;font-size:9px;letter-spacing:.08em;font-weight:850}.zp-kpi>div b{font-size:16px;color:#e15a43}
+.zp-kpi>strong{display:block;font-size:27px;letter-spacing:-.8px;color:#222630;margin:12px 0 4px;overflow-wrap:anywhere}.zp-kpi>small{font-size:10px;color:#9297a1}
+.zp-kpi-primary{background:#fff8f6;border-color:#f4d9d3}.zp-kpi-primary>strong{color:#d94f39}
+.zp-order-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.zp-stage{text-align:left;border:1px solid #e9eaee;background:#fff;border-radius:12px;padding:13px 15px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;color:#252a34}
+.zp-stage>span{font-size:9px;letter-spacing:.1em;font-weight:850;color:#8a909b}.zp-stage>strong{font-size:25px}.zp-stage>small{font-size:10px;color:#858b96}.zp-stage>b{font-size:10px;color:#df533e;margin-top:5px}.zp-stage-new{border-color:#f0c8be;background:#fff9f7}
+.zp-main-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,1fr);gap:14px;align-items:start}
+.zp-box{background:#fff;border:1px solid #e9eaee;border-radius:13px;min-width:0;overflow:hidden}
+.zp-box-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:17px 18px 12px}.zp-box-head h2{font-size:17px}.zp-box-head p{margin:4px 0 0;font-size:11px;color:#8a909a}
+.zp-orders-box .bite-order-empty{padding:30px 12px;text-align:center}.zp-orders-box .bite-recent-table{overflow-x:auto}.zp-orders-box table{width:100%;min-width:460px}.zp-bottom-link{width:100%;border:0;border-top:1px solid #eff0f2;background:white;text-align:left;padding:13px 17px;color:#df533e;font-weight:800;font-size:11px}
+.zp-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 14px 16px}
+.zp-tool-grid button{display:grid;grid-template-columns:35px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;text-align:left;column-gap:9px;min-height:58px;padding:9px;border:1px solid #eff0f2;background:#fff;border-radius:10px;color:#272c36}
+.zp-tool-grid button i{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#fff0ed;color:#df533e;font-style:normal;font-size:17px}.zp-tool-grid button b{font-size:11px}.zp-tool-grid button small{font-size:9px;color:#8a909a}
+.zp-footer{padding:20px 0 0;text-align:center;color:#a0a4ad;font-size:9px;letter-spacing:.13em;font-weight:800}.zp-footer span{padding:0 5px}
+@media(max-width:1050px){body[data-role="owner"] #mainApp.app{grid-template-columns:215px minmax(0,1fr)!important}.zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.zp-main-grid{grid-template-columns:1fr}}
+@media(max-width:760px){
+ body[data-role="owner"] #mainApp.app{display:block!important}
+ body[data-role="owner"] #mainApp .content{padding:13px 11px calc(35px + env(safe-area-inset-bottom))!important}
+ .zp-welcome{align-items:flex-start;flex-direction:column;gap:11px;margin-bottom:13px}.zp-welcome h1{font-size:23px}.zp-header-actions{width:100%;justify-content:space-between}.zp-date,.zp-settings{padding:9px 11px}
+ .zp-outlet{padding:12px;gap:10px;margin-bottom:16px}.zp-outlet-mark{width:40px;height:40px;flex:0 0 40px}.zp-outlet-info h2{font-size:15px}.zp-outlet-info p{font-size:10px}.zp-outlet-status{font-size:9px;padding:7px}
+ .zp-section-head h2{font-size:17px}.zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.zp-kpi{padding:12px}.zp-kpi>strong{font-size:23px;margin:9px 0 3px}.zp-kpi>small{font-size:9px}
+ .zp-order-stages{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.zp-stage{padding:10px 8px}.zp-stage>span{font-size:8px;line-height:1.3}.zp-stage>strong{font-size:21px}.zp-stage>small,.zp-stage>b{font-size:9px}
+ .zp-main-grid{grid-template-columns:minmax(0,1fr);gap:11px}.zp-box-head{padding:14px 13px 10px}.zp-tool-grid{padding:0 10px 12px;gap:7px}.zp-tool-grid button{grid-template-columns:30px minmax(0,1fr);padding:8px;min-height:54px}.zp-tool-grid button i{width:29px;height:29px}
+}
+@media(max-width:370px){.zp-order-stages{grid-template-columns:1fr}.zp-stage{display:grid;grid-template-columns:1fr auto;align-items:center}.zp-stage>strong{grid-column:2;grid-row:1/4}.zp-stage>b{margin:0}}
+</style>
 </head>
 <body>
 <div class="auth-screen" id="authScreen"><div class="auth-card"><div class="auth-brand">Bite</div><div class="small">Eat. Repeat.</div><h1 id="authTitle">Login to your account</h1><div class="small" id="authSubtitle">Sign in to access your cloud data.</div><form id="authForm"><div class="field" id="fullNameField" style="display:none"><label>Your name</label><input id="authName" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Mobile number / Email</label><input id="authEmail" type="text" autocomplete="username" required placeholder="10-digit mobile number or email"></div><div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters"></div><button class="btn" id="authSubmit" type="button">Login</button></form><div class="auth-error" id="authError"></div><div class="auth-actions"><span class="small" id="authSwitchLabel">New to Bite?</span><button type="button" id="authSwitch">Create account</button></div><div class="auth-help">Your restaurant and order data is stored in your Supabase cloud database. Owner login: mobile number aur password. Super Admin email se bhi login kar sakta hai. Password kisi se share na karein.</div></div></div><div class="app" id="mainApp" style="display:none">
@@ -706,51 +749,45 @@ body[data-role="owner"] #mainApp .page.active{display:block!important;min-height
 <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)" aria-hidden="true"></div><main class="main"><header class="top"><button class="sidebar-toggle" type="button" aria-label="Menu kholein" aria-expanded="false" onclick="toggleSidebar()">☰</button><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><select id="tenantSwitcher" aria-label="Restaurant select karein" style="display:none;max-width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px"></select><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag">CLOUD WORKSPACE</span></div></header>
 <div class="content">
 <div id="workspaceRuntimeNotice" role="status" aria-live="polite"></div><div class="notice workspace-sync-note">BITE cloud workspace · Restaurant data securely syncs with your signed-in account.</div>
-<section class="page active" id="overview"><div data-owner-dashboard class="bite-owner-home" style="display:none">
- <div class="bite-owner-heading">
-  <div><div class="bite-eyebrow">BITE • RESTAURANT PARTNER</div><h1 id="ownerHomeTitle">Namaste 👋</h1><p id="ownerHomeSubtitle">Aaj ke kaam aur hisaab ka ek nazar mein haal.</p></div>
-  <div class="bite-heading-actions"><span class="bite-live-dot"><i></i> Partner workspace</span><button class="bite-date-chip" type="button" aria-label="Aaj ki date">📅 <span id="biteTodayDate">Aaj</span></button></div>
- </div>
+<section class="page active" id="overview"><div data-owner-dashboard class="bite-zp-dashboard" style="display:none">
+ <header class="zp-welcome">
+  <div><span class="zp-kicker">RESTAURANT PARTNER · BITE</span><h1 id="ownerHomeTitle">Namaste 👋</h1><p id="ownerHomeSubtitle">Aaj aapke restaurant ka business overview.</p></div>
+  <div class="zp-header-actions"><span class="zp-date">📅 <span id="biteTodayDate">Today</span></span><button class="zp-settings" onclick="showPage('settings')">⚙ Outlet settings</button></div>
+ </header>
  <div id="biteDemoBanner" class="bite-demo-banner" style="display:none"><span class="bite-demo-icon">🧪</span><div><b>DEMO DATA — NOT REAL SALES</b><p>October 2026 sample orders and expenses are included for testing. No customer payments or actual deliveries took place.</p></div><span class="bite-demo-count" id="biteDemoCount">0 sample orders</span></div>
- <div class="bite-outlet-card">
-  <div class="bite-outlet-symbol">🍽️</div><div class="bite-outlet-copy"><span>YOUR OUTLET</span><h2 id="ownerHomeRestaurant">Aapka Restaurant</h2><p>Restaurant ka aaj ka performance aur operations</p></div>
-  <button class="bite-outline-light" onclick="showPage('settings')">Outlet settings <b>↗</b></button>
- </div>
- <div class="bite-section-title"><div><span>AT A GLANCE</span><h2>Aaj ka business</h2></div><button class="bite-text-link" onclick="showPage('reports')">Full report <b>→</b></button></div>
- <div class="bite-metric-grid">
-  <article class="bite-metric-card bite-sales"><div class="bite-metric-top"><span class="bite-metric-icon">₹</span><span class="bite-metric-label">PAID SALES</span><span class="bite-metric-arrow">↗</span></div><strong id="ownerTodaySales">₹0</strong><small>Verified payments only; demo aur unpaid orders excluded</small></article>
-  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">▤</span><span class="bite-metric-label">TOTAL ORDERS</span></div><strong id="ownerTodayOrders">0</strong><small>Aaj receive hue orders</small></article>
-  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">◷</span><span class="bite-metric-label">NEEDS ATTENTION</span></div><strong id="ownerPendingOrders">0</strong><small>Orders jin par action baaki hai</small></article>
-  <article class="bite-metric-card"><div class="bite-metric-top"><span class="bite-metric-icon">⌁</span><span class="bite-metric-label">ONLINE ORDERS</span></div><strong id="ownerOnlineOrders">0</strong><small>Bite website se aaye orders</small></article>
- </div>
- <div class="bite-queue-strip" aria-label="Order status shortcuts">
-  <button type="button" class="bite-queue-card new" onclick="showPage('orders');setOrderStatus('Received')"><span>NEW ORDERS</span><strong id="ownerNewOrders">0</strong><small>Accept or reject</small><b>Manage →</b></button>
-  <button type="button" class="bite-queue-card preparing" onclick="showPage('orders');setOrderStatus('Preparing')"><span>PREPARING</span><strong id="ownerPreparingOrders">0</strong><small>Orders in kitchen</small><b>View →</b></button>
-  <button type="button" class="bite-queue-card ready" onclick="showPage('orders');setOrderStatus('Ready')"><span>READY</span><strong id="ownerReadyOrders">0</strong><small>Waiting for handover</small><b>View →</b></button>
- </div>
- <div class="bite-work-grid">
-  <section class="bite-panel bite-order-panel">
-   <div class="bite-panel-heading"><div><span>ORDER CONTROL</span><h2>Orders at a glance</h2><p>Naye orders ko jaldi dekhein aur manage karein.</p></div><button class="bite-round-link" onclick="showPage('orders')" aria-label="Sabhi orders dekhein">↗</button></div>
-   <div class="bite-order-empty" id="biteOrderEmpty"><div>🧾</div><b>Abhi koi naya order nahi</b><span>Naya order aate hi yahan dikhai dega.</span></div>
-   <div class="bite-recent-table"><table><thead><tr><th>ORDER</th><th>SOURCE</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody id="ownerRecentOrders"></tbody></table><div class="empty" id="ownerRecentEmpty">Abhi koi order nahi hai.</div></div>
-   <button class="bite-panel-footer" onclick="showPage('orders')">Open order management <b>→</b></button>
+ <section class="zp-outlet"><div class="zp-outlet-mark">B</div><div class="zp-outlet-info"><small>YOUR RESTAURANT</small><h2 id="ownerHomeRestaurant">Your outlet</h2><p>Manage orders, menu and daily operations from one place.</p></div><span class="zp-outlet-status"><i></i> Partner account</span></section>
+ <div class="zp-section-head"><div><span>BUSINESS SNAPSHOT</span><h2>Today's performance</h2></div><button onclick="showPage('reports')">View reports <b>→</b></button></div>
+ <section class="zp-kpis">
+  <article class="zp-kpi zp-kpi-primary"><div><span>PAID SALES</span><b class="zp-kpi-symbol">₹</b></div><strong id="ownerTodaySales">₹0</strong><small>Verified payments only</small></article>
+  <article class="zp-kpi"><div><span>ORDERS RECEIVED</span><b>▤</b></div><strong id="ownerTodayOrders">0</strong><small>Orders received today</small></article>
+  <article class="zp-kpi"><div><span>ACTION REQUIRED</span><b>◷</b></div><strong id="ownerPendingOrders">0</strong><small>Orders needing attention</small></article>
+  <article class="zp-kpi"><div><span>BITE ONLINE ORDERS</span><b>⌁</b></div><strong id="ownerOnlineOrders">0</strong><small>Orders from Bite website</small></article>
+ </section>
+ <section class="zp-order-stages">
+  <button class="zp-stage zp-stage-new" onclick="showPage('orders');setOrderStatus('Received')"><span>NEW ORDERS</span><strong id="ownerNewOrders">0</strong><small>Accept or reject</small><b>Open orders →</b></button>
+  <button class="zp-stage" onclick="showPage('orders');setOrderStatus('Preparing')"><span>IN THE KITCHEN</span><strong id="ownerPreparingOrders">0</strong><small>Being prepared</small><b>View queue →</b></button>
+  <button class="zp-stage" onclick="showPage('orders');setOrderStatus('Ready')"><span>READY TO HAND OVER</span><strong id="ownerReadyOrders">0</strong><small>Waiting for pickup</small><b>View queue →</b></button>
+ </section>
+ <div class="zp-main-grid">
+  <section class="zp-box zp-orders-box"><div class="zp-box-head"><div><span>LIVE OPERATIONS</span><h2>Recent orders</h2><p>Track incoming orders and their current status.</p></div><button onclick="showPage('orders')">All orders ↗</button></div>
+   <div class="bite-order-empty" id="biteOrderEmpty"><div>🧾</div><b>No new orders right now</b><span>New orders will appear here when received.</span></div>
+   <div class="bite-recent-table"><table><thead><tr><th>ORDER</th><th>SOURCE</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody id="ownerRecentOrders"></tbody></table><div class="empty" id="ownerRecentEmpty">No orders yet.</div></div>
+   <button class="zp-bottom-link" onclick="showPage('orders')">Go to order management <b>→</b></button>
   </section>
-  <section class="bite-panel bite-shortcuts">
-   <div class="bite-panel-heading"><div><span>QUICK ACTIONS</span><h2>Kaam shuru karein</h2><p>Roz ke zaroori kaam, ek click mein.</p></div></div>
-   <button class="bite-action-row" onclick="showPage('orders')"><span class="bite-action-icon coral">↗</span><span><b>Manage orders</b><small>Accept aur update orders</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('menu')"><span class="bite-action-icon amber">☷</span><span><b>Update your menu</b><small>Dishes, prices aur availability</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('expenses')"><span class="bite-action-icon green">₹</span><span><b>Add an expense</b><small>Aaj ka kharcha record karein</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('reports')"><span class="bite-action-icon blue">▥</span><span><b>Business reports</b><small>Sales aur expenses ka hisaab</small></span><i>→</i></button>
-   
-   <button class="bite-action-row" onclick="showPage('tables');loadTablesWorkspace()"><span class="bite-action-icon amber">🪑</span><span><b>Tables</b><small>Dine-in seating manage karein</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('cashbook');loadCashbookWorkspace()"><span class="bite-action-icon green">💰</span><span><b>Cashbook & Khata</b><small>Daily cash aur customer udhar</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('purchases');loadPurchaseWorkspace()"><span class="bite-action-icon amber">🛒</span><span><b>Purchases & Suppliers</b><small>Ration bills aur supplier balance</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('inventory');loadInventoryWorkspace()"><span class="bite-action-icon blue">📦</span><span><b>Inventory & Stock</b><small>Kitchen stock aur low-stock check</small></span><i>→</i></button>
-   <button class="bite-action-row" onclick="showPage('hr');loadHRWorkspace()"><span class="bite-action-icon coral">👥</span><span><b>Employees & HR</b><small>Staff aur attendance record</small></span><i>→</i></button>
-   <div class="bite-tip"><span>✦</span><div><b>Small steps, better business</b><p>Menu aur orders updated rakhein, taaki customer ko sahi jankari mile.</p></div></div>
+  <section class="zp-box zp-tools-box"><div class="zp-box-head"><div><span>YOUR WORKSPACE</span><h2>Manage your restaurant</h2><p>Frequently used tools, ready when you need them.</p></div></div>
+   <div class="zp-tool-grid">
+    <button onclick="showPage('menu')"><i>☷</i><b>Menu</b><small>Dishes & prices</small></button>
+    <button onclick="showPage('tables');loadTablesWorkspace()"><i>▦</i><b>Tables</b><small>Dine-in seating</small></button>
+    <button onclick="showPage('inventory');loadInventoryWorkspace()"><i>▤</i><b>Inventory</b><small>Kitchen stock</small></button>
+    <button onclick="showPage('purchases');loadPurchaseWorkspace()"><i>🛒</i><b>Purchases</b><small>Suppliers & bills</small></button>
+    <button onclick="showPage('expenses')"><i>₹</i><b>Expenses</b><small>Daily spending</small></button>
+    <button onclick="showPage('cashbook');loadCashbookWorkspace()"><i>▣</i><b>Cashbook</b><small>Cash & khata</small></button>
+    <button onclick="showPage('hr');loadHRWorkspace()"><i>♙</i><b>Team</b><small>Staff & attendance</small></button>
+    <button onclick="showPage('reports')"><i>▥</i><b>Reports</b><small>Business insights</small></button>
+   </div>
   </section>
  </div>
- <div class="bite-owner-foot"><span>♥</span> Bite Partner Workspace <span>•</span> Eat. Repeat.</div>
+ <footer class="zp-footer">BITE RESTAURANT PARTNER <span>·</span> Eat. Repeat.</footer>
 </div>
 <div data-platform-dashboard><div class="welcome"><div><h1 id="ownerWelcomeTitle">Good morning 👋</h1><div class="muted" id="ownerWelcomeSubtitle">Your complete restaurant business, managed from one place.</div></div><button class="btn" data-admin-only onclick="showPage('restaurants');openRestaurant()">＋ Add restaurant</button></div><div style="background:linear-gradient(112deg,#252936 0%,#303444 58%,#563b3b 100%);border-radius:17px;padding:22px 25px;color:white;margin:0 0 18px;display:flex;align-items:center;justify-content:space-between;gap:18px;overflow:hidden"><div><div style="font-size:9px;letter-spacing:.13em;color:#ffb39e;font-weight:800;margin-bottom:7px">YOUR RESTAURANT COMMAND CENTER</div><div style="font:800 20px/1.3 Manrope,sans-serif;letter-spacing:-.5px">One place to run it all.</div><div style="font-size:11px;color:#d0d1d8;margin-top:6px">Orders · Partners · Settlements · Growth</div></div><div style="font-size:48px;line-height:1;filter:drop-shadow(0 7px 15px #0005)">🍽️</div></div>
 <div class="grid"><div class="card"><div class="metric-label">🏪 &nbsp;Restaurants onboarded</div><div class="metric" id="metricRestaurants">0</div></div><div class="card"><div class="metric-label">🛵 &nbsp;Orders in demo</div><div class="metric" id="metricOrders">0</div></div><div class="card"><div class="metric-label">💳 &nbsp;Gross order value</div><div class="metric" id="metricSales">₹0</div></div><div class="card"><div class="metric-label">↗ &nbsp;Pending reconciliation</div><div class="metric" id="metricPending">₹0</div></div></div>
