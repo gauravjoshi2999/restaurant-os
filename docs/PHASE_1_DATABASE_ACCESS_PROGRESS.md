@@ -58,3 +58,7 @@ Continue Phase 1 by auditing and hardening role resolution, one-restaurant owner
 See [Phase 1 QA Run](PHASE_1_QA_RUN_20261108.md) for live SQL test results, demo dataset counts, CI/deployment results and remaining production blockers. The month of simulated data is marked with `is_demo=true` in orders, order financials and expenses. Demo financials are unpaid and excluded from settlement eligibility.
 
 - Follow-up security check: public delivery-area RPC now requires `onboarding_status='approved'`; direct anon access to handoff table is denied and invalid handoff token yields no record.
+
+- Admin approval UI now writes the actual `onboarding_status` and review audit columns; approval permission test passed for Admin and was denied for Owner.
+- Owner route scope and marketplace-only order/report filtering are enforced in the frontend; legacy POS creation is blocked.
+- Legacy owner invitation Edge Function version 3 now rejects cross-restaurant Owner assignment and Platform Admin reuse.
