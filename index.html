@@ -644,7 +644,8 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div class="section"><div class="section-head"><h2>Recent orders</h2><button class="btn secondary" onclick="showPage('orders')">View all</button></div><div class="card table-wrap"><table><thead><tr><th>Order</th><th>Restaurant</th><th>Channel</th><th>Amount</th><th>Status</th></tr></thead><tbody id="recentOrders"></tbody></table><div class="empty" id="recentEmpty">No demo orders yet. Add an order from the Orders section.</div></div></div>
 </div>
 </section>
-<section class="page" id="restaurants"><div class="welcome"><div><h1>Restaurants</h1><div class="muted">Manage pilot partners and their onboarding status.</div></div><div class="actions"><button class="btn secondary" data-admin-only onclick="openResetOwnerPicker()">Reset Owner Password</button> <button class="btn" data-admin-only onclick="openRestaurant()">+ Add restaurant</button></div></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Contact person</th><th>Phone / Email</th><th>City</th><th>Approval / Website</th><th>Owner account</th><th>Admin review</th></tr></thead><tbody id="restaurantRows"></tbody></table><div class="empty" id="restaurantEmpty">No restaurants added. Add your first pilot restaurant.</div></div></section>
+<section class="page" id="restaurants"><div class="welcome"><div><h1>Restaurants</h1><div class="muted">Manage pilot partners and their onboarding status.</div></div><div class="actions"><button class="btn secondary" data-admin-only onclick="openResetOwnerPicker()">Reset Owner Password</button> <button class="btn" data-admin-only onclick="openRestaurant()">+ Add restaurant</button></div></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Contact person</th><th>Phone / Email</th><th>City</th><th>Approval / Website</th><th>Owner account</th><th>Admin review</th></tr></thead><tbody id="restaurantRows"></tbody></table><div class="empty" id="restaurantEmpty">No restaurants added. Add your first pilot restaurant.</div></div>
+<div class="card section" id="ownerMappingWorkspace" data-admin-only><div class="section-head"><div><h2>Owner account mapping</h2><p class="muted">Har Owner login sirf ek restaurant se linked hona chahiye. Yahan duplicate aur missing assignments check karein.</p></div><button class="btn secondary" type="button" onclick="loadOwnerMappingWorkspace()">Refresh mapping</button></div><div id="ownerMappingStatus" class="small" role="status">Owner mapping load karne ke liye Refresh dabayein.</div><div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Restaurant</th><th>Owner name</th><th>Owner email</th><th>Mobile</th><th>Restaurant owners</th><th>Restaurants for login</th><th>Action</th></tr></thead><tbody id="ownerMappingRows"></tbody></table></div></div></section>
 <section class="page" id="menu"><div class="welcome"><div><h1>Menu management</h1><div class="muted">Apne restaurant ke categories, dishes aur prices manage karein.</div></div><button class="btn" id="addMenuItemBtn">＋ Add menu item</button></div><div class="card"><div class="form-row" style="margin:0;align-items:end"><div class="field" style="grid-column:span 2"><label>Select restaurant</label><select id="menuRestaurantSelect"></select></div><div class="field"><label>Menu category</label><select id="menuCategoryFilter"><option value="all">All categories</option></select></div><div class="field"><label>Search item</label><input id="menuSearchInput" placeholder="Dish name search"></div></div><div class="section-head" style="margin-top:16px"><h2>Categories</h2><button class="btn secondary" id="addMenuCategoryBtn">＋ Add category</button></div><div id="menuCategoryChips" class="actions"></div></div><div class="section"><div class="section-head"><h2>Menu items</h2><span class="small" id="menuItemCount">0 items</span></div><div class="card table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Type</th><th>Availability</th><th>Action</th></tr></thead><tbody id="menuItemRows"></tbody></table><div class="empty" id="menuItemEmpty">Restaurant select karein ya menu item add karein.</div></div></div></section>
 <section class="page" id="pos">
  <div class="welcome"><div><h1>Sales</h1><div class="muted">Customer ka bill banayein, payment lein aur sale save karein.</div></div><button class="btn" type="button" onclick="openOrder('POS - Counter')">＋ New Sale</button></div>
@@ -1700,7 +1701,44 @@ document.getElementById('ownerRestaurantSettingsForm')?.addEventListener('submit
  catch(err){if(msg)msg.textContent=err.message||'Settings save nahi hui.'}
  finally{if(btn){btn.disabled=false;btn.textContent='Save restaurant settings'}}
 });
-function showPage(id){if(access.role==='super_admin'&&!['overview','restaurants','orders','financials'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
+async function loadOwnerMappingWorkspace(){
+ const body=document.getElementById('ownerMappingRows'),status=document.getElementById('ownerMappingStatus');
+ if(!body||access.role!=='super_admin')return;
+ status.textContent='Owner mapping load ho rahi hai…';
+ body.innerHTML='';
+ try{
+  const {data,error}=await sb.rpc('admin_list_owner_assignments');
+  if(error)throw error;
+  const rows=data||[];
+  const issueCount=rows.filter(r=>!r.owner_user_id||Number(r.restaurant_owner_count)!==1||Number(r.user_restaurant_count)!==1).length;
+  body.innerHTML=rows.map(r=>{
+   const hasOwner=!!r.owner_user_id;
+   const issue=!hasOwner||Number(r.restaurant_owner_count)!==1||Number(r.user_restaurant_count)!==1;
+   const ownerName=hasOwner?(r.owner_name||r.owner_email||String(r.owner_user_id).slice(0,8)):'Not assigned';
+   const action=hasOwner&&issue?'<button class="btn secondary" type="button" data-resolve-owner="'+esc(r.owner_user_id)+'" data-resolve-restaurant="'+esc(r.restaurant_id)+'" data-resolve-name="'+esc(r.restaurant_name)+'">Keep this mapping</button>':hasOwner?'<span class="pill green">One-to-one OK</span>':'<span class="pill amber">Owner not assigned</span>';
+   return '<tr><td><strong>'+esc(r.restaurant_name)+'</strong></td><td>'+esc(ownerName)+'</td><td>'+esc(r.owner_email||'—')+'</td><td>'+esc(r.owner_phone||'—')+'</td><td>'+Number(r.restaurant_owner_count||0)+'</td><td>'+Number(r.user_restaurant_count||0)+'</td><td>'+action+'</td></tr>';
+  }).join('');
+  status.textContent=rows.length+' restaurants checked · '+issueCount+' mapping rows need attention. No account was changed by this check.';
+  body.onclick=async event=>{
+   const button=event.target.closest('[data-resolve-owner]');if(!button)return;
+   await resolveOwnerMapping(button.dataset.resolveOwner,button.dataset.resolveRestaurant,button.dataset.resolveName);
+  };
+ }catch(error){status.textContent='Owner mapping load nahi hui: '+(error.message||String(error));console.error(error);}
+}
+async function resolveOwnerMapping(userId,restaurantId,restaurantName){
+ const confirmed=confirm('Confirm Owner mapping for '+restaurantName+'? This will keep this login as the only Owner for this restaurant and remove this login\'s memberships from other restaurants. Other Owner assignments on this restaurant will also be removed. Existing restaurant/customer/order data will not be deleted. This action will be written to the Platform Audit Log.');
+ if(!confirmed)return;
+ const status=document.getElementById('ownerMappingStatus');
+ status.textContent='Owner mapping update ho rahi hai…';
+ try{
+  const {error}=await sb.rpc('admin_resolve_owner_mapping',{p_user_id:userId,p_restaurant_id:restaurantId});
+  if(error)throw error;
+  status.textContent='Owner mapping updated and audit logged.';
+  await loadOwnerMappingWorkspace();
+  await loadCloudData();
+ }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
+}
+function showPage(id){if(access.role==='super_admin'&&!['overview','restaurants','orders','financials'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin')loadOwnerMappingWorkspace();document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{toggleSidebar(false);showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace();if(b.dataset.page==='settings')loadDeliveryZonesWorkspace();if(b.dataset.page==='orders'){loadCustomerOrderRequestsWorkspace();loadRestaurantReviewsWorkspace()}}));
 let menuCategories=[],menuItems=[],activeMenuRestaurant=null;
 function menuRestaurantId(){return document.getElementById('menuRestaurantSelect').value||''}
