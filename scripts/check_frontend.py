@@ -190,3 +190,9 @@ check('DROP POLICY IF EXISTS "members can create orders"' in order_boundary_migr
       "Restaurant members cannot directly create or delete marketplace orders")
 check("guard_owner_order_mutable_fields" in order_boundary_migration and "to_jsonb(NEW) - ARRAY['status','status_note']" in order_boundary_migration,
       "Restaurant Owner order updates are limited to valid status and status-note changes")
+
+
+# Platform Admin may approve partner records, but cannot operate restaurant settings.
+const_restaurant_boundary_migration = Path("supabase/20261108073740_bite_restaurant_settings_role_boundary.sql").read_text(encoding="utf-8")
+check("guard_restaurant_platform_admin_operational_fields" in const_restaurant_boundary_migration and "Only the Restaurant Owner can change operating settings." in const_restaurant_boundary_migration,
+      "Platform Admin cannot change restaurant operating settings reserved for the Owner")
