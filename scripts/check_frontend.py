@@ -150,7 +150,7 @@ print("Bite static QA passed.")
 
 
 # Cancellation request and refund safety regression checks
-cancellation_migration = Path("supabase/20261108193000_bite_owner_only_cancellation_decisions.sql").read_text(encoding="utf-8")
+cancellation_migration = Path("supabase/20261108071820_bite_owner_only_cancellation_decisions.sql").read_text(encoding="utf-8")
 check("Only the restaurant Owner can approve or reject a cancellation request" in cancellation_migration,
       "Cancellation approval and rejection are restricted to the restaurant Owner")
 check("restaurant_customer_order_requests_one_pending_cancel" in cancellation_migration and "A cancellation request is already pending" in cancellation_migration,
