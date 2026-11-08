@@ -59,3 +59,5 @@ Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 - Legacy Owner invitation Edge Function version 3 also rejects Platform Admin accounts and accounts already linked to a different restaurant.
 
 - 2026-11-08 scope hardening: direct browser execution of the legacy manual/POS order-creation RPCs is revoked; legacy tables/data remain preserved. See the Phase 1 progress and QA reports.
+
+- Current Phase 1 handoff and production blockers: [docs/PHASE_1_HANDOFF_STATUS.md](docs/PHASE_1_HANDOFF_STATUS.md).
