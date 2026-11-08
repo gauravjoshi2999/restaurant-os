@@ -2625,6 +2625,16 @@ document.addEventListener('DOMContentLoaded',function(){
  if(dateLabel) dateLabel.textContent=new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'short',year:'numeric'}).format(new Date());
 });
 </script>
+
+<style id="owner-dashboard-visibility-recovery">
+/* Recovery override: the Owner Overview root was left inline-hidden in some sessions. */
+body[data-role="owner"] #overview.page.active [data-owner-dashboard]{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;position:relative!important}
+body[data-role="owner"] #overview.page.active [data-owner-dashboard]>*{visibility:visible!important;opacity:1!important}
+body[data-role="owner"] #overview.page.active{display:block!important;visibility:visible!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+body[data-role="owner"] #mainApp .main>.content{display:block!important;visibility:visible!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;contain:none!important}
+</style>
+<script id="owner-dashboard-runtime-diagnostic">
+(()=>{const show=(message)=>{let box=document.getElementById('ownerRuntimeErrorBox');if(!box){box=document.createElement('div');box.id='ownerRuntimeErrorBox';box.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fff1f0;border:1px solid #e5484d;color:#8b1a1a;border-radius:10px;padding:10px 12px;font:12px/1.4 system-ui;max-height:35vh;overflow:auto;box-shadow:0 5px 24px #0002';document.body.appendChild(box)}box.textContent='Dashboard JavaScript error: '+message};window.addEventListener('error',e=>{if(document.body?.dataset?.role==='owner')show(e.message+' ('+(e.filename||'script')+':'+e.lineno+')')});window.addEventListener('unhandledrejection',e=>{if(document.body?.dataset?.role==='owner')show(e.reason?.message||String(e.reason||'Unhandled promise rejection'))});})();
+</script>
 </body></html>
 <!-- Login diagnostic update pending verification -->
-
