@@ -133,6 +133,8 @@ check("access.role==='owner'&&!['overview','orders','pos','menu','tables','khata
       "Owner route guard allows restaurant operations and blocks Platform Admin pages")
 check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
       "Legacy manual POS order creation is disabled in the marketplace MVP")
+check('id="pos">' in owner and "New Sale · Not enabled" in owner and "sirf pehle se maujood POS sales" in owner,
+      "Owner POS page clearly identifies read-only sales history and disables unsupported new-sale action")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
 check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul gaya" in owner,
