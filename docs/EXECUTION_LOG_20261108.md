@@ -91,3 +91,27 @@ Cashfree merchant review / marketplace split-settlement approval is external to 
 - SQL test ran as an authenticated Customer: ticket insert succeeded, own-ticket read succeeded, customer update was denied by RLS. The test transaction was rolled back and a follow-up query confirmed zero persisted QA tickets.
 - Live schema check now reports 42 public tables and 42 with RLS enabled.
 - Static QA assertions were added for Customer ticket submission/history, Admin queue and RLS/audit migration. Updated GitHub Actions results still need independent confirmation.
+
+
+## Restaurant profile and payout approval workflow — 8 November 2026
+
+- Owner Settings name/address fields are now read-only. A database trigger rejects direct Owner edits to restaurant identity fields; the Owner must submit a profile change request.
+- Added Owner-submitted profile and bank-detail requests. Sensitive payout details are held in an RLS-protected table; Owners can read only their restaurant's profile and Admins can review all requests. Direct Owner INSERT/UPDATE/DELETE on payout profiles is not granted.
+- Added Platform Admin approval/rejection workflow. Approved profile requests update restaurant name/address; approved bank requests upsert the protected payout profile after account/IFSC validation. Decisions are recorded in the Platform Audit Log.
+- SQL test passed as Owner and Platform Admin: Owner request insert, direct name change rejection, Admin approval and approved request state all worked inside a transaction. Transaction was rolled back; no QA request persisted.
+
+## Customer review reporting and moderation — 8 November 2026
+
+- Customer restaurant pages now show published reviews and allow a logged-in customer to report a review with a controlled reason and optional details.
+- Added `restaurant_review_reports` with unique per-customer/review reporting, customer-owned read/insert policies and Platform Admin-only update/moderation.
+- Platform Admin Review Reports page can hide a reported review or dismiss the report. Hiding sets review status to Hidden; both decisions write to the Platform Audit Log.
+- SQL test passed inside a transaction: a temporary published review was inserted, Customer report insert/read succeeded, Customer update was denied, Admin dismissal succeeded, and rollback removed the test report/review.
+
+## Membership and performance hardening — 8 November 2026
+
+- Removed Owner ability to create/update/delete restaurant memberships. Only Platform Admin policies and trusted service-side Owner onboarding/mapping functions can write memberships. Owner membership read access remains scoped to their restaurant.
+- Owner RLS test passed: Owner could read their membership but could not delete it; transaction rolled back.
+- Supabase Performance Advisor now reports zero unindexed foreign keys (down from 12 after new workflows were added and 7 pre-existing gaps were indexed).
+- Performance Advisor still reports 16 multiple-permissive-policy combinations (intentional customer/member/Admin access paths that were not blanket-removed) and 58 unused-index notices; unused indexes were not dropped without workload evidence.
+- Live schema now contains 45 public tables, all 45 with RLS enabled.
+- Security Advisor currently reports 3 anonymous-callable SECURITY DEFINER functions (the public discovery and delivery handoff endpoints), 29 authenticated-callable SECURITY DEFINER functions (each app-facing function requires its role checks), one informational RLS-enabled/no-policy notice for the RPC-only delivery handoff table, and the leaked-password protection warning. Leaked-password protection could not be changed through the available project-management actions in this session.
