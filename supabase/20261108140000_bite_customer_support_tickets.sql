@@ -43,7 +43,7 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 AS $function$
 DECLARE v_action text;
 BEGIN
-  IF auth.uid() IS NULL THEN RETURN coalesce(NEW,OLD); END IF;
+  IF auth.uid() IS NULL THEN RETURN NEW; END IF;
   IF TG_OP='INSERT' THEN
     v_action:='customer_support_ticket_created';
     INSERT INTO public.platform_audit_logs(actor_id,action,entity_type,entity_id,details)
