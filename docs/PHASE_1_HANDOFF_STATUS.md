@@ -40,3 +40,19 @@ Live verification: for all three functions, anon=false, authenticated=false, ser
 
 ## Acceptance rule
 Phase 1 foundation is substantially implemented and database-smoke-tested, but **production acceptance is NOT PASSED** until all blockers above are closed and the real three-role browser journey passes. A successful GitHub Pages deployment or static JavaScript check alone is not release acceptance.
+
+
+## Fresh verification update — 2026-11-08
+
+Live database role-isolation checks were rerun with actual transaction-scoped `SET LOCAL ROLE authenticated` and JWT subject claims (test transactions rolled back):
+- Customer-only identity: 1 own profile, 0 foreign profiles, 0 visible orders, 1 own saved address, 0 foreign addresses, 0 restaurant memberships.
+- Demo Royal Thali House Owner identity: 1 restaurant membership, 71 own orders, 0 foreign orders, 33 own expenses, 0 foreign expenses.
+- Platform Admin identity: 11 profiles, 10 restaurants and 80 orders visible.
+- Delivery handoff table: no direct anon/authenticated SELECT or INSERT privileges; its no-policy RLS posture is intentional and token RPC-only.
+- `admin_list_owner_assignments()` works under the Platform Admin JWT context. No owner mappings were modified during this verification.
+
+The current assignment conflicts are confirmed: `gauravjoshi2999@gmail.com` (Platform Admin) is also a legacy Owner member of Hotel Maharani Palace and Test Restaurant; `joshi.gaurav.dipty@gmail.com` is Owner of both Bajrang Hotel and Gg Restaurant; Gg Restaurant has a second Owner membership with no email on the Auth user. These records must be resolved through the Admin mapping workflow after the intended single Owner login is confirmed. No account or restaurant data was deleted or reassigned.
+
+Current live Security Advisor snapshot: 3 anon-callable and 29 authenticated-callable SECURITY DEFINER findings, one intentional RLS-enabled/no-policy notice for token-only delivery handoffs, and leaked-password protection disabled. No `PUBLIC EXECUTE` grant was found in the inspected SECURITY DEFINER function ACLs. Performance Advisor reports 16 multiple-permissive-policy warnings; policies have not been consolidated without complete regression coverage.
+
+The payment journey remains fail-closed. Cashfree Easy Split (marketplace vendor splits, commission, vendor settlements and refunds) is the relevant Cashfree product to onboard; ordinary PG checkout alone does not establish the required marketplace split-settlement arrangement. No Cashfree merchant credentials, Easy Split activation, vendor KYC or webhook secret are present in the project, so no real payment can yet be created or verified. Never enable checkout or mark an order paid before the server-side provider verification and signed webhook are in place.
