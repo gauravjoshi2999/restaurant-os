@@ -178,3 +178,13 @@ Source-level verification:
 - Added an Audit Log page to the Platform Admin workspace. It displays the latest 200 events from `platform_audit_logs` with timestamp, actor, action, entity and JSON details.
 - The page uses the Admin-only RLS-protected read path; direct authenticated inserts into the audit table remain denied. Owner navigation remains restricted to the six approved sections.
 - Static QA assertions were added for the Owner mapping and Admin audit pages; their latest Actions run is not yet independently confirmed green.
+
+
+## Customer support workflow — 8 November 2026
+
+- Customer Account now supports creating and viewing support tickets, with optional link to one of the customer's own orders.
+- Platform Admin now has a Customer Support queue to review tickets, update status and send a written response.
+- Support ticket RLS is enabled: customers can read their own tickets and create their own; customers cannot update or delete; Platform Admin can read and update. Ticket creation and Admin status/response changes are audit logged.
+- Authenticated Customer SQL test passed for insert and own-row read; customer update was denied. The test transaction was rolled back and no QA ticket persisted.
+- The public schema now contains 42 tables and RLS is enabled on all 42.
+- Static QA assertions cover the Customer and Admin support surfaces; the latest CI result has not yet been independently confirmed.
