@@ -20,6 +20,10 @@ The current requirements baseline is [Master Product Specification](docs/PRODUCT
 - Backend/database/auth: Supabase PostgreSQL + Auth + RLS
 - Server-side privileged workflows must use trusted backend functions (e.g. Supabase Edge Functions); never expose service-role or payment secrets in browser code.
 
+## Phase 1 progress
+
+See [Phase 1 Database & Access Progress](docs/PHASE_1_DATABASE_ACCESS_PROGRESS.md) and [Master Prompt Implementation Audit](docs/MASTER_PROMPT_IMPLEMENTATION_AUDIT.md) for live database changes, test results and outstanding security work.
+
 ## Delivery status
 
 This repository is a development prototype, not a production marketplace. Existing foundations include Supabase authentication, restaurant membership/RLS, restaurants, menus, customer addresses, orders/order items, order status history, financial snapshots, delivery handoff schema/RPCs, customer cancellation/complaint and review foundations.
