@@ -21,7 +21,7 @@ CREATE POLICY "Customers report published reviews" ON public.restaurant_review_r
     SELECT 1 FROM public.restaurant_reviews rv WHERE rv.id=restaurant_review_reports.review_id AND rv.status='Published'));
 CREATE POLICY "Platform admins update review reports" ON public.restaurant_review_reports
   FOR UPDATE TO authenticated USING (public.is_platform_admin()) WITH CHECK (public.is_platform_admin());
-GRANT SELECT,INSERT,UPDATE ON public.restaurant_review_reports TO authenticated;
+GRANT SELECT,INSERT ON public.restaurant_review_reports TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.admin_list_review_reports()
 RETURNS TABLE(id uuid,review_id uuid,restaurant_name text,rating smallint,review_text text,
