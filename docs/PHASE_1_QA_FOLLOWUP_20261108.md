@@ -54,3 +54,10 @@ Project: `wedbgpybbgsszcmffoha`
 **Phase 1 code deployment and public customer smoke CI: PASS.**
 **Database demo integrity / PIN 313324 coverage / payment fail-closed checks: PASS.**
 **Authenticated Owner/Admin + real payment + customer delivery OTP E2E: NOT YET PASSED.**
+
+
+## Additional role-isolation regression — rollback-only SQL
+- Dedicated Customer-only identity (not a Platform Admin and not a restaurant member): sees 1 own saved address and 0 foreign saved addresses; sees 0 own orders and 0 foreign orders in this test sample; an attempted no-op UPDATE against another customer's address affected 0 rows. Transaction rolled back.
+- Single-restaurant Owner identity for Demo Royal Thali House: sees 71 own orders and 0 Demo Pizza Junction orders; a no-op UPDATE against the foreign restaurant's menu affected 0 rows. Transaction rolled back.
+- Platform Admin identity: `is_platform_admin()=true`, sees 10 restaurants and 80 orders. Transaction rolled back.
+- These SQL checks confirm the tested Customer, Owner and Admin database scopes. They do not replace the pending authenticated browser walkthroughs.
