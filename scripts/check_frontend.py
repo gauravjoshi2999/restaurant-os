@@ -84,6 +84,13 @@ check("Temporarily closed" in customer and "delivery_paused" in customer,
 availability_migration = Path("supabase/20261108123000_bite_owner_availability_controls.sql").read_text(encoding="utf-8")
 check("guard_marketplace_order_availability" in availability_migration and "delivery_paused" in availability_migration and "is_temporarily_closed" in availability_migration,
       "Database order trigger enforces temporary closure and delivery pause")
+delivery_handoff_migration = Path("supabase/20261108071031_bite_require_delivery_handoff_and_otp.sql").read_text(encoding="utf-8")
+check("OLD.delivery_type = 'delivery' AND NEW.status = 'Handed Over'" in delivery_handoff_migration and "h.is_active" in delivery_handoff_migration and "h.expires_at > now()" in delivery_handoff_migration,
+      "Database blocks delivery handover until a valid handoff link exists")
+check("OLD.delivery_type = 'delivery' AND NEW.status = 'Completed'" in delivery_handoff_migration and "h.verified_at IS NOT NULL" in delivery_handoff_migration and "customer OTP verification" in delivery_handoff_migration,
+      "Database blocks delivery completion until customer OTP verification")
+check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul gaya" in owner and "confirm_delivery_handoff" in delivery,
+      "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
       "Customer checkout fails closed while no approved payment provider is configured")
 check("const ownerPages=['overview','orders','menu','expenses','reports','settings']" in owner,
