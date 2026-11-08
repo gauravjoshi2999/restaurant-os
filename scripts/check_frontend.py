@@ -94,8 +94,8 @@ check("This restaurant has more than one Owner assignment" in owner,
       "Owner login blocks duplicate Owner assignments for a restaurant")
 check("admin_list_owner_assignments" in owner and "admin_resolve_owner_mapping" in owner and "data-resolve-owner" in owner,
       "Platform Admin can inspect and resolve one-Owner-per-restaurant conflicts")
-check("This action will be written to the Platform Audit Log" in owner,
-      "Admin mapping resolution explains its audit trail before confirmation")
+check("DESTRUCTIVE OWNER ACCESS CHANGE" in owner and "removeOtherOwners" in owner and "The action is audit logged" in owner,
+      "Admin mapping resolution shows exact destructive impact and audit trail before confirmation")
 check("ownerProfileChangeForm" in owner and "ownerBankChangeForm" in owner and "admin_review_restaurant_change_request" in owner,
       "Owner profile and bank changes use Admin approval requests")
 check("ownerIdentityApprovalNote" in owner and "restaurant_change_requests" in owner,
