@@ -175,7 +175,7 @@ check("p_publish:true" in owner and "Reply to customer" in owner,
 
 
 # Platform Admin must not inherit restaurant-operator write permissions.
-platform_role_migration = Path("supabase/20261108072920_bite_platform_admin_tenant_write_boundaries.sql").read_text(encoding="utf-8")
+platform_role_migration = Path("supabase/20261108073410_bite_platform_admin_tenant_write_boundaries.sql").read_text(encoding="utf-8")
 check("AND NOT public.is_platform_admin()" in platform_role_migration and "CREATE OR REPLACE FUNCTION public.has_restaurant_role" in platform_role_migration,
       "Platform Admin identity cannot inherit Owner/Manager permissions from a legacy restaurant membership")
 check("platform admins can manage all orders" in platform_role_migration and "platform admins read all orders" in platform_role_migration,
