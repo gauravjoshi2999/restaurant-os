@@ -152,3 +152,13 @@ Source-level verification:
 - Security Advisor anonymous SECURITY DEFINER warnings decreased from 5 to 3. Authenticated SECURITY DEFINER warnings remain 23 and require per-function review; no blanket revocation was applied.
 - All 40 public tables continue to have RLS enabled.
 - Latest deployment run 42451337908 and QA run 42451337932 completed successfully. The QA browser job tests public Customer flows only; Owner/Admin authenticated E2E is not certified by that run.
+
+
+## Owner availability feature follow-up — 8 November 2026
+
+- Owner Settings now includes opening/closing times, temporary closure and delivery pause controls; delivery-zone queries are scoped to the authenticated Owner restaurant ID.
+- Customer discovery displays temporary closure / delivery pause state and disables the Continue action for an actively closed restaurant.
+- A database insert trigger rejects new BITE marketplace orders while temporarily closed and rejects delivery orders while delivery is paused; pickup remains available if only delivery is paused. Transaction tests passed and were rolled back.
+- The public restaurant listing RPC returns the new availability fields. Live verification confirms the listing remains anon-callable and the trigger function is not callable by anon/authenticated roles.
+- All 40 public tables still have RLS enabled.
+- New static and Chromium Customer smoke assertions were committed; their GitHub Actions result has not yet been retrieved, so this report does not mark those CI checks as passed.
