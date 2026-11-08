@@ -123,3 +123,7 @@ A GitHub Pages deploy or JavaScript syntax check is not acceptance. A phase is c
 
 - Additional QA follow-up: public delivery-area checks now require approved status; foreign-owner menu write returned zero rows; direct anon access to delivery handoff table is denied; invalid delivery token returns no record. Applied migration sources and idempotent demo seed script are now tracked in `supabase/`.
 - Latest Pages deployment retry succeeded; Bite QA passed. Security Advisor/Auth and browser-E2E blockers remain as documented in the QA report.
+
+- Added Platform Admin restaurant approval controls (approve/reject/suspend/reactivate) and verified Admin update vs Owner-denied update using rolled-back SQL tests.
+- Owner route and order/report scope now excludes legacy POS/offline modules from the MVP; manual offline order creation is blocked at the frontend. Existing records remain preserved.
+- Deployed a guard in the legacy owner-invite Edge Function so it cannot assign a Platform Admin or an account already linked to another restaurant.
