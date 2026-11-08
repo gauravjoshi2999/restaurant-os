@@ -119,3 +119,7 @@ A GitHub Pages deploy or JavaScript syntax check is not acceptance. A phase is c
 - Owner dashboard now shows a visible demo-data notice, demo badges, October report defaults, and paid-sales-only metric. Delivery type/address are now mapped for owner handoff actions.
 - Frontend JavaScript/static guard CI passed and GitHub Pages deployment workflow passed.
 - Phase 1 is not production accepted: marketplace payments are intentionally disabled, Auth leaked-password protection is off, owner membership conflicts remain unresolved, customer-only RLS and positive delivery handoff need dedicated test identities, and browser E2E remains outstanding.
+
+
+- Additional QA follow-up: public delivery-area checks now require approved status; foreign-owner menu write returned zero rows; direct anon access to delivery handoff table is denied; invalid delivery token returns no record. Applied migration sources and idempotent demo seed script are now tracked in `supabase/`.
+- Latest Pages deployment retry succeeded; Bite QA passed. Security Advisor/Auth and browser-E2E blockers remain as documented in the QA report.
