@@ -93,8 +93,8 @@ check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul 
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
       "Customer checkout fails closed while no approved payment provider is configured")
-check("const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','expenses','refunds','purchases','inventory','hr','reports','settings']" in owner,
-      "Owner navigation exposes the full restaurant operations workspace and excludes Platform Admin pages")
+check("const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']" in owner and "'pos'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220] and "'refunds'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220],
+      "Owner navigation exposes supported restaurant tools and excludes disabled POS and refunds")
 check("This account is linked to more than one restaurant" in owner,
       "Ambiguous multi-restaurant Owner accounts are blocked")
 check("This restaurant has more than one Owner assignment" in owner,
