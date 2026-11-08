@@ -147,3 +147,17 @@ for filename, source in (("customer.html", customer), ("index.html", owner), ("d
     check("service_role" not in source.lower() and "sb_secret_" not in source,
           f"{filename}: no service-role or Supabase secret key literal exposed")
 print("Bite static QA passed.")
+
+
+# Cancellation request and refund safety regression checks
+cancellation_migration = Path("supabase/20261108193000_bite_owner_only_cancellation_decisions.sql").read_text(encoding="utf-8")
+check("Only the restaurant Owner can approve or reject a cancellation request" in cancellation_migration,
+      "Cancellation approval and rejection are restricted to the restaurant Owner")
+check("restaurant_customer_order_requests_one_pending_cancel" in cancellation_migration and "A cancellation request is already pending" in cancellation_migration,
+      "A customer cannot create duplicate pending cancellation requests for one order")
+check("canDecideCancellation=access.role==='owner'" in owner and "(isCancel?canDecideCancellation:canRespond)" in owner,
+      "Owner dashboard exposes cancellation decisions only to Owner; managers retain complaint handling")
+check("Refund is not shown as completed" in customer and "payment-provider confirmation" in customer,
+      "Customer cancellation timeline never claims a refund without provider confirmation")
+check("Refund is not marked paid: provider confirmation is required" in owner,
+      "Owner cancellation response does not claim refund success")
