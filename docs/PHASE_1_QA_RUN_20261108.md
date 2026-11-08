@@ -114,3 +114,13 @@ Live records still require a human-approved mapping decision:
 - Authenticated-callable SECURITY DEFINER functions remain for Customer, Owner and Admin workflows. They must continue to be reviewed individually; do not blanket-revoke required RPCs.
 - Security Advisor currently reports 3 anon-callable and 29 authenticated-callable SECURITY DEFINER warnings, one RLS-enabled/no-policy notice for the token-only handoff table, and leaked-password protection disabled.
 - Performance Advisor currently reports 16 multiple-permissive-policy warnings. These are not automatically consolidated because changing permissive policy semantics without role-journey regression tests can widen or break access.
+
+
+### Owner mapping usability fix and CI verification — 2026-11-08
+- Added a direct **Create Owner Login** action to each restaurant row with no Owner assignment. This opens the existing guarded Admin provisioning flow for that specific restaurant; it does not create or assign an account automatically.
+- After successful Owner provisioning, the Admin mapping table and dashboard data now refresh immediately so the saved assignment is visible without a manual reload.
+- Existing conflicting assignments were deliberately not deleted or reassigned. The live Admin mapping workspace is the controlled path for the Platform Admin to choose the intended login.
+- Commit: `60aabc7f87267f0de440db23b149b91d58ca8c46`.
+- Bite QA GitHub Actions run `42456601597`: SUCCESS. Both Node inline-script/static guard checks and Chromium customer journey smoke tests completed successfully.
+- GitHub Pages deployment run `42456601603`: SUCCESS.
+- Chromium coverage is public customer discovery/menu/closure state, checkout fail-closed, forgot-password entry, mobile 390px overflow, and unauthenticated Owner/Admin login visibility. It does not sign in to real Owner/Admin accounts or execute a paid order.
