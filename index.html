@@ -1866,20 +1866,27 @@ async function loadOwnerMappingWorkspace(){
    const hasOwner=!!r.owner_user_id;
    const issue=!hasOwner||Number(r.restaurant_owner_count)!==1||Number(r.user_restaurant_count)!==1;
    const ownerName=hasOwner?(r.owner_name||r.owner_email||String(r.owner_user_id).slice(0,8)):'Not assigned';
-   const action=hasOwner&&issue?'<button class="btn secondary" type="button" data-resolve-owner="'+esc(r.owner_user_id)+'" data-resolve-restaurant="'+esc(r.restaurant_id)+'" data-resolve-name="'+esc(r.restaurant_name)+'">Keep this mapping</button>':hasOwner?'<span class="pill green">One-to-one OK</span>':'<button class="btn" type="button" data-create-owner="'+esc(r.restaurant_id)+'">Create Owner Login</button>';
-   return '<tr><td><strong>'+esc(r.restaurant_name)+'</strong></td><td>'+esc(ownerName)+'</td><td>'+esc(r.owner_email||'—')+'</td><td>'+esc(r.owner_phone||'—')+'</td><td>'+Number(r.restaurant_owner_count||0)+'</td><td>'+Number(r.user_restaurant_count||0)+'</td><td>'+action+'</td></tr>';
+   const ownerCount=Number(r.restaurant_owner_count||0),loginCount=Number(r.user_restaurant_count||0);
+   const issueDetails=[];
+   if(!hasOwner)issueDetails.push('No valid Owner login linked');
+   if(ownerCount>1)issueDetails.push(ownerCount+' Owner logins linked to this restaurant');
+   if(hasOwner&&loginCount>1)issueDetails.push('This login is linked to '+loginCount+' restaurants');
+   const issueLabel=issue?'<div class="small" style="color:#a16207;margin-top:5px;white-space:normal">'+issueDetails.map(esc).join(' · ')+'</div>':'';
+   const action=hasOwner&&issue?'<button class="btn secondary" type="button" data-resolve-owner="'+esc(r.owner_user_id)+'" data-resolve-restaurant="'+esc(r.restaurant_id)+'" data-resolve-name="'+esc(r.restaurant_name)+'" data-owner-count="'+ownerCount+'" data-login-count="'+loginCount+'">Review resolution impact</button>':hasOwner?'<span class="pill green">One-to-one OK</span>':'<button class="btn" type="button" data-create-owner="'+esc(r.restaurant_id)+'">Create Owner Login</button>';
+   return '<tr><td><strong>'+esc(r.restaurant_name)+'</strong>'+issueLabel+'</td><td>'+esc(ownerName)+'</td><td>'+esc(r.owner_email||'—')+'</td><td>'+esc(r.owner_phone||'—')+'</td><td>'+ownerCount+'</td><td>'+loginCount+'</td><td>'+action+'</td></tr>';
   }).join('');
   status.textContent=rows.length+' restaurants checked · '+issueCount+' mapping rows need attention. No account was changed by this check.';
   body.onclick=async event=>{
    const createButton=event.target.closest('[data-create-owner]');
    if(createButton){openOwnerInvite(createButton.dataset.createOwner);return;}
    const button=event.target.closest('[data-resolve-owner]');if(!button)return;
-   await resolveOwnerMapping(button.dataset.resolveOwner,button.dataset.resolveRestaurant,button.dataset.resolveName);
+   await resolveOwnerMapping(button.dataset.resolveOwner,button.dataset.resolveRestaurant,button.dataset.resolveName,Number(button.dataset.ownerCount||0),Number(button.dataset.loginCount||0));
   };
  }catch(error){status.textContent='Owner mapping load nahi hui: '+(error.message||String(error));console.error(error);}
 }
-async function resolveOwnerMapping(userId,restaurantId,restaurantName){
- const confirmed=confirm('Confirm Owner mapping for '+restaurantName+'? This will keep this login as the only Owner for this restaurant and remove this login\'s memberships from other restaurants. Other Owner assignments on this restaurant will also be removed. Existing restaurant/customer/order data will not be deleted. This action will be written to the Platform Audit Log.');
+async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount,loginCount){
+ const removeOtherOwners=Math.max(0,ownerCount-1),removeOtherRestaurants=Math.max(0,loginCount-1);
+ const confirmed=confirm('DESTRUCTIVE OWNER ACCESS CHANGE\\n\\nRestaurant: '+restaurantName+'\\nSelected login currently linked to '+loginCount+' restaurant(s).\\nOther Owner login(s) currently linked to this restaurant: '+removeOtherOwners+'.\\n\\nIf you continue, the system will remove '+removeOtherRestaurants+' other restaurant link(s) from this login and '+removeOtherOwners+' other Owner assignment(s) from this restaurant, then keep this login as the sole Owner here.\\n\\nThis can lock out legitimate owners. Verify the person and restaurant before continuing. Restaurant, customer and order records will not be deleted. The action is audit logged. Continue?');
  if(!confirmed)return;
  const status=document.getElementById('ownerMappingStatus');
  status.textContent='Owner mapping update ho rahi hai…';
