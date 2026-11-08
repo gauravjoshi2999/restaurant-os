@@ -82,3 +82,35 @@ This run verifies the Phase 1 foundation and the three existing application surf
 - Live database regression: under an authenticated Customer JWT context, address INSERT, own-row SELECT, UPDATE and DELETE assertions passed; cross-customer address visibility returned 0 rows. The entire test transaction was rolled back; no QA address was retained.
 - JavaScript syntax compilation of the updated customer page passed. The newly-triggered GitHub Actions run for the latest commits was not yet available at the time of this note; do not count CI as passed until its run is completed.
 - Remaining A2 acceptance: perform one real signed-in browser save/edit/default/delete/refresh cycle with a dedicated Customer-only identity. The current available test identity is not yet proven Customer-only. No actual order/payment was created.
+
+
+### Fresh live tenant-isolation and privilege checks — 2026-11-08
+
+The following checks were executed against the live PostgreSQL database using transaction-scoped `authenticated` role and JWT subject claims; all role-switching test transactions were rolled back.
+
+| Test | Result |
+|---|---|
+| Customer-only profile isolation | PASS — customer sees exactly 1 profile (their own), 0 other profiles |
+| Customer order isolation | PASS — test customer sees 0 orders; no other customer's orders are visible |
+| Customer address isolation | PASS — 1 visible address, 0 foreign addresses |
+| Customer private-data boundaries | PASS — 0 visible restaurant memberships; no cross-customer contact profile rows |
+| Restaurant Owner tenant isolation | PASS — Demo Royal Thali House owner has 1 membership, sees 71 own orders and 0 foreign orders; sees 33 own expenses and 0 foreign expenses |
+| Platform Admin scope | PASS — 11 profiles, 10 restaurants and 80 orders visible to the Admin identity |
+| Delivery handoff table direct access | PASS — anon/authenticated have no SELECT or INSERT table privilege; RLS remains enabled with no direct policies, by design |
+| Owner mapping admin list | PASS — `admin_list_owner_assignments()` returned the current assignment diagnostics under the Platform Admin JWT context; no mapping was changed |
+
+### Current owner mapping findings
+
+Live records still require a human-approved mapping decision:
+- `gauravjoshi2999@gmail.com` is a Platform Admin and also has Owner memberships for Hotel Maharani Palace and Test Restaurant. Platform Admin accounts are not eligible to be assigned as restaurant Owners by the guarded mapping RPC.
+- `joshi.gaurav.dipty@gmail.com` is Owner for both Bajrang Hotel and Gg Restaurant.
+- Gg Restaurant currently has two Owner memberships, one with no email on its linked Auth user.
+- These memberships were not changed. The admin mapping RPC is designed to make the selected login one-to-one and records an audit entry; do not select a mapping without the account/property owner confirming it.
+
+### Security Advisor snapshot after latest live inspection
+
+- RLS is enabled on all public tables inspected; `restaurant_delivery_handoffs` is the single RLS-enabled table with no direct policies and has no anon/authenticated SELECT or INSERT privileges. It is intentionally exposed only through narrow token RPCs.
+- The live ACL audit found no `PUBLIC EXECUTE` grant on the inspected public SECURITY DEFINER functions. Three anon-callable functions are intentional capability/public endpoints: `list_public_restaurants`, `get_delivery_handoff`, and `confirm_delivery_handoff`.
+- Authenticated-callable SECURITY DEFINER functions remain for Customer, Owner and Admin workflows. They must continue to be reviewed individually; do not blanket-revoke required RPCs.
+- Security Advisor currently reports 3 anon-callable and 29 authenticated-callable SECURITY DEFINER warnings, one RLS-enabled/no-policy notice for the token-only handoff table, and leaked-password protection disabled.
+- Performance Advisor currently reports 16 multiple-permissive-policy warnings. These are not automatically consolidated because changing permissive policy semantics without role-journey regression tests can widen or break access.
