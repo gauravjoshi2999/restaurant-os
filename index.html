@@ -1543,8 +1543,8 @@ async function loadReportsWorkspace(){
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
- const today=localDateInput(),month=today.slice(0,8)+'01';
- document.getElementById('reportFrom').value=month;document.getElementById('reportTo').value=today;
+ const today=localDateInput(),month=today.slice(0,8)+'01',hasDemoMonth=state.orders.some(o=>o.isDemo);
+ document.getElementById('reportFrom').value=hasDemoMonth?'2026-10-01':month;document.getElementById('reportTo').value=hasDemoMonth?'2026-10-31':today;
  await loadReportsData();
 }
 async function loadReportsData(){
