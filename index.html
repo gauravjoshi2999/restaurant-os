@@ -1235,17 +1235,10 @@ window.addEventListener('unhandledrejection', function(e) {
   if (box) { box.textContent = 'Login error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)); box.style.display = 'block'; }
 });
 
-// Bite owner workspace navigation recovery and actionable module error handling.
-(function(){
- const allowedOwnerPages=new Set(['overview','orders','menu','tables','khata','cashbook','expenses','refunds','purchases','inventory','hr','reports','settings']);
- const moduleLoaders={orders:async()=>{await loadCustomerOrderRequestsWorkspace();await loadRestaurantReviewsWorkspace()},pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,refunds:loadRefundWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:loadDeliveryZonesWorkspace};
- let currentWorkspace='overview';
- function notice(message,showRetry){const el=document.getElementById('workspaceRuntimeNotice');if(!el)return;el.textContent='';el.style.display='block';const span=document.createElement('span');span.textContent=message;el.appendChild(span);if(showRetry){const btn=document.createElement('button');btn.type='button';btn.textContent='Dobara load karein';btn.onclick=()=>retryActiveWorkspace();el.appendChild(btn)}}
- function clearNotice(){const el=document.getElementById('workspaceRuntimeNotice');if(el){el.style.display='none';el.textContent=''}}
- window.retryActiveWorkspace=async function(){const loader=moduleLoaders[currentWorkspace];if(!loader){clearNotice();return}notice('Workspace dobara load ho raha hai…',false);try{await loader();clearNotice()}catch(err){notice('Is section ka data load nahi hua: '+(err?.message||String(err)),true);console.error('[Bite workspace]',currentWorkspace,err)}};
- document.addEventListener('click',async function(ev){const btn=ev.target.closest('.nav button[data-page]');if(!btn)return;ev.preventDefault();ev.stopImmediatePropagation();const page=btn.dataset.page;const role=access?.role;if(role==='owner'&&!allowedOwnerPages.has(page))return;if(role==='manager'&&!allowedOwnerPages.has(page))return;if(role==='staff'&&!['overview','orders','pos'].includes(page))return;if(role==='super_admin'&&!['overview','restaurants','orders','financials'].includes(page))return;currentWorkspace=page;clearNotice();try{showPage(page);toggleSidebar(false);const loader=moduleLoaders[page];if(loader)await loader()}catch(err){notice('“'+({overview:'Overview',orders:'Orders',pos:'POS & Billing',menu:'Menu',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',refunds:'Refunds',purchases:'Purchases',inventory:'Stock',hr:'Staff & HR',reports:'Reports',settings:'Settings'}[page]||page)+'” khul gaya, lekin data load nahi hua: '+(err?.message||String(err)),true);console.error('[Bite navigation]',page,err)}},true);
- window.addEventListener('error',function(ev){if(!document.getElementById('mainApp')||document.getElementById('mainApp').style.display==='none')return;console.error('[Bite runtime]',ev.error||ev.message)});
-})();
+// Preserve existing per-button navigation handlers. The previous capture-phase
+// document handler called stopImmediatePropagation and could suppress target clicks.
+window.retryActiveWorkspace=async function(){await loadCloudData();const el=document.getElementById('workspaceRuntimeNotice');if(el)el.style.display='none'};
+window.addEventListener('error',function(ev){const app=document.getElementById('mainApp');if(!app||app.style.display==='none')return;const el=document.getElementById('workspaceRuntimeNotice');if(el){el.textContent='Runtime error: '+(ev.message||'JavaScript error');el.style.display='block'}console.error('[Bite runtime]',ev.error||ev.message)});
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';"></script>
