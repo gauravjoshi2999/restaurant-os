@@ -172,3 +172,13 @@ check("Save hidden reply" not in owner and "access.role!=='owner'||!access.resta
       "Owner cannot hide customer reviews and reply action is owner-only")
 check("p_publish:true" in owner and "Reply to customer" in owner,
       "Owner can respond without changing customer review visibility")
+
+
+# Platform Admin must not inherit restaurant-operator write permissions.
+platform_role_migration = Path("supabase/20261108072920_bite_platform_admin_tenant_write_boundaries.sql").read_text(encoding="utf-8")
+check("AND NOT public.is_platform_admin()" in platform_role_migration and "CREATE OR REPLACE FUNCTION public.has_restaurant_role" in platform_role_migration,
+      "Platform Admin identity cannot inherit Owner/Manager permissions from a legacy restaurant membership")
+check("platform admins can manage all orders" in platform_role_migration and "platform admins read all orders" in platform_role_migration,
+      "Platform Admin order access is read-only at the database policy layer")
+check("replace(coalesce(v_policy.qual,''),'is_platform_admin()','false')" in platform_role_migration and "restaurant teams manage menu items" in platform_role_migration,
+      "Platform Admin is removed from restaurant operational write policies while Owner/Manager access remains")
