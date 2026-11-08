@@ -69,6 +69,15 @@ try:
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 1, f"Customer page has no horizontal overflow at 390px (overflow={overflow}px)")
         check(mobile.locator("#restaurantGrid").is_visible(), "Customer restaurant discovery is visible on mobile")
+
+        # Owner / Super Admin sign-in entrypoint must fit an Android viewport.
+        owner = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
+        owner.goto("http://127.0.0.1:4173/index.html", wait_until="domcontentloaded")
+        owner.locator("#authScreen").wait_for(state="visible", timeout=20000)
+        check(owner.locator("#authScreen").is_visible(), "Owner / Super Admin sign-in screen loads before authentication")
+        check(not owner.locator("#mainApp").is_visible(), "Owner / Admin dashboards stay protected before authentication")
+        owner_overflow = owner.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        check(owner_overflow <= 1, f"Owner sign-in page has no horizontal overflow at 390px (overflow={owner_overflow}px)")
         browser.close()
 finally:
     server.shutdown()
