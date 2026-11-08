@@ -73,3 +73,10 @@ Cashfree merchant review / marketplace split-settlement approval is external to 
 - SQL test executed as a Platform Admin inside a transaction: mapping list RPC and resolver success path both executed; audit row was created inside the transaction. Transaction was rolled back. Follow-up query confirmed no test audit row persisted and the original mapping conflicts remain unchanged.
 - Live grants verified: both mapping RPCs deny anon execution and allow authenticated invocation subject to the internal Platform Admin check.
 - Actual production membership mapping has intentionally not been changed: the correct person-to-restaurant choice must be selected by the Platform Admin using the new review panel. No customer, order, restaurant or historical financial data was deleted.
+
+
+## Platform Admin audit log viewer — 8 November 2026
+
+- Added a dedicated Audit Log navigation page to the Platform Admin workspace; Owner navigation remains exactly six approved sections.
+- The Admin viewer reads the latest 200 rows from `platform_audit_logs`, displaying timestamp, actor identifier, action, entity and JSON details. It relies on the table's Platform Admin-only SELECT RLS policy; no direct authenticated INSERT permission exists.
+- Added static QA coverage for the Admin-only audit page and the Owner mapping controls. The updated CI workflow has not yet been independently confirmed green in this session.
