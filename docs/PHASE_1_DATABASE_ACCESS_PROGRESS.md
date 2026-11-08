@@ -62,3 +62,12 @@ See [Phase 1 QA Run](PHASE_1_QA_RUN_20261108.md) for live SQL test results, demo
 - Admin approval UI now writes the actual `onboarding_status` and review audit columns; approval permission test passed for Admin and was denied for Owner.
 - Owner route scope and marketplace-only order/report filtering are enforced in the frontend; legacy POS creation is blocked.
 - Legacy owner invitation Edge Function version 3 now rejects cross-restaurant Owner assignment and Platform Admin reuse.
+
+
+## Marketplace scope enforcement — 2026-11-08
+
+- Applied migration `20261108034400_bite_phase1_disable_legacy_manual_order_rpcs.sql`.
+- Revoked `anon` and `authenticated` execution on the legacy `create_order_with_items`, `create_pos_order_with_balance_action`, and `create_pos_order_with_payment` RPCs; `service_role` retains controlled execution.
+- Verified live privileges: all three RPCs return `anon_execute=false`, `authenticated_execute=false`, `service_role_execute=true`.
+- This closes direct API access to legacy manual/POS order creation, matching the initial marketplace exclusions. Existing POS tables and historical records remain preserved.
+- Security Advisor authenticated-callable SECURITY DEFINER finding count reduced from 24 to 23. Remaining findings still require per-function review; this does not mean the whole security review is complete.
