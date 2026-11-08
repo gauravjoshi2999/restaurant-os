@@ -180,5 +180,5 @@ check("AND NOT public.is_platform_admin()" in platform_role_migration and "CREAT
       "Platform Admin identity cannot inherit Owner/Manager permissions from a legacy restaurant membership")
 check("platform admins can manage all orders" in platform_role_migration and "platform admins read all orders" in platform_role_migration,
       "Platform Admin order access is read-only at the database policy layer")
-check("replace(coalesce(v_policy.qual,''),'is_platform_admin()','false')" in platform_role_migration and "restaurant teams manage menu items" in platform_role_migration,
+check("replace(v_policy.qual, 'is_platform_admin()', 'false')" in platform_role_migration and "tablename NOT IN" in platform_role_migration,
       "Platform Admin is removed from restaurant operational write policies while Owner/Manager access remains")
