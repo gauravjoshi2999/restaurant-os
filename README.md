@@ -57,3 +57,5 @@ Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 
 - Admin Restaurants now has explicit Approve / Reject / Suspend / Reactivate actions that write the database onboarding status and reviewer audit fields. Owner route access is restricted to Overview, Website Orders, Menu, Expenses, Reports and Settings; legacy POS creation is blocked.
 - Legacy Owner invitation Edge Function version 3 also rejects Platform Admin accounts and accounts already linked to a different restaurant.
+
+- 2026-11-08 scope hardening: direct browser execution of the legacy manual/POS order-creation RPCs is revoked; legacy tables/data remain preserved. See the Phase 1 progress and QA reports.
