@@ -114,6 +114,8 @@ check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DE
       "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
+check('#mainApp[style*="display:none"]{display:none!important}' in owner,
+      "Owner and Admin workspace remains hidden before authentication at mobile widths")
 check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
