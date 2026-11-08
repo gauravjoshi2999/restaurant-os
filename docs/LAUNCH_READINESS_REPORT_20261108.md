@@ -88,3 +88,27 @@ The root URL is currently the Owner/Admin app, not the Customer storefront. Use 
 - Production security acceptance: NOT PASSED.
 
 **Recommendation:** Keep BITE available as a public preview/pilot demonstration only. Do not advertise real ordering or accept customer money until the payment, Auth, Owner mapping and end-to-end release gates above are closed.
+
+
+## Owner workspace follow-up — 8 November 2026
+
+Latest implementation commits:
+- `b3009cca73012be72e6d1a6b109943e85c8d8472`: remove inactive aggregator order-channel cards and replace the Owner order workspace copy.
+- `c20da2c21104586006a394ed03eaaba9fa2136ee`: scope Owner order board, inbox, dashboard metrics and outlet title to the selected restaurant membership.
+- `62b99ca57b1faf201178554ff50b18a51447b28d`: replace generic Project Setup / demo reset panel with an actual Owner restaurant profile and order-preferences form.
+- `f31e253a82f1a73835eeba120c02fec892688252`: finish Owner dashboard date label and order-summary source label.
+
+### UI changes
+- Removed the confusing cloud notice that listed inactive Zomato/Swiggy and automatic settlement integrations.
+- Removed Zomato, Swiggy and POS channel cards from the Phase 1 Orders screen; it now presents BITE Website orders only.
+- Removed the Owner-facing legacy launcher. The Owner workspace retains the six approved navigation sections: Overview, Orders, Menu Management, Expenses, Reports and Settings.
+- Reworked Owner Overview polish: outlet hero, daily metrics, recent BITE orders, quick actions and mobile spacing.
+- Replaced the Owner Settings' generic project setup / reset-demo controls with a restaurant profile and order-preferences form. The form writes only ordinary restaurant profile fields via the signed-in Owner's RLS-protected update permission; it does not expose approval, publication, reviewer or commission fields.
+- Scoped Owner order board, new-order inbox, channel counts and dashboard order metrics to `access.restaurantId`, so a multi-membership login is not silently shown another outlet's orders while a selected outlet is active.
+
+### Verification
+- GitHub Pages deployment for commit `62b99ca57b1faf201178554ff50b18a51447b28d` completed successfully: https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451233960
+- Bite QA for that commit completed successfully, including inline/static frontend checks and Chromium Customer storefront smoke tests: https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451234017
+- Final small date/source-label polish commit `f31e253a82f1a73835eeba120c02fec892688252` triggered a fresh QA run and Pages deployment; these final runs were still in progress when this report update was prepared: https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451280082 and https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42451280041
+
+**Limit of this follow-up:** the automated browser suite still tests the public Customer storefront, not a signed-in Owner session. The Owner profile save form, selected-restaurant isolation in a real browser, and each of the six Owner sections still require authenticated role-based browser acceptance testing. These changes do not activate Zomato/Swiggy APIs or automatic settlement, and do not change the production payment blocker.
