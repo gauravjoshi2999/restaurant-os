@@ -44,3 +44,10 @@ Continue Phase 1 by auditing and hardening role resolution, one-restaurant owner
 - Verified: exactly 5 currently approved + active + published restaurants are returned by discovery; checkout still blocks order creation while no payment provider is configured.
 - Added migrations: `20261108090000_bite_phase1_configurable_commission.sql`, `20261108091000_bite_phase1_enforce_approved_restaurant_discovery.sql`.
 
+
+## Owner workspace alignment
+
+- Owner login now refuses ambiguous multi-restaurant assignments instead of choosing the first restaurant.
+- Initial-version owner navigation is restricted to Overview, Orders, Menu, Expenses, Reports and Settings. Legacy POS, tables, khata, cashbook, purchases, inventory and HR remain stored but are hidden from the Owner workspace.
+- Manager/staff login is not enabled in this MVP because the supplied Master Prompt defines one Owner Account per Restaurant.
+- UI source update commit: `1daf47af2aa2d24fa39b751eaf2c30b397a6e37d`. Deployment workflow is running.
