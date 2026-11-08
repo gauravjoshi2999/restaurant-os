@@ -1013,6 +1013,11 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div class="field"><label for="ownerSettingDeliveryFee">Default delivery fee (₹)</label><input id="ownerSettingDeliveryFee" type="number" min="0" step=".01"></div>
 <div class="field"><label for="ownerSettingMinimum">Minimum order (₹)</label><input id="ownerSettingMinimum" type="number" min="0" step=".01"></div>
 <div class="field"><label for="ownerSettingPrep">Preparation time (minutes)</label><input id="ownerSettingPrep" type="number" min="5" max="240" step="5"></div>
+<div class="field"><label for="ownerSettingOpen">Opening time</label><input id="ownerSettingOpen" type="time"></div>
+<div class="field"><label for="ownerSettingClose">Closing time</label><input id="ownerSettingClose" type="time"></div>
+<div class="field"><label><input id="ownerSettingTempClosed" type="checkbox"> Temporarily close restaurant</label><span class="small">New marketplace orders will be blocked while closed.</span></div>
+<div class="field"><label for="ownerSettingClosureUntil">Reopen at (optional)</label><input id="ownerSettingClosureUntil" type="datetime-local"></div>
+<div class="field"><label><input id="ownerSettingDeliveryPaused" type="checkbox"> Pause delivery</label><span class="small">Pickup can continue if enabled.</span></div>
 <div class="field"><label><input id="ownerSettingDelivery" type="checkbox"> Accept delivery orders</label><span class="small">Delivery option customer checkout par available rahega.</span></div>
 <div class="field"><label><input id="ownerSettingPickup" type="checkbox"> Accept pickup orders</label><span class="small">Pickup option customer checkout par available rahega.</span></div>
 </div>
@@ -1675,7 +1680,7 @@ async function loadOwnerSettings(){
  const id=access.restaurantId;if(!id)return;
  const r=state.restaurants.find(x=>x.id===id);if(!r)return;
  const set=(key,value)=>{const el=document.getElementById(key);if(el)el.value=value??''};
- set('ownerSettingName',r.name);set('ownerSettingContact',r.contact_person);set('ownerSettingPhone',r.phone);set('ownerSettingEmail',r.email);set('ownerSettingCity',r.city);set('ownerSettingAddress',r.address);set('ownerSettingDescription',r.public_description);set('ownerSettingCuisines',(r.cuisine_tags||[]).join(', '));set('ownerSettingDeliveryFee',r.default_delivery_fee);set('ownerSettingMinimum',r.minimum_order_amount);set('ownerSettingPrep',r.estimated_prep_minutes);
+ set('ownerSettingName',r.name);set('ownerSettingContact',r.contact_person);set('ownerSettingPhone',r.phone);set('ownerSettingEmail',r.email);set('ownerSettingCity',r.city);set('ownerSettingAddress',r.address);set('ownerSettingDescription',r.public_description);set('ownerSettingCuisines',(r.cuisine_tags||[]).join(', '));set('ownerSettingDeliveryFee',r.default_delivery_fee);set('ownerSettingMinimum',r.minimum_order_amount);set('ownerSettingPrep',r.estimated_prep_minutes);set('ownerSettingOpen',r.opening_time);set('ownerSettingClose',r.closing_time);set('ownerSettingTempClosed',r.is_temporarily_closed?'on':'');set('ownerSettingDeliveryPaused',r.delivery_paused?'on':'');const closureDate=r.temporary_closure_until?new Date(r.temporary_closure_until):null;set('ownerSettingClosureUntil',closureDate&&!Number.isNaN(closureDate.getTime())?new Date(closureDate.getTime()-closureDate.getTimezoneOffset()*60000).toISOString().slice(0,16):'');
  const delivery=document.getElementById('ownerSettingDelivery'),pickup=document.getElementById('ownerSettingPickup');if(delivery)delivery.checked=r.accepts_delivery!==false;if(pickup)pickup.checked=r.accepts_pickup!==false;
  const msg=document.getElementById('ownerSettingMessage');if(msg)msg.textContent='';
 }
@@ -1684,8 +1689,11 @@ document.getElementById('ownerRestaurantSettingsForm')?.addEventListener('submit
  const val=id=>document.getElementById(id)?.value?.trim()||'';
  const amount=id=>{const n=Number(document.getElementById(id)?.value);return Number.isFinite(n)&&n>=0?n:0};
  const msg=document.getElementById('ownerSettingMessage'),btn=document.getElementById('ownerSettingSave');
- const payload={name:val('ownerSettingName'),contact_person:val('ownerSettingContact')||null,phone:val('ownerSettingPhone')||null,email:val('ownerSettingEmail')||null,city:val('ownerSettingCity'),address:val('ownerSettingAddress')||null,public_description:val('ownerSettingDescription')||null,cuisine_tags:val('ownerSettingCuisines').split(',').map(x=>x.trim()).filter(Boolean),default_delivery_fee:amount('ownerSettingDeliveryFee'),minimum_order_amount:amount('ownerSettingMinimum'),estimated_prep_minutes:Math.max(5,Math.min(240,Number(document.getElementById('ownerSettingPrep')?.value)||30)),accepts_delivery:!!document.getElementById('ownerSettingDelivery')?.checked,accepts_pickup:!!document.getElementById('ownerSettingPickup')?.checked};
+ const closureInput=val('ownerSettingClosureUntil');const payload={name:val('ownerSettingName'),contact_person:val('ownerSettingContact')||null,phone:val('ownerSettingPhone')||null,email:val('ownerSettingEmail')||null,city:val('ownerSettingCity'),address:val('ownerSettingAddress')||null,public_description:val('ownerSettingDescription')||null,cuisine_tags:val('ownerSettingCuisines').split(',').map(x=>x.trim()).filter(Boolean),default_delivery_fee:amount('ownerSettingDeliveryFee'),minimum_order_amount:amount('ownerSettingMinimum'),estimated_prep_minutes:Math.max(5,Math.min(240,Number(document.getElementById('ownerSettingPrep')?.value)||30)),opening_time:val('ownerSettingOpen')||null,closing_time:val('ownerSettingClose')||null,is_temporarily_closed:!!document.getElementById('ownerSettingTempClosed')?.checked,temporary_closure_until:closureInput?new Date(closureInput).toISOString():null,delivery_paused:!!document.getElementById('ownerSettingDeliveryPaused')?.checked,accepts_delivery:!!document.getElementById('ownerSettingDelivery')?.checked,accepts_pickup:!!document.getElementById('ownerSettingPickup')?.checked};
  if(!payload.name||!payload.city){if(msg)msg.textContent='Restaurant name aur city zaroori hain.';return}
+ if((payload.opening_time&&!payload.closing_time)||(!payload.opening_time&&payload.closing_time)){if(msg)msg.textContent='Opening aur closing time dono fill karein, ya dono khaali chhodein.';return}
+ if(payload.is_temporarily_closed&&payload.temporary_closure_until&&new Date(payload.temporary_closure_until)<=new Date()){if(msg)msg.textContent='Reopen time future mein hona chahiye.';return}
+ if(!payload.is_temporarily_closed)payload.temporary_closure_until=null;
  if(!payload.accepts_delivery&&!payload.accepts_pickup){if(msg)msg.textContent='Delivery ya pickup mein se kam se kam ek option chalu rakhein.';return}
  if(btn){btn.disabled=true;btn.textContent='Saving...'}if(msg)msg.textContent='';
  try{const {data,error}=await sb.from('restaurants').update(payload).eq('id',access.restaurantId).select('id').single();if(error)throw error;if(!data)throw new Error('Restaurant update confirm nahi hua.');const local=state.restaurants.find(x=>x.id===access.restaurantId);if(local)Object.assign(local,payload);render();if(msg)msg.textContent='Settings successfully save ho gayi.'}
@@ -2036,7 +2044,7 @@ function renderOrderBoard(){
  updateOrderSoundButton();
 }
 let deliveryZoneRows=[],deliveryZonePinRows=[];
-function deliveryZoneRestaurantId(){return state.restaurants[0]?.id||'';}
+function deliveryZoneRestaurantId(){return access.role==='owner'?access.restaurantId:'';}
 async function loadDeliveryZonesWorkspace(){
  const rid=deliveryZoneRestaurantId(),rows=document.getElementById('deliveryZoneRows');if(!rows)return;
  if(!rid){rows.innerHTML='';document.getElementById('deliveryZoneEmpty').textContent='Restaurant select karein.';return;}
