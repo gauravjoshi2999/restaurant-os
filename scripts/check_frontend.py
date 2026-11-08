@@ -61,6 +61,15 @@ check("if(!recovery&&(!email.includes('@')" in customer and "emailLabel" in cust
       "Password recovery does not require the email field after the secure reset link returns")
 check("list_public_restaurants" in customer and "place_customer_order" in customer,
       "Customer discovery and guarded checkout RPCs are wired")
+check("ownerSettingOpen" in owner and "ownerSettingClose" in owner and "ownerSettingTempClosed" in owner and "ownerSettingDeliveryPaused" in owner,
+      "Owner can configure operating hours, temporary closure and delivery pause")
+check("function deliveryZoneRestaurantId(){return access.role==='owner'?access.restaurantId:'';}" in owner,
+      "Owner delivery zones are scoped to the authenticated restaurant membership")
+check("Temporarily closed" in customer and "delivery_paused" in customer,
+      "Customer storefront communicates restaurant closure and delivery pause")
+availability_migration = Path("supabase/20261108123000_bite_owner_availability_controls.sql").read_text(encoding="utf-8")
+check("guard_marketplace_order_availability" in availability_migration and "delivery_paused" in availability_migration and "is_temporarily_closed" in availability_migration,
+      "Database order trigger enforces temporary closure and delivery pause")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
       "Customer checkout fails closed while no approved payment provider is configured")
 check("const ownerPages=['overview','orders','menu','expenses','reports','settings']" in owner,
