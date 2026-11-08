@@ -102,3 +102,11 @@ The platform must obtain written confirmation of eligibility, KYC/document requi
 ## Release rule
 
 A GitHub Pages deploy or JavaScript syntax check is not acceptance. A phase is complete only after real Supabase-backed behavior, role/tenant isolation, negative authorization tests and the end-to-end browser path have passed.
+
+### Owner workspace MVP cleanup
+
+- Updated the Owner login context to require exactly one restaurant membership and exactly one owner membership. Accounts linked to multiple restaurants are blocked with a clear admin-resolution message instead of silently selecting the first restaurant.
+- Manager/staff logins are not enabled in the initial Master Prompt version; those legacy memberships are not silently granted Owner access.
+- Owner navigation now exposes only Overview, Orders, Menu, Expenses, Reports and Settings. POS, table management, khata, cashbook, purchases, inventory, HR, and other excluded legacy modules are hidden from the Owner workspace. Their historical database tables and records are preserved.
+- Admin navigation remains limited to platform Overview, Restaurants, Orders and Financials.
+- GitHub Pages deployment workflow was triggered by the source update; awaiting its final result.
