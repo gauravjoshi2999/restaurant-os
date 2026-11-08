@@ -57,6 +57,8 @@ check("customer_addresses" in customer and "addrError" in customer,
       "Customer address book is connected to Supabase with visible error handling")
 check("resetPasswordForEmail" in customer and "PASSWORD_RECOVERY" in customer and "updateUser({password})" in customer,
       "Customer forgot-password email and recovery-session password update are wired")
+check("if(!recovery&&(!email.includes('@')" in customer and "emailLabel" in customer,
+      "Password recovery does not require the email field after the secure reset link returns")
 check("list_public_restaurants" in customer and "place_customer_order" in customer,
       "Customer discovery and guarded checkout RPCs are wired")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
