@@ -110,3 +110,12 @@ A GitHub Pages deploy or JavaScript syntax check is not acceptance. A phase is c
 - Owner navigation now exposes only Overview, Orders, Menu, Expenses, Reports and Settings. POS, table management, khata, cashbook, purchases, inventory, HR, and other excluded legacy modules are hidden from the Owner workspace. Their historical database tables and records are preserved.
 - Admin navigation remains limited to platform Overview, Restaurants, Orders and Financials.
 - GitHub Pages deployment workflow was triggered by the source update; awaiting its final result.
+
+
+## 2026-11-08 Phase 1 QA update
+
+- Added a separate QA report: [Phase 1 QA Run](PHASE_1_QA_RUN_20261108.md).
+- Live October demo month seeded into Demo Royal Thali House with 62 orders, 124 line items, 314 status events, 62 unpaid financial snapshots and 31 expenses. All are explicitly marked `is_demo=true`; no actual payment is recorded.
+- Owner dashboard now shows a visible demo-data notice, demo badges, October report defaults, and paid-sales-only metric. Delivery type/address are now mapped for owner handoff actions.
+- Frontend JavaScript/static guard CI passed and GitHub Pages deployment workflow passed.
+- Phase 1 is not production accepted: marketplace payments are intentionally disabled, Auth leaked-password protection is off, owner membership conflicts remain unresolved, customer-only RLS and positive delivery handoff need dedicated test identities, and browser E2E remains outstanding.
