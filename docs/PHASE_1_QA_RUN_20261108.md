@@ -124,3 +124,9 @@ Live records still require a human-approved mapping decision:
 - Bite QA GitHub Actions run `42456601597`: SUCCESS. Both Node inline-script/static guard checks and Chromium customer journey smoke tests completed successfully.
 - GitHub Pages deployment run `42456601603`: SUCCESS.
 - Chromium coverage is public customer discovery/menu/closure state, checkout fail-closed, forgot-password entry, mobile 390px overflow, and unauthenticated Owner/Admin login visibility. It does not sign in to real Owner/Admin accounts or execute a paid order.
+
+
+### Documentation refresh deployment verification — 2026-11-08
+- Final documentation refresh commit: `f5aa2f792c55ad3c0ffc9f44fcf42a41546690db`.
+- Bite QA run `42456667380`: SUCCESS — static JavaScript/critical guards, Chromium customer journey smoke tests, and all cleanup steps completed.
+- GitHub Pages deployment run `42456667407`: SUCCESS — upload and deploy steps completed.
