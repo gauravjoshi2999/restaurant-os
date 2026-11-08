@@ -47,3 +47,10 @@ Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 - Never put Supabase service-role/secret keys, database passwords, or payment secrets in browser code.
 - Do not collect real customer funds until an approved marketplace provider and required legal/merchant onboarding are complete.
 - A successful static deployment or JavaScript syntax check is not proof that payment, order, tenant isolation or other end-to-end workflows work.
+
+
+## Phase 1 verification snapshot (2026-11-08)
+
+- October 2026 demo dataset for Demo Royal Thali House: 62 clearly flagged simulated orders, 124 items, 314 status events, 62 unpaid demo financial snapshots and 31 demo expenses. No real payments or settlements were recorded.
+- Static frontend QA and GitHub Pages deployment workflows passed. See [Phase 1 QA report](docs/PHASE_1_QA_RUN_20261108.md).
+- Customer checkout remains intentionally disabled until an approved marketplace payment provider is connected. Production release is not approved while Auth leaked-password protection, owner membership cleanup, customer-only RLS test identity, positive delivery handoff browser test and SECURITY DEFINER review remain open.
