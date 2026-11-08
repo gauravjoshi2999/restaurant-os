@@ -37,6 +37,15 @@ try:
         cards = page.locator("#restaurantGrid .restaurant")
         cards.first.wait_for(state="visible", timeout=20000)
         check(cards.count() > 0, "Public approved restaurants are discoverable from live Supabase data")
+        availability_fields = page.evaluate("""() => restaurants.length > 0 && restaurants.every(r =>
+            ['is_temporarily_closed','temporary_closure_until','delivery_paused','opening_time','closing_time'].every(k => Object.prototype.hasOwnProperty.call(r,k)))""")
+        check(availability_fields, "Public restaurant listing returns the new availability fields from Supabase")
+
+        # Exercise the customer-visible closure state using the live restaurant record.
+        page.evaluate("restaurants[0].is_temporarily_closed = true; renderRestaurants()")
+        check("temporarily closed" in cards.first.inner_text().lower(),
+              "Customer restaurant card displays temporary closure state")
+        page.evaluate("restaurants[0].is_temporarily_closed = false; renderRestaurants()")
 
         # Browse a restaurant and confirm its menu is reachable without login.
         cards.first.click()
