@@ -645,7 +645,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 </div>
 </section>
 <section class="page" id="restaurants"><div class="welcome"><div><h1>Restaurants</h1><div class="muted">Manage pilot partners and their onboarding status.</div></div><div class="actions"><button class="btn secondary" data-admin-only onclick="openResetOwnerPicker()">Reset Owner Password</button> <button class="btn" data-admin-only onclick="openRestaurant()">+ Add restaurant</button></div></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Contact person</th><th>Phone / Email</th><th>City</th><th>Approval / Website</th><th>Owner account</th><th>Admin review</th></tr></thead><tbody id="restaurantRows"></tbody></table><div class="empty" id="restaurantEmpty">No restaurants added. Add your first pilot restaurant.</div></div>
-<div class="card section" id="ownerMappingWorkspace" data-admin-only><div class="section-head"><div><h2>Owner account mapping</h2><p class="muted">Har Owner login sirf ek restaurant se linked hona chahiye. Yahan duplicate aur missing assignments check karein.</p></div><button class="btn secondary" type="button" onclick="loadOwnerMappingWorkspace()">Refresh mapping</button></div><div id="ownerMappingStatus" class="small" role="status">Owner mapping load karne ke liye Refresh dabayein.</div><div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Restaurant</th><th>Owner name</th><th>Owner email</th><th>Mobile</th><th>Restaurant owners</th><th>Restaurants for login</th><th>Action</th></tr></thead><tbody id="ownerMappingRows"></tbody></table></div></div></section>
+<div class="card section" id="ownerMappingWorkspace" data-admin-only><div class="section-head"><div><h2>Owner account mapping</h2><p class="muted">Har Owner login sirf ek restaurant se linked hona chahiye. Yahan duplicate aur missing assignments check karein.</p></div><button class="btn secondary" type="button" onclick="loadOwnerMappingWorkspace()">Refresh mapping</button></div><div id="ownerMappingStatus" class="small" role="status">Owner mapping load karne ke liye Refresh dabayein.</div><div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Restaurant</th><th>Owner name</th><th>Owner email</th><th>Mobile</th><th>Restaurant owners</th><th>Restaurants for login</th><th>Action</th></tr></thead><tbody id="ownerMappingRows"></tbody></table></div></div><div class="card section" id="restaurantChangeRequestWorkspace" data-admin-only><div class="section-head"><div><h2>Restaurant change approvals</h2><p class="muted">Owner ke restaurant name/address aur payout bank changes approve ya reject karein.</p></div><button class="btn secondary" type="button" onclick="loadRestaurantChangeRequestsWorkspace()">Refresh requests</button></div><div id="restaurantChangeRequestStatus" class="small" role="status">Change requests load ho rahi hain…</div><div class="table-wrap"><table><thead><tr><th>Restaurant</th><th>Request type</th><th>Proposed change</th><th>Status</th><th>Review note</th><th>Action</th></tr></thead><tbody id="restaurantChangeRequestRows"></tbody></table></div></div></section>
 <section class="page" id="menu"><div class="welcome"><div><h1>Menu management</h1><div class="muted">Apne restaurant ke categories, dishes aur prices manage karein.</div></div><button class="btn" id="addMenuItemBtn">＋ Add menu item</button></div><div class="card"><div class="form-row" style="margin:0;align-items:end"><div class="field" style="grid-column:span 2"><label>Select restaurant</label><select id="menuRestaurantSelect"></select></div><div class="field"><label>Menu category</label><select id="menuCategoryFilter"><option value="all">All categories</option></select></div><div class="field"><label>Search item</label><input id="menuSearchInput" placeholder="Dish name search"></div></div><div class="section-head" style="margin-top:16px"><h2>Categories</h2><button class="btn secondary" id="addMenuCategoryBtn">＋ Add category</button></div><div id="menuCategoryChips" class="actions"></div></div><div class="section"><div class="section-head"><h2>Menu items</h2><span class="small" id="menuItemCount">0 items</span></div><div class="card table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Type</th><th>Availability</th><th>Action</th></tr></thead><tbody id="menuItemRows"></tbody></table><div class="empty" id="menuItemEmpty">Restaurant select karein ya menu item add karein.</div></div></div></section>
 <section class="page" id="pos">
  <div class="welcome"><div><h1>Sales</h1><div class="muted">Customer ka bill banayein, payment lein aur sale save karein.</div></div><button class="btn" type="button" onclick="openOrder('POS - Counter')">＋ New Sale</button></div>
@@ -1002,13 +1002,13 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div class="section-head"><div><h2>Outlet profile</h2><p class="muted">Yahan ki updates customer website par restaurant details mein dikh sakti hain.</p></div><span class="tag">Your restaurant</span></div>
 <form id="ownerRestaurantSettingsForm">
 <div class="form-row">
-<div class="field"><label for="ownerSettingName">Restaurant name *</label><input id="ownerSettingName" maxlength="140" required></div>
+<div class="field"><label for="ownerSettingName">Restaurant name *</label><input id="ownerSettingName" maxlength="140" required readonly aria-describedby="ownerIdentityApprovalNote"></div>
 <div class="field"><label for="ownerSettingContact">Contact person</label><input id="ownerSettingContact" maxlength="120"></div>
 <div class="field"><label for="ownerSettingPhone">Restaurant phone</label><input id="ownerSettingPhone" type="tel" inputmode="tel" maxlength="18"></div>
 <div class="field"><label for="ownerSettingEmail">Email</label><input id="ownerSettingEmail" type="email" maxlength="180"></div>
 <div class="field"><label for="ownerSettingCity">City *</label><input id="ownerSettingCity" maxlength="100" required></div>
 <div class="field"><label for="ownerSettingCuisines">Cuisine tags</label><input id="ownerSettingCuisines" maxlength="300" placeholder="North Indian, Chinese, Snacks"></div>
-<div class="field" style="grid-column:1/-1"><label for="ownerSettingAddress">Full address</label><input id="ownerSettingAddress" maxlength="400"></div>
+<div class="field" style="grid-column:1/-1"><label for="ownerSettingAddress">Full address</label><input id="ownerSettingAddress" maxlength="400" readonly aria-describedby="ownerIdentityApprovalNote"></div>
 <div class="field" style="grid-column:1/-1"><label for="ownerSettingDescription">About your restaurant</label><textarea id="ownerSettingDescription" rows="3" maxlength="1200" placeholder="Customer ko apne restaurant ke baare mein batayein"></textarea></div>
 </div>
 <div class="section-head" style="margin-top:16px"><div><h3>Order preferences</h3><p class="muted">Delivery aur pickup ke options customer ko yahin se control karein.</p></div></div>
@@ -1025,7 +1025,13 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div class="field"><label><input id="ownerSettingPickup" type="checkbox"> Accept pickup orders</label><span class="small">Pickup option customer checkout par available rahega.</span></div>
 </div>
 <div class="actions"><button class="btn" id="ownerSettingSave" type="submit">Save restaurant settings</button><span id="ownerSettingMessage" class="small" role="status" aria-live="polite"></span></div>
-</form></div>
+</form><div id="ownerIdentityApprovalNote" class="notice" style="margin-top:12px">Restaurant name aur address mein change Platform Admin approval ke baad hi live hoga. Neeche change request bhejein.</div></div>
+<div class="card" id="ownerChangeRequestWorkspace"><div class="section-head"><div><h2>Profile &amp; bank change requests</h2><p class="muted">Name/address ya payout bank details ko Admin approval ke liye bhejein.</p></div><span class="tag">Approval required</span></div>
+<form id="ownerProfileChangeForm"><h3>Restaurant name / address change</h3><div class="form-row"><div class="field"><label>New restaurant name *</label><input id="ownerRequestedName" maxlength="140" required></div><div class="field" style="grid-column:1/-1"><label>New full address *</label><input id="ownerRequestedAddress" maxlength="400" required></div></div><button class="btn secondary" type="submit">Submit profile change request</button><div id="ownerProfileChangeMessage" class="small" role="status"></div></form>
+<div class="divider"></div>
+<form id="ownerBankChangeForm"><h3>Bank / payout details</h3><div class="form-row"><div class="field"><label>Account holder name *</label><input id="ownerBankHolder" maxlength="120" required autocomplete="off"></div><div class="field"><label>Bank name *</label><input id="ownerBankName" maxlength="120" required autocomplete="off"></div><div class="field"><label>Account number *</label><input id="ownerBankAccount" inputmode="numeric" maxlength="18" required autocomplete="off"></div><div class="field"><label>IFSC code *</label><input id="ownerBankIfsc" maxlength="11" required autocomplete="off"></div><div class="field"><label>UPI ID (optional)</label><input id="ownerBankUpi" maxlength="120" autocomplete="off"></div></div><div class="notice">Bank details private access ke saath save hongi aur Platform Admin approval ke baad hi payout profile mein apply hongi.</div><button class="btn secondary" type="submit">Submit bank details for approval</button><div id="ownerBankChangeMessage" class="small" role="status"></div></form>
+<div id="ownerPayoutSummary" class="small" style="margin-top:12px"></div>
+<div class="section-head" style="margin-top:18px"><h3>Request history</h3></div><div id="ownerChangeRequestRows" class="small">Requests load ho rahi hain…</div></div>
 <div class="card" id="deliveryZoneWorkspace"><div class="section-head"><div><h3>Delivery areas / PIN codes</h3><p class="muted">Har zone ke PIN codes, delivery fee aur minimum order set karein. Same PIN ek hi zone mein assign ho sakta hai.</p></div><span class="tag">Restaurant scoped</span></div>
 <form id="deliveryZoneForm"><input type="hidden" id="deliveryZoneId"><div class="form-row">
 <div class="field"><label for="deliveryZoneName">Area / zone name *</label><input id="deliveryZoneName" maxlength="80" placeholder="e.g. Rajsamand City" required></div>
@@ -1685,7 +1691,7 @@ async function loadOwnerSettings(){
  const set=(key,value)=>{const el=document.getElementById(key);if(el)el.value=value??''};
  set('ownerSettingName',r.name);set('ownerSettingContact',r.contact_person);set('ownerSettingPhone',r.phone);set('ownerSettingEmail',r.email);set('ownerSettingCity',r.city);set('ownerSettingAddress',r.address);set('ownerSettingDescription',r.public_description);set('ownerSettingCuisines',(r.cuisine_tags||[]).join(', '));set('ownerSettingDeliveryFee',r.default_delivery_fee);set('ownerSettingMinimum',r.minimum_order_amount);set('ownerSettingPrep',r.estimated_prep_minutes);set('ownerSettingOpen',r.opening_time);set('ownerSettingClose',r.closing_time);const tempClosed=document.getElementById('ownerSettingTempClosed'),deliveryPaused=document.getElementById('ownerSettingDeliveryPaused');if(tempClosed)tempClosed.checked=!!r.is_temporarily_closed;if(deliveryPaused)deliveryPaused.checked=!!r.delivery_paused;const closureDate=r.temporary_closure_until?new Date(r.temporary_closure_until):null;set('ownerSettingClosureUntil',closureDate&&!Number.isNaN(closureDate.getTime())?new Date(closureDate.getTime()-closureDate.getTimezoneOffset()*60000).toISOString().slice(0,16):'');
  const delivery=document.getElementById('ownerSettingDelivery'),pickup=document.getElementById('ownerSettingPickup');if(delivery)delivery.checked=r.accepts_delivery!==false;if(pickup)pickup.checked=r.accepts_pickup!==false;
- const msg=document.getElementById('ownerSettingMessage');if(msg)msg.textContent='';
+ const msg=document.getElementById('ownerSettingMessage');if(msg)msg.textContent='';loadOwnerChangeRequestsWorkspace();
 }
 document.getElementById('ownerRestaurantSettingsForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(access.role!=='owner'||!access.restaurantId)return;
@@ -1749,6 +1755,75 @@ async function loadAuditLogWorkspace(){
   status.textContent=rows.length+' audit events loaded (latest 200).';
  }catch(error){status.textContent='Audit log load nahi hua: '+(error.message||String(error));console.error(error);}
 }
+async function loadOwnerChangeRequestsWorkspace(){
+ const body=document.getElementById('ownerChangeRequestRows'),summary=document.getElementById('ownerPayoutSummary');
+ if(!body||access.role!=='owner'||!access.restaurantId)return;
+ body.textContent='Requests load ho rahi hain…';
+ try{
+  const [requests,payout]=await Promise.all([
+   sb.from('restaurant_change_requests').select('id,request_type,proposed_values,status,review_note,created_at').eq('restaurant_id',access.restaurantId).order('created_at',{ascending:false}).limit(50),
+   sb.from('restaurant_payout_profiles').select('account_holder_name,bank_name,account_number,ifsc_code,upi_id,approval_status').eq('restaurant_id',access.restaurantId).maybeSingle()
+  ]);
+  if(requests.error)throw requests.error;
+  const p=payout.data;
+  if(summary)summary.textContent=p?'Current payout profile: '+p.account_holder_name+' · '+p.bank_name+' · A/c ending '+String(p.account_number||'').slice(-4)+' · '+p.ifsc_code+' · '+p.approval_status:'No approved payout profile is on file.';
+  const rows=requests.data||[];
+  body.innerHTML=rows.length?rows.map(r=>{
+   const v=r.proposed_values||{},details=r.request_type==='profile'?'Name: '+(v.name||'')+' · Address: '+(v.address||''):'Bank: '+(v.bank_name||'')+' · Account ending '+String(v.account_number||'').slice(-4)+' · IFSC '+(v.ifsc_code||'');
+   return '<article style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0"><strong>'+esc(r.request_type==='profile'?'Profile change':'Bank details')+'</strong> · '+esc(r.status)+'<div>'+esc(details)+'</div><small>'+esc(new Date(r.created_at).toLocaleString('en-IN'))+(r.review_note?' · Admin: '+esc(r.review_note):'')+'</small></article>';
+  }).join(''):'No change requests submitted yet.';
+ }catch(error){body.textContent='Change requests load nahi hui: '+(error.message||String(error));}
+}
+async function submitOwnerChangeRequest(type,values,messageId){
+ const message=document.getElementById(messageId);if(message)message.textContent='';
+ if(access.role!=='owner'||!access.restaurantId){if(message)message.textContent='Owner login required.';return;}
+ const {data:sessionData}=await sb.auth.getSession();if(!sessionData.session){if(message)message.textContent='Please login again.';return;}
+ try{
+  const {error}=await sb.from('restaurant_change_requests').insert({restaurant_id:access.restaurantId,requested_by:sessionData.session.user.id,request_type:type,proposed_values:values});
+  if(error)throw error;
+  if(message)message.textContent='Request Platform Admin ko bhej di gayi.';
+  await loadOwnerChangeRequestsWorkspace();
+ }catch(error){if(message)message.textContent=error.message||'Request submit nahi hui.';}
+}
+document.getElementById('ownerProfileChangeForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();const name=document.getElementById('ownerRequestedName').value.trim(),address=document.getElementById('ownerRequestedAddress').value.trim();
+ if(name.length<2||name.length>140||!address||address.length>400){document.getElementById('ownerProfileChangeMessage').textContent='Valid restaurant name aur full address fill karein.';return;}
+ await submitOwnerChangeRequest('profile',{name,address},'ownerProfileChangeMessage');
+});
+document.getElementById('ownerBankChangeForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();const account=document.getElementById('ownerBankAccount').value.replace(/[^0-9]/g,''),ifsc=document.getElementById('ownerBankIfsc').value.trim().toUpperCase();
+ const values={account_holder_name:document.getElementById('ownerBankHolder').value.trim(),bank_name:document.getElementById('ownerBankName').value.trim(),account_number:account,ifsc_code:ifsc,upi_id:document.getElementById('ownerBankUpi').value.trim()};
+ if(values.account_holder_name.length<2||values.bank_name.length<2||account.length<9||account.length>18||! /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)){document.getElementById('ownerBankChangeMessage').textContent='Account holder, bank, 9–18 digit account number aur valid IFSC fill karein.';return;}
+ await submitOwnerChangeRequest('bank_details',values,'ownerBankChangeMessage');
+});
+async function loadRestaurantChangeRequestsWorkspace(){
+ const body=document.getElementById('restaurantChangeRequestRows'),status=document.getElementById('restaurantChangeRequestStatus');
+ if(!body||access.role!=='super_admin')return;
+ status.textContent='Change requests load ho rahi hain…';body.innerHTML='';
+ try{
+  const {data,error}=await sb.rpc('admin_list_restaurant_change_requests');if(error)throw error;
+  const rows=data||[];
+  body.innerHTML=rows.map(r=>{
+   const v=r.proposed_values||{};
+   const details=r.request_type==='profile'?'Name: '+(v.name||'')+' · Address: '+(v.address||''):'Holder: '+(v.account_holder_name||'')+' · Bank: '+(v.bank_name||'')+' · A/c ending '+String(v.account_number||'').slice(-4)+' · IFSC '+(v.ifsc_code||'');
+   const action=r.status==='Pending'?'<button class="btn secondary" data-change-decision="Approved" data-change-id="'+esc(r.id)+'">Approve</button> <button class="btn danger" data-change-decision="Rejected" data-change-id="'+esc(r.id)+'">Reject</button>':'—';
+   return '<tr><td>'+esc(r.restaurant_name)+'</td><td>'+esc(r.request_type)+'</td><td style="white-space:normal;min-width:260px">'+esc(details)+'</td><td>'+esc(r.status)+'</td><td>'+esc(r.review_note||'—')+'</td><td>'+action+'</td></tr>';
+  }).join('');
+  status.textContent=rows.length+' change requests loaded (latest 200).';
+  body.onclick=async event=>{const b=event.target.closest('[data-change-decision]');if(!b)return;await reviewRestaurantChangeRequest(b.dataset.changeId,b.dataset.changeDecision);};
+ }catch(error){status.textContent='Change requests load nahi hui: '+(error.message||String(error));}
+}
+async function reviewRestaurantChangeRequest(requestId,decision){
+ const note=prompt('Admin review note (optional):')||'';
+ if(!confirm(decision+' this restaurant change request?'))return;
+ const status=document.getElementById('restaurantChangeRequestStatus');status.textContent='Review save ho raha hai…';
+ try{
+  const {error}=await sb.rpc('admin_review_restaurant_change_request',{p_request_id:requestId,p_decision:decision,p_review_note:note});
+  if(error)throw error;
+  status.textContent='Request '+decision.toLowerCase()+' and audit logged.';
+  await Promise.all([loadRestaurantChangeRequestsWorkspace(),loadCloudData()]);
+ }catch(error){status.textContent='Review nahi ho saka: '+(error.message||String(error));}
+}
 async function loadOwnerMappingWorkspace(){
  const body=document.getElementById('ownerMappingRows'),status=document.getElementById('ownerMappingStatus');
  if(!body||access.role!=='super_admin')return;
@@ -1786,7 +1861,7 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName){
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
-function showPage(id){if(access.role==='super_admin'&&!['overview','restaurants','orders','financials','audit','support'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin')loadOwnerMappingWorkspace();document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
+function showPage(id){if(access.role==='super_admin'&&!['overview','restaurants','orders','financials','audit','support'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin'){loadOwnerMappingWorkspace();loadRestaurantChangeRequestsWorkspace();}document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{toggleSidebar(false);showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace();if(b.dataset.page==='settings')loadDeliveryZonesWorkspace();if(b.dataset.page==='audit')loadAuditLogWorkspace();if(b.dataset.page==='support')loadSupportWorkspace();if(b.dataset.page==='orders'){loadCustomerOrderRequestsWorkspace();loadRestaurantReviewsWorkspace()}}));
 let menuCategories=[],menuItems=[],activeMenuRestaurant=null;
 function menuRestaurantId(){return document.getElementById('menuRestaurantSelect').value||''}
