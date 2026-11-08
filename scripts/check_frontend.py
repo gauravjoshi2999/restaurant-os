@@ -98,11 +98,11 @@ check("This action will be written to the Platform Audit Log" in owner,
       "Admin mapping resolution explains its audit trail before confirmation")
 check("ownerProfileChangeForm" in owner and "ownerBankChangeForm" in owner and "admin_review_restaurant_change_request" in owner,
       "Owner profile and bank changes use Admin approval requests")
-check("prevent_unapproved_restaurant_identity_change" in owner and "restaurant_change_requests" in owner,
-      "Restaurant identity changes are guarded by the database approval workflow")
+check("ownerIdentityApprovalNote" in owner and "restaurant_change_requests" in owner,
+      "Restaurant identity changes are routed through the approval request UI")
 change_migration = Path("supabase/20261108150000_bite_restaurant_change_request_approval.sql").read_text(encoding="utf-8")
-check("restaurant_payout_profiles" in change_migration and "admin_review_restaurant_change_request" in change_migration and "ENABLE ROW LEVEL SECURITY" in change_migration,
-      "Payout details are stored behind RLS and applied only by Admin approval")
+check("prevent_unapproved_restaurant_identity_change" in change_migration and "restaurant_payout_profiles" in change_migration and "admin_review_restaurant_change_request" in change_migration and "ENABLE ROW LEVEL SECURITY" in change_migration,
+      "Identity changes are database-guarded and payout details require Admin approval")
 owner_mapping_migration = Path("supabase/20261108130000_bite_admin_owner_mapping_resolution.sql").read_text(encoding="utf-8")
 check("platform_audit_logs" in owner_mapping_migration and "owner_mapping_resolved" in owner_mapping_migration,
       "Owner mapping changes are recorded in the database Platform Audit Log")
