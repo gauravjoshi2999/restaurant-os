@@ -93,6 +93,8 @@ check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DE
       "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
+check("const platformPages=['overview','restaurants','orders','financials','audit']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
+      "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
 check("access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)" in owner,
