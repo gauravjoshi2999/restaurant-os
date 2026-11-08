@@ -56,3 +56,13 @@ This run verifies the Phase 1 foundation and the three existing application surf
 - Added the exact applied SQL migration files and idempotent `supabase/demo_seed_october_2026.sql` seed script to the repository.
 - Latest deployment rerun completed successfully on attempt 2: [GitHub Pages deploy](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42443136837). Latest Bite QA passed: [Bite QA](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42443136830).
 - Latest Supabase Security Advisor still reports: 1 Auth leaked-password warning, 5 anon-callable SECURITY DEFINER RPCs (public discovery/delivery capability endpoints), 24 authenticated-callable SECURITY DEFINER functions, and 1 RLS-enabled delivery-handoff table with no direct policies. Performance advisor reports 20 multiple-permissive-policy warnings. No database health advisories were reported.
+
+
+### Admin approval and Owner MVP scope follow-up
+- Added explicit Platform Admin Approve / Reject / Suspend / Reactivate actions. Approval writes `onboarding_status`, reviewer and review timestamp, sets operational status to Active, and leaves customer publication off until separately published after menu readiness.
+- Database permission test: Platform Admin approval update succeeded inside a rolled-back test transaction; a Restaurant Owner attempting the same update changed 0 rows.
+- Public delivery-area checks now require approved onboarding; a pending restaurant returned 0 rows.
+- Owner routes now allow only Overview, Website Orders, Menu, Expenses, Reports and Settings. Legacy POS, tables, khata, stock, HR and manual offline order entry are hidden/blocked. Existing legacy rows remain stored but Owner order boards and reports filter them out; only marketplace and clearly marked demo orders are shown.
+- Owner order model now carries delivery type/address snapshot so the Ready delivery action can show the WhatsApp handoff option for eligible customer delivery orders.
+- Updated legacy `invite-restaurant-owner` Edge Function to reject Platform Admin accounts and existing accounts already linked to another restaurant; deployed active version 3. The primary Owner provisioning function already had the same single-restaurant guard.
+- Customer order-history RPC test returned only 3 orders for the signed-in customer identity while the database held 80 total orders. Note: the available test identity is also a Platform Admin, so this does not replace a dedicated customer-only RLS test.
