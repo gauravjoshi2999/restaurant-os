@@ -196,3 +196,11 @@ check("guard_owner_order_mutable_fields" in order_boundary_migration and "to_jso
 const_restaurant_boundary_migration = Path("supabase/20261108073940_bite_restaurant_settings_role_boundary.sql").read_text(encoding="utf-8")
 check("guard_restaurant_platform_admin_operational_fields" in const_restaurant_boundary_migration and "Only the Restaurant Owner can change operating settings." in const_restaurant_boundary_migration,
       "Platform Admin cannot change restaurant operating settings reserved for the Owner")
+
+
+# Review writes are RPC-only; customer cannot forge replies or hide reviews through table writes.
+review_mutation_migration = Path("supabase/20261108073950_bite_lock_customer_review_mutations.sql").read_text(encoding="utf-8")
+check('DROP POLICY IF EXISTS "customers create own restaurant reviews"' in review_mutation_migration and "REVOKE INSERT, UPDATE, DELETE ON TABLE public.restaurant_reviews" in review_mutation_migration,
+      "Customer review creation and owner/admin moderation are restricted to validated RPCs")
+check("Review publish ho gaya. Restaurant Owner ab iska reply de sakta hai." in customer and "Completed-order verified customer reviews dekhein aur reply dein." in owner,
+      "Customer and Owner review messages match automatic publication flow")
