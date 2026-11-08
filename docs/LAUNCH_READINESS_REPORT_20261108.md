@@ -188,3 +188,15 @@ Source-level verification:
 - Authenticated Customer SQL test passed for insert and own-row read; customer update was denied. The test transaction was rolled back and no QA ticket persisted.
 - The public schema now contains 42 tables and RLS is enabled on all 42.
 - Static QA assertions cover the Customer and Admin support surfaces; the latest CI result has not yet been independently confirmed.
+
+
+## Profile/payout approval, review moderation and security follow-up — 8 November 2026
+
+- Owner name/address fields are read-only in Settings; database trigger rejects direct Owner identity edits. Profile and payout detail changes must be submitted as requests and reviewed by Platform Admin.
+- Added RLS-protected payout profile storage. Only the Admin approval function can apply bank details; account and IFSC validation is enforced before approval.
+- Added customer review reports, Customer report UI, and Admin moderation (Hide Review / Dismiss) with audit logging. Transaction test covered customer insert/read, customer update denial, and Admin dismissal; test data was rolled back.
+- Owner membership write permissions were removed. Owners can read their own restaurant membership but cannot create/update/delete membership records. Admin/service-side onboarding and the audited mapping resolver remain the write paths.
+- SQL tests passed for Owner identity-change rejection, Admin profile approval, Customer support RLS, review report moderation and Owner membership write denial. All test transactions were rolled back.
+- Live database now has 45 public tables with RLS enabled on all 45.
+- Supabase Performance Advisor reports zero unindexed foreign keys; 16 multiple-permissive policy combinations remain for intentional customer/member/Admin access paths; 58 unused-index notices are informational and were not blindly dropped.
+- Security Advisor reports 3 anon-callable SECURITY DEFINER endpoints, 29 authenticated-callable SECURITY DEFINER functions, one RLS-enabled/no-policy informational notice for RPC-only delivery handoffs, and the Auth leaked-password protection warning. Leaked-password protection could not be changed through the available project-management actions in this session.
