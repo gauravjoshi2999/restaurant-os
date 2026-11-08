@@ -171,3 +171,10 @@ Source-level verification:
 - The mapping RPCs deny anonymous execution; the audit table has RLS enabled, denies anonymous SELECT and authenticated direct INSERT, and restricts authenticated SELECT by the Platform Admin RLS policy.
 - The mapping list and resolver success path were executed as a Platform Admin inside a transaction and rolled back. A follow-up query confirmed no test audit row persisted and existing mappings were unchanged.
 - Actual conflicting assignments have not been changed because the intended person-to-restaurant mapping must be confirmed in the Admin workspace. This is a security decision, not an automatic guess.
+
+
+## Platform Admin audit log viewer — 8 November 2026
+
+- Added an Audit Log page to the Platform Admin workspace. It displays the latest 200 events from `platform_audit_logs` with timestamp, actor, action, entity and JSON details.
+- The page uses the Admin-only RLS-protected read path; direct authenticated inserts into the audit table remain denied. Owner navigation remains restricted to the six approved sections.
+- Static QA assertions were added for the Owner mapping and Admin audit pages; their latest Actions run is not yet independently confirmed green.
