@@ -1978,7 +1978,7 @@ async function shareDeliveryHandoff(id){
   const items=(h.items||[]).map(i=>i.item_name+' × '+i.quantity).join(', ');
   const message='Bite Delivery Handoff\\nOrder: '+h.order_code+'\\nRestaurant: '+h.restaurant_name+'\\nCustomer: '+h.customer_name+' ('+h.customer_phone+')\\nAddress: '+address+'\\nMap: '+mapUrl+'\\nItems: '+items+(h.customer_note?'\\nInstructions: '+h.customer_note:'')+'\\n\\nDelivery details & OTP verification link: '+deliveryUrl+'\\nCustomer apne Bite My Orders page par delivery OTP dekhega. OTP customer se destination par poochhein.';
   const waUrl='https://wa.me/?text='+encodeURIComponent(message);
-  if(popup){popup.location.href=waUrl;}else{prompt('WhatsApp share ke liye message copy karein:',message);}return true;
+  if(popup){popup.location.href=waUrl;}else{const copied=prompt('WhatsApp share ke liye message copy karein:',message);if(copied===null)return false;}return true;
  }catch(e){if(popup)popup.close();alert('Delivery link share nahi hua: '+(e.message||'Try again.'));console.error(e);return false}
 }
 async function shareAndHandOverDelivery(id){
