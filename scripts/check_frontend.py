@@ -93,8 +93,8 @@ check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul 
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
       "Customer checkout fails closed while no approved payment provider is configured")
-check("const ownerPages=['overview','orders','menu','expenses','reports','settings']" in owner,
-      "Owner navigation is restricted to the approved initial-release modules")
+check("const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','expenses','refunds','purchases','inventory','hr','reports','settings']" in owner,
+      "Owner navigation exposes the full restaurant operations workspace and excludes Platform Admin pages")
 check("This account is linked to more than one restaurant" in owner,
       "Ambiguous multi-restaurant Owner accounts are blocked")
 check("This restaurant has more than one Owner assignment" in owner,
@@ -121,14 +121,16 @@ check("if(c.includes('bite demo simulation'))return 'website';" in owner and "DE
       "Monthly demo orders appear in the website order board with a clear DEMO ONLY marker")
 check("data-owner-dashboard" in owner and "data-platform-dashboard" in owner,
       "Owner and Platform Admin workspaces are separate")
+check("loadPOSWorkspace()" in owner and "loadTablesWorkspace()" in owner and "loadCashbookWorkspace()" in owner and "loadPurchaseWorkspace()" in owner and "loadInventoryWorkspace()" in owner and "loadHRWorkspace()" in owner,
+      "Owner overview provides quick actions into POS, tables, cashbook, purchases, inventory and HR")
 check('#mainApp[style*="display:none"]{display:none!important}' in owner,
       "Owner and Admin workspace remains hidden before authentication at mobile widths")
 check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
-check("access.role==='owner'&&!['overview','orders','menu','expenses','reports','settings'].includes(id)" in owner,
-      "Owner route guard blocks legacy POS, stock, tables, khata and HR pages")
+check("access.role==='owner'&&!['overview','orders','pos','menu','tables','khata','cashbook','expenses','refunds','purchases','inventory','hr','reports','settings'].includes(id)" in owner,
+      "Owner route guard allows restaurant operations and blocks Platform Admin pages")
 check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
       "Legacy manual POS order creation is disabled in the marketplace MVP")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
