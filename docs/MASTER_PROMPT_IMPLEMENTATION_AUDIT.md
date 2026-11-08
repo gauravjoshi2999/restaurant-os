@@ -53,6 +53,29 @@ Two documented Indian marketplace candidates to evaluate with provider sales/com
 
 The platform must obtain written confirmation of eligibility, KYC/document requirements, permitted food marketplace use case, fee schedule, split timing, refund/reversal behavior and settlement cycle. Do not promise next-day settlement or choose a provider solely from public docs. No live payment code should be enabled before the Bite merchant account is approved.
 
+
+## Phase 1 progress — 2026-11-08
+
+### Implemented and applied to live Supabase
+
+- Added `onboarding_status` (`pending|approved|rejected|suspended`), submission/review timestamps, reviewer ID and rejection reason to `restaurants`.
+- Existing records were preserved. Rows already both Active and published were classified as approved; remaining rows were left pending. Live counts after migration: 5 approved, 5 pending.
+- Added a database trigger that blocks non-admin users from changing approval status, reviewer metadata, publication flag or restaurant status. This enforces approval at the database layer, not merely through UI hiding.
+- Updated `is_restaurant_public(uuid)` to require `onboarding_status='approved'` in addition to active and published.
+- Removed default PUBLIC execution from that discovery helper; explicit anon/authenticated/service_role grants remain.
+- Live test: using a non-admin restaurant owner JWT context, attempted to change the restaurant onboarding state; database rejected it with SQLSTATE 42501. The test transaction rolled back; no test data was changed.
+- Migration files: `supabase/20261108083000_bite_phase1_restaurant_onboarding_guard.sql` and `supabase/20261108083500_bite_phase1_public_function_grants.sql`.
+
+### Still open in Phase 1
+
+- Auth leaked-password protection remains disabled; the current connected tooling does not expose the Auth security setting. Enable it in Supabase Dashboard → Authentication → Security and confirm it before production.
+- Security advisor still flags 5 anon-callable and 24 authenticated-callable SECURITY DEFINER functions. Some are intentional public discovery/delivery token RPCs, but each must be reviewed for authorization, rate limiting, token entropy/hash and least-privilege grants before release.
+- `restaurant_delivery_handoffs` has RLS enabled but no direct policies; access appears intended through RPCs. Verify all grants and RPC paths before accepting production traffic.
+- Existing owner memberships contain at least one restaurant with two distinct owner accounts. The new one-owner-per-restaurant rule needs a deliberate account-resolution decision before adding a unique constraint; no existing membership was deleted or reassigned.
+- The current dashboard still exposes legacy modules (POS, tables, khata, cashbook, purchases, inventory, HR). They are not removed from the database; UI refactor is pending.
+- The owner dashboard currently calculates access role from all memberships and selects the first owner restaurant; a single-restaurant-per-owner enforcement and UI cleanup are still pending.
+- No full browser end-to-end suite has been run yet. A successful migration is not proof that all three role journeys work.
+
 ## Recommended implementation order
 
 1. Freeze this Master Prompt as source of truth (done in docs).
