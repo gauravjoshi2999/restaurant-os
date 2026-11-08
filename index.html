@@ -345,6 +345,14 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 body[data-role="owner"] .zp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
 body[data-role="owner"] .zp-outlet-info p{display:none}
 @media(max-width:700px){body[data-role="owner"] .zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Owner dashboard cleanup: a single outlet owner does not need the platform-wide Restaurants directory. */
+body[data-role="owner"] #mainApp .nav button[data-page="restaurants"]{display:none!important}
+body[data-role="owner"] #mainApp .nav button[data-page="reconciliation"],
+body[data-role="owner"] #mainApp .nav button[data-page="financials"],
+body[data-role="owner"] #mainApp .nav button[data-page="audit"],
+body[data-role="owner"] #mainApp .nav button[data-page="support"],
+body[data-role="owner"] #mainApp .nav button[data-page="moderation"]{display:none!important}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}<style id="platformRestaurantManagerStyles">
