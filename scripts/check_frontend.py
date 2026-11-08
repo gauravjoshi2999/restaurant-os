@@ -80,8 +80,11 @@ check("This restaurant has more than one Owner assignment" in owner,
       "Owner login blocks duplicate Owner assignments for a restaurant")
 check("admin_list_owner_assignments" in owner and "admin_resolve_owner_mapping" in owner and "data-resolve-owner" in owner,
       "Platform Admin can inspect and resolve one-Owner-per-restaurant conflicts")
-check("owner_mapping_resolved" in owner and "platform_audit_logs" in owner,
-      "Owner mapping changes are recorded in the Platform Audit Log")
+check("This action will be written to the Platform Audit Log" in owner,
+      "Admin mapping resolution explains its audit trail before confirmation")
+owner_mapping_migration = Path("supabase/20261108130000_bite_admin_owner_mapping_resolution.sql").read_text(encoding="utf-8")
+check("platform_audit_logs" in owner_mapping_migration and "owner_mapping_resolved" in owner_mapping_migration,
+      "Owner mapping changes are recorded in the database Platform Audit Log")
 check("if(ooo)ooo.textContent=String(onlineToday);" in owner and "String(onlineToday.length)" not in owner,
       "Owner online-order KPI renders its numeric count without undefined")
 check("const liveOrders=dashboardOrders.filter(o=>!o.isDemo)" in owner and "verifiedPaidSales" in owner and "customer_payable_amount" in owner and "money(verifiedPaidSales)" in owner,
