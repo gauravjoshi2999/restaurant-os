@@ -1239,7 +1239,7 @@ window.addEventListener('unhandledrejection', function(e) {
 
 // Bite owner workspace navigation recovery and actionable module error handling.
 (function(){
- const allowedOwnerPages=new Set(['overview','orders','menu','expenses','reports','settings']);
+ const allowedOwnerPages=new Set(['overview','orders','menu','tables','khata','cashbook','expenses','refunds','purchases','inventory','hr','reports','settings']);
  const moduleLoaders={orders:async()=>{await loadCustomerOrderRequestsWorkspace();await loadRestaurantReviewsWorkspace()},pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,refunds:loadRefundWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:loadDeliveryZonesWorkspace};
  let currentWorkspace='overview';
  function notice(message,showRetry){const el=document.getElementById('workspaceRuntimeNotice');if(!el)return;el.textContent='';el.style.display='block';const span=document.createElement('span');span.textContent=message;el.appendChild(span);if(showRetry){const btn=document.createElement('button');btn.type='button';btn.textContent='Dobara load karein';btn.onclick=()=>retryActiveWorkspace();el.appendChild(btn)}}
