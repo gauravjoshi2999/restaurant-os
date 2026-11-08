@@ -46,3 +46,13 @@ This run verifies the Phase 1 foundation and the three existing application surf
 
 ## Release decision
 **Phase 1 foundation: substantially implemented and database-smoke-tested. Production acceptance: NOT YET PASSED.** Keep the marketplace in demo/closed-checkout mode until the blockers above are cleared and the customer → owner → delivery → admin journey passes in a real browser using the provider's sandbox.
+
+
+### Additional checks after the initial QA run
+- Added and applied `bite_phase1_delivery_area_approval_guard`; the public delivery-area RPC now returns no result for a pending/unapproved restaurant. Verified the function definition and a pending-restaurant test returned 0 rows.
+- Verified a foreign Owner's menu update affects 0 rows.
+- Verified the direct public role has no table privilege on `restaurant_delivery_handoffs`; the table remains inaccessible directly and the public delivery page uses token RPCs only.
+- Verified an invalid delivery capability token returns 0 handoff records.
+- Added the exact applied SQL migration files and idempotent `supabase/demo_seed_october_2026.sql` seed script to the repository.
+- Latest deployment rerun completed successfully on attempt 2: [GitHub Pages deploy](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42443136837). Latest Bite QA passed: [Bite QA](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42443136830).
+- Latest Supabase Security Advisor still reports: 1 Auth leaked-password warning, 5 anon-callable SECURITY DEFINER RPCs (public discovery/delivery capability endpoints), 24 authenticated-callable SECURITY DEFINER functions, and 1 RLS-enabled delivery-handoff table with no direct policies. Performance advisor reports 20 multiple-permissive-policy warnings. No database health advisories were reported.
