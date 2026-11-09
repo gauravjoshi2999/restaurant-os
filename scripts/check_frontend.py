@@ -89,7 +89,9 @@ check("OLD.delivery_type = 'delivery' AND NEW.status = 'Handed Over'" in deliver
       "Database blocks delivery handover until a valid handoff link exists")
 check("OLD.delivery_type = 'delivery' AND NEW.status = 'Completed'" in delivery_handoff_migration and "h.verified_at IS NOT NULL" in delivery_handoff_migration and "customer OTP verification" in delivery_handoff_migration,
       "Database blocks delivery completion until customer OTP verification")
-check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul gaya" in owner and "confirm_delivery_handoff" in delivery,
+handover_share = owner.split('async function shareDeliveryHandoff(', 1)[1].split('async function shareAndHandOverDelivery', 1)[0]
+handover_action = owner.split('async function shareAndHandOverDelivery(', 1)[1].split('async function advanceOrder', 1)[0]
+check("if(!confirm(" in handover_action and "shareDeliveryHandoff(id,true)" in handover_action and "confirm_delivery_handoff" in delivery,
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
       "Customer checkout fails closed while no approved payment provider is configured")
@@ -133,13 +135,15 @@ check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
 check("const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[]" in owner and "if(!allowed.includes(id))id='overview'" in owner,
       "Owner route guard allows supported restaurant operations and blocks disabled or Platform Admin pages")
-check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
-      "Legacy manual POS order creation is disabled in the marketplace MVP")
+blocked_pos_handler = "Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner
+guarded_pos_handler = "if(!['owner','manager'].includes(access.role))" in owner and "if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId)" in owner
+check(blocked_pos_handler or guarded_pos_handler,
+      "Legacy POS submit is disabled or restricted to the assigned restaurant Owner/Manager")
 check('id="pos">' in owner and "New Sale · Not enabled" in owner and "sirf pehle se maujood POS sales" in owner,
       "Owner POS page clearly identifies read-only sales history and disables unsupported new-sale action")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
-check("shareAndHandOverDelivery" in owner and "Delivery link WhatsApp mein khul gaya" in owner,
+check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("popup.location.href=waUrl") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share,
       "Delivery orders require link sharing and physical handover confirmation")
 check("o.status==='Handed Over'&&a[0]==='Completed'" in owner and "o.status==='Ready'&&a[0]==='Handed Over'" in owner,
       "Delivery orders cannot bypass OTP completion or handoff-link creation")

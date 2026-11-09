@@ -15,21 +15,21 @@ function element(id, page = false) {
 function workspace(role = 'owner') {
   const ids = ['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings','restaurants','financials','audit','support','moderation','pos','refunds'];
   const pages = ids.map(id=>element(id,true)), buttons=ids.map(id=>element(id));
-  const title={textContent:''}, calls=[];
+  const title={textContent:''}, calls=[], errors=[];
   const doc={querySelectorAll(selector){
     if(selector==='#mainApp .page')return pages;
     if(selector==='.nav button[data-page]')return buttons;
     return [];
   },getElementById:id=>id==='pageTitle'?title:pages.find(p=>p.id===id)};
-  const context={document:doc,BiteOwner:core,access:{role},window:{scrollTo:()=>{}},console,
+  const context={document:doc,BiteOwner:core,access:{role},window:{scrollTo:()=>{}},console:{...console,error:(...args)=>errors.push(args.map(String).join(' '))},
     toggleSidebar:()=>{},render:()=>calls.push('overview'),renderFinancials:()=>calls.push('financials'),
     setOrderChannel:()=>{},Promise};
-  for(const name of ['loadMenuWorkspace','loadTablesWorkspace','loadKhataWorkspace','loadCashbookWorkspace','loadExpenseWorkspace','loadPurchaseWorkspace','loadInventoryWorkspace','loadHRWorkspace','loadReportsWorkspace','loadOwnerSettings','loadDeliveryZonesWorkspace','loadCustomerOrderRequestsWorkspace','loadRestaurantReviewsWorkspace','loadOwnerMappingWorkspace','loadRestaurantChangeRequestsWorkspace','loadAuditLogWorkspace','loadSupportWorkspace','loadReviewReportsWorkspace'])context[name]=async()=>calls.push(name);
+  for(const name of ['loadMenuWorkspace','loadTablesWorkspace','loadKhataWorkspace','loadCashbookWorkspace','loadExpenseWorkspace','loadPurchaseWorkspace','loadInventoryWorkspace','loadHRWorkspace','loadReportsWorkspace','loadOwnerSettings','loadDeliveryZonesWorkspace','loadCustomerOrderRequestsWorkspace','loadRestaurantReviewsWorkspace','loadSandboxPaidOrders','loadVerifiedLiveInbox','loadOwnerMappingWorkspace','loadRestaurantChangeRequestsWorkspace','loadAuditLogWorkspace','loadSupportWorkspace','loadReviewReportsWorkspace'])context[name]=async()=>calls.push(name);
   const source=fs.readFileSync('index.html','utf8');
   const start=source.indexOf('async function showPage(id){');
   const end=source.indexOf("document.querySelectorAll('.nav button[data-page]')",start);
   vm.createContext(context);vm.runInContext(source.slice(start,end),context);
-  return {context,pages,buttons,calls,title};
+  return {context,pages,buttons,calls,title,errors};
 }
 test('all twelve Owner pages can open, including legacy inline-hidden pages',async()=>{
   const w=workspace();
@@ -43,6 +43,7 @@ test('all twelve Owner pages can open, including legacy inline-hidden pages',asy
   }
   assert.equal(w.calls.filter(x=>x==='loadExpenseWorkspace').length,1);
   assert.equal(w.calls.filter(x=>x==='loadDeliveryZonesWorkspace').length,1);
+  assert.deepEqual(w.errors,[],'Every route loader should complete without a swallowed error');
 });
 test('Owner cannot open Admin, disabled POS or refund routes',async()=>{
   const w=workspace();

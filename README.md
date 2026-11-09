@@ -26,6 +26,12 @@ The current Owner scope retains twelve existing sections: Overview, Orders, Menu
 
 Navigation, independent page structure, mobile document/drawer scrolling and persistent settings have been repaired. Reports use verified payment records and exclude demo sales; CSV, real Excel workbooks and printable bills/reports are available. See [Owner verification](docs/OWNER_VERIFICATION_20261109.md) for actual authenticated browser and database evidence and the remaining external payment/security limits.
 
+## Bite Owner and Customer refresh — 9 November 2026
+
+Owner navigation is grouped into daily work, accounts and business. The overview shows tenant-scoped website orders, confirmed paid collections, current expenses and a seven-day collections chart. Legacy POS activity and sample orders do not inflate these figures. Customer discovery and menus now share the Bite visual theme, locally served illustrative food photography, combined menu search/category/vegetarian filters and direct quantity controls.
+
+See [UI refresh verification](docs/UI_REFRESH_20261109.md) and [image sources](docs/STOREFRONT_IMAGE_SOURCES.md). This interface update does not certify live payment collection.
+
 ## Phase 1 progress
 
 See [Phase 1 Database & Access Progress](docs/PHASE_1_DATABASE_ACCESS_PROGRESS.md) and [Master Prompt Implementation Audit](docs/MASTER_PROMPT_IMPLEMENTATION_AUDIT.md) for live database changes, test results and outstanding security work.

@@ -30,7 +30,7 @@ try:
         page.goto("http://127.0.0.1:4173/customer.html", wait_until="domcontentloaded")
         page.locator("#resultCount").wait_for(state="visible", timeout=30000)
         page.wait_for_function(
-            "() => !document.querySelector('#resultCount').textContent.toLowerCase().includes('loading')",
+            "() => !/loading|finding/i.test(document.querySelector('#resultCount').textContent)",
             timeout=30000,
         )
         check("Bite" in page.title(), "Customer storefront title and document loaded")
@@ -42,16 +42,42 @@ try:
         check(availability_fields, "Public restaurant listing returns the new availability fields from Supabase")
 
         # Exercise the customer-visible closure state using the live restaurant record.
-        page.evaluate("restaurants[0].is_temporarily_closed = true; renderRestaurants()")
-        check("temporarily closed" in cards.first.inner_text().lower(),
+        original = page.evaluate("() => ({id:restaurants[0].id,closed:restaurants[0].is_temporarily_closed,until:restaurants[0].temporary_closure_until})")
+        page.evaluate("id => {const r=restaurants.find(r=>r.id===id);r.is_temporarily_closed=true;r.temporary_closure_until=null;renderRestaurants()}", original['id'])
+        closed_card = page.locator('.restaurant[data-id="' + original['id'] + '"]')
+        check("temporarily closed" in closed_card.inner_text().lower(),
               "Customer restaurant card displays temporary closure state")
-        page.evaluate("restaurants[0].is_temporarily_closed = false; renderRestaurants()")
+        page.evaluate("o => {const r=restaurants.find(r=>r.id===o.id);r.is_temporarily_closed=o.closed;r.temporary_closure_until=o.until;renderRestaurants()}", original)
+
+        page.locator('#homeSearchInput').fill('BITE-NO-MATCH-ZZ-123')
+        check(page.locator('#restaurantGrid .restaurant').count() == 0, 'Unmatched search shows an actionable empty state')
+        page.get_by_role('button', name='Show all restaurants', exact=True).click()
+        check(page.locator('#restaurantGrid .restaurant').count() > 0, 'Reset restores public restaurant discovery')
 
         # Browse a restaurant and confirm its menu is reachable without login.
         cards.first.click()
         page.locator("#menuView:not(.hidden)").wait_for(state="visible", timeout=20000)
         page.locator("#restaurantName").wait_for(state="visible")
         check(bool(page.locator("#restaurantName").inner_text().strip()), "Customer can open a restaurant menu without login")
+        page.locator('#menuItems [data-add]').first.wait_for(state='visible', timeout=20000)
+        page.locator('#menuSearchInput').fill('BITE-NO-DISH-ZZ-123')
+        check(page.locator('#menuItems .menuitem').count() == 0, 'Menu search filters actual dishes')
+        page.locator('#menuSearchInput').fill('')
+        page.locator('#menuVegToggle').check()
+        check(page.locator('#menuItems .menuitem').count() == page.locator('#menuItems .food-type.veg').count(), 'Veg only excludes non-vegetarian and unclassified dishes')
+        page.locator('#menuVegToggle').uncheck()
+        add = page.locator('#menuItems [data-add]').first
+        item_id = add.get_attribute('data-add')
+        add.click()
+        page.locator('[data-add="' + item_id + '"]').click()
+        check(page.locator('#cartCount').inner_text() == '(2)', 'Menu quantity changes update the cart')
+        page.locator('[data-menu-dec="' + item_id + '"]').click()
+        check(page.locator('#cartCount').inner_text() == '(1)', 'Removing one item updates both menu and cart')
+        page.locator('#continueBtn').click()
+        check(page.locator('#cartModal.show').is_visible(), 'Cart detail opens with the selected dish')
+        page.locator('#closeCartModal').click()
+        page.locator('#backBtn').click()
+        check(not page.locator('#cartFloating').is_visible(), 'Floating cart is hidden outside the restaurant menu')
 
         # The marketplace must not create orders while no payment provider is configured.
         button = page.locator("#placeOrderBtn")
@@ -72,7 +98,7 @@ try:
         mobile.goto("http://127.0.0.1:4173/customer.html", wait_until="domcontentloaded")
         mobile.locator("#resultCount").wait_for(state="visible", timeout=30000)
         mobile.wait_for_function(
-            "() => !document.querySelector('#resultCount').textContent.toLowerCase().includes('loading')",
+            "() => !/loading|finding/i.test(document.querySelector('#resultCount').textContent)",
             timeout=30000,
         )
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
