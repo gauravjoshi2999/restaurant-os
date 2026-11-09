@@ -113,10 +113,10 @@ try:
         page.locator('#backBtn').click()
         check(not page.locator('#cartFloating').is_visible(), 'Floating cart is hidden outside the restaurant menu')
 
-        # The marketplace must not create orders while no payment provider is configured.
+        # Payment stays locked until the signed-in checkout checks server readiness.
         button = page.locator("#placeOrderBtn")
-        check(button.is_disabled(), "Checkout remains disabled without an approved payment provider")
-        check("payment setup pending" in button.inner_text().lower(), "Checkout explains that payment setup is pending")
+        check(button.is_disabled(), "Checkout stays disabled before authenticated payment readiness is checked")
+        check("checking online payment" in button.inner_text().lower(), "Checkout shows a readiness check instead of the obsolete setup-pending lock")
         check("cash on delivery" not in page.locator("body").inner_text().lower(), "No cash-on-delivery option is offered")
 
         # Forgot-password UI must be reachable and validate the email before sending.

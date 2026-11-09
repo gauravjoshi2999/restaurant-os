@@ -73,7 +73,7 @@ check("ENABLE ROW LEVEL SECURITY" in support_migration and "Customers and admins
       "Support tickets are tenant-scoped and their lifecycle is audit logged")
 check("if(!recovery&&(!email.includes('@')" in customer and "emailLabel" in customer,
       "Password recovery does not require the email field after the secure reset link returns")
-check("list_public_restaurants" in customer and "place_customer_order" in customer,
+check("list_public_restaurants" in customer and "bite_prepare_live_checkout" in customer and "bite-live-verify-checkout" in customer,
       "Customer discovery and guarded checkout RPCs are wired")
 check("ownerSettingOpen" in owner and "ownerSettingClose" in owner and "ownerSettingTempClosed" in owner and "ownerSettingDeliveryPaused" in owner,
       "Owner can configure operating hours, temporary closure and delivery pause")
@@ -93,8 +93,8 @@ handover_share = owner.split('async function shareDeliveryHandoff(', 1)[1].split
 handover_action = owner.split('async function shareAndHandOverDelivery(', 1)[1].split('async function advanceOrder', 1)[0]
 check("if(!confirm(" in handover_action and "shareDeliveryHandoff(id,true)" in handover_action and "confirm_delivery_handoff" in delivery,
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
-check("payment setup pending" in customer.lower() or "payment provider" in customer.lower(),
-      "Customer checkout fails closed while no approved payment provider is configured")
+check("await refreshCheckoutPaymentReadiness()" in customer and "data?.ready!==true" in customer and "checkoutPaymentReady=false" in customer,
+      "Customer checkout checks server readiness and fails closed before payment preparation")
 check("const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']" in owner and "'pos'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220] and "'refunds'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220],
       "Owner navigation exposes supported restaurant tools and excludes disabled POS and refunds")
 check("This account is linked to more than one restaurant" in owner,

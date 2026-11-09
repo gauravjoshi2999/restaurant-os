@@ -22,7 +22,7 @@ jobs:
         run: |
           python scripts/check_frontend.py
           python scripts/check_owner_structure.py
-          node --test scripts/owner_behavior.test.cjs scripts/redesign.test.cjs
+          node --test scripts/owner_behavior.test.cjs scripts/redesign.test.cjs scripts/checkout_behavior.test.cjs
       - name: Install browser test dependencies
         run: |
           python -m pip install playwright
