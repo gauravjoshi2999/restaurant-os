@@ -1,0 +1,123 @@
+{
+  "date": "2026-11-09",
+  "source_baseline": "067e1beef734f553427f617f6280a43add33058b",
+  "behavior_cases_passed": 33,
+  "database_groups_passed": 43,
+  "database_method": "PostgreSQL role simulation with complete fixture rollback",
+  "public_tables_with_rls": 47,
+  "reporting_views_security_invoker": 5,
+  "deployed_webhook_version": 7,
+  "existing_business_record_counts_unchanged": true,
+  "ephemeral_qa_users_remaining": 0,
+  "actual_new_auth_logins_tested": false,
+  "actual_new_provider_charge_tested": false,
+  "external_messages_sent": false,
+  "extra_owner_hr_repeat": {
+    "status": "NOT_COMPLETED",
+    "reason": "Native database confirmation expired; excluded from pass count"
+  },
+  "groups": {
+    "owner": [
+      "Owner isolation: tables, views and foreign write denial",
+      "Menu category/item create, update, availability and delete",
+      "Table create, seating update and deactivate",
+      "Expense create/edit and automatic cashbook sync",
+      "Khata customer, udhar, collection and balance",
+      "Cashbook manual income and payment-mode totals",
+      "Supplier, purchase, partial payment, stock posting and negative-stock guard",
+      "Employee create/edit, attendance, leave approval and salary cashbook posting",
+      "Settings, operating hours, delivery pause and protected commission denial",
+      "Cashbook reconciliation across modules and closed-day write guard"
+    ],
+    "delivery": [
+      "Owner accept, prepare, ready, protected delivery handover and pickup completion",
+      "Public delivery link and five-attempt OTP lock",
+      "Owner link recovery after handover, old-token invalidation, Customer-only OTP and completion"
+    ],
+    "admin_customer": [
+      "Customer profile/address create-edit-read and foreign write denial",
+      "Customer private address/profile/order history isolation",
+      "Own pre-accept cancellation, foreign denial and accepted-order guard",
+      "Cancellation request uniqueness, Admin denial and Owner decision",
+      "Completed-order review, undelivered and duplicate review guards",
+      "Owner review reply, foreign denial and no Owner review hiding",
+      "Customer review report, Admin moderation and audit trail",
+      "Support creation, private tracking, forged-resolution denial and Admin response",
+      "Owner identity-change request, Admin approval and audit trail",
+      "Admin cannot perform restaurant operational writes",
+      "User-metadata spoofing and direct Admin escalation denied",
+      "Admin approval/publication, suspension and reactivation; Owner denial",
+      "Payout details require Admin approval; no bank transfer performed",
+      "Completed-order complaint, restaurant response and Customer tracking",
+      "Anonymous private-address access and payment activation denied"
+    ],
+    "security_payment": [
+      {
+        "case": "Null-customer cancellation denied",
+        "status": "PASS"
+      },
+      {
+        "case": "Null-customer request denied",
+        "status": "PASS"
+      },
+      {
+        "case": "One restaurant per Owner enforced in DB",
+        "status": "PASS"
+      },
+      {
+        "case": "Server-priced subtotal and area delivery fee",
+        "status": "PASS"
+      },
+      {
+        "case": "Delivery pause blocks payment preparation",
+        "status": "PASS"
+      },
+      {
+        "case": "Delivery pause still permits pickup",
+        "status": "PASS"
+      },
+      {
+        "case": "Temporary closure blocks payment preparation",
+        "status": "PASS"
+      },
+      {
+        "case": "Opening hours enforced before payment",
+        "status": "PASS"
+      },
+      {
+        "case": "Customer cannot activate unpaid checkout",
+        "status": "PASS"
+      },
+      {
+        "case": "Invalid item quantity denied",
+        "status": "PASS"
+      },
+      {
+        "case": "Verified checkout respects restaurant commission override",
+        "status": "PASS"
+      }
+    ],
+    "null_ownership": [
+      {
+        "case": "Unlinked completed-order review denied",
+        "status": "PASS"
+      },
+      {
+        "case": "Unlinked completed-order complaint denied",
+        "status": "PASS"
+      },
+      {
+        "case": "Unlinked accepted-order cancellation request denied",
+        "status": "PASS"
+      },
+      {
+        "case": "Legitimate linked Customer review and complaint still work",
+        "status": "PASS"
+      }
+    ]
+  },
+  "applied_migrations": [
+    "20261109152400_bite_deep_qa_owner_checkout_guards",
+    "20261109164846_bite_customer_order_null_ownership_guard"
+  ]
+}

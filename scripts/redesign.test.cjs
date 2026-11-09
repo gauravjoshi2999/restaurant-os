@@ -63,3 +63,16 @@ test('today expenses exclude samples, other days and foreign restaurants',()=>{
   ];
   assert.equal(dashboard.summarize({expenses},'a',new Date('2026-11-09T01:00:00Z')).todayExpenses,125);
 });
+
+test('restaurant opening hours use India time and an exclusive closing boundary',()=>{
+ const r={opening_time:'10:00:00',closing_time:'22:00:00'};
+ assert.equal(discovery.isClosed(r,Date.parse('2026-11-09T04:29:59Z')),true);
+ assert.equal(discovery.isClosed(r,Date.parse('2026-11-09T04:30:00Z')),false);
+ assert.equal(discovery.isClosed(r,Date.parse('2026-11-09T16:30:00Z')),true);
+});
+test('overnight hours, equal all-day times and expired temporary closure are handled',()=>{
+ const r={opening_time:'18:00:00',closing_time:'06:00:00',is_temporarily_closed:true,temporary_closure_until:'2000-01-01'};
+ assert.equal(discovery.isClosed(r,Date.parse('2026-11-09T17:30:00Z')),false);
+ assert.equal(discovery.isClosed(r,Date.parse('2026-11-09T06:30:00Z')),true);
+ assert.equal(discovery.isClosed({opening_time:'00:00:00',closing_time:'00:00:00'},Date.parse('2026-11-09T06:30:00Z')),false);
+});

@@ -107,7 +107,12 @@ try:
         check(page.locator('#cartCount').inner_text() == '(2)', 'Menu quantity changes update the cart')
         page.locator('[data-menu-dec="' + item_id + '"]').click()
         check(page.locator('#cartCount').inner_text() == '(1)', 'Removing one item updates both menu and cart')
-        page.locator('#continueBtn').click()
+        # A closed restaurant still permits cart inspection; checkout remains blocked.
+        if page.locator('#continueBtn').is_disabled():
+            check('closed' in page.locator('#continueBtn').inner_text().lower(), 'Closed restaurant blocks the Continue action')
+            page.locator('#floatingViewCart').click()
+        else:
+            page.locator('#continueBtn').click()
         check(page.locator('#cartModal.show').is_visible(), 'Cart detail opens with the selected dish')
         page.locator('#closeCartModal').click()
         page.locator('#backBtn').click()
