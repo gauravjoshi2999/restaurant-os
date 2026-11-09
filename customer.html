@@ -430,4 +430,29 @@ function openOrderActionDialog(action){ensureOrderActionDialog();const title=$('
 $('orderActionBack').addEventListener('click',()=>closeOrderActionDialog(null));const root=$('orderActionDialog');root.classList.add('show');const first=fields.querySelector('textarea,select');if(first)first.focus();return new Promise(resolve=>{orderActionResolve=resolve;$('orderActionForm').onsubmit=e=>{e.preventDefault();const msg=$('orderActionMessage'),choice=$('orderActionChoice');let message=msg?msg.value.trim():'';if(action==='cancel_request'||action==='complaint'){const selected=choice?.value||'';if(selected.length<3){error.textContent='Kripya reason choose karein.';choice?.focus();return;}message=selected+(message?' — '+message:'');}else if(msg&&msg.value.trim().length<3){error.textContent='Kripya kam se kam 3 characters likhein.';msg.focus();return;}if(message.length>500){error.textContent='Message 500 characters se kam hona chahiye.';msg?.focus();return;}closeOrderActionDialog({rating:action==='review'?Number($('orderActionRating').value):null,message});};});}
 function showOrderActionResult(message,type='success'){const root=ensureOrderActionDialog();$('orderActionTitle').textContent=type==='error'?'Could not submit':'Done';$('orderActionSubtitle').textContent=message;$('orderActionFields').innerHTML='<div class="order-action-result '+(type==='error'?'error':'success')+'">'+(type==='error'?'⚠️':'✓')+' '+safe(message)+'</div>';$('orderActionError').textContent='';$('orderActionButtons').innerHTML='<button type="button" class="order-action-btn primary" id="orderActionResultClose">Close</button>';$('orderActionForm').onsubmit=e=>e.preventDefault();root.classList.add('show');$('orderActionResultClose').addEventListener('click',()=>closeOrderActionDialog(null));}
 </script>
+
+<script id="bite-cashfree-return-handler">
+/* Payment is verified on Supabase, never from a redirect query string. */
+(function(){
+ const params=new URLSearchParams(location.search);
+ if(params.get('cashfree_return')!=='1')return;
+ const cfId=params.get('order_id')||'';
+ if(!/^bite_[0-9a-f]{32}$/i.test(cfId))return;
+ const raw=cfId.slice(5);
+ const id=raw.slice(0,8)+'-'+raw.slice(8,12)+'-'+raw.slice(12,16)+'-'+raw.slice(16,20)+'-'+raw.slice(20);
+ const notice=document.createElement('div');notice.setAttribute('role','status');notice.style.cssText='position:fixed;bottom:16px;left:12px;right:12px;z-index:99999;padding:16px;border-radius:12px;background:#fff;color:#182238;box-shadow:0 6px 24px #0003;font:15px system-ui';notice.textContent='Payment verify ho raha hai. Kripya wait karein.';
+ document.body.appendChild(notice);
+ async function verify(){
+  try{
+   const {data:{session}}=await sb.auth.getSession();
+   if(!session){notice.textContent='Payment status check karne ke liye apne account mein login karein.';return}
+   const {data,error}=await sb.functions.invoke('cashfree-verify-order',{body:{order_id:id}});
+   if(error)throw error;
+   notice.textContent=data?.verified&&data?.status==='paid'?'Payment verified successfully. My Orders mein order dekhein.':'Payment abhi confirm nahi hua. Dobara payment na karein; My Orders mein status check karein.';
+  }catch(error){notice.textContent='Payment status verify nahi ho saka. Kripya support se confirm karein, dobara payment na karein.';console.error('Cashfree return verification:',error)}
+  finally{history.replaceState(null,'',location.pathname)}
+ }
+ verify();
+})();
+</script>
 </body></html>
