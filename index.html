@@ -2746,5 +2746,30 @@ body[data-role="owner"] #mainApp .page.active>.welcome,body[data-role="owner"] #
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
 })();
 </script>
+
+<style id="bite-owner-page-shell-v4">
+body[data-role="owner"] #mainApp>.main>.content>.page.active{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;transform:none!important;min-height:450px!important;height:auto!important;overflow:visible!important}
+body[data-role="owner"] #mainApp>.main>.content>.page:not(.active){display:none!important}
+body[data-role="owner"] #mainApp>.main>.content>.page.active>*{visibility:visible!important;opacity:1!important}
+</style>
+<script id="bite-owner-page-diagnostics-v4">
+(function(){
+ function check(){
+  if(document.body.dataset.role!=='owner')return;
+  const app=document.getElementById('mainApp');const content=app?.querySelector('.main>.content');const page=content?.querySelector('.page.active');
+  if(!content||!page)return;
+  const rect=page.getBoundingClientRect(),style=getComputedStyle(page),title=document.getElementById('pageTitle');
+  let notice=document.getElementById('bitePageDiagnostic');
+  if(!notice){notice=document.createElement('div');notice.id='bitePageDiagnostic';notice.style.cssText='display:none;position:relative;z-index:3;background:#fff4e6;color:#713c13;border:1px solid #f3c99e;padding:12px;border-radius:10px;margin:12px;font:13px system-ui';content.prepend(notice)}
+  const broken=style.display==='none'||style.visibility==='hidden'||rect.height<35;
+  notice.style.display=broken?'block':'none';
+  if(broken)notice.textContent='Bite workspace display error: '+page.id+' (display='+style.display+', height='+Math.round(rect.height)+'). Please share screenshot.';
+  if(title&&title.textContent.trim()==='')title.textContent=page.id;
+ }
+ document.addEventListener('click',e=>{if(document.body.dataset.role!=='owner')return;const target=e.target instanceof Element?e.target:null;if(!target?.closest('#mainApp .nav button, #mainApp .bo-tools button, #mainApp .bo-link'))return;setTimeout(check,100)},false);
+ const start=()=>{const app=document.getElementById('mainApp');if(!app)return;new MutationObserver(()=>check()).observe(app,{subtree:true,attributes:true,attributeFilter:['class']});check()};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
 </body></html>
 <!-- Login diagnostic update pending verification -->
