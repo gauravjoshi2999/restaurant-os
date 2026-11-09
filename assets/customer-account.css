@@ -5,14 +5,14 @@
 .account-page-heading h1{margin:7px 0 8px;font-size:32px;line-height:1.2;letter-spacing:-1px;font-weight:700}
 .account-page-heading p{margin:0;color:var(--bite-muted);font-size:14px;line-height:1.65}
 .account-layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px;align-items:start}
-.account-panel{min-width:0;border:1px solid var(--bite-border);border-radius:17px;background:var(--bite-surface);padding:25px;box-shadow:0 6px 20px #35442e06}
-.account-profile-card{grid-column:1/-1;display:flex;align-items:center;gap:18px;background:var(--bite-sage);border-color:var(--bite-sage-border)}
+.account-panel{min-width:0;border:1px solid var(--bite-border);border-radius:17px;background:var(--bite-surface);padding:25px;box-shadow:0 6px 20px #25293606}
+.account-profile-card{grid-column:1/-1;display:flex;align-items:center;gap:18px;background:var(--bite-tint);border-color:var(--bite-tint-border)}
 .account-profile-card>div{min-width:0;flex:1}
 .account-panel h2{font-size:19px;font-weight:700;letter-spacing:-.4px;line-height:1.4;margin:0;color:var(--bite-ink)}
 .account-panel h3{font-size:16px;font-weight:650;letter-spacing:-.25px;line-height:1.5;margin:0 0 20px;color:var(--bite-ink)}
-.account-section-icon{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:var(--bite-sage);color:var(--bite-forest)}
+.account-section-icon{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border-radius:12px;background:var(--bite-tint);color:var(--bite-primary)}
 .account-section-icon svg{width:22px;height:22px}
-.account-profile-card .account-section-icon{background:var(--bite-forest);color:var(--bite-cream)}
+.account-profile-card .account-section-icon{background:var(--bite-primary);color:var(--bite-on-dark)}
 .account-profile{font-size:14px;line-height:1.75;color:var(--bite-muted);overflow-wrap:anywhere;word-break:break-word;margin-top:8px}
 .account-profile>strong{display:block;font-size:17px;color:var(--bite-ink);font-weight:650;margin-bottom:3px}
 .account-card-heading{display:flex;align-items:flex-start;gap:13px;margin-bottom:22px}
@@ -29,13 +29,13 @@
 .account-field-wide{grid-column:1/-1}
 #accountView .account-field>label{display:block;width:100%;font-size:13px;line-height:1.5;font-weight:650;color:var(--bite-ink);margin:0}
 .account-field>label>span{font-size:12px;font-weight:400;color:var(--bite-muted)}
-#accountView .account-field input,#accountView .account-field select,#accountView .account-field textarea{display:block;box-sizing:border-box;min-width:0;width:100%;max-width:100%;min-height:48px;margin:0;padding:12px 13px;font:inherit;font-size:15px;line-height:1.45;color:var(--bite-ink);background:var(--bite-field);border:1px solid var(--bite-border);border-radius:9px;outline:0;box-shadow:0 1px 2px #4f4c2f03}
+#accountView .account-field input,#accountView .account-field select,#accountView .account-field textarea{display:block;box-sizing:border-box;min-width:0;width:100%;max-width:100%;min-height:48px;margin:0;padding:12px 13px;font:inherit;font-size:15px;line-height:1.45;color:var(--bite-ink);background:var(--bite-field);border:1px solid var(--bite-border);border-radius:9px;outline:0;box-shadow:0 1px 2px #25293603}
 #accountView .account-field select{text-overflow:ellipsis;white-space:nowrap;padding-right:30px}
 #accountView .account-field textarea{min-height:150px;resize:vertical;white-space:pre-wrap;overflow-wrap:anywhere}
 #accountView .account-field input::placeholder,#accountView .account-field textarea::placeholder{color:var(--bite-placeholder);opacity:1}
 #accountView .account-field input:focus,#accountView .account-field select:focus,#accountView .account-field textarea:focus{border-color:var(--bite-focus);box-shadow:0 0 0 3px var(--bite-focus-ring)}
 #accountView label.account-check{display:flex;align-items:flex-start;gap:10px;min-height:30px;font-size:13px;color:var(--bite-ink);line-height:1.6;margin:2px 0 0;cursor:pointer}
-#accountView .account-check input{display:block;flex:0 0 19px;width:19px;height:19px;min-width:19px;min-height:19px;max-width:19px;margin:1px 0 0;padding:0;accent-color:var(--bite-forest)}
+#accountView .account-check input{display:block;flex:0 0 19px;width:19px;height:19px;min-width:19px;min-height:19px;max-width:19px;margin:1px 0 0;padding:0;accent-color:var(--bite-primary)}
 .account-check>span{min-width:0;overflow-wrap:anywhere}
 .account-message{font-size:12px;line-height:1.65;overflow-wrap:anywhere;margin-top:13px;color:var(--bite-danger)}
 .account-message:empty{display:none}

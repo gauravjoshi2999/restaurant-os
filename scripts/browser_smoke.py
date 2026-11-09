@@ -53,7 +53,7 @@ def check_account_layout(page, width):
     overflow=page.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")
     check(overflow <= 1, f"Account and Support have no horizontal overflow at {width}px")
     colors=page.evaluate("""() => ({body:getComputedStyle(document.body).backgroundColor,panel:getComputedStyle(document.querySelector('.account-address-card')).backgroundColor,field:getComputedStyle(document.getElementById('addrName')).backgroundColor})""")
-    check(all(c not in ['rgb(255, 255, 255)','rgba(0, 0, 0, 0)'] for c in colors.values()), f"Account canvas, card and fields use the warm theme at {width}px")
+    check(all(c not in ['rgb(255, 255, 255)','rgba(0, 0, 0, 0)'] for c in colors.values()), f"Account canvas, card and fields use neutral marketplace surfaces at {width}px")
     page.locator('#addrSave').click()
     check(bool(page.locator('#addrError').inner_text().strip()), f"Address validation feedback is visible before any authenticated write at {width}px")
 
