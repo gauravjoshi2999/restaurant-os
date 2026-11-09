@@ -2652,5 +2652,40 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<style id="bite-owner-navigation-fix-v2">
+/* Keep the backdrop behind the drawer, never over interactive content. */
+body[data-role="owner"] #mainApp #sidebarOverlay:not(.visible){display:none!important;pointer-events:none!important}
+body[data-role="owner"] #mainApp #sidebarOverlay.visible{pointer-events:auto!important}
+body[data-role="owner"] #mainApp .side.sidebar-open{z-index:110!important}
+body[data-role="owner"] #mainApp #sidebarOverlay.visible{z-index:90!important}
+body[data-role="owner"] #mainApp .page:not(.active){display:none!important}
+</style>
+<script id="bite-owner-navigation-fix-v2-script">
+(function(){
+const pages=new Set(['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']);
+function navigate(page){
+ if(!pages.has(page))return;
+ const app=document.getElementById('mainApp');if(!app)return;
+ app.querySelectorAll('.page').forEach(el=>el.classList.toggle('active',el.id===page));
+ app.querySelectorAll('.nav button[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+ const title=document.getElementById('pageTitle');const button=app.querySelector('.nav button[data-page="'+page+'"] .nav-text');
+ if(title)title.textContent=button?.textContent?.trim()||page;
+ app.querySelector('.side')?.classList.remove('sidebar-open');
+ document.getElementById('sidebarOverlay')?.classList.remove('visible');
+ document.querySelector('.sidebar-toggle')?.setAttribute('aria-expanded','false');
+ window.scrollTo({top:0,behavior:'instant'});
+ const content=app.querySelector('.content');if(content)content.scrollTop=0;
+ const loaders={menu:'loadMenuWorkspace',tables:'loadTablesWorkspace',khata:'loadKhataWorkspace',cashbook:'loadCashbookWorkspace',expenses:'loadExpenseWorkspace',purchases:'loadPurchaseWorkspace',inventory:'loadInventoryWorkspace',hr:'loadHRWorkspace',reports:'loadReportsWorkspace',settings:'loadOwnerSettings',orders:'loadCustomerOrderRequestsWorkspace'};
+ const loader=loaders[page];if(loader&&typeof window[loader]==='function')Promise.resolve().then(()=>window[loader]()).catch(err=>console.error('Bite '+page+' loader:',err));
+}
+document.addEventListener('click',function(e){
+ if(document.body.dataset.role!=='owner')return;
+ const target=e.target instanceof Element?e.target:null;
+ const btn=target?.closest('#mainApp .nav button[data-page]');if(!btn)return;
+ e.preventDefault();e.stopImmediatePropagation();navigate(btn.dataset.page);
+},true);
+})();
+</script>
 </body></html>
 <!-- Login diagnostic update pending verification -->
