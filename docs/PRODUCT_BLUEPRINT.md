@@ -56,6 +56,10 @@ Current technical foundation discovered in the repository: GitHub Pages static f
 
 ## 3. Restaurant Owner Dashboard
 
+### Current Owner scope update — 9 November 2026
+The subsequent accepted Owner workflow retains the existing Overview, Orders, Menu Management, Tables, Customer Khata, Cashbook, Expenses, Purchases & Suppliers, Inventory, Employees & HR, Reports and Settings. Complete and verify these existing operations first. This supersedes their older exclusion below; it does not authorize enabling disabled POS creation, POS refunds, kitchen/KOT, multiple branches or aggregator integrations. Keep historical data safe. HR/payroll automation and recipe stock deduction are not implied by these manual business records.
+
+
 ### Registration and approval
 - Register mobile, restaurant name/address/location/category, menu/photos, bank settlement details and required business documents.
 - New restaurant remains Pending until Platform Admin approval.
@@ -130,7 +134,7 @@ Professional mobile-first responsive experience for Android, tablet and desktop.
 
 ## 9. Explicit exclusions for initial release
 
-The following older prototype features are NOT part of this Master Prompt and must not appear as active product modules or navigation: POS/counter sales, dine-in tables, KOT/KDS, inventory/stock, suppliers/purchases, employee HR/attendance/payroll, customer khata/ledger, daily cashbook/closing, multiple branches, Zomato/Swiggy integrations/manual channel workflows, hotel modules, platform delivery-partner fleet, subscriptions. Existing database objects/data are not to be destructively dropped merely to hide these features; archive/deprecate safely and preserve records unless a separately approved data migration explicitly authorizes deletion.
+The following older prototype features are NOT part of this Master Prompt and must not appear as active product modules or navigation: POS/counter order creation, POS refunds, KOT/KDS, automated payroll, multiple branches, Zomato/Swiggy integrations/manual channel workflows, hotel modules, platform delivery-partner fleet, subscriptions. Existing database objects/data are not to be destructively dropped merely to hide these features; archive/deprecate safely and preserve records unless a separately approved data migration explicitly authorizes deletion.
 
 ## 10. Technical delivery and phased implementation
 

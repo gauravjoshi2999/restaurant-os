@@ -131,7 +131,7 @@ check("const platformPages=['overview','restaurants','orders','financials','audi
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
-check("access.role==='owner'&&!['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'].includes(id)" in owner,
+check("const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[]" in owner and "if(!allowed.includes(id))id='overview'" in owner,
       "Owner route guard allows supported restaurant operations and blocks disabled or Platform Admin pages")
 check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
       "Legacy manual POS order creation is disabled in the marketplace MVP")

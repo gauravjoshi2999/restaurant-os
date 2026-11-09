@@ -20,6 +20,12 @@ The current requirements baseline is [Master Product Specification](docs/PRODUCT
 - Backend/database/auth: Supabase PostgreSQL + Auth + RLS
 - Server-side privileged workflows must use trusted backend functions (e.g. Supabase Edge Functions); never expose service-role or payment secrets in browser code.
 
+## Owner workspace — 9 November 2026
+
+The current Owner scope retains twelve existing sections: Overview, Orders, Menu Management, Tables, Customer Khata, Cashbook, Expenses, Purchases & Suppliers, Inventory, Employees & HR, Reports and Settings. POS creation and manual POS refunds remain disabled; platform management stays Admin-only.
+
+Navigation, independent page structure, mobile document/drawer scrolling and persistent settings have been repaired. Reports use verified payment records and exclude demo sales; CSV, real Excel workbooks and printable bills/reports are available. See [Owner verification](docs/OWNER_VERIFICATION_20261109.md) for actual authenticated browser and database evidence and the remaining external payment/security limits.
+
 ## Phase 1 progress
 
 See [Phase 1 Database & Access Progress](docs/PHASE_1_DATABASE_ACCESS_PROGRESS.md) and [Master Prompt Implementation Audit](docs/MASTER_PROMPT_IMPLEMENTATION_AUDIT.md) for live database changes, test results and outstanding security work.
@@ -34,7 +40,7 @@ Do not present test data or seeded demo restaurants/orders as real customers or 
 
 ## Initial-release exclusions
 
-Do not expose legacy POS/counter sales, dine-in tables, KOT/KDS, inventory/stock, suppliers/purchases, HR/payroll, customer khata, daily cashbook/closing, multiple branches, Zomato/Swiggy channel integrations, hotel modules, platform delivery fleet or subscriptions as active modules. Legacy database tables may be retained temporarily for data safety; they must not drive the new product UI or business logic.
+The current Owner scope above supersedes the earlier exclusions of Tables, Khata, Cashbook, Purchases, Inventory and HR records. Do not enable POS/counter order creation, manual POS refunds, KOT/KDS, multiple branches, Zomato/Swiggy integrations, platform delivery fleet or subscriptions. HR records and payment entry do not imply automatic payroll calculation. Preserve historical business records.
 
 ## Deployment
 
@@ -55,7 +61,7 @@ Live owner/admin app: https://gauravjoshi2999.github.io/restaurant-os/
 - Static frontend QA and GitHub Pages deployment workflows passed. See [Phase 1 QA report](docs/PHASE_1_QA_RUN_20261108.md).
 - Customer checkout remains intentionally disabled until an approved marketplace payment provider is connected. Production release is not approved while Auth leaked-password protection, owner membership cleanup, customer-only RLS test identity, positive delivery handoff browser test and SECURITY DEFINER review remain open.
 
-- Admin Restaurants now has explicit Approve / Reject / Suspend / Reactivate actions that write the database onboarding status and reviewer audit fields. Owner route access is restricted to Overview, Website Orders, Menu, Expenses, Reports and Settings; legacy POS creation is blocked.
+- Admin Restaurants now has explicit Approve / Reject / Suspend / Reactivate actions that write the database onboarding status and reviewer audit fields. That earlier Phase 1 Owner route restriction has been replaced by the twelve-section Owner scope above; legacy POS creation remains blocked.
 - Legacy Owner invitation Edge Function version 3 also rejects Platform Admin accounts and accounts already linked to a different restaurant.
 
 - 2026-11-08 scope hardening: direct browser execution of the legacy manual/POS order-creation RPCs is revoked; legacy tables/data remain preserved. See the Phase 1 progress and QA reports.

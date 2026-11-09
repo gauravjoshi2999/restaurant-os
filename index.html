@@ -633,118 +633,18 @@ body[data-role="owner"] .page:not(#overview) .form-row{grid-template-columns:rep
 }
 </style>
 
-<style id="bite-owner-mobile-fix-v4">
-/* Clean owner workspace shell: remove conflicting legacy fixed-height rules */
-html,body{min-height:100%!important;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important}
-body[data-role="owner"] #mainApp{display:grid!important;grid-template-columns:252px minmax(0,1fr)!important;min-height:100dvh!important;height:auto!important;overflow:visible!important}
-body[data-role="owner"] #mainApp>.side{position:sticky!important;top:0!important;height:100dvh!important;min-height:100dvh!important;align-self:start;overflow-y:auto!important}
-body[data-role="owner"] #mainApp>.main{display:flex!important;flex-direction:column!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
-body[data-role="owner"] #mainApp>.main>.top{position:sticky!important;top:0!important;z-index:20;flex:0 0 70px!important}
-body[data-role="owner"] #mainApp>.main>.content{flex:1 1 auto!important;height:auto!important;min-height:calc(100dvh - 70px)!important;overflow:visible!important;max-width:none!important;padding:28px clamp(18px,3vw,44px) 48px!important;margin:0!important}
-body[data-role="owner"] .bite-owner-home{width:100%;max-width:1440px;margin:0 auto!important;padding:0 0 30px!important}
-body[data-role="owner"] .bite-owner-heading{margin-top:0!important}
-body[data-role="owner"] .workspace-sync-note{display:none!important}
-@media(max-width:760px){
- html,body{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
- body[data-role="owner"] #mainApp{display:block!important;width:100%!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
- body[data-role="owner"] #mainApp>.side{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(300px,86vw)!important;height:100dvh!important;min-height:0!important;z-index:60!important;transform:translateX(-110%);overflow-y:auto!important;padding:18px 14px 28px!important;box-shadow:18px 0 45px #0003}
- body[data-role="owner"] #mainApp>.side.sidebar-open{transform:translateX(0)!important}
- body[data-role="owner"] #mainApp>.main{display:block!important;width:100%!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
- body[data-role="owner"] #mainApp>.main>.top{position:sticky!important;top:0!important;z-index:30!important;display:flex!important;min-height:58px!important;height:auto!important;padding:9px 12px!important;background:#fff!important;box-shadow:0 2px 10px #20242d0a}
- body[data-role="owner"] #mainApp>.main>.content{display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:calc(100dvh - 58px)!important;overflow:visible!important;padding:17px 13px calc(32px + env(safe-area-inset-bottom))!important;margin:0!important}
- body[data-role="owner"] .bite-owner-home{padding:0 0 20px!important}
- body[data-role="owner"] .bite-owner-heading{margin:0 0 14px!important;gap:9px!important}
- body[data-role="owner"] .bite-outlet-card{margin-bottom:15px!important;padding:14px!important}
- body[data-role="owner"] .bite-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
- body[data-role="owner"] .bite-queue-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
- body[data-role="owner"] .bite-work-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
- body[data-role="owner"] .bite-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
- body[data-role="owner"] .bite-shortcuts .bite-panel-heading{grid-column:1/-1!important}
- body[data-role="owner"] .page:not(#overview)>.welcome{margin-top:0!important}
- body[data-role="owner"] .page:not(#overview) .form-row{grid-template-columns:minmax(0,1fr)!important}
- body[data-role="owner"] .table-wrap,.bite-recent-table{max-width:100%!important;overflow-x:auto!important}
- body[data-role="owner"] .sidebar-toggle{display:grid!important;place-items:center!important}
-}
-</style>
-<style id="bite-owner-scroll-repair-v5">
-/* Final owner scroll repair: one document scroll area, no nested locked viewport */
-body[data-role="owner"],body[data-role="owner"] html{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
-html:has(body[data-role="owner"]){height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
-body[data-role="owner"] #mainApp.app{display:grid!important;grid-template-columns:250px minmax(0,1fr)!important;width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important;align-items:stretch!important}
-body[data-role="owner"] #mainApp .side{position:sticky!important;top:0!important;align-self:start!important;height:100dvh!important;max-height:100dvh!important;min-height:100dvh!important;overflow-x:hidden!important;overflow-y:auto!important;transform:none}
-body[data-role="owner"] #mainApp .main{display:block!important;width:100%!important;min-width:0!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
-body[data-role="owner"] #mainApp .main>.top{position:sticky!important;top:0!important;z-index:25!important;height:auto!important;min-height:64px!important}
-body[data-role="owner"] #mainApp .main>.content{display:block!important;width:100%!important;max-width:none!important;height:auto!important;min-height:calc(100dvh - 64px)!important;max-height:none!important;overflow:visible!important;overflow-y:visible!important;overflow-x:visible!important;margin:0!important;padding:24px clamp(14px,2.5vw,36px) 48px!important}
-body[data-role="owner"] #mainApp .page.active{display:block!important;min-height:0!important;height:auto!important;overflow:visible!important}
-@media(max-width:760px){
- html:has(body[data-role="owner"]),body[data-role="owner"]{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
- body[data-role="owner"] #mainApp.app{display:block!important;width:100%!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
- body[data-role="owner"] #mainApp .main{display:block!important;width:100%!important;height:auto!important;min-height:100dvh!important;overflow:visible!important}
- body[data-role="owner"] #mainApp .main>.top{position:sticky!important;top:0!important;z-index:35!important;min-height:58px!important;height:auto!important}
- body[data-role="owner"] #mainApp .main>.content{height:auto!important;min-height:calc(100dvh - 58px)!important;max-height:none!important;overflow:visible!important;overflow-y:visible!important;padding:16px 12px calc(40px + env(safe-area-inset-bottom))!important}
- body[data-role="owner"] #mainApp .side{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(300px,86vw)!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;z-index:80!important;overflow-y:auto!important;overflow-x:hidden!important;transform:translateX(-110%)!important;transition:transform .22s ease!important}
- body[data-role="owner"] #mainApp .side.sidebar-open{transform:translateX(0)!important}
- body[data-role="owner"] #mainApp .sidebar-overlay.visible{display:block!important;position:fixed!important;inset:0!important;z-index:70!important;background:#10152280!important}
- body[data-role="owner"] .sidebar-toggle{display:grid!important;place-items:center!important;position:relative!important;z-index:90!important}
- body[data-role="owner"] #mainApp .nav{display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:visible!important;width:100%!important;gap:8px!important}
- body[data-role="owner"] #mainApp .nav-group{display:block!important}
- body[data-role="owner"] #mainApp .nav-label{display:block!important}
- body[data-role="owner"] #mainApp .nav button{display:flex!important;width:100%!important;min-height:44px!important;white-space:normal!important}
- body[data-role="owner"] .bite-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
-</style>
-<style id="bite-zomato-partner-dashboard-v6">
-body[data-role="owner"]{background:#f6f7f9!important;color:#20232b!important}
-body[data-role="owner"] #mainApp.app{grid-template-columns:248px minmax(0,1fr)!important}
-body[data-role="owner"] #mainApp .content{padding:22px clamp(16px,2.4vw,36px) 48px!important}
-body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:1500px;margin:0 auto;color:#242832}
-.zp-welcome{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:0}
-.zp-kicker,.zp-section-head>div>span,.zp-box-head>div>span{font-size:10px;font-weight:850;letter-spacing:.13em;color:#8b909a}
-.zp-welcome h1{font-size:28px;line-height:1.2;letter-spacing:-.8px;margin:7px 0 4px;color:#20232b}
-.zp-welcome p{margin:0;color:#777e89;font-size:13px}
-.zp-header-actions{display:flex;gap:9px;align-items:center}.zp-date,.zp-settings{border:1px solid #e8e9ed;background:white;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:700;color:#414651}
-.zp-outlet{display:flex;align-items:center;gap:15px;background:#fff;border:1px solid #e9eaee;border-radius:13px;padding:16px 19px;margin-bottom:22px}
-.zp-outlet-mark{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#fff0ed;color:#e34e38;font-weight:900;font-size:24px}
-.zp-outlet-info{flex:1;min-width:0}.zp-outlet-info small{font-size:9px;letter-spacing:.13em;color:#9297a1;font-weight:800}.zp-outlet-info h2{font-size:17px;margin:3px 0;color:#242832}.zp-outlet-info p{font-size:11px;color:#7c828d;margin:0}
-.zp-outlet-status{font-size:11px;color:#63716a;background:#f0f8f2;padding:8px 10px;border-radius:20px;white-space:nowrap}.zp-outlet-status i{display:inline-block;width:7px;height:7px;background:#24a36b;border-radius:50%;margin-right:5px}
-.zp-section-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 11px}.zp-section-head h2,.zp-box-head h2{font-size:19px;letter-spacing:-.4px;margin:4px 0;color:#252934}.zp-section-head button,.zp-box-head button{border:0;background:transparent;color:#df533e;font-size:12px;font-weight:800}
-.zp-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:13px}
-.zp-kpi{background:#fff;border:1px solid #e9eaee;border-radius:12px;padding:16px;min-width:0}
-.zp-kpi>div{display:flex;justify-content:space-between;align-items:center;color:#777e89;font-size:9px;letter-spacing:.08em;font-weight:850}.zp-kpi>div b{font-size:16px;color:#e15a43}
-.zp-kpi>strong{display:block;font-size:27px;letter-spacing:-.8px;color:#222630;margin:12px 0 4px;overflow-wrap:anywhere}.zp-kpi>small{font-size:10px;color:#9297a1}
-.zp-kpi-primary{background:#fff8f6;border-color:#f4d9d3}.zp-kpi-primary>strong{color:#d94f39}
-.zp-order-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px}
-.zp-stage{text-align:left;border:1px solid #e9eaee;background:#fff;border-radius:12px;padding:13px 15px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;cursor:pointer;color:#252a34}
-.zp-stage>span{font-size:9px;letter-spacing:.1em;font-weight:850;color:#8a909b}.zp-stage>strong{font-size:25px}.zp-stage>small{font-size:10px;color:#858b96}.zp-stage>b{font-size:10px;color:#df533e;margin-top:5px}.zp-stage-new{border-color:#f0c8be;background:#fff9f7}
-.zp-main-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(290px,1fr);gap:14px;align-items:start}
-.zp-box{background:#fff;border:1px solid #e9eaee;border-radius:13px;min-width:0;overflow:hidden}
-.zp-box-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:17px 18px 12px}.zp-box-head h2{font-size:17px}.zp-box-head p{margin:4px 0 0;font-size:11px;color:#8a909a}
-.zp-orders-box .bite-order-empty{padding:30px 12px;text-align:center}.zp-orders-box .bite-recent-table{overflow-x:auto}.zp-orders-box table{width:100%;min-width:460px}.zp-bottom-link{width:100%;border:0;border-top:1px solid #eff0f2;background:white;text-align:left;padding:13px 17px;color:#df533e;font-weight:800;font-size:11px}
-.zp-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 14px 16px}
-.zp-tool-grid button{display:grid;grid-template-columns:35px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;text-align:left;column-gap:9px;min-height:58px;padding:9px;border:1px solid #eff0f2;background:#fff;border-radius:10px;color:#272c36}
-.zp-tool-grid button i{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#fff0ed;color:#df533e;font-style:normal;font-size:17px}.zp-tool-grid button b{font-size:11px}.zp-tool-grid button small{font-size:9px;color:#8a909a}
-.zp-footer{padding:20px 0 0;text-align:center;color:#a0a4ad;font-size:9px;letter-spacing:.13em;font-weight:800}.zp-footer span{padding:0 5px}
-@media(max-width:1050px){body[data-role="owner"] #mainApp.app{grid-template-columns:215px minmax(0,1fr)!important}.zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.zp-main-grid{grid-template-columns:1fr}}
-@media(max-width:760px){
- body[data-role="owner"] #mainApp.app{display:block!important}
- body[data-role="owner"] #mainApp .content{padding:13px 11px calc(35px + env(safe-area-inset-bottom))!important}
- .zp-welcome{align-items:flex-start;flex-direction:column;gap:11px;margin-bottom:13px}.zp-welcome h1{font-size:23px}.zp-header-actions{width:100%;justify-content:space-between}.zp-date,.zp-settings{padding:9px 11px}
- .zp-outlet{padding:12px;gap:10px;margin-bottom:16px}.zp-outlet-mark{width:40px;height:40px;flex:0 0 40px}.zp-outlet-info h2{font-size:15px}.zp-outlet-info p{font-size:10px}.zp-outlet-status{font-size:9px;padding:7px}
- .zp-section-head h2{font-size:17px}.zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.zp-kpi{padding:12px}.zp-kpi>strong{font-size:23px;margin:9px 0 3px}.zp-kpi>small{font-size:9px}
- .zp-order-stages{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.zp-stage{padding:10px 8px}.zp-stage>span{font-size:8px;line-height:1.3}.zp-stage>strong{font-size:21px}.zp-stage>small,.zp-stage>b{font-size:9px}
- .zp-main-grid{grid-template-columns:minmax(0,1fr);gap:11px}.zp-box-head{padding:14px 13px 10px}.zp-tool-grid{padding:0 10px 12px;gap:7px}.zp-tool-grid button{grid-template-columns:30px minmax(0,1fr);padding:8px;min-height:54px}.zp-tool-grid button i{width:29px;height:29px}
-}
-@media(max-width:370px){.zp-order-stages{grid-template-columns:1fr}.zp-stage{display:grid;grid-template-columns:1fr auto;align-items:center}.zp-stage>strong{grid-column:2;grid-row:1/4}.zp-stage>b{margin:0}}
-</style>
+
+
+
 <style id="owner-dashboard-rebuilt">
 .bite-owner-home{width:100%;max-width:1200px;margin:0 auto;padding:0 0 28px;color:#20242d!important;font-family:system-ui,-apple-system,Segoe UI,sans-serif}.bo-welcome{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:18px 18px 20px;background:#fff;border:1px solid #e8ebf0;border-radius:16px;margin-bottom:15px}.bo-eyebrow,.bo-heading small,.bo-heading-row small{font-size:10px;letter-spacing:.12em;font-weight:800;color:#d45b3d}.bo-welcome h1{font-size:clamp(22px,5vw,30px);line-height:1.2;margin:8px 0 5px;color:#20242d}.bo-welcome p{font-size:13px;color:#697180;margin:0}.bo-settings,.bo-link{border:1px solid #f2d6cd;border-radius:10px;background:#fff5f1;color:#b94e34;padding:10px 12px;font-weight:750;white-space:nowrap}.bo-demo{padding:12px;margin-bottom:14px;border-radius:12px;background:#fff7e8;color:#80521a;font-size:12px}.bo-demo p{margin:5px 0}.bo-outlet{display:flex;align-items:center;gap:12px;background:#252a34;color:white;padding:15px;border-radius:14px;margin-bottom:20px}.bo-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#f06b4a;color:white;font-size:23px;font-weight:900}.bo-outlet small{font-size:9px;letter-spacing:.12em;color:#ffb59f;font-weight:800}.bo-outlet h2{font-size:16px;margin:3px 0 0;color:white}.bo-outlet>span{margin-left:auto;font-size:11px;color:#d9dce2}.bo-heading{display:flex;justify-content:space-between;align-items:end;margin:18px 0 10px}.bo-heading h2,.bo-heading-row h2{font-size:18px;margin:4px 0 0;color:#20242d}.bo-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.bo-metric{display:flex;flex-direction:column;gap:8px;padding:15px;border:1px solid #e8ebf0;border-radius:13px;background:#fff;min-width:0}.bo-metric small{font-size:10px;font-weight:800;color:#737b89}.bo-metric strong{font-size:clamp(21px,4.6vw,30px);line-height:1.2;color:#20242d;overflow-wrap:anywhere}.bo-metric span{font-size:11px;color:#737b89}.bo-primary{background:#fff6f2;border-color:#f4d5c9}.bo-primary strong{color:#d65c3c}.bo-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.bo-stage{display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;padding:14px;border:1px solid #e8ebf0;border-radius:13px;background:#fff;color:#20242d}.bo-stage span{font-size:12px;font-weight:750}.bo-stage strong{font-size:27px}.bo-stage small{font-size:11px;color:#737b89}.bo-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.bo-tools button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:13px;border:1px solid #e8ebf0;border-radius:13px;background:#fff;color:#20242d;text-align:left;min-width:0}.bo-tools i{font-style:normal;font-size:22px}.bo-tools b{font-size:13px}.bo-tools small{font-size:10px;color:#737b89}.bo-recent{background:#fff;border:1px solid #e8ebf0;border-radius:14px;padding:15px;margin-top:18px}.bo-heading-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}.bo-table-wrap{width:100%;overflow-x:auto}.bo-table-wrap table{width:100%;border-collapse:collapse;min-width:460px}.bo-table-wrap th,.bo-table-wrap td{padding:11px 9px;text-align:left;border-bottom:1px solid #edf0f3;font-size:12px}.bo-table-wrap th{font-size:10px;color:#737b89}.bo-empty{padding:14px;background:#f7f8fa;border-radius:10px;font-size:12px;color:#737b89}.bo-footer{text-align:center;font-size:10px;color:#9399a4;padding:18px 0}.bite-owner-home button{cursor:pointer}@media(max-width:600px){.bite-owner-home{padding:0 0 20px}.bo-welcome{align-items:flex-start;padding:15px;gap:8px}.bo-settings{font-size:11px;padding:9px}.bo-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bo-primary{grid-column:1/-1}.bo-stages{gap:7px}.bo-stage{padding:10px}.bo-stage span{font-size:11px}.bo-stage strong{font-size:24px}.bo-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bo-tools button{padding:12px}.bo-outlet>span{font-size:9px}.bo-recent{padding:11px}}
 </style>
-<style id="owner-overview-hard-recovery">body[data-role="owner"] #mainApp #overview.page.active{display:block!important;visibility:visible!important;opacity:1!important}body[data-role="owner"] #mainApp #overview [data-owner-dashboard]{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}body[data-role="owner"] #mainApp #overview [data-owner-dashboard]>*{visibility:visible!important;opacity:1!important}</style></head>
+</head>
 <body>
 <div class="auth-screen" id="authScreen"><div class="auth-card"><div class="auth-brand">Bite</div><div class="small">Eat. Repeat.</div><h1 id="authTitle">Login to your account</h1><div class="small" id="authSubtitle">Sign in to access your cloud data.</div><form id="authForm"><div class="field" id="fullNameField" style="display:none"><label>Your name</label><input id="authName" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Mobile number / Email</label><input id="authEmail" type="text" autocomplete="username" required placeholder="10-digit mobile number or email"></div><div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters"></div><button class="btn" id="authSubmit" type="button">Login</button></form><div class="auth-error" id="authError"></div><div class="auth-actions"><span class="small" id="authSwitchLabel">New to Bite?</span><button type="button" id="authSwitch">Create account</button></div><div class="auth-help">Your restaurant and order data is stored in your Supabase cloud database. Owner login: mobile number aur password. Super Admin email se bhi login kar sakta hai. Password kisi se share na karein.</div></div></div><div class="app" id="mainApp" style="display:none">
 <aside class="side"><div class="brand bite-dashboard-brand"><img src="assets/bite-logo.svg" alt="Bite — Eat. Repeat." style="width:160px;max-width:100%;height:auto;display:block"></div><div class="sub">BITE RESTAURANT PARTNER</div>
 <nav class="nav" aria-label="Main navigation"><div class="nav-group"><div class="nav-label">HOME</div><button class="active" data-page="overview"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="nav-text">Overview</span></button><button data-page="restaurants"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 7h2m2 0h2M9 11h2m2 0h2M9 15h2m2 0h2"/></svg></span><span class="nav-text">Restaurants</span></button></div><div class="nav-group"><div class="nav-label">ORDERS & MENU</div><button data-page="orders"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h16v14H4zM8 9h8M8 13h5M8 17h3"/><path d="m15 15 2 2 4-5"/></svg></span><span class="nav-text">All Orders</span></button><button data-page="pos"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h2m3 0h2m3 0h1M7 16h10"/></svg></span><span class="nav-text">POS &amp; Billing</span></button><button data-page="menu"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 4h14M5 9h14M5 14h9M5 19h9"/></svg></span><span class="nav-text">Menu</span></button><button data-page="tables"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h16v5H4zM7 10v9m10-9v9M4 19h16"/></svg></span><span class="nav-text">Tables</span></button></div><div class="nav-group"><div class="nav-label">BUSINESS &amp; ACCOUNTS</div><button data-page="khata"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h3"/><path d="M17 14v4m-2-2h4"/></svg></span><span class="nav-text">Customer Khata</span></button><button data-page="cashbook"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 14h4m3 0h3"/></svg></span><span class="nav-text">Cashbook</span></button><button data-page="expenses"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 6h16M4 12h10M4 18h7"/><path d="m17 14 3 3-3 3"/></svg></span><span class="nav-text">Expenses</span></button><button data-page="refunds"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 10a8 8 0 1 1 2 7"/><path d="M4 4v6h6"/></svg></span><span class="nav-text">Refunds</span></button></div><div class="nav-group"><div class="nav-label">TEAM &amp; STOCK</div><button data-page="purchases"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 4h2l2 12h11l3-9H6"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg></span><span class="nav-text">Purchases &amp; Suppliers</span></button><button data-page="inventory"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3 9 5-9 5-9-5zM3 8v9l9 5 9-5V8M12 13v9"/></svg></span><span class="nav-text">Inventory</span></button><button data-page="hr"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5"/></svg></span><span class="nav-text">Employees &amp; HR</span></button></div><div class="nav-group"><div class="nav-label">GROW YOUR BUSINESS</div><button data-page="reports"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 20V4m0 16h17"/><rect x="7" y="12" width="3" height="5" rx=".5"/><rect x="13" y="8" width="3" height="9" rx=".5"/><rect x="19" y="5" width="2" height="12" rx=".5"/></svg></span><span class="nav-text">Reports</span></button><button data-page="settings"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="m19.4 15 .1.1 1.2 1-1.5 2.6-1.5-.6a8 8 0 0 1-1.7 1l-.3 1.6h-3l-.3-1.6a8 8 0 0 1-1.7-1l-1.5.6-1.5-2.6 1.2-1a8 8 0 0 1 0-2l-1.2-1 1.5-2.6 1.5.6a8 8 0 0 1 1.7-1l.3-1.6h3l.3 1.6a8 8 0 0 1 1.7 1l1.5-.6 1.5 2.6-1.2 1a8 8 0 0 1 0 2z"/></svg></span><span class="nav-text">Settings</span></button></div><div class="nav-group"><div class="nav-label">PLATFORM ADMIN</div><button data-page="reconciliation"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 7h15l-3-3m3 3-3 3M20 17H5l3 3m-3-3 3-3"/></svg></span><span class="nav-text">Settlements</span></button><button data-page="financials"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 21 8v8l-9 5-9-5V8z"/><path d="M12 8v8m-3-5h6"/></svg></span><span class="nav-text">Platform Finance</span></button><button data-page="audit"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span><span class="nav-text">Audit Log</span></button><button data-page="support"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h16v12H8l-4 4z"/><path d="M8 9h8M8 13h5"/></svg></span><span class="nav-text">Customer Support</span></button><button data-page="moderation"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="m8 12 2.5 2.5L16 9"/></svg></span><span class="nav-text">Review Reports</span></button></div></nav></aside>
-<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)" aria-hidden="true"></div><main class="main"><header class="top"><button class="sidebar-toggle" type="button" aria-label="Menu kholein" aria-expanded="false" onclick="toggleSidebar()">☰</button><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><select id="tenantSwitcher" aria-label="Restaurant select karein" style="display:none;max-width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px"></select><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag">CLOUD WORKSPACE</span></div></header>
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar(false)" aria-hidden="true"></div><main class="main"><header class="top"><button class="sidebar-toggle" type="button" aria-label="Menu kholein" aria-expanded="false" onclick="toggleSidebar()">☰</button><strong id="pageTitle">Overview</strong><div style="display:flex;align-items:center;gap:8px"><span id="accountEmail"></span><span id="accountRole" class="tag">Checking role…</span><select id="tenantSwitcher" aria-label="Restaurant select karein" style="display:none;max-width:210px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit;font-size:12px"></select><button class="btn secondary" id="logoutBtn" onclick="logout()" style="padding:8px 11px">Logout</button><span class="tag workspace-status">CLOUD WORKSPACE</span></div></header>
 <div class="content">
 <div id="workspaceRuntimeNotice" role="status" aria-live="polite"></div><div class="notice workspace-sync-note">BITE cloud workspace · Restaurant data securely syncs with your signed-in account.</div>
 <section class="page active" id="overview"><div data-owner-dashboard class="bite-owner-home" style="display:none">
@@ -765,14 +665,14 @@ body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:15
  </section>
  <div class="bo-heading"><div><small>QUICK ACCESS</small><h2>Restaurant manage karein</h2></div></div>
  <section class="bo-tools">
-  <button onclick="showPage('menu');loadMenuWorkspace()"><i>🍽️</i><b>Menu</b><small>Dishes & prices</small></button>
-  <button onclick="showPage('tables');loadTablesWorkspace()"><i>🪑</i><b>Tables</b><small>Dine-in</small></button>
-  <button onclick="showPage('inventory');loadInventoryWorkspace()"><i>📦</i><b>Stock</b><small>Inventory</small></button>
-  <button onclick="showPage('purchases');loadPurchaseWorkspace()"><i>🛒</i><b>Purchases</b><small>Supplier bills</small></button>
-  <button onclick="showPage('expenses');loadExpenseWorkspace()"><i>💸</i><b>Expenses</b><small>Daily spending</small></button>
-  <button onclick="showPage('cashbook');loadCashbookWorkspace()"><i>💰</i><b>Cashbook</b><small>Cash & khata</small></button>
-  <button onclick="showPage('hr');loadHRWorkspace()"><i>👥</i><b>Staff & HR</b><small>Team attendance</small></button>
-  <button onclick="showPage('reports');loadReportsWorkspace()"><i>📊</i><b>Reports</b><small>Business insights</small></button>
+  <button onclick="showPage('menu')"><i>🍽️</i><b>Menu</b><small>Dishes & prices</small></button>
+  <button onclick="showPage('tables')"><i>🪑</i><b>Tables</b><small>Dine-in</small></button>
+  <button onclick="showPage('inventory')"><i>📦</i><b>Stock</b><small>Inventory</small></button>
+  <button onclick="showPage('purchases')"><i>🛒</i><b>Purchases</b><small>Supplier bills</small></button>
+  <button onclick="showPage('expenses')"><i>💸</i><b>Expenses</b><small>Daily spending</small></button>
+  <button onclick="showPage('cashbook')"><i>💰</i><b>Cashbook</b><small>Cash & khata</small></button>
+  <button onclick="showPage('hr')"><i>👥</i><b>Staff & HR</b><small>Team attendance</small></button>
+  <button onclick="showPage('reports')"><i>📊</i><b>Reports</b><small>Business insights</small></button>
  </section>
  <section class="bo-recent"><div class="bo-heading-row"><div><small>LIVE OPERATIONS</small><h2>Recent orders</h2></div><button class="bo-link" onclick="showPage('orders')">View all →</button></div>
   <div id="biteOrderEmpty" class="bo-empty" style="display:none">🧾 No new orders right now.</div>
@@ -842,7 +742,7 @@ body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:15
 <div class="orders-page-layout"><div class="orders-main-column">
 <div class="channel-filter-title"><strong id="activeChannelTitle">BITE Website Orders</strong><span class="small">Har order ka status yahin update karein</span></div>
 <div class="order-live-toolbar"><div class="order-live-state"><i class="order-live-dot" id="orderLiveDot"></i><span id="orderLiveState">Live updates connecting...</span></div><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()">🔕 Sound alerts: Off</button></div>
-<div class="channel-filter-title"><strong id="activeChannelTitle">All Orders</strong><span class="small">Status ke hisaab se order cards</span></div>
+<div class="channel-filter-title"><strong id="orderStatusTitle">All Orders</strong><span class="small">Status ke hisaab se order cards</span></div>
 <div class="order-status-tabs" id="orderStatusTabs"><button class="active" data-order-status="all" onclick="setOrderStatus('all')">All <b id="statusCountAll">0</b></button><button data-order-status="Received" onclick="setOrderStatus('Received')">New <b id="statusCountReceived">0</b></button><button data-order-status="Accepted" onclick="setOrderStatus('Accepted')">Accepted <b id="statusCountAccepted">0</b></button><button data-order-status="Preparing" onclick="setOrderStatus('Preparing')">Preparing <b id="statusCountPreparing">0</b></button><button data-order-status="Ready" onclick="setOrderStatus('Ready')">Ready <b id="statusCountReady">0</b></button><button data-order-status="Handed Over" onclick="setOrderStatus('Handed Over')">Handover <b id="statusCountHandedOver">0</b></button><button data-order-status="Completed" onclick="setOrderStatus('Completed')">Completed <b id="statusCountCompleted">0</b></button></div><div class="order-workspace"><div class="order-board-area"><div class="order-board" id="orderBoard"></div><div class="empty" id="orderEmpty">Abhi koi order nahi hai.</div></div></div></div><aside class="order-inbox" aria-label="New live order notifications"><div class="order-inbox-head"><div><strong>Live order alerts</strong><small>New orders · Accept ya reject karein</small></div><span class="order-inbox-count" id="orderInboxCount">0</span></div><div id="orderInboxList" class="order-inbox-list"><div class="order-inbox-empty">Naye orders yahan aayenge.</div></div></aside></div><div class="card" id="customerOrderRequestsCard" style="margin-top:18px"><div class="section-head"><div><h3>Customer cancellation & complaints</h3><p class="muted">Customer requests ko review karein aur response record karein.</p></div><button class="btn secondary" onclick="loadCustomerOrderRequestsWorkspace()">Refresh requests</button></div><div id="customerOrderRequestsList"><div class="empty">Requests load ho rahe hain...</div></div></div>
 <div class="card" id="restaurantReviewsCard" data-owner-review-workspace style="margin-top:18px"><div class="section-head"><div><h3>Customer ratings & reviews</h3><p class="muted">Completed-order verified customer reviews dekhein aur reply dein.</p></div><button class="btn secondary" onclick="loadRestaurantReviewsWorkspace()">Refresh reviews</button></div><div id="restaurantReviewsList"><div class="empty">Reviews load ho rahe hain...</div></div></div>
 </section>
@@ -915,6 +815,7 @@ body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:15
  </div>
  <div class="section"><div class="section-head"><h2>Purchase history</h2><span class="small" id="purchaseSummary">All records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Supplier</th><th>Bill no.</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead><tbody id="purchaseRows"></tbody></table><div class="empty" id="purchaseEmpty">Abhi koi purchase record nahi hai.</div></div></div>
 
+</section>
 
 <section class="page" id="inventory">
  <div class="welcome"><div><h1>Inventory & stock</h1><div class="muted">Raw material ka stock, inward/outward aur low-stock alert.</div></div><button class="btn secondary" type="button" onclick="loadInventory()">Refresh</button></div>
@@ -1118,7 +1019,7 @@ body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:15
 </section>
 
 <section class="page" id="reports">
- <div class="welcome"><div><h1>Business reports</h1><div class="muted">Date-wise sales, payments, expenses, purchases aur customer dues.</div></div><div class="actions"><button class="btn secondary" type="button" onclick="loadReportsData()">Refresh</button><button class="btn" type="button" onclick="exportReportsCSV()">Export CSV</button></div></div>
+ <div class="welcome"><div><h1>Business reports</h1><div class="muted">Date-wise sales, payments, expenses, purchases aur customer dues.</div></div><div class="actions"><button class="btn secondary" type="button" onclick="loadReportsData()">Refresh</button><button class="btn" type="button" onclick="exportReportsCSV()">CSV</button><button class="btn" type="button" onclick="exportReportsXLSX()">Excel</button><button class="btn secondary" type="button" onclick="printOwnerReport()">Print / Save PDF</button></div></div>
  <div class="notice">Cash movement aur sales alag reports hain. Net cash movement ko profit na samjhein; food cost, taxes aur online platform settlement jab tak poori tarah connect nahi hote, yahan final net profit claim nahi kiya jayega.</div>
  <div class="card"><div class="form-row" style="align-items:end">
   <div class="field"><label>Restaurant</label><select id="reportRestaurant"></select></div>
@@ -1128,14 +1029,14 @@ body[data-role="owner"] .bite-zp-dashboard{display:block;width:100%;max-width:15
  </div></div>
  <div class="grid section">
   <div class="card"><div class="metric-label">Orders</div><div class="metric" id="reportOrderCount">0</div></div>
-  <div class="card"><div class="metric-label">Gross sales</div><div class="metric" id="reportGrossSales">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Verified collections</div><div class="metric" id="reportGrossSales">₹0.00</div></div>
   <div class="card"><div class="metric-label">Cancelled sale</div><div class="metric" id="reportCancelledSales">₹0.00</div></div>
   <div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="reportActualRefunds">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Net sales</div><div class="metric" id="reportNetSales">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Collections after refunds</div><div class="metric" id="reportNetSales">₹0.00</div></div>
   <div class="card"><div class="metric-label">Cashbook income</div><div class="metric" id="reportCashIn">₹0.00</div></div>
   <div class="card"><div class="metric-label">Cashbook outflow</div><div class="metric" id="reportCashOut">₹0.00</div></div>
   <div class="card"><div class="metric-label">Net cash movement</div><div class="metric" id="reportNetCash">₹0.00</div></div>
-  <div class="card"><div class="metric-label">POS balance due</div><div class="metric" id="reportPosDue">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Platform commission</div><div class="metric" id="reportPosDue">₹0.00</div></div>
  </div>
  <div class="grid section">
   <div class="card"><div class="section-head"><h2>Sales by channel</h2></div><div class="table-wrap"><table><thead><tr><th>Channel</th><th>Orders</th><th>Sales</th></tr></thead><tbody id="reportChannelRows"></tbody></table></div></div>
@@ -1242,6 +1143,8 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js';"></script>
+<script src="assets/owner-core.js"></script>
+<script src="assets/owner-exports.js"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -1254,18 +1157,18 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function showAuthError(msg){const el=document.getElementById('authError');el.textContent=msg;el.style.display='block'}
 function setAuthMode(signup){isSignup=signup;document.getElementById('authTitle').textContent=signup?'Create your account':'Login to your account';document.getElementById('authSubtitle').textContent=signup?'Create a secure account for your workspace.':'Mobile number ya email se login karein.';document.getElementById('authEmail').type=signup?'email':'text';document.getElementById('authEmail').placeholder=signup?'you@example.com':'10-digit mobile number or email';document.getElementById('authEmail').previousElementSibling.textContent=signup?'Email address':'Mobile number / Email';document.getElementById('fullNameField').style.display=signup?'block':'none';document.getElementById('authName').required=signup;document.getElementById('authSubmit').textContent=signup?'Create account':'Login';document.getElementById('authSwitchLabel').textContent=signup?'Already have an account?':'New to Bite?';document.getElementById('authSwitch').textContent=signup?'Login':'Create account';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';document.getElementById('authError').style.display='none'}
 document.getElementById('authSwitch').addEventListener('click',()=>setAuthMode(!isSignup));
-document.getElementById('authForm').addEventListener('submit',e=>{e.preventDefault()});
-document.getElementById('authSubmit').addEventListener('click',()=>performAuth());
+document.getElementById('authForm').addEventListener('submit',e=>{e.preventDefault();performAuth()});
+document.getElementById('authSubmit').addEventListener('click',e=>{e.preventDefault();performAuth()});
 function ownerLoginEmailFromPhone(value){const digits=String(value||'').replaceAll(' ','').replaceAll('-','').replaceAll('(','').replaceAll(')','').replaceAll('+91','');if(digits.length!==10||digits[0]<'6'||digits[0]>'9'||![...digits].every(ch=>ch>='0'&&ch<='9'))throw new Error('10-digit valid Indian mobile number ya email enter karein.');return 'owner-91'+digits+'@restaurantos.test'}
 async function performAuth(){const btn=document.getElementById('authSubmit');if(btn.disabled)return;btn.disabled=true;btn.textContent=isSignup?'Creating...':'Logging in...';document.getElementById('authError').style.display='none';try{const identifier=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;let result;if(isSignup){result=await sb.auth.signUp({email:identifier,password,options:{data:{full_name:document.getElementById('authName').value.trim()}}});if(result.error)throw result.error;const session=result.data.session;if(!session){showAuthError('Account created. Email confirm karke phir login karein.');return}await activateSession(session.user)}else{if(identifier.includes('@'))result=await sb.auth.signInWithPassword({email:identifier,password});else result=await sb.auth.signInWithPassword({email:ownerLoginEmailFromPhone(identifier),password});if(result.error)throw result.error;const session=result.data.session;if(!session)throw new Error('Login session nahi mila. Mobile number aur password check karein.');await activateSession(session.user)}}catch(err){showAuthError(err.message||'Login failed. Please try again.')}finally{btn.disabled=false;btn.textContent=isSignup?'Create account':'Login'}}
 async function activateSession(user){if(!user)return;currentUser=user;try{await loadAccessContext();document.getElementById('authScreen').style.display='none';document.getElementById('mainApp').style.display=window.matchMedia('(max-width:760px)').matches?'block':'grid';window.scrollTo(0,0);document.querySelector('#mainApp .content')?.scrollTo(0,0);document.getElementById('accountEmail').textContent=user.user_metadata?.login_phone||user.phone||user.email||'';if(user.app_metadata?.must_change_password===true){document.querySelectorAll('.nav button').forEach(b=>b.style.display='none');document.getElementById('pageTitle').textContent='Password change required';document.getElementById('accountRole').textContent='SET NEW PASSWORD';document.getElementById('passwordSetupModal').classList.add('show');return}applyRoleUI();await loadCloudData();startRealtimeOrderUpdates();const authType=new URLSearchParams(window.location.hash.slice(1)).get('type')||new URLSearchParams(window.location.search).get('type');if(['invite','recovery'].includes(authType))document.getElementById('passwordSetupModal').classList.add('show')}catch(err){currentUser=null;document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';showAuthError('Role/security check nahi ho paya: '+(err.message||String(err)))}}
 async function loadAccessContext(){const results=await Promise.all([sb.rpc('is_platform_admin'),sb.from('restaurant_members').select('restaurant_id,role').eq('user_id',currentUser.id)]);if(results[0].error)throw results[0].error;if(results[1].error)throw results[1].error;access.isPlatformAdmin=results[0].data===true;access.memberships=results[1].data||[];access.tenantMembershipCount=access.memberships.length;if(access.isPlatformAdmin){access.role='super_admin';access.restaurantId=null;return}const ownerMemberships=access.memberships.filter(m=>m.role==='owner');const restaurantIds=[...new Set(access.memberships.map(m=>m.restaurant_id))];if(ownerMemberships.length>1||restaurantIds.length>1)throw new Error('This account is linked to more than one restaurant. Bite initial version allows one Owner Account for one Restaurant. Please ask the Bite Platform Admin to resolve the restaurant access before login.');if(ownerMemberships.length===1){const {data:assignedOwners,error:ownerListError}=await sb.from('restaurant_members').select('user_id').eq('restaurant_id',ownerMemberships[0].restaurant_id).eq('role','owner');if(ownerListError)throw ownerListError;if((assignedOwners||[]).length!==1||assignedOwners[0].user_id!==currentUser.id)throw new Error('This restaurant has more than one Owner assignment. Platform Admin must resolve the Owner mapping before access is enabled.');access.role='owner';access.restaurantId=ownerMemberships[0].restaurant_id;return}if(access.memberships.length===0){access.role='no_membership';access.restaurantId=null;return}throw new Error('Bite initial version supports one Restaurant Owner account only. Manager and staff logins are not enabled.')}
-function applyRoleUI(){const role=access.role;document.body.dataset.role=role;const labels={super_admin:'SUPER ADMIN',owner:'RESTAURANT OWNER',manager:'MANAGER',staff:'STAFF',no_membership:'NO RESTAURANT ROLE'};document.getElementById('accountRole').textContent=labels[role]||'USER';const platformPages=['overview','restaurants','orders','financials','audit','support','moderation'];const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];document.querySelectorAll('.nav button').forEach(b=>{const p=b.dataset.page;const ok=role==='super_admin'?platformPages.includes(p):role==='owner'?ownerPages.includes(p):false;b.style.display=ok?'flex':'none'});document.querySelectorAll('.nav-group').forEach(g=>g.style.display=[...g.querySelectorAll('button')].some(b=>b.style.display!=='none')?'':'none');document.querySelectorAll('[data-owner-up]').forEach(e=>e.style.display=['super_admin','owner'].includes(role)?'':'none');document.querySelectorAll('[data-order-create]').forEach(e=>e.style.display='none');document.querySelectorAll('[data-order-channel]').forEach(e=>{const c=e.dataset.orderChannel;e.style.display=role==='owner'?(['all','website'].includes(c)?'':'none'):role==='super_admin'?(c==='website'?'':'none'):'none'});document.querySelectorAll('[data-admin-only]').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('[data-owner-review-workspace]').forEach(e=>e.style.display=role==='owner'?'':'none');const welcome=document.getElementById('ownerWelcomeTitle'),subtitle=document.getElementById('ownerWelcomeSubtitle');if(welcome&&subtitle){welcome.textContent=role==='super_admin'?'Platform command center':role==='staff'?'Today’s service desk':'Your restaurant, one dashboard';subtitle.textContent=role==='super_admin'?'Manage restaurant partners and the Bite platform.':'Online orders, menu, expenses, reports and restaurant settings — simple and clear.'}document.querySelectorAll('[data-owner-dashboard]').forEach(e=>e.style.setProperty('display',['owner','manager'].includes(role)?'block':'none','important'));document.querySelectorAll('[data-platform-dashboard]').forEach(e=>e.style.display=role==='super_admin'?'block':'none');document.querySelectorAll('.owner-launcher').forEach(e=>e.style.display='none');document.querySelectorAll('.owner-launcher .launch-card').forEach(b=>{const match=(b.getAttribute('onclick')||'').match(/showPage\('([^']+)'\)/);const target=match?match[1]:'';b.style.display=role==='owner'&&['orders','menu','expenses','reports','settings'].includes(target)?'flex':'none'});if(role==='owner'){const ordersLabel=document.querySelector('[data-page="orders"] .nav-text'),menuLabel=document.querySelector('[data-page="menu"] .nav-text');if(ordersLabel)ordersLabel.textContent='Orders';if(menuLabel)menuLabel.textContent='Menu Management'}if(role==='super_admin'){const a=document.getElementById('metricOrders')?.previousElementSibling,b=document.getElementById('metricSales')?.previousElementSibling,c=document.getElementById('metricPending')?.previousElementSibling;if(a)a.textContent='🌐 Website orders';if(b)b.textContent='💳 Website sales';if(c)c.textContent='↗ Orders awaiting settlement';const orderNav=document.querySelector('[data-page="orders"] .nav-text');if(orderNav)orderNav.textContent='Website Orders';const oh=document.querySelector('#orders .welcome h1'),os=document.querySelector('#orders .welcome .muted'),cn=document.querySelector('.channel-connection-note');if(oh)oh.textContent='Website Orders';if(os)os.textContent='Bite ki apni website se aaye orders aur unka status.';if(cn)cn.style.display='none';const kicker=document.querySelector('[data-platform-dashboard] .owner-home-eyebrow');if(kicker)kicker.textContent='RESTAURANTOS PLATFORM';const banner=document.querySelector('[data-platform-dashboard] .welcome+div div div:last-child');if(banner)banner.textContent='Website Orders · Commission · Settlements'}if(role==='owner'||role==='manager'){showPage('overview');const overview=document.getElementById('overview'),dashboard=document.querySelector('#overview [data-owner-dashboard]');document.querySelectorAll('#mainApp .page').forEach(p=>{p.classList.toggle('active',p.id==='overview');p.style.removeProperty('display')});if(overview){overview.style.removeProperty('display');overview.style.removeProperty('visibility')}if(dashboard){dashboard.style.setProperty('display','block','important');dashboard.style.setProperty('visibility','visible','important');dashboard.style.setProperty('opacity','1','important')}}else if(role==='staff')showPage('orders');else showPage('overview')}
+function applyRoleUI(){const role=access.role;document.body.dataset.role=role;const labels={super_admin:'SUPER ADMIN',owner:'RESTAURANT OWNER',manager:'MANAGER',staff:'STAFF',no_membership:'NO RESTAURANT ROLE'};document.getElementById('accountRole').textContent=labels[role]||'USER';const platformPages=['overview','restaurants','orders','financials','audit','support','moderation'];const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];document.querySelectorAll('.nav button').forEach(b=>{const p=b.dataset.page;const ok=role==='super_admin'?platformPages.includes(p):role==='owner'?ownerPages.includes(p):false;b.hidden=!ok;b.style.display=ok?'flex':'none'});document.querySelectorAll('.nav-group').forEach(g=>{const visible=[...g.querySelectorAll('button')].some(b=>!b.hidden);g.hidden=!visible;g.style.display=visible?'':'none'});document.querySelectorAll('[data-owner-up]').forEach(e=>e.style.display=['super_admin','owner'].includes(role)?'':'none');document.querySelectorAll('[data-order-create]').forEach(e=>e.style.display='none');document.querySelectorAll('[data-order-channel]').forEach(e=>{const c=e.dataset.orderChannel;e.style.display=role==='owner'?(['all','website'].includes(c)?'':'none'):role==='super_admin'?(c==='website'?'':'none'):'none'});document.querySelectorAll('[data-admin-only]').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('[data-owner-review-workspace]').forEach(e=>e.style.display=role==='owner'?'':'none');const welcome=document.getElementById('ownerWelcomeTitle'),subtitle=document.getElementById('ownerWelcomeSubtitle');if(welcome&&subtitle){welcome.textContent=role==='super_admin'?'Platform command center':role==='staff'?'Today’s service desk':'Your restaurant, one dashboard';subtitle.textContent=role==='super_admin'?'Manage restaurant partners and the Bite platform.':'Online orders, menu, expenses, reports and restaurant settings — simple and clear.'}document.querySelectorAll('[data-owner-dashboard]').forEach(e=>e.style.setProperty('display',['owner','manager'].includes(role)?'block':'none','important'));document.querySelectorAll('[data-platform-dashboard]').forEach(e=>e.style.display=role==='super_admin'?'block':'none');document.querySelectorAll('.owner-launcher').forEach(e=>e.style.display='none');document.querySelectorAll('.owner-launcher .launch-card').forEach(b=>{const match=(b.getAttribute('onclick')||'').match(/showPage\('([^']+)'\)/);const target=match?match[1]:'';b.style.display=role==='owner'&&['orders','menu','expenses','reports','settings'].includes(target)?'flex':'none'});if(role==='owner'){const ordersLabel=document.querySelector('[data-page="orders"] .nav-text'),menuLabel=document.querySelector('[data-page="menu"] .nav-text');if(ordersLabel)ordersLabel.textContent='Orders';if(menuLabel)menuLabel.textContent='Menu Management'}if(role==='super_admin'){const a=document.getElementById('metricOrders')?.previousElementSibling,b=document.getElementById('metricSales')?.previousElementSibling,c=document.getElementById('metricPending')?.previousElementSibling;if(a)a.textContent='🌐 Website orders';if(b)b.textContent='💳 Website sales';if(c)c.textContent='↗ Orders awaiting settlement';const orderNav=document.querySelector('[data-page="orders"] .nav-text');if(orderNav)orderNav.textContent='Website Orders';const oh=document.querySelector('#orders .welcome h1'),os=document.querySelector('#orders .welcome .muted'),cn=document.querySelector('.channel-connection-note');if(oh)oh.textContent='Website Orders';if(os)os.textContent='Bite ki apni website se aaye orders aur unka status.';if(cn)cn.style.display='none';const kicker=document.querySelector('[data-platform-dashboard] .owner-home-eyebrow');if(kicker)kicker.textContent='RESTAURANTOS PLATFORM';const banner=document.querySelector('[data-platform-dashboard] .welcome+div div div:last-child');if(banner)banner.textContent='Website Orders · Commission · Settlements'}if(role==='owner'||role==='manager'){showPage('overview');const overview=document.getElementById('overview'),dashboard=document.querySelector('#overview [data-owner-dashboard]');BiteOwner.activatePage(document,'overview');if(overview){overview.style.setProperty('visibility','visible','important')}if(dashboard){dashboard.style.setProperty('display','block','important');dashboard.style.setProperty('visibility','visible','important');dashboard.style.setProperty('opacity','1','important')}}else if(role==='staff')showPage('orders');else showPage('overview')}
 async function logout(){if(orderRealtimeChannel){await sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}if(orderAudioContext){await orderAudioContext.close();orderAudioContext=null}orderAlertsEnabled=false;await sb.auth.signOut();currentUser=null;state={restaurants:[],orders:[]};access={isPlatformAdmin:false,role:null,memberships:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';document.getElementById('authPassword').value='';setAuthMode(false)}
-async function loadCloudData(){try{const [r,o,h,it,f,st,ps,pp,tb,rf,mi]=await Promise.all([sb.from('restaurants').select('*').order('created_at',{ascending:false}),sb.from('orders').select('*').order('order_date',{ascending:false}),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),sb.from('order_financials').select('*').order('created_at',{ascending:false}),sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false}),sb.from('restaurant_order_payment_summaries').select('*'),sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false}),sb.from('restaurant_tables').select('*').order('sort_order').order('table_name'),sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false}),sb.from('menu_items').select('restaurant_id,name,image_url')]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const tenantId=access.isPlatformAdmin?null:access.restaurantId;const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();render()}catch(err){alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err)}}
+async function loadCloudData(){try{const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([sb.from('restaurants').select('*').order('created_at',{ascending:false}),sb.from('orders').select('*').order('order_date',{ascending:false}),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),sb.from('order_financials').select('*').order('created_at',{ascending:false}),sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false}),sb.from('restaurant_order_payment_summaries').select('*'),sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false}),sb.from('restaurant_tables').select('*').order('sort_order').order('table_name'),sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false}),sb.from('menu_items').select('restaurant_id,name,image_url'),sb.from('restaurant_expenses').select('*')]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const tenantId=access.isPlatformAdmin?null:access.restaurantId;const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();render();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err)}}
 
 let expenseRecords=[], editingExpenseId=null;
-function localDateInput(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function localDateInput(){return BiteOwner.day()}
 function expenseRestaurantId(){return document.getElementById('expenseRestaurant').value||''}
 async function loadExpenseWorkspace(){
  const select=document.getElementById('expenseRestaurant'), previous=select.value;
@@ -1292,7 +1195,7 @@ function renderExpenses(){
  document.getElementById('expenseEmpty').textContent='Is restaurant ke liye abhi koi expense nahi hai.';
 }
 function resetExpenseForm(){editingExpenseId=null;document.getElementById('expenseDate').value=localDateInput();document.getElementById('expenseCategory').value='Rent';document.getElementById('expenseTitle').value='';document.getElementById('expenseAmount').value='';document.getElementById('expensePayment').value='Cash';document.getElementById('expenseDescription').value='';document.getElementById('expenseSaveBtn').textContent='Save expense';document.getElementById('expenseCancelEdit').style.display='none';document.getElementById('expenseMessage').textContent=''}
-function editExpense(id){if(access.role!=='owner')return;const x=expenseRecords.find(v=>v.id===id);if(!x)return;editingExpenseId=id;document.getElementById('expenseDate').value=x.expense_date;document.getElementById('expenseCategory').value=x.category;document.getElementById('expenseTitle').value=x.title;document.getElementById('expenseAmount').value=x.amount;document.getElementById('expensePayment').value=x.payment_method;document.getElementById('expenseDescription').value=x.description||'';document.getElementById('expenseSaveBtn').textContent='Update expense';document.getElementById('expenseCancelEdit').style.display='inline-flex';document.getElementById('expenseMessage').textContent='Editing selected expense'}
+function editExpense(id){if(access.role!=='owner')return;const x=expenseRecords.find(v=>v.id===id);if(!x)return;editingExpenseId=id;document.getElementById('expenseDate').value=x.expense_date;const categorySelect=document.getElementById('expenseCategory');if(![...categorySelect.options].some(o=>o.value===x.category))categorySelect.add(new Option(x.category,x.category));categorySelect.value=x.category;document.getElementById('expenseTitle').value=x.title;document.getElementById('expenseAmount').value=x.amount;document.getElementById('expensePayment').value=x.payment_method;document.getElementById('expenseDescription').value=x.description||'';document.getElementById('expenseSaveBtn').textContent='Update expense';document.getElementById('expenseCancelEdit').style.display='inline-flex';document.getElementById('expenseMessage').textContent='Editing selected expense'}
 async function saveExpense(){
  if(access.role!=='owner'){alert('Expense sirf Restaurant Owner save kar sakta hai.');return}
  const rid=expenseRestaurantId(),date=document.getElementById('expenseDate').value,category=document.getElementById('expenseCategory').value,title=document.getElementById('expenseTitle').value.trim(),amount=Number(document.getElementById('expenseAmount').value),payment_method=document.getElementById('expensePayment').value,description=document.getElementById('expenseDescription').value.trim();
@@ -1542,7 +1445,7 @@ async function saveCashbookEntry(){
   const {error}=await sb.from('restaurant_cashbook_manual_entries').insert({restaurant_id:rid,entry_date:date,direction,category,amount,payment_method:method,description:description||null,created_by:currentUser.id});
   if(error)throw error;
   document.getElementById('cashbookCategory').value='';document.getElementById('cashbookAmount').value='';document.getElementById('cashbookDescription').value='';
-  document.getElementById('cashbookEntryMessage').textContent='Cashbook entry saved';await loadCashbook();
+  await loadCashbook();document.getElementById('cashbookEntryMessage').textContent='Cashbook entry saved';
  }catch(e){document.getElementById('cashbookEntryMessage').textContent='Save nahi hua: '+e.message;console.error(e)}finally{btn.disabled=!!cashbookClosing}
 }
 async function closeCashbookDay(){
@@ -1552,7 +1455,7 @@ async function closeCashbookDay(){
  const btn=document.getElementById('cashbookCloseBtn');btn.disabled=true;
  try{
   const {error}=await sb.rpc('close_restaurant_cashbook_day',{p_restaurant_id:rid,p_close_date:date,p_opening_cash:opening,p_counted_cash:counted,p_notes:notes||null});
-  if(error)throw error;document.getElementById('cashbookCloseMessage').textContent='Day successfully closed';await loadCashbook();
+  if(error)throw error;await loadCashbook();document.getElementById('cashbookCloseMessage').textContent='Day successfully closed';
  }catch(e){document.getElementById('cashbookCloseMessage').textContent='Day close nahi hua: '+e.message;console.error(e)}finally{btn.disabled=!!cashbookClosing}
 }
 document.getElementById('posRestaurantFilter').addEventListener('change',renderPOSWorkspace);
@@ -1745,7 +1648,7 @@ async function saveKhataEntry(){
 document.getElementById('khataRestaurant').addEventListener('change',()=>{selectedKhataCustomerId=null;loadKhataData()});
 document.getElementById('khataEntryType').addEventListener('change',toggleKhataPaymentMode);
 
-let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[];
+let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[];
 function reportRestaurantId(){return document.getElementById('reportRestaurant').value||''}
 async function loadReportsWorkspace(){
  const sel=document.getElementById('reportRestaurant'),previous=sel.value;
@@ -1754,8 +1657,8 @@ async function loadReportsWorkspace(){
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
- const today=localDateInput(),month=today.slice(0,8)+'01',hasDemoMonth=state.orders.some(o=>o.isDemo);
- document.getElementById('reportFrom').value=hasDemoMonth?'2026-10-01':month;document.getElementById('reportTo').value=hasDemoMonth?'2026-10-31':today;
+ const today=localDateInput(),month=today.slice(0,8)+'01';
+ if(!document.getElementById('reportFrom').value)document.getElementById('reportFrom').value=month;if(!document.getElementById('reportTo').value)document.getElementById('reportTo').value=today;
  await loadReportsData();
 }
 async function loadReportsData(){
@@ -1763,14 +1666,16 @@ async function loadReportsData(){
  if(!rid||!from||!to||to<from){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
  document.getElementById('reportStatus').textContent='Reports load ho rahe hain…';
  try{
-  const startInclusive=new Date(from+'T00:00:00'),endExclusive=new Date(to+'T00:00:00');endExclusive.setDate(endExclusive.getDate()+1);
-  const [orders,cashbook,balances]=await Promise.all([
-   sb.from('orders').select('*').eq('restaurant_id',rid).gte('order_date',startInclusive.toISOString()).lt('order_date',endExclusive.toISOString()).order('order_date',{ascending:false}),
+  const interval=BiteOwner.range(from,to);
+  const [orders,cashbook,balances,expenses,financials]=await Promise.all([
+   sb.from('orders').select('*').eq('restaurant_id',rid).gte('order_date',interval.start).lt('order_date',interval.end).order('order_date',{ascending:false}),
    sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}),
-   sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('balance',{ascending:false})
+   sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('balance',{ascending:false}),
+   sb.from('restaurant_expenses').select('id,is_demo').eq('restaurant_id',rid),
+   sb.from('order_financials').select('*').eq('restaurant_id',rid)
   ]);
-  for(const x of [orders,cashbook,balances])if(x.error)throw x.error;
-  reportOrders=orders.data||[];reportCashbook=cashbook.data||[];reportCustomerBalances=balances.data||[];
+  for(const x of [orders,cashbook,balances,expenses,financials])if(x.error)throw x.error;
+  reportOrders=orders.data||[];reportFinancials=financials.data||[];const demoExpenses=new Set((expenses.data||[]).filter(e=>e.is_demo).map(e=>e.id));reportCashbook=(cashbook.data||[]).filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data||[];
   const ids=reportOrders.map(o=>o.id);
   if(ids.length){
    const [items,payments]=await Promise.all([
@@ -1788,28 +1693,25 @@ function reportSummaryFor(orderId){
 }
 function renderReports(){
  const sum=(arr,fn)=>arr.reduce((n,x)=>n+fn(x),0);
- const salesOrders=reportOrders.filter(o=>(orderChannelKey(o.channel)==='website'||o.is_demo)&&!['Rejected','Cancelled'].includes(o.status));
- const grossSales=sum(salesOrders,o=>Number(o.amount||0));
- const cancelledSales=sum(salesOrders,o=>Number(reportSummaryFor(o.id).cancelled_sale_amount||0));
- const actualRefunds=sum(reportOrders,o=>Number(reportSummaryFor(o.id).refunded_amount||0));
- const netSales=Math.max(0,grossSales-cancelledSales);
+ const summary=BiteOwner.financialSummary(reportOrders,reportFinancials);
+ const salesOrders=summary.paid;
+ const cancelledSales=sum(salesOrders.filter(o=>['Cancelled','Rejected'].includes(o.status)),o=>Number(o.amount||0));
  const cashIn=sum(reportCashbook,e=>e.direction==='in'?Number(e.amount):0),cashOut=sum(reportCashbook,e=>e.direction==='out'?Number(e.amount):0);
- const posDue=sum(salesOrders.filter(o=>String(o.channel||'').startsWith('POS - ')),o=>Number(reportSummaryFor(o.id).balance_amount??o.amount));
  document.getElementById('reportOrderCount').textContent=String(salesOrders.length);
- document.getElementById('reportGrossSales').textContent=money(grossSales);
+ document.getElementById('reportGrossSales').textContent=money(summary.gross);
  document.getElementById('reportCancelledSales').textContent=money(cancelledSales);
- document.getElementById('reportActualRefunds').textContent=money(actualRefunds);
- document.getElementById('reportNetSales').textContent=money(netSales);
+ document.getElementById('reportActualRefunds').textContent=money(summary.refunds);
+ document.getElementById('reportNetSales').textContent=money(summary.net);
  document.getElementById('reportCashIn').textContent=money(cashIn);document.getElementById('reportCashOut').textContent=money(cashOut);
- document.getElementById('reportNetCash').textContent=money(cashIn-cashOut);document.getElementById('reportPosDue').textContent=money(posDue);
- const channels={};salesOrders.forEach(o=>{const s=reportSummaryFor(o.id),net=Math.max(0,Number(o.amount||0)-Number(s.cancelled_sale_amount||0));channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=net});
- document.getElementById('reportChannelRows').innerHTML=Object.entries(channels).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No orders</td></tr>';
+ document.getElementById('reportNetCash').textContent=money(cashIn-cashOut);document.getElementById('reportPosDue').textContent=money(summary.commission);
+ const channels={};salesOrders.forEach(o=>{const f=reportFinancials.find(f=>f.order_id===o.id);channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=Number(f?.customer_payable_amount||0)-Number(f?.refund_amount_actual||0)});
+ document.getElementById('reportChannelRows').innerHTML=Object.entries(channels).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No verified paid orders</td></tr>';
  const modes=['Cash','UPI','Card','Bank Transfer','Other'];
  const total=(direction,mode)=>sum(reportCashbook.filter(e=>e.direction===direction&&e.payment_method===mode),e=>Number(e.amount));
  document.getElementById('reportModeRows').innerHTML=modes.map(m=>'<tr><td>'+m+'</td><td>'+money(total('in',m))+'</td><td>'+money(total('out',m))+'</td><td>'+money(total('in',m)-total('out',m))+'</td></tr>').join('');
  const expenses={};reportCashbook.filter(e=>e.source_type==='expense').forEach(e=>{expenses[e.category]??={count:0,total:0};expenses[e.category].count++;expenses[e.category].total+=Number(e.amount)});
  document.getElementById('reportExpenseRows').innerHTML=Object.entries(expenses).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No expenses</td></tr>';
- const items={};reportItems.forEach(i=>{items[i.item_name]??={qty:0,total:0};items[i.item_name].qty+=Number(i.quantity);items[i.item_name].total+=Number(i.line_total)});
+ const paidOrderIds=new Set(salesOrders.filter(o=>!['Rejected','Cancelled'].includes(o.status)).map(o=>o.id));const items={};reportItems.filter(i=>paidOrderIds.has(i.order_id)).forEach(i=>{items[i.item_name]??={qty:0,total:0};items[i.item_name].qty+=Number(i.quantity);items[i.item_name].total+=Number(i.line_total)});
  document.getElementById('reportItemRows').innerHTML=Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.qty.toFixed(2)+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No items</td></tr>';
  const daily={};reportCashbook.forEach(e=>{daily[e.entry_date]??={in:0,out:0,count:0};daily[e.entry_date][e.direction==='in'?'in':'out']+=Number(e.amount);daily[e.entry_date].count++});
  const days=Object.entries(daily).sort((a,b)=>b[0].localeCompare(a[0]));
@@ -1818,24 +1720,49 @@ function renderReports(){
  const outstanding=reportCustomerBalances.filter(c=>Number(c.balance)>0).sort((a,b)=>Number(b.balance)-Number(a.balance)).slice(0,20);
  document.getElementById('reportCustomerRows').innerHTML=outstanding.map(c=>'<tr><td>'+esc(c.full_name)+'</td><td>'+esc(c.phone||'—')+'</td><td><strong>'+money(c.balance)+'</strong></td></tr>').join('');
  document.getElementById('reportCustomerEmpty').style.display=outstanding.length?'none':'block';
- document.getElementById('reportStatus').textContent=reportOrders.length+' orders · '+reportCashbook.length+' cashbook entries';
+ document.getElementById('reportStatus').textContent=salesOrders.length+' verified paid orders · '+reportCashbook.length+' cashbook entries · '+reportOrders.filter(o=>o.is_demo).length+' demo orders excluded';
+}
+function ownerReportRows(){
+ const rows=[['Date','Record type','Category','Description','Payment mode','Gross amount','Commission','Actual refund','Net amount','Direction','Status','Source']];
+ BiteOwner.financialSummary(reportOrders,reportFinancials).paid.forEach(o=>{
+  const f=reportFinancials.find(f=>f.order_id===o.id),gross=Number(f.customer_payable_amount||0),refund=Number(f.refund_amount_actual||0);
+  rows.push([BiteOwner.day(o.order_date),'Verified collection',o.channel,o.order_code,'Online',gross,Number(f.commission_amount||0),refund,BiteOwner.round(gross-refund),'in',o.status,'Verified payment']);
+ });
+ reportCashbook.forEach(e=>rows.push([e.entry_date,'Cashbook',e.category,e.description||'',e.payment_method,'','','',Number(e.amount),e.direction,'',e.source_type]));
+ return rows;
 }
 function exportReportsCSV(){
- const rows=[['Date','Record type','Category','Description','Payment mode','Gross amount','Cancelled sale','Actual refund','Net sale / amount','Direction','Status','Source']];
- reportOrders.forEach(o=>{
-  const s=reportSummaryFor(o.id),gross=!['Rejected','Cancelled'].includes(o.status)?Number(o.amount||0):0;
-  const cancelled=Number(s.cancelled_sale_amount||0),refund=Number(s.refunded_amount||0);
-  rows.push([String(o.order_date).slice(0,10),'Sale',o.channel,o.order_code+' '+(o.customer_name||''),'',gross.toFixed(2),cancelled.toFixed(2),refund.toFixed(2),Math.max(0,gross-cancelled).toFixed(2),'',o.status,'Order']);
- });
- reportCashbook.forEach(e=>rows.push([e.entry_date,'Cashbook',e.category,e.description||'',e.payment_method,'','','',Number(e.amount).toFixed(2),e.direction,'',e.source_type]));
- const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
- const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='restaurantos-report-'+document.getElementById('reportFrom').value+'-to-'+document.getElementById('reportTo').value+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ const csv=ownerReportRows().map(row=>row.map(BiteOwner.csvCell).join(',')).join('\r\n');
+ BiteExports.download('\uFEFF'+csv,'bite-report-'+document.getElementById('reportFrom').value+'.csv','text/csv;charset=utf-8');
+}
+function exportReportsXLSX(){BiteExports.download(BiteExports.workbook(ownerReportRows()),'bite-report-'+document.getElementById('reportFrom').value+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
+function printOwnerReport(){
+ const restaurant=state.restaurants.find(r=>r.id===reportRestaurantId());const rows=ownerReportRows();
+ BiteExports.print('Bite · Business Report',(restaurant?.name||'Restaurant')+' · '+document.getElementById('reportFrom').value+' to '+document.getElementById('reportTo').value,rows[0],rows.slice(1),['Demo and unpaid orders are excluded from verified collection totals.','Cash movement is separate from sales and is not final net profit.']);
+}
+function printOwnerInvoice(id){
+ const order=state.orders.find(o=>o.id===id);if(!order||access.role!=='owner'||order.restaurant!==access.restaurantId)return;
+ const restaurant=state.restaurants.find(r=>r.id===order.restaurant),f=state.financials.find(f=>f.order_id===id);
+ const rows=(state.orderItems||[]).filter(i=>i.order_id===id).map(i=>[i.item_name,i.quantity,money(i.unit_price),money(i.line_total)]);
+ rows.push(['Delivery charge','','',money(f?.delivery_fee??0)],['Discount','','',money(Number(f?.restaurant_discount||0)+Number(f?.platform_discount||0))],['Total','','',money(f?.customer_payable_amount??order.amount)]);
+ const notes=[order.isDemo?'DEMO ONLY · Simulated order. No payment received.':'Payment status: '+(f?.payment_status||'Unverified'), 'Order status: '+order.status, 'Customer: '+(order.customerName||'—'),restaurant?.address||''];
+ BiteExports.print((restaurant?.name||'Restaurant')+' · Order Bill',order.code+' · '+new Date(order.createdAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),['Item','Quantity','Rate','Amount'],rows,notes);
 }
 document.getElementById('reportRestaurant').addEventListener('change',loadReportsData);
 document.getElementById('reportFrom').addEventListener('change',loadReportsData);
 document.getElementById('reportTo').addEventListener('change',loadReportsData);
-function toggleSidebar(force){const side=document.querySelector('.side'),overlay=document.getElementById('sidebarOverlay'),btn=document.querySelector('.sidebar-toggle');if(!side||!overlay)return;const open=typeof force==='boolean'?force:!side.classList.contains('sidebar-open');side.classList.toggle('sidebar-open',open);overlay.classList.toggle('visible',open);if(btn)btn.setAttribute('aria-expanded',open?'true':'false');document.body.style.overflow=''}
+function toggleSidebar(force){
+ const side=document.querySelector('.side'),overlay=document.getElementById('sidebarOverlay'),btn=document.querySelector('.sidebar-toggle');if(!side||!overlay)return;
+ const mobile=window.matchMedia('(max-width:760px)').matches;
+ const open=mobile&&(typeof force==='boolean'?force:!side.classList.contains('sidebar-open'));
+ side.classList.toggle('sidebar-open',open);overlay.classList.toggle('visible',open);
+ side.inert=mobile&&!open;side.setAttribute('aria-hidden',String(mobile&&!open));if(!side.id)side.id='biteSidebar';
+ if(btn){btn.setAttribute('aria-expanded',String(open));btn.setAttribute('aria-controls',side.id)}
+ document.body.style.removeProperty('overflow');
+}
+window.addEventListener('resize',()=>toggleSidebar(false));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.side.sidebar-open')){toggleSidebar(false);document.querySelector('.sidebar-toggle')?.focus()}});
+
 async function loadOwnerSettings(){
  const id=access.restaurantId;if(!id)return;
  const r=state.restaurants.find(x=>x.id===id);if(!r)return;
@@ -1847,10 +1774,11 @@ async function loadOwnerSettings(){
 document.getElementById('ownerRestaurantSettingsForm')?.addEventListener('submit',async e=>{
  e.preventDefault();if(access.role!=='owner'||!access.restaurantId)return;
  const val=id=>document.getElementById(id)?.value?.trim()||'';
- const amount=id=>{const n=Number(document.getElementById(id)?.value);return Number.isFinite(n)&&n>=0?n:0};
+ const amount=id=>Number(document.getElementById(id)?.value);
  const msg=document.getElementById('ownerSettingMessage'),btn=document.getElementById('ownerSettingSave');
- const closureInput=val('ownerSettingClosureUntil');const payload={name:val('ownerSettingName'),contact_person:val('ownerSettingContact')||null,phone:val('ownerSettingPhone')||null,email:val('ownerSettingEmail')||null,city:val('ownerSettingCity'),address:val('ownerSettingAddress')||null,public_description:val('ownerSettingDescription')||null,cuisine_tags:val('ownerSettingCuisines').split(',').map(x=>x.trim()).filter(Boolean),default_delivery_fee:amount('ownerSettingDeliveryFee'),minimum_order_amount:amount('ownerSettingMinimum'),estimated_prep_minutes:Math.max(5,Math.min(240,Number(document.getElementById('ownerSettingPrep')?.value)||30)),opening_time:val('ownerSettingOpen')||null,closing_time:val('ownerSettingClose')||null,is_temporarily_closed:!!document.getElementById('ownerSettingTempClosed')?.checked,temporary_closure_until:closureInput?new Date(closureInput).toISOString():null,delivery_paused:!!document.getElementById('ownerSettingDeliveryPaused')?.checked,accepts_delivery:!!document.getElementById('ownerSettingDelivery')?.checked,accepts_pickup:!!document.getElementById('ownerSettingPickup')?.checked};
- if(!payload.name||!payload.city){if(msg)msg.textContent='Restaurant name aur city zaroori hain.';return}
+ const closureInput=val('ownerSettingClosureUntil');const payload={contact_person:val('ownerSettingContact')||null,phone:val('ownerSettingPhone')||null,email:val('ownerSettingEmail')||null,city:val('ownerSettingCity'),address:val('ownerSettingAddress')||null,public_description:val('ownerSettingDescription')||null,cuisine_tags:val('ownerSettingCuisines').split(',').map(x=>x.trim()).filter(Boolean),default_delivery_fee:amount('ownerSettingDeliveryFee'),minimum_order_amount:amount('ownerSettingMinimum'),estimated_prep_minutes:Math.max(5,Math.min(240,Number(document.getElementById('ownerSettingPrep')?.value)||30)),opening_time:val('ownerSettingOpen')||null,closing_time:val('ownerSettingClose')||null,is_temporarily_closed:!!document.getElementById('ownerSettingTempClosed')?.checked,temporary_closure_until:closureInput?new Date(closureInput).toISOString():null,delivery_paused:!!document.getElementById('ownerSettingDeliveryPaused')?.checked,accepts_delivery:!!document.getElementById('ownerSettingDelivery')?.checked,accepts_pickup:!!document.getElementById('ownerSettingPickup')?.checked};
+ if(!val('ownerSettingName')||!payload.city){if(msg)msg.textContent='Restaurant name aur city zaroori hain.';return}
+ if(!Number.isFinite(payload.default_delivery_fee)||payload.default_delivery_fee<0||!Number.isFinite(payload.minimum_order_amount)||payload.minimum_order_amount<0){if(msg)msg.textContent='Delivery fee aur minimum order sahi bharein.';return}
  if((payload.opening_time&&!payload.closing_time)||(!payload.opening_time&&payload.closing_time)){if(msg)msg.textContent='Opening aur closing time dono fill karein, ya dono khaali chhodein.';return}
  if(payload.is_temporarily_closed&&payload.temporary_closure_until&&new Date(payload.temporary_closure_until)<=new Date()){if(msg)msg.textContent='Reopen time future mein hona chahiye.';return}
  if(!payload.is_temporarily_closed)payload.temporary_closure_until=null;
@@ -2048,8 +1976,23 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
-function showPage(id){document.querySelectorAll('#mainApp .page').forEach(p=>{p.style.removeProperty('display');p.style.removeProperty('visibility')});if(access.role==='super_admin'&&!['overview','restaurants','orders','financials','audit','support','moderation'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));if(access.role==='owner'){const content=document.querySelector('#mainApp .content');if(content)content.scrollTop=0;document.scrollingElement?.scrollTo(0,0);window.scrollTo(0,0)}document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin'){loadOwnerMappingWorkspace();loadRestaurantChangeRequestsWorkspace();}document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
-document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{toggleSidebar(false);showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace();if(b.dataset.page==='settings')loadDeliveryZonesWorkspace();if(b.dataset.page==='audit')loadAuditLogWorkspace();if(b.dataset.page==='support')loadSupportWorkspace();if(b.dataset.page==='moderation')loadReviewReportsWorkspace();if(b.dataset.page==='orders'){loadCustomerOrderRequestsWorkspace();loadRestaurantReviewsWorkspace()}}));
+async function showPage(id){
+ const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];
+ const platformPages=['overview','restaurants','orders','financials','audit','support','moderation'];
+ const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[];
+ if(!allowed.includes(id))id='overview';
+ BiteOwner.activatePage(document,id);toggleSidebar(false);
+ const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports'};
+ document.getElementById('pageTitle').textContent=titles[id]||'Bite';
+ window.scrollTo({top:0,behavior:'instant'});
+ const loaders={overview:()=>render(),menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
+ try{if(loaders[id])await loaders[id]();document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
+ catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
+ finally{page?.removeAttribute('aria-busy')}
+}
+document.querySelectorAll('.nav button[data-page]').forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.page)));
+
 let menuCategories=[],menuItems=[],activeMenuRestaurant=null;
 function menuRestaurantId(){return document.getElementById('menuRestaurantSelect').value||''}
 async function loadMenuWorkspace(){const select=document.getElementById('menuRestaurantSelect');const previous=select.value;select.innerHTML='';const eligible=state.restaurants.filter(r=>access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===r.id&&['owner','manager'].includes(m.role)));eligible.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name;select.appendChild(o)});if(!eligible.length){document.getElementById('menuItemRows').innerHTML='';document.getElementById('menuItemEmpty').textContent='Is account ke saath koi restaurant linked nahi hai.';document.getElementById('menuItemEmpty').style.display='block';return}select.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;const restaurantField=select.closest('.field');if(restaurantField)restaurantField.style.display=eligible.length===1?'none':'';await fetchMenuData()}
@@ -2113,7 +2056,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{e.preve
 async function shareDeliveryHandoff(id){
  if(access.role!=='owner'){alert('Delivery link sirf Restaurant Owner share kar sakta hai.');return false}
  const o=state.orders.find(x=>x.id===id);
- if(!o||o.status!=='Ready'||o.deliveryType!=='delivery'){alert('Delivery link sirf Ready delivery order ke liye hai.');return false}
+ if(!o||!['Ready','Handed Over'].includes(o.status)||o.deliveryType!=='delivery'){alert('Delivery link Ready ya Handed Over delivery order ke liye hai.');return false}
  const popup=window.open('about:blank','_blank');
  try{
   const {data,error}=await sb.rpc('create_delivery_handoff',{p_order_id:id});
@@ -2126,7 +2069,7 @@ async function shareDeliveryHandoff(id){
   const mapUrl=Number.isFinite(lat)&&Number.isFinite(lng)&&lat!==0&&lng!==0?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(lat+','+lng):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
   const deliveryUrl='https://gauravjoshi2999.github.io/restaurant-os/delivery.html?token='+encodeURIComponent(h.token);
   const items=(h.items||[]).map(i=>i.item_name+' × '+i.quantity).join(', ');
-  const message='Bite Delivery Handoff\\nOrder: '+h.order_code+'\\nRestaurant: '+h.restaurant_name+'\\nCustomer: '+h.customer_name+' ('+h.customer_phone+')\\nAddress: '+address+'\\nMap: '+mapUrl+'\\nItems: '+items+(h.customer_note?'\\nInstructions: '+h.customer_note:'')+'\\n\\nDelivery details & OTP verification link: '+deliveryUrl+'\\nCustomer apne Bite My Orders page par delivery OTP dekhega. OTP customer se destination par poochhein.';
+  const message='Bite Delivery Handoff\nOrder: '+h.order_code+'\nRestaurant: '+h.restaurant_name+'\nCustomer: '+h.customer_name+' ('+h.customer_phone+')\nAddress: '+address+'\nMap: '+mapUrl+'\nItems: '+items+(h.customer_note?'\nInstructions: '+h.customer_note:'')+'\n\nDelivery details & OTP verification link: '+deliveryUrl+'\nCustomer apne Bite My Orders page par delivery OTP dekhega. OTP customer se destination par poochhein.';
   const waUrl='https://wa.me/?text='+encodeURIComponent(message);
   if(popup){popup.location.href=waUrl;}else{const copied=prompt('WhatsApp share ke liye message copy karein:',message);if(copied===null)return false;}return true;
  }catch(e){if(popup)popup.close();alert('Delivery link share nahi hua: '+(e.message||'Try again.'));console.error(e);return false}
@@ -2371,7 +2314,7 @@ function renderOrderBoard(){
  const roleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===selectedPlatformRestaurantId):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const channelOrders=activeOrderChannel==='all'?roleOrders:roleOrders.filter(o=>o.isDemo||orderChannelKey(o.channel)===activeOrderChannel);
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
- Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
+ Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
  const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
@@ -2380,19 +2323,19 @@ function renderOrderBoard(){
   const restaurant=state.restaurants.find(r=>r.id===o.restaurant);
   const history=state.history.filter(h=>h.order_id===o.id).slice().reverse();
   const statusActions=(actions[o.status]||[]).filter(a=>!(o.deliveryType==='delivery'&&((o.status==='Ready'&&a[0]==='Handed Over')||(o.status==='Handed Over'&&a[0]==='Completed'))));
-  const buttons=canManage?statusActions.map(a=>'<button class="'+a[2]+'" onclick="advanceOrder(\''+esc(o.id)+'\',\''+a[0]+'\')">'+a[1]+'</button>').join('')+(canManage&&['Accepted','Preparing','Ready'].includes(o.status)?'<button class="btn danger" onclick="advanceOrder(\''+esc(o.id)+'\',\'Cancelled\')">Cancel</button>':'')+(o.status==='Ready'&&o.deliveryType==='delivery'?'<button class="btn" onclick="shareAndHandOverDelivery(\''+esc(o.id)+'\')">Share link & hand over</button>':''):'<span class="small">Sirf Owner status update kar sakta hai</span>';
+  const buttons=canManage?statusActions.map(a=>'<button class="'+a[2]+'" onclick="advanceOrder(\''+esc(o.id)+'\',\''+a[0]+'\')">'+a[1]+'</button>').join('')+(canManage&&['Accepted','Preparing','Ready'].includes(o.status)?'<button class="btn danger" onclick="advanceOrder(\''+esc(o.id)+'\',\'Cancelled\')">Cancel</button>':'')+(o.status==='Ready'&&o.deliveryType==='delivery'?'<button class="btn" onclick="shareAndHandOverDelivery(\''+esc(o.id)+'\')">Share link & hand over</button>':'')+(o.status==='Handed Over'&&o.deliveryType==='delivery'?'<button class="btn secondary" onclick="shareDeliveryHandoff(\''+esc(o.id)+'\')">New delivery link</button>':''):'<span class="small">Sirf Owner status update kar sakta hai</span>';
   const historyHtml=history.length?history.map(h=>'<div class="history-row"><strong>'+esc(h.to_status)+'</strong><span>'+esc(new Date(h.changed_at).toLocaleString('en-IN'))+'</span>'+(h.note?'<p>'+esc(h.note)+'</p>':'')+'</div>').join(''):'<div class="small">History available nahi hai.</div>';
   const items=(state.orderItems||[]).filter(i=>i.order_id===o.id);
   const itemHtml=items.length?'<div class="order-item-detail order-item-photo-list">'+items.map(i=>{const menu=(state.orderMenuItems||[]).find(m=>m.restaurant_id===o.restaurant&&String(m.name||'').trim().toLowerCase()===String(i.item_name||'').trim().toLowerCase());const url=String(menu?.image_url||'').trim();const safeUrl=(url.startsWith('https://')||url.startsWith('http://'))?esc(url):'';const photo=safeUrl?'<img class="order-item-photo" src="'+safeUrl+'" alt="'+esc(i.item_name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">':'<span class="order-item-photo-fallback">🍽️</span>';return '<div class="order-item-photo-row">'+photo+(safeUrl?'<span class="order-item-photo-fallback" style="display:none">🍽️</span>':'')+'<span><strong>'+esc(i.item_name)+'</strong><small>'+esc(i.quantity)+' × '+money(i.unit_price)+' = '+money(i.line_total)+'</small></span></div>'}).join('')+'</div>':'';
   const customerHtml=(o.customerName||o.customerPhone)?'<div class="order-customer">👤 '+(o.customerName?esc(o.customerName):'Customer')+(o.customerPhone?' · '+esc(o.customerPhone):'')+'</div>':'';
   const isPos=String(o.channel||'').startsWith('POS - '),pay=paymentSummaryFor(o.id);
-  const payHtml=isPos?'<div class="order-meta">'+(['Rejected','Cancelled'].includes(o.status)?'Payment status: Cancelled':'Paid '+money(pay.paid_amount)+' · Due '+money(pay.balance_amount)+' · '+esc(pay.payment_status))+'</div>':'';const platformFinance=(state.financials||[]).find(f=>f.order_id===o.id&&f.channel==='Own Platform');const platformFinHtml=access.role==='super_admin'&&platformFinance?'<div class="order-meta">Payment: '+esc(platformFinance.payment_status)+' · Commission: '+money(platformFinance.commission_amount)+' · Gateway fee: '+(platformFinance.provider_fee_actual==null?'Pending':money(platformFinance.provider_fee_actual))+' · Restaurant payable: '+money(platformFinance.net_payable)+'</div>':'';
+  const payHtml=isPos?'<div class="order-meta">'+(['Rejected','Cancelled'].includes(o.status)?'Payment status: Cancelled':'Paid '+money(pay.paid_amount)+' · Due '+money(pay.balance_amount)+' · '+esc(pay.payment_status))+'</div>':'';const platformFinance=(state.financials||[]).find(f=>f.order_id===o.id&&f.channel==='Own Platform');const platformFinHtml=platformFinance?'<div class="order-meta">Payment: '+esc(platformFinance.payment_status)+' · Commission: '+money(platformFinance.commission_amount)+' · Gateway fee: '+(platformFinance.provider_fee_actual==null?'Awaiting provider':money(platformFinance.provider_fee_actual))+' · Restaurant payable: '+(platformFinance.provider_fee_actual==null?'Awaiting provider':money(Math.max(0,Number(platformFinance.customer_payable_amount||0)-Number(platformFinance.commission_amount||0)-Number(platformFinance.provider_fee_actual||0)-Number(platformFinance.refund_amount_actual||0))))+'</div>':'';
   const payBtn=isPos&&!['Rejected','Cancelled'].includes(o.status)&&Number(pay.balance_amount)>0&&['owner','manager','staff'].includes(access.role)?'<button class="btn secondary" onclick="openPaymentModal(\''+esc(o.id)+'\')">Record payment</button>':'';
   const payments=isPos?(state.orderPayments||[]).filter(p=>p.order_id===o.id):[];
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
  if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
@@ -2441,7 +2384,7 @@ function renderTenantSwitcher(){const el=document.getElementById('tenantSwitcher
 function switchRestaurant(id){if(access.isPlatformAdmin||!access.memberships.some(m=>m.restaurant_id===id))return;if(access.restaurantId===id)return;access.restaurantId=id;loadCloudData().then(()=>{const active=document.querySelector('.page.active')?.id;const refresh={menu:loadMenuWorkspace,pos:loadPOSWorkspace,tables:loadTablesWorkspace,refunds:loadRefundWorkspace,khata:loadKhataWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,settings:loadDeliveryZonesWorkspace,orders:loadCustomerOrderRequestsWorkspace};if(active&&refresh[active])return refresh[active]();}).catch(e=>alert('Restaurant data load nahi hua: '+e.message));}
 document.getElementById('tenantSwitcher')?.addEventListener('change',e=>switchRestaurant(e.target.value));
 function render(){const demoRows=state.orders.filter(o=>o.isDemo);const demoBanner=document.getElementById('biteDemoBanner');if(demoBanner)demoBanner.style.display=demoRows.length?'flex':'none';const demoCount=document.getElementById('biteDemoCount');if(demoCount)demoCount.textContent=demoRows.length+' sample orders';if(access.role==='super_admin')renderPlatformRestaurantDirectory();const platformOrders=state.orders.filter(o=>orderChannelKey(o.channel)==='website');const ownerOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const dashboardOrders=access.role==='super_admin'?platformOrders:ownerOrders;const liveOrders=dashboardOrders.filter(o=>!o.isDemo);const verifiedPaidSales=(state.financials||[]).filter(f=>!f.is_demo&&f.channel==='Own Platform'&&f.payment_status==='paid').reduce((n,f)=>n+Number(f.customer_payable_amount||0),0);
-const nowLocal=new Date();const todayKey=[nowLocal.getFullYear(),String(nowLocal.getMonth()+1).padStart(2,'0'),String(nowLocal.getDate()).padStart(2,'0')].join('-');const todaysOrders=ownerOrders.filter(o=>{const d=o.createdAt?new Date(o.createdAt):null;return d&&!Number.isNaN(d.getTime())&&[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')===todayKey});const cancelledStatuses=['cancelled','canceled','refunded','void'];const activeToday=todaysOrders.filter(o=>!cancelledStatuses.includes(String(o.status||'').toLowerCase()));const pendingToday=todaysOrders.filter(o=>!['completed','delivered','cancelled','canceled','refunded','void','closed'].includes(String(o.status||'').toLowerCase()));const onlineToday=activeToday.length;const verifiedPaidOrderIds=new Set((state.financials||[]).filter(f=>!f.is_demo&&f.payment_status==='paid').map(f=>f.order_id));const ots=document.getElementById('ownerTodaySales');if(ots)ots.textContent=money(todaysOrders.filter(o=>verifiedPaidOrderIds.has(o.id)).reduce((sum,o)=>sum+Number(o.amount||0),0));const oto=document.getElementById('ownerTodayOrders');if(oto)oto.textContent=String(todaysOrders.length);const opo=document.getElementById('ownerPendingOrders');if(opo)opo.textContent=String(pendingToday.length);const ooo=document.getElementById('ownerOnlineOrders');if(ooo)ooo.textContent=String(onlineToday);const queueCounts={Received:todaysOrders.filter(o=>o.status==='Received').length,Preparing:todaysOrders.filter(o=>o.status==='Preparing').length,Ready:todaysOrders.filter(o=>o.status==='Ready').length};[['ownerNewOrders',queueCounts.Received],['ownerPreparingOrders',queueCounts.Preparing],['ownerReadyOrders',queueCounts.Ready]].forEach(([id,count])=>{const el=document.getElementById(id);if(el)el.textContent=String(count)});const dateChip=document.getElementById('biteTodayDate');if(dateChip)dateChip.textContent=nowLocal.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});const oht=document.getElementById('ownerHomeTitle');if(oht)oht.textContent='Namaste 👋';const ohs=document.getElementById('ownerHomeSubtitle');if(ohs)ohs.textContent='Aaj ka kaam aur hisaab yahan se dekhein.';const orn=document.getElementById('ownerHomeRestaurant');if(orn)orn.textContent=(state.restaurants.find(r=>r.id===access.restaurantId)||state.restaurants[0])?.name||'Aapka Restaurant';const ort=document.getElementById('ownerRecentOrders');if(ort)ort.innerHTML=ownerOrders.slice(0,6).map(o=>'<tr><td>'+esc(o.code||o.id.slice(0,8))+'</td><td>'+esc(o.channel||'—')+(o.isDemo?' <span class="pill amber">DEMO</span>':'')+'</td><td>'+money(o.amount)+'</td><td><span class="pill">'+esc(o.status||'—')+'</span></td></tr>').join('');const ore=document.getElementById('ownerRecentEmpty');if(ore)ore.style.display=ownerOrders.length?'none':'block';document.getElementById('metricRestaurants').textContent=state.restaurants.length;document.getElementById('metricOrders').textContent=liveOrders.length;document.getElementById('metricSales').textContent=money(verifiedPaidSales);document.getElementById('metricPending').textContent=access.role==='super_admin'?String((state.financials||[]).filter(f=>f.channel==='Own Platform'&&!f.is_demo&&f.settlement_status!=='paid').length)+' orders':money(state.orders.filter(o=>o.payout==null).reduce((s,o)=>s+o.amount,0));
+const nowLocal=new Date();const todayKey=BiteOwner.day(nowLocal);const todaysOrders=ownerOrders.filter(o=>!o.isDemo&&BiteOwner.day(o.createdAt)===todayKey);const cancelledStatuses=['rejected','cancelled','canceled','refunded','void'];const activeToday=todaysOrders.filter(o=>!cancelledStatuses.includes(String(o.status||'').toLowerCase()));const pendingToday=todaysOrders.filter(o=>!['rejected','completed','delivered','cancelled','canceled','refunded','void','closed'].includes(String(o.status||'').toLowerCase()));const onlineToday=activeToday.length;const verifiedPaidOrderIds=new Set((state.financials||[]).filter(f=>!f.is_demo&&f.payment_status==='paid').map(f=>f.order_id));const ots=document.getElementById('ownerTodaySales');if(ots)ots.textContent=money(todaysOrders.filter(o=>verifiedPaidOrderIds.has(o.id)).reduce((sum,o)=>sum+Number(o.amount||0),0));const oto=document.getElementById('ownerTodayOrders');if(oto)oto.textContent=String(todaysOrders.length);const opo=document.getElementById('ownerPendingOrders');if(opo)opo.textContent=String(pendingToday.length);const ooo=document.getElementById('ownerOnlineOrders');if(ooo)ooo.textContent=String(onlineToday);const queueCounts={Received:todaysOrders.filter(o=>o.status==='Received').length,Preparing:todaysOrders.filter(o=>o.status==='Preparing').length,Ready:todaysOrders.filter(o=>o.status==='Ready').length};[['ownerNewOrders',queueCounts.Received],['ownerPreparingOrders',queueCounts.Preparing],['ownerReadyOrders',queueCounts.Ready]].forEach(([id,count])=>{const el=document.getElementById(id);if(el)el.textContent=String(count)});const dateChip=document.getElementById('biteTodayDate');if(dateChip)dateChip.textContent=nowLocal.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',year:'numeric'});const oht=document.getElementById('ownerHomeTitle');if(oht)oht.textContent='Namaste 👋';const ohs=document.getElementById('ownerHomeSubtitle');if(ohs)ohs.textContent='Aaj ka kaam aur hisaab yahan se dekhein.';const orn=document.getElementById('ownerHomeRestaurant');if(orn)orn.textContent=(state.restaurants.find(r=>r.id===access.restaurantId)||state.restaurants[0])?.name||'Aapka Restaurant';const ort=document.getElementById('ownerRecentOrders');if(ort)ort.innerHTML=ownerOrders.slice(0,6).map(o=>'<tr><td>'+esc(o.code||o.id.slice(0,8))+'</td><td>'+esc(o.channel||'—')+(o.isDemo?' <span class="pill amber">DEMO</span>':'')+'</td><td>'+money(o.amount)+'</td><td><span class="pill">'+esc(o.status||'—')+'</span></td></tr>').join('');const ore=document.getElementById('ownerRecentEmpty');if(ore)ore.style.display=ownerOrders.length?'none':'block';document.getElementById('metricRestaurants').textContent=state.restaurants.length;document.getElementById('metricOrders').textContent=liveOrders.length;document.getElementById('metricSales').textContent=money(verifiedPaidSales);document.getElementById('metricPending').textContent=access.role==='super_admin'?String((state.financials||[]).filter(f=>f.channel==='Own Platform'&&!f.is_demo&&f.settlement_status!=='paid').length)+' orders':money(state.orders.filter(o=>o.payout==null).reduce((s,o)=>s+o.amount,0));
 let rr=document.getElementById('restaurantRows');rr.innerHTML=state.restaurants.map(r=>'<tr><td><strong>'+esc(r.name)+'</strong><br><span class="small">'+esc(r.address||'')+'</span></td><td>'+esc(r.contact_person||'—')+'</td><td>'+esc(r.phone||'—')+'<br><span class="small">'+esc(r.email||'')+'</span></td><td>'+esc(r.city||'—')+'</td><td><span class="pill '+(r.onboardingStatus==='approved'?'green':r.onboardingStatus==='rejected'?'amber':'')+'">'+esc(r.onboardingStatus||'pending')+'</span><br><span class="small">Operations: '+esc(r.status||'—')+' · Website: '+(r.is_published?'Live':'Draft')+'</span></td><td>'+(access.isPlatformAdmin?'<button class="btn secondary" onclick="editRestaurant(\''+esc(r.id)+'\')">Edit</button> <button class="btn secondary" onclick="openOwnerInvite(\''+esc(r.id)+'\')">Create Owner Login</button> <button class="btn secondary" onclick="resetOwnerPassword(\''+esc(r.id)+'\')">Reset Password</button> <button class="btn danger" onclick="deleteRestaurant(\''+esc(r.id)+'\')">Delete</button>':'—')+'</td><td><div class="actions approval-actions">'+(r.onboardingStatus==='approved'?'<button class="btn danger" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;suspend&quot;)">Suspend</button>':r.onboardingStatus==='suspended'?'<button class="btn secondary" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;reactivate&quot;)">Reactivate</button>':'<button class="btn" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;approve&quot;)">Approve</button><button class="btn danger" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;reject&quot;)">Reject</button>')+'</div></td></tr>').join('');document.getElementById('restaurantEmpty').style.display=state.restaurants.length?'none':'block';
 renderOrderBoard();if(access.role!=='super_admin')renderPOSWorkspace();if(document.getElementById('tables')?.classList.contains('active')&&access.role!=='super_admin')renderTablesWorkspace();if(document.getElementById('refunds')?.classList.contains('active')&&access.role!=='super_admin')renderRefundWorkspace();
 document.getElementById('recentOrders').innerHTML=dashboardOrders.slice(0,5).map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'</td><td>'+esc(r?.name||'Unknown')+'</td><td>'+esc(o.channel)+'</td><td>'+money(o.amount)+'</td><td><span class="pill">'+esc(o.status)+'</span></td></tr>'}).join('');document.getElementById('recentEmpty').style.display=dashboardOrders.length?'none':'block';
@@ -2576,40 +2519,6 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 /* Auth gate must win over the mobile .app display override. */
 #mainApp[style*="display:none"]{display:none!important}
 
-/* Bite mobile owner repair v6: keep the document as the only vertical scroll container */
-@media(max-width:760px){
- html:has(body[data-role="owner"]),html:has(body[data-role="owner"]) body,
- body[data-role="owner"]{height:auto!important;min-height:100%!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:auto!important}
- body[data-role="owner"] #mainApp.app{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
- body[data-role="owner"] #mainApp.app>.side{position:fixed!important;inset:0 auto 0 0!important;height:100dvh!important;max-height:100dvh!important;overflow-x:hidden!important;overflow-y:auto!important;z-index:100!important}
- body[data-role="owner"] #mainApp.app>.main{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important;transform:none!important}
- body[data-role="owner"] #mainApp.app>.main>.top{position:sticky!important;top:0!important;z-index:30!important}
- body[data-role="owner"] #mainApp.app>.main>.content{display:block!important;position:relative!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;contain:none!important;padding-bottom:calc(56px + env(safe-area-inset-bottom))!important}
- body[data-role="owner"] #mainApp .page.active{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
- body[data-role="owner"] #mainApp .sidebar-overlay{z-index:90!important}
-}
-/* Hide owner tools that are not usable in this release: POS is disabled and refunds depend on POS sales */
-body[data-role="owner"] #mainApp .nav button[data-page="pos"],
-body[data-role="owner"] #mainApp .nav button[data-page="refunds"]{display:none!important}
-
-/* FINAL MOBILE OWNER FIX — document scrolling only; no fixed-height scroll trap */
-@media(max-width:760px){
- html:has(body[data-role="owner"]){height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
- body[data-role="owner"]{height:auto!important;min-height:100%!important;max-height:none!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:auto!important;touch-action:pan-y!important}
- body[data-role="owner"] #mainApp.app{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important}
- body[data-role="owner"] #mainApp.app>.main{display:block!important;position:relative!important;width:100%!important;height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important;transform:none!important}
- body[data-role="owner"] #mainApp.app>.main>.top{position:sticky!important;top:0!important;z-index:35!important}
- body[data-role="owner"] #mainApp.app>.main>.content{display:block!important;position:relative!important;flex:none!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;overflow-y:visible!important;overflow-x:visible!important;contain:none!important;padding-bottom:calc(72px + env(safe-area-inset-bottom))!important;touch-action:pan-y!important}
- body[data-role="owner"] #mainApp .page.active{display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
- body[data-role="owner"] #mainApp.app>.side{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(300px,86vw)!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow-x:hidden!important;overflow-y:auto!important;z-index:100!important;transform:translateX(-110%)!important}
- body[data-role="owner"] #mainApp.app>.side.sidebar-open{transform:translateX(0)!important}
- body[data-role="owner"] #mainApp .sidebar-overlay.visible{display:block!important;position:fixed!important;inset:0!important;z-index:90!important;background:#10152280!important}
- body[data-role="owner"] .sidebar-toggle{display:grid!important;place-items:center!important;position:relative!important;z-index:110!important}
- body[data-role="owner"] #mainApp .nav{display:flex!important;flex-direction:column!important;align-items:stretch!important;overflow:visible!important;width:100%!important}
- body[data-role="owner"] #mainApp .nav-group{display:block!important}
- body[data-role="owner"] #mainApp .nav-label{display:block!important}
- body[data-role="owner"] #mainApp .nav button{display:flex!important;width:100%!important;min-height:44px!important;white-space:normal!important}
-}
 </style><div class="modal" id="resetPasswordResultModal"><div class="modal-box"><div class="modal-head"><h2>Password reset successful</h2><button class="close" type="button" onclick="closeModal('resetPasswordResultModal')">✕</button></div><div class="notice">Owner ko yeh temporary password privately bhejein. Login ke baad Owner apna naya password set karega.</div><div class="field" style="margin-top:16px"><label>Restaurant</label><input id="resetPasswordRestaurant" readonly></div><div class="field"><label>Owner mobile</label><input id="resetPasswordPhone" readonly></div><div class="field"><label>Temporary password</label><input id="resetPasswordValue" type="text" readonly autocomplete="off" autocapitalize="off" spellcheck="false" style="font:700 18px monospace;letter-spacing:1px;user-select:all;-webkit-user-select:all"></div><div class="actions"><button class="btn secondary" type="button" onclick="copyResetPassword()">📋 Copy Password</button><button class="btn" type="button" onclick="shareResetPassword()">WhatsApp par Owner ko bhejein</button><button class="btn secondary" type="button" onclick="selectResetPassword()">Select Password</button><button class="btn secondary" type="button" onclick="closeModal('resetPasswordResultModal')">Close</button></div><div class="small" id="resetPasswordCopyStatus" style="margin-top:10px" aria-live="polite">Copy Password dabayein. Agar copy na ho, Select Password dabakar Copy karein.</div></div></div><div class="order-live-toast" id="orderLiveToast" role="status" aria-live="polite"></div><script>
 document.addEventListener('DOMContentLoaded',function(){
  const dateLabel=document.getElementById('biteTodayDate');
@@ -2617,159 +2526,12 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
-<style id="owner-dashboard-visibility-recovery">
-/* Recovery override: the Owner Overview root was left inline-hidden in some sessions. */
-body[data-role="owner"] #overview.page.active [data-owner-dashboard]{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;position:relative!important}
-body[data-role="owner"] #overview.page.active [data-owner-dashboard]>*{visibility:visible!important;opacity:1!important}
-body[data-role="owner"] #overview.page.active{display:block!important;visibility:visible!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
-body[data-role="owner"] #mainApp .main>.content{display:block!important;visibility:visible!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;contain:none!important}
-</style>
+
 <script id="owner-dashboard-runtime-diagnostic">
 (()=>{const show=(message)=>{let box=document.getElementById('ownerRuntimeErrorBox');if(!box){box=document.createElement('div');box.id='ownerRuntimeErrorBox';box.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fff1f0;border:1px solid #e5484d;color:#8b1a1a;border-radius:10px;padding:10px 12px;font:12px/1.4 system-ui;max-height:35vh;overflow:auto;box-shadow:0 5px 24px #0002';document.body.appendChild(box)}box.textContent='Dashboard JavaScript error: '+message};window.addEventListener('error',e=>{if(document.body?.dataset?.role==='owner')show(e.message+' ('+(e.filename||'script')+':'+e.lineno+')')});window.addEventListener('unhandledrejection',e=>{if(document.body?.dataset?.role==='owner')show(e.reason?.message||String(e.reason||'Unhandled promise rejection'))});})();
 </script>
 <div id="bite-legal-footer" style="position:relative;z-index:1;text-align:center;padding:14px 12px;font:13px/1.6 system-ui,sans-serif;color:#667085;background:#fff;border-top:1px solid #e5e7eb">Bite · Legal Business Name: GAURAV JOSHI · <a href="./contact.html" style="color:#5144c9">Contact &amp; Business Information</a></div>
-
-<style id="bite-owner-click-recovery">
-/* A closed mobile sidebar overlay must never intercept dashboard taps. */
-body[data-role="owner"] #mainApp .sidebar-overlay:not(.visible){display:none!important;visibility:hidden!important;pointer-events:none!important}
-body[data-role="owner"] #mainApp .sidebar-overlay.visible{pointer-events:auto!important}
-body[data-role="owner"] #mainApp .nav button:not([disabled]){pointer-events:auto!important;cursor:pointer!important}
-</style>
-<script id="bite-owner-navigation-recovery">
-(function(){
-function init(){
- const app=document.getElementById('mainApp');if(!app||app.dataset.ownerNavRecovery==='1')return;
- app.dataset.ownerNavRecovery='1';
- app.addEventListener('click',function(e){
-  if(document.body.dataset.role!=='owner')return;
-  const button=e.target.closest('.nav button[data-page]');if(!button||!app.contains(button))return;
-  // Capture the intended navigation even if a workspace loader throws later.
-  try{window.showPage(button.dataset.page)}catch(error){console.error('Bite owner navigation:',error)}
-  const overlay=document.getElementById('sidebarOverlay');const side=app.querySelector('.side');
-  if(overlay)overlay.classList.remove('visible');if(side)side.classList.remove('sidebar-open');
- },true);
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
-
-<style id="bite-owner-navigation-fix-v2">
-/* Keep the backdrop behind the drawer, never over interactive content. */
-body[data-role="owner"] #mainApp #sidebarOverlay:not(.visible){display:none!important;pointer-events:none!important}
-body[data-role="owner"] #mainApp #sidebarOverlay.visible{pointer-events:auto!important}
-body[data-role="owner"] #mainApp .side.sidebar-open{z-index:110!important}
-body[data-role="owner"] #mainApp #sidebarOverlay.visible{z-index:90!important}
-body[data-role="owner"] #mainApp .page:not(.active){display:none!important}
-</style>
-<script id="bite-owner-navigation-fix-v2-script">
-(function(){
-const pages=new Set(['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']);
-function navigate(page){
- if(!pages.has(page))return;
- const app=document.getElementById('mainApp');if(!app)return;
- app.querySelectorAll('.page').forEach(el=>el.classList.toggle('active',el.id===page));
- app.querySelectorAll('.nav button[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
- const title=document.getElementById('pageTitle');const button=app.querySelector('.nav button[data-page="'+page+'"] .nav-text');
- if(title)title.textContent=button?.textContent?.trim()||page;
- app.querySelector('.side')?.classList.remove('sidebar-open');
- document.getElementById('sidebarOverlay')?.classList.remove('visible');
- document.querySelector('.sidebar-toggle')?.setAttribute('aria-expanded','false');
- window.scrollTo({top:0,behavior:'instant'});
- const content=app.querySelector('.content');if(content)content.scrollTop=0;
- const loaders={menu:'loadMenuWorkspace',tables:'loadTablesWorkspace',khata:'loadKhataWorkspace',cashbook:'loadCashbookWorkspace',expenses:'loadExpenseWorkspace',purchases:'loadPurchaseWorkspace',inventory:'loadInventoryWorkspace',hr:'loadHRWorkspace',reports:'loadReportsWorkspace',settings:'loadOwnerSettings',orders:'loadCustomerOrderRequestsWorkspace'};
- const loader=loaders[page];if(loader&&typeof window[loader]==='function')Promise.resolve().then(()=>window[loader]()).catch(err=>console.error('Bite '+page+' loader:',err));
-}
-document.addEventListener('click',function(e){
- if(document.body.dataset.role!=='owner')return;
- const target=e.target instanceof Element?e.target:null;
- const btn=target?.closest('#mainApp .nav button[data-page]');if(!btn)return;
- e.preventDefault();e.stopImmediatePropagation();navigate(btn.dataset.page);
-},true);
-})();
-</script>
-
-<!-- bite-owner-quick-access-fix -->
-<script id="bite-owner-quick-access-fix">
-(function(){
- const allowed=new Set(['overview','orders','menu','tables','inventory','purchases','expenses','cashbook','hr','reports','khata','settings']);
- const loaders={menu:'loadMenuWorkspace',tables:'loadTablesWorkspace',inventory:'loadInventoryWorkspace',purchases:'loadPurchaseWorkspace',expenses:'loadExpenseWorkspace',cashbook:'loadCashbookWorkspace',hr:'loadHRWorkspace',reports:'loadReportsWorkspace',orders:'loadCustomerOrderRequestsWorkspace',khata:'loadKhataWorkspace',settings:'loadOwnerSettings'};
- function open(page){
-  if(!allowed.has(page))return;
-  const app=document.getElementById('mainApp');if(!app)return;
-  const section=app.querySelector('.page#'+page);
-  if(!section){console.error('Bite missing workspace:',page);return}
-  app.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p===section));
-  app.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  const title=document.getElementById('pageTitle');if(title)title.textContent=app.querySelector('.nav button[data-page="'+page+'"] .nav-text')?.textContent?.trim()||page;
-  app.querySelector('.side')?.classList.remove('sidebar-open');document.getElementById('sidebarOverlay')?.classList.remove('visible');
-  const scroller=app.querySelector('.content');if(scroller)scroller.scrollTop=0;window.scrollTo(0,0);
-  const fn=window[loaders[page]];
-  if(typeof fn==='function')Promise.resolve().then(()=>fn()).catch(error=>console.error('Bite workspace load '+page,error));
- }
- document.addEventListener('click',function(event){
-  if(document.body.dataset.role!=='owner')return;
-  const target=event.target instanceof Element?event.target:null;
-  const button=target?.closest('#mainApp .bo-tools button, #mainApp .bo-stages button, #mainApp button.bo-link');
-  if(!button)return;
-  const code=button.getAttribute('onclick')||'';const match=code.match(/showPage\(['"]([a-z]+)['"]\)/);
-  if(!match)return;
-  event.preventDefault();event.stopImmediatePropagation();open(match[1]);
-  const status=code.match(/setOrderStatus\(['"]([a-z]+)['"]\)/i);
-  if(status&&typeof window.setOrderStatus==='function')try{window.setOrderStatus(status[1])}catch(error){console.error('Bite order filter',error)}
- },true);
-})();
-</script>
-
-<style id="bite-owner-workspace-visibility-v3">
-body[data-role="owner"] #mainApp .page.active{display:block!important;visibility:visible!important;opacity:1!important;min-height:300px!important}
-body[data-role="owner"] #mainApp .page:not(.active){display:none!important}
-body[data-role="owner"] #mainApp .page.active>.welcome,body[data-role="owner"] #mainApp .page.active>.card,body[data-role="owner"] #mainApp .page.active>.notice{visibility:visible!important;opacity:1!important}
-</style>
-<script id="bite-owner-workspace-feedback-v3">
-(function(){
- function activate(){
-  const app=document.getElementById('mainApp');if(!app)return;
-  const observer=new MutationObserver(records=>{
-   if(document.body.dataset.role!=='owner')return;
-   for(const record of records){const page=record.target;if(!(page instanceof Element)||!page.classList.contains('page')||!page.classList.contains('active'))continue;
-    const content=app.querySelector('.content');if(content)content.scrollTop=0;
-    window.scrollTo(0,0);
-    const name=page.id;
-    if(!['settings','cashbook','khata'].includes(name))continue;
-    const loader={settings:'loadOwnerSettings',cashbook:'loadCashbookWorkspace',khata:'loadKhataWorkspace'}[name];
-    if(typeof window[loader]==='function')Promise.resolve().then(()=>window[loader]()).catch(error=>{console.error('Bite '+name,error);const message=document.getElementById('biteWorkspaceError');if(message){message.textContent='Data load nahi hua: '+(error?.message||String(error));message.style.display='block'}});
-    const message=document.getElementById('biteWorkspaceError');if(message)message.style.display='none';
-   }
-  });
-  app.querySelectorAll('.page').forEach(page=>observer.observe(page,{attributes:true,attributeFilter:['class']}));
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
-})();
-</script>
-
-<style id="bite-owner-page-shell-v4">
-body[data-role="owner"] #mainApp>.main>.content>.page.active{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;transform:none!important;min-height:450px!important;height:auto!important;overflow:visible!important}
-body[data-role="owner"] #mainApp>.main>.content>.page:not(.active){display:none!important}
-body[data-role="owner"] #mainApp>.main>.content>.page.active>*{visibility:visible!important;opacity:1!important}
-</style>
-<script id="bite-owner-page-diagnostics-v4">
-(function(){
- function check(){
-  if(document.body.dataset.role!=='owner')return;
-  const app=document.getElementById('mainApp');const content=app?.querySelector('.main>.content');const page=content?.querySelector('.page.active');
-  if(!content||!page)return;
-  const rect=page.getBoundingClientRect(),style=getComputedStyle(page),title=document.getElementById('pageTitle');
-  let notice=document.getElementById('bitePageDiagnostic');
-  if(!notice){notice=document.createElement('div');notice.id='bitePageDiagnostic';notice.style.cssText='display:none;position:relative;z-index:3;background:#fff4e6;color:#713c13;border:1px solid #f3c99e;padding:12px;border-radius:10px;margin:12px;font:13px system-ui';content.prepend(notice)}
-  const broken=style.display==='none'||style.visibility==='hidden'||rect.height<35;
-  notice.style.display=broken?'block':'none';
-  if(broken)notice.textContent='Bite workspace display error: '+page.id+' (display='+style.display+', height='+Math.round(rect.height)+'). Please share screenshot.';
-  if(title&&title.textContent.trim()==='')title.textContent=page.id;
- }
- document.addEventListener('click',e=>{if(document.body.dataset.role!=='owner')return;const target=e.target instanceof Element?e.target:null;if(!target?.closest('#mainApp .nav button, #mainApp .bo-tools button, #mainApp .bo-link'))return;setTimeout(check,100)},false);
- const start=()=>{const app=document.getElementById('mainApp');if(!app)return;new MutationObserver(()=>check()).observe(app,{subtree:true,attributes:true,attributeFilter:['class']});check()};
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
-})();
-</script>
+<script src="assets/owner-save-state.js"></script>
+<link rel="stylesheet" href="assets/owner-layout.css">
 </body></html>
 <!-- Login diagnostic update pending verification -->
