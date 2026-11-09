@@ -79,7 +79,7 @@ The accepted scope excludes active POS creation/refunds, KOT/KDS, platform deliv
 
 ## Remaining security/verification limits
 
-- Password leak protection remains disabled in Auth settings: [Supabase remediation](https://supabase.com/docs/guides/database/database-linter?lint=auth_leaked_password_protection).
+- Password leak protection remains disabled in Auth settings: [Supabase remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 - Advisor notices remain for 4 anonymous and 34 authenticated SECURITY DEFINER functions. Callable privileged functions require individual purpose/guard review; the notice count alone does not prove an exploit. This run exercised selected critical endpoints and did not certify all 87 database functions: [function review guidance](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable).
 - The delivery-handoff table intentionally uses RLS without direct table policies; access is through the token/OTP RPCs. Fourteen multiple-permissive-policy notices remain. New unused-index notices are informational; required FK indexes were retained.
 - No new real Owner/Admin/Customer password login, delivered reset email, paid checkout, actual refund/payout, external notification, browser push, sustained concurrency/load, backup restoration or physical-device certification was performed.
