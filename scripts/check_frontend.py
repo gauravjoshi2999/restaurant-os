@@ -135,8 +135,10 @@ check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
 check("const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[]" in owner and "if(!allowed.includes(id))id='overview'" in owner,
       "Owner route guard allows supported restaurant operations and blocks disabled or Platform Admin pages")
-check("Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner,
-      "Legacy manual POS order creation is disabled in the marketplace MVP")
+blocked_pos_handler = "Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner
+guarded_pos_handler = "if(!['owner','manager'].includes(access.role))" in owner and "if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId)" in owner
+check(blocked_pos_handler or guarded_pos_handler,
+      "Legacy POS submit is disabled or restricted to the assigned restaurant Owner/Manager")
 check('id="pos">' in owner and "New Sale · Not enabled" in owner and "sirf pehle se maujood POS sales" in owner,
       "Owner POS page clearly identifies read-only sales history and disables unsupported new-sale action")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
