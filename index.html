@@ -733,6 +733,7 @@ body[data-role="owner"] .page:not(#overview) .form-row{grid-template-columns:rep
  <div class="section"><div class="section-head"><h2>Refund history</h2><span class="small">Immutable records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Sale cancelled</th><th>Money returned</th><th>Mode</th><th>Reason</th></tr></thead><tbody id="refundHistoryRows"></tbody></table><div class="empty" id="refundHistoryEmpty">No refunds recorded.</div></div></div>
 </section>
 <section class="page" id="orders"><div class="welcome"><div><h1>Orders</h1><div class="muted">BITE website se aane wale customer orders yahan manage karein.</div></div><span class="tag">BITE WEBSITE</span></div>
+<section id="sandboxPaidOrdersPanel" class="card" style="margin:16px 0;border:1px solid #d9e8e2;padding:18px"><div class="section-head"><div><h3>Sandbox Payment Tests</h3><p class="muted">Cashfree verified test payments only. NOT real orders or sales. Cannot accept or dispatch.</p></div><button class="btn secondary" onclick="loadSandboxPaidOrders()">Refresh tests</button></div><div id="sandboxPaidOrdersList" class="muted">Loading test payments...</div></section>
 <section class="platform-restaurant-manager" id="platformRestaurantManager">
  <div class="platform-manager-head"><div><span class="platform-manager-kicker">NETWORK CONTROL</span><h2>Restaurant Network</h2><p>Ek restaurant chunein. Uske website orders aur payment ka hisaab alag khulega.</p></div><div class="platform-restaurant-total"><strong id="platformRestaurantCount">0</strong><span>Restaurants</span></div></div>
  <div class="platform-manager-tools"><label class="platform-search"><span>⌕</span><input id="platformRestaurantSearch" type="search" placeholder="Restaurant name, city ya phone search karein..." oninput="renderPlatformRestaurantDirectory()"></label><span class="platform-manager-hint">Restaurant select karne par usi ke orders dikhenge</span></div>
@@ -1976,7 +1977,24 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
-async function showPage(id){
+async 
+async function loadSandboxPaidOrders(){
+ const target=document.getElementById('sandboxPaidOrdersList'),panel=document.getElementById('sandboxPaidOrdersPanel');if(!target||!panel)return;
+ if(access.role!=='owner'&&access.role!=='super_admin'){panel.hidden=true;return;}panel.hidden=false;
+ const restaurantId=access.role==='super_admin'?selectedPlatformRestaurantId:access.restaurantId;
+ if(!restaurantId){target.textContent='Select a restaurant to view sandbox payments.';return;}
+ target.textContent='Checking verified sandbox payments...';
+ try{
+  const {data,error}=await sb.rpc('bite_sandbox_order_preview',{p_restaurant_id:restaurantId});if(error)throw error;
+  target.replaceChildren();if(!data?.length){target.textContent='No verified sandbox payments for this restaurant.';return;}
+  for(const d of data){const card=document.createElement('div');card.style.cssText='padding:12px 0;border-top:1px solid #e5e7eb';
+   const header=document.createElement('strong');header.textContent='TEST ONLY · '+money(d.payable_amount)+' · '+new Date(d.created_at).toLocaleString('en-IN');card.append(header);
+   const meta=document.createElement('div');meta.className='muted';meta.textContent='Sandbox PAID · '+d.delivery_type+' · '+d.draft_id;card.append(meta);
+   const detail=document.createElement('div');detail.textContent=Array.isArray(d.items)?d.items.map(i=>'Item '+String(i.menu_item_id||'').slice(0,8)+' × '+Number(i.quantity||0)).join(', '):'';card.append(detail);target.append(card);
+  }
+ }catch(e){target.textContent='Unable to load sandbox payments: '+(e.message||'Unknown error');}
+}
+function showPage(id){
  const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];
  const platformPages=['overview','restaurants','orders','financials','audit','support','moderation'];
  const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[];
@@ -1985,7 +2003,7 @@ async function showPage(id){
  const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports'};
  document.getElementById('pageTitle').textContent=titles[id]||'Bite';
  window.scrollTo({top:0,behavior:'instant'});
- const loaders={overview:()=>render(),menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const loaders={overview:()=>render(),menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
  const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
  try{if(loaders[id])await loaders[id]();document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
  catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
