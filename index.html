@@ -1977,7 +1977,6 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
-async 
 async function loadSandboxPaidOrders(){
  const target=document.getElementById('sandboxPaidOrdersList'),panel=document.getElementById('sandboxPaidOrdersPanel');if(!target||!panel)return;
  if(access.role!=='owner'&&access.role!=='super_admin'){panel.hidden=true;return;}panel.hidden=false;
@@ -1998,7 +1997,7 @@ async function loadSandboxPaidOrders(){
   }
  }catch(e){target.textContent='Unable to load sandbox payments: '+(e.message||'Unknown error');}
 }
-function showPage(id){
+async function showPage(id){
  const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];
  const platformPages=['overview','restaurants','orders','financials','audit','support','moderation'];
  const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[];
