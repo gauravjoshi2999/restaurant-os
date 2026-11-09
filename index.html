@@ -2048,7 +2048,7 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
-function showPage(id){document.querySelectorAll('#mainApp .page').forEach(p=>{p.style.removeProperty('display');p.style.removeProperty('visibility')});if(access.role==='super_admin'&&!['overview','restaurants','orders','financials','audit','support','moderation'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin'){loadOwnerMappingWorkspace();loadRestaurantChangeRequestsWorkspace();}document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
+function showPage(id){document.querySelectorAll('#mainApp .page').forEach(p=>{p.style.removeProperty('display');p.style.removeProperty('visibility')});if(access.role==='super_admin'&&!['overview','restaurants','orders','financials','audit','support','moderation'].includes(id)){id='overview'}if(access.role==='owner'&&!['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'].includes(id)){id='overview'}if(id==='orders'&&access.role==='super_admin')setOrderChannel('website');document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));if(access.role==='owner'){const content=document.querySelector('#mainApp .content');if(content)content.scrollTop=0;document.scrollingElement?.scrollTo(0,0);window.scrollTo(0,0)}document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));if(id==='orders')setOrderChannel('website');if(id==='settings'&&access.role==='owner')loadOwnerSettings();if(id==='restaurants'&&access.role==='super_admin'){loadOwnerMappingWorkspace();loadRestaurantChangeRequestsWorkspace();}document.getElementById('pageTitle').textContent={overview:'Overview',restaurants:'Restaurants',menu:'Menu management',orders:'Orders',pos:'Point of Sale',tables:'Table Management',refunds:'Refunds',khata:'Customer Khata',reconciliation:'Reconciliation',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',reports:'Business Reports',cashbook:'Daily Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory & Stock',hr:'Staff & HR',settings:'Settings'}[id]}
 document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>{toggleSidebar(false);showPage(b.dataset.page);if(b.dataset.page==='menu')loadMenuWorkspace();if(b.dataset.page==='pos')loadPOSWorkspace();if(b.dataset.page==='tables')loadTablesWorkspace();if(b.dataset.page==='refunds')loadRefundWorkspace();if(b.dataset.page==='khata')loadKhataWorkspace();if(b.dataset.page==='hr')loadHRWorkspace();if(b.dataset.page==='reports')loadReportsWorkspace();if(b.dataset.page==='cashbook')loadCashbookWorkspace();if(b.dataset.page==='expenses')loadExpenseWorkspace();if(b.dataset.page==='purchases')loadPurchaseWorkspace();if(b.dataset.page==='inventory')loadInventoryWorkspace();if(b.dataset.page==='settings')loadDeliveryZonesWorkspace();if(b.dataset.page==='audit')loadAuditLogWorkspace();if(b.dataset.page==='support')loadSupportWorkspace();if(b.dataset.page==='moderation')loadReviewReportsWorkspace();if(b.dataset.page==='orders'){loadCustomerOrderRequestsWorkspace();loadRestaurantReviewsWorkspace()}}));
 let menuCategories=[],menuItems=[],activeMenuRestaurant=null;
 function menuRestaurantId(){return document.getElementById('menuRestaurantSelect').value||''}
@@ -2717,6 +2717,33 @@ document.addEventListener('click',function(e){
   const status=code.match(/setOrderStatus\(['"]([a-z]+)['"]\)/i);
   if(status&&typeof window.setOrderStatus==='function')try{window.setOrderStatus(status[1])}catch(error){console.error('Bite order filter',error)}
  },true);
+})();
+</script>
+
+<style id="bite-owner-workspace-visibility-v3">
+body[data-role="owner"] #mainApp .page.active{display:block!important;visibility:visible!important;opacity:1!important;min-height:300px!important}
+body[data-role="owner"] #mainApp .page:not(.active){display:none!important}
+body[data-role="owner"] #mainApp .page.active>.welcome,body[data-role="owner"] #mainApp .page.active>.card,body[data-role="owner"] #mainApp .page.active>.notice{visibility:visible!important;opacity:1!important}
+</style>
+<script id="bite-owner-workspace-feedback-v3">
+(function(){
+ function activate(){
+  const app=document.getElementById('mainApp');if(!app)return;
+  const observer=new MutationObserver(records=>{
+   if(document.body.dataset.role!=='owner')return;
+   for(const record of records){const page=record.target;if(!(page instanceof Element)||!page.classList.contains('page')||!page.classList.contains('active'))continue;
+    const content=app.querySelector('.content');if(content)content.scrollTop=0;
+    window.scrollTo(0,0);
+    const name=page.id;
+    if(!['settings','cashbook','khata'].includes(name))continue;
+    const loader={settings:'loadOwnerSettings',cashbook:'loadCashbookWorkspace',khata:'loadKhataWorkspace'}[name];
+    if(typeof window[loader]==='function')Promise.resolve().then(()=>window[loader]()).catch(error=>{console.error('Bite '+name,error);const message=document.getElementById('biteWorkspaceError');if(message){message.textContent='Data load nahi hua: '+(error?.message||String(error));message.style.display='block'}});
+    const message=document.getElementById('biteWorkspaceError');if(message)message.style.display='none';
+   }
+  });
+  app.querySelectorAll('.page').forEach(page=>observer.observe(page,{attributes:true,attributeFilter:['class']}));
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',activate);else activate();
 })();
 </script>
 </body></html>
