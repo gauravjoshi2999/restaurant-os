@@ -26,7 +26,7 @@ customer = customer.replace('Support requests load ho rahe hain...', 'No support
 customer = customer.replace('<button class="active" data-nav="home">', '<button data-nav="home">')
 customer = customer.replace('<button data-nav="account">', '<button class="active" data-nav="account">')
 (OUT / 'account-layout.html').write_text(customer)
-(OUT / 'mobile-account.html').write_text('''<!doctype html><html><head><meta charset="utf-8"><title>Bite Account mobile layout preview</title><style>*{box-sizing:border-box}body{margin:0;background:#d0d7c2;min-height:100vh;padding:24px;display:grid;place-items:start center}iframe{display:block;width:390px;height:844px;border:0;background:#e9e4d6;border-radius:14px;box-shadow:0 12px 40px #24392b22}</style></head><body><iframe id="phonePreview" title="Account mobile layout preview" src="account-layout.html"></iframe></body></html>''')
+(OUT / 'mobile-account.html').write_text('''<!doctype html><html><head><meta charset="utf-8"><title>Bite Account mobile layout preview</title><style>*{box-sizing:border-box}body{margin:0;background:#dde1e8;min-height:100vh;padding:24px;display:grid;place-items:start center}iframe{display:block;width:390px;height:844px;border:0;background:#f1f2f5;border-radius:14px;box-shadow:0 12px 40px #25293622}</style></head><body><iframe id="phonePreview" title="Account mobile layout preview" src="account-layout.html"></iframe></body></html>''')
 
 owner = without_scripts((ROOT / 'index.html').read_text())
 owner = owner.replace('<body data-bite-app="workspace">', '<body data-bite-app="workspace" data-role="owner">')
