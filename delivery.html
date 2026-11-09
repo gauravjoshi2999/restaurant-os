@@ -11,11 +11,11 @@
 </style>
 </head>
 <body><main class="wrap">
-<div class="brand">Bite <span class="muted">• Eat. Repeat.</span></div>
+<div class="brand">Bite <span class="muted">• Eat. Repeat.</span></div><p class="muted" style="margin:0 0 8px">Real delivery verification · Testing only? <a href="./delivery-test.html">Open safe Demo Test</a></p>
 <div class="card" id="loading"><h1>Delivery details load ho rahe hain…</h1><p class="muted">Secure handoff link verify kiya ja raha hai.</p></div>
 <div class="card hidden" id="verifyCard">
 <h1>Enter Delivery OTP</h1>
-<p class="muted">Customer se 4-digit OTP poochhein.</p>
+<p class="muted">Real order: correct OTP se order permanently Completed ho jayega. Sirf testing ke liye Demo Test use karein.</p>
 <form id="otpForm"><label for="otpInput">Customer OTP</label><input id="otpInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="••••" required><button class="btn" id="confirmBtn" type="submit">Confirm delivery</button></form>
 <div class="msg hidden" id="resultMsg" role="status"></div>
 </div>
@@ -39,7 +39,7 @@ const $=id=>document.getElementById(id);
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showError(message){$('loading').classList.add('hidden');$('details').classList.add('hidden');$('verifyCard').classList.add('hidden');$('errorCard').classList.remove('hidden');$('errorText').textContent=message||'Link invalid ya expired hai.';}
 async function load(){
- if(!token){showError('Delivery token missing hai. WhatsApp se poora link open karein.');return;}
+ if(!token){showError('Delivery token missing hai. Real delivery ke liye WhatsApp ka poora link kholein. Sirf testing ke liye upar Demo Test kholein.');return;}
  try{
   const {data,error}=await sb.rpc('get_delivery_handoff',{p_token:token});if(error)throw error;
   const h=Array.isArray(data)?data[0]:data;if(!h)throw new Error('Link expire ho gaya hai, order complete ho chuka hai, ya link invalid hai.');
