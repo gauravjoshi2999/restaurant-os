@@ -43,6 +43,7 @@ An additional Owner/HR repeat variant was not completed because its native datab
 | Panel | Planned area | Current assessment |
 | --- | --- | --- |
 | Customer | Public restaurant/menu browse, search, categories, delivery/pickup filters, menu veg filter | Implemented; public browser and behavior coverage. |
+| Customer | Selected-address/PIN-based restaurant listing | Partial. Current nearby discovery provides proximity/service selection; a complete saved-address/PIN-driven discovery filter is absent. Checkout's server PIN restriction is separately tested. |
 | Customer | Rating/low-price/low-delivery-fee/Open Now dedicated filters, featured/popular curation | Partial; the full planned filter/curation set is absent. |
 | Customer | Profile and saved-address isolation/CRUD | DB pass; mobile Account fields covered by browser smoke. |
 | Customer | Fresh signup, email delivery, full recovery-link/password reset, session expiry | Unverified in a new real account during this run. Current Customer form is email based; the originally planned mobile-password entry is not certified. |
@@ -72,6 +73,7 @@ An additional Owner/HR repeat variant was not completed because its native datab
 | Storage | Secure document/menu/bill-photo uploads | No configured storage buckets were found. |
 | Security | Public tables and reporting views | All 47 public tables have RLS; all 5 reporting views use caller permissions. Selected role boundaries passed the live tests. |
 | UI | Customer desktop/mobile layouts | Public automated coverage; physical Android, broad device coverage and freshly authenticated Owner/Admin mobile flows remain unverified. |
+| UI | Hindi/English language switch | Mixed Hindi/English labels are present; a complete language-switch workflow was not found. |
 
 The accepted scope excludes active POS creation/refunds, KOT/KDS, platform delivery-driver accounts, aggregator integrations, multiple branches and automated payroll. These are not counted as missing launch features.
 
