@@ -733,6 +733,7 @@ body[data-role="owner"] .page:not(#overview) .form-row{grid-template-columns:rep
  <div class="section"><div class="section-head"><h2>Refund history</h2><span class="small">Immutable records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Sale cancelled</th><th>Money returned</th><th>Mode</th><th>Reason</th></tr></thead><tbody id="refundHistoryRows"></tbody></table><div class="empty" id="refundHistoryEmpty">No refunds recorded.</div></div></div>
 </section>
 <section class="page" id="orders"><div class="welcome"><div><h1>Orders</h1><div class="muted">BITE website se aane wale customer orders yahan manage karein.</div></div><span class="tag">BITE WEBSITE</span></div>
+<section class="card" id="verifiedLiveInboxPanel" style="margin:12px 0;padding:12px"><div class="section-head"><div><h3>Payment-Verified Live Orders</h3><p class="muted">Only server-recorded paid orders appear here. Unpaid orders are excluded.</p></div><button class="btn secondary" onclick="loadVerifiedLiveInbox()">Refresh</button></div><div id="verifiedLiveInboxList" class="muted">Loading verified orders...</div></section>
 <section id="sandboxPaidOrdersPanel" class="card" style="margin:12px 0;border:1px solid #d9e8e2;padding:12px"><div class="section-head"><div><h3>Sandbox Payment Tests</h3><p class="muted">Verified sandbox orders only · Not included in real sales.</p></div><button class="btn secondary" onclick="loadSandboxPaidOrders()">Refresh tests</button></div><div id="sandboxPaidOrdersList" class="muted">Loading test payments...</div></section>
 <section class="platform-restaurant-manager" id="platformRestaurantManager">
  <div class="platform-manager-head"><div><span class="platform-manager-kicker">NETWORK CONTROL</span><h2>Restaurant Network</h2><p>Ek restaurant chunein. Uske website orders aur payment ka hisaab alag khulega.</p></div><div class="platform-restaurant-total"><strong id="platformRestaurantCount">0</strong><span>Restaurants</span></div></div>
@@ -1977,6 +1978,15 @@ async function resolveOwnerMapping(userId,restaurantId,restaurantName,ownerCount
   await loadCloudData();
  }catch(error){status.textContent='Mapping update nahi hui: '+(error.message||String(error));console.error(error);}
 }
+async function loadVerifiedLiveInbox(){
+ const box=document.getElementById('verifiedLiveInboxList'),panel=document.getElementById('verifiedLiveInboxPanel');if(!box||!panel)return;
+ if(access.role!=='owner'){panel.hidden=true;return;}panel.hidden=false;
+ if(!access.restaurantId){box.textContent='Restaurant mapping is missing.';return}
+ const {data,error}=await sb.rpc('bite_verified_live_order_inbox',{p_restaurant_id:access.restaurantId});
+ if(error){box.textContent='Could not load verified orders: '+error.message;return}
+ box.replaceChildren();if(!data?.length){box.textContent='No payment-verified live orders yet. Unpaid orders will not appear here.';return}
+ for(const o of data){const item=document.createElement('div');item.style.cssText='padding:12px 0;border-top:1px solid #e5e7eb';const h=document.createElement('strong');h.textContent=(o.order_code||'Order')+' · '+money(o.amount)+' · '+o.order_status;item.append(h);const detail=document.createElement('div');detail.className='muted';detail.textContent=(o.customer_name||'Customer')+' · '+new Date(o.created_at).toLocaleString('en-IN')+' · Payment verified';item.append(detail);box.append(item)}
+}
 async function loadSandboxPaidOrders(){
  const target=document.getElementById('sandboxPaidOrdersList'),panel=document.getElementById('sandboxPaidOrdersPanel');if(!target||!panel)return;
  if(access.role!=='owner'&&access.role!=='super_admin'){panel.hidden=true;return;}panel.hidden=false;
@@ -2006,7 +2016,7 @@ async function showPage(id){
  const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports'};
  document.getElementById('pageTitle').textContent=titles[id]||'Bite';
  window.scrollTo({top:0,behavior:'instant'});
- const loaders={overview:()=>render(),menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const loaders={overview:()=>render(),menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
  const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
  try{if(loaders[id])await loaders[id]();document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
  catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
