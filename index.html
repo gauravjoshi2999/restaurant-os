@@ -346,6 +346,16 @@ body[data-role="owner"] .zp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
 body[data-role="owner"] .zp-outlet-info p{display:none}
 @media(max-width:700px){body[data-role="owner"] .zp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+/* Owner navigation: hide empty admin group, keep operational tools accessible. */
+body[data-role="owner"] #mainApp .nav-group:has(> .nav-label:first-child):has(> button[data-page="reconciliation"]){display:none!important}
+body[data-role="owner"] #mainApp .nav-group:has(> button[data-page="overview"]) .nav-label{display:none}
+body[data-role="owner"] #mainApp .nav button{width:100%;text-align:left;touch-action:manipulation}
+@media(max-width:760px){
+ body[data-role="owner"] #mainApp .main{min-width:0;width:100%;overflow-x:hidden}
+ body[data-role="owner"] #mainApp .side{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+ body[data-role="owner"] #mainApp .nav button{min-height:44px}
+ body[data-role="owner"] #mainApp .top{min-width:0}
+}
 /* Owner dashboard cleanup: a single outlet owner does not need the platform-wide Restaurants directory. */
 body[data-role="owner"] #mainApp .nav button[data-page="restaurants"]{display:none!important}
 body[data-role="owner"] #mainApp .nav button[data-page="reconciliation"],
