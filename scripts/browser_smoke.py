@@ -23,6 +23,40 @@ def check(condition, message):
         raise AssertionError(message)
     print("PASS:", message)
 
+
+def check_account_layout(page, width):
+    """Render the real Account markup without credentials or any business writes."""
+    page.evaluate("""() => {
+        for (const id of ['homeView','menuView','ordersView']) document.getElementById(id).classList.add('hidden');
+        document.getElementById('accountView').classList.remove('hidden');
+        document.body.dataset.view='account';
+        document.getElementById('cartFloating').classList.remove('show');
+        document.getElementById('accountProfile').textContent='Layout check only';
+        const option=document.createElement('option');
+        option.textContent='BITE-123456789 — A restaurant with a long name — test order for layout only';
+        document.getElementById('customerSupportOrder').append(option);
+        document.getElementById('customerSupportOrder').selectedIndex=1;
+    }""")
+    fields = page.evaluate("""() => [...document.querySelectorAll('#accountView .account-field input, #accountView .account-field select, #accountView .account-field textarea')].map(el => {
+        const label=document.querySelector('label[for="'+el.id+'"]');
+        const r=el.getBoundingClientRect(), l=label?.getBoundingClientRect(), p=el.parentElement.getBoundingClientRect();
+        return {id:el.id,width:r.width,height:r.height,parent:p.width,labelAbove:!!l&&l.bottom<=r.top+1,leftAligned:!!l&&Math.abs(l.left-r.left)<=1};
+    })""")
+    check(len(fields) == 12, f"Account exposes all twelve labeled address/support controls at {width}px")
+    check(all(f['labelAbove'] and f['leftAligned'] for f in fields), f"Every Account label is above its field at {width}px")
+    check(all(f['width'] > 0 and f['width'] <= f['parent'] + 1 and f['height'] >= 44 for f in fields), f"Account controls fit their containers with usable touch height at {width}px")
+    if width <= 600:
+        columns=page.locator('.account-address-form .account-form-grid').evaluate("el => getComputedStyle(el).gridTemplateColumns")
+        check(len(columns.split()) == 1, f"Address fields use one clear mobile column at {width}px")
+    checkbox=page.locator('#addrDefault').bounding_box()
+    check(checkbox and 16 <= checkbox['width'] <= 24, f"Default-address checkbox keeps its intended size at {width}px")
+    overflow=page.evaluate("document.documentElement.scrollWidth-document.documentElement.clientWidth")
+    check(overflow <= 1, f"Account and Support have no horizontal overflow at {width}px")
+    colors=page.evaluate("""() => ({body:getComputedStyle(document.body).backgroundColor,panel:getComputedStyle(document.querySelector('.account-address-card')).backgroundColor,field:getComputedStyle(document.getElementById('addrName')).backgroundColor})""")
+    check(all(c not in ['rgb(255, 255, 255)','rgba(0, 0, 0, 0)'] for c in colors.values()), f"Account canvas, card and fields use the warm theme at {width}px")
+    page.locator('#addrSave').click()
+    check(bool(page.locator('#addrError').inner_text().strip()), f"Address validation feedback is visible before any authenticated write at {width}px")
+
 try:
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -92,6 +126,8 @@ try:
         page.locator("#forgotPasswordBtn").click()
         check("sahi email" in page.locator("#authError").inner_text().lower(),
               "Forgot-password flow validates email before requesting a reset link")
+        page.locator('#closeAuth').click()
+        check_account_layout(page, 1365)
 
         # Android-sized viewport smoke check.
         mobile = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
@@ -104,6 +140,9 @@ try:
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 1, f"Customer page has no horizontal overflow at 390px (overflow={overflow}px)")
         check(mobile.locator("#restaurantGrid").is_visible(), "Customer restaurant discovery is visible on mobile")
+        check_account_layout(mobile, 390)
+        mobile.set_viewport_size({'width':340,'height':780})
+        check_account_layout(mobile, 340)
 
         # Owner / Super Admin sign-in entrypoint must fit an Android viewport.
         owner = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
