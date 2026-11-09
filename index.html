@@ -2628,5 +2628,29 @@ body[data-role="owner"] #mainApp .main>.content{display:block!important;visibili
 (()=>{const show=(message)=>{let box=document.getElementById('ownerRuntimeErrorBox');if(!box){box=document.createElement('div');box.id='ownerRuntimeErrorBox';box.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#fff1f0;border:1px solid #e5484d;color:#8b1a1a;border-radius:10px;padding:10px 12px;font:12px/1.4 system-ui;max-height:35vh;overflow:auto;box-shadow:0 5px 24px #0002';document.body.appendChild(box)}box.textContent='Dashboard JavaScript error: '+message};window.addEventListener('error',e=>{if(document.body?.dataset?.role==='owner')show(e.message+' ('+(e.filename||'script')+':'+e.lineno+')')});window.addEventListener('unhandledrejection',e=>{if(document.body?.dataset?.role==='owner')show(e.reason?.message||String(e.reason||'Unhandled promise rejection'))});})();
 </script>
 <div id="bite-legal-footer" style="position:relative;z-index:1;text-align:center;padding:14px 12px;font:13px/1.6 system-ui,sans-serif;color:#667085;background:#fff;border-top:1px solid #e5e7eb">Bite · Legal Business Name: GAURAV JOSHI · <a href="./contact.html" style="color:#5144c9">Contact &amp; Business Information</a></div>
+
+<style id="bite-owner-click-recovery">
+/* A closed mobile sidebar overlay must never intercept dashboard taps. */
+body[data-role="owner"] #mainApp .sidebar-overlay:not(.visible){display:none!important;visibility:hidden!important;pointer-events:none!important}
+body[data-role="owner"] #mainApp .sidebar-overlay.visible{pointer-events:auto!important}
+body[data-role="owner"] #mainApp .nav button:not([disabled]){pointer-events:auto!important;cursor:pointer!important}
+</style>
+<script id="bite-owner-navigation-recovery">
+(function(){
+function init(){
+ const app=document.getElementById('mainApp');if(!app||app.dataset.ownerNavRecovery==='1')return;
+ app.dataset.ownerNavRecovery='1';
+ app.addEventListener('click',function(e){
+  if(document.body.dataset.role!=='owner')return;
+  const button=e.target.closest('.nav button[data-page]');if(!button||!app.contains(button))return;
+  // Capture the intended navigation even if a workspace loader throws later.
+  try{window.showPage(button.dataset.page)}catch(error){console.error('Bite owner navigation:',error)}
+  const overlay=document.getElementById('sidebarOverlay');const side=app.querySelector('.side');
+  if(overlay)overlay.classList.remove('visible');if(side)side.classList.remove('sidebar-open');
+ },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
 <!-- Login diagnostic update pending verification -->
