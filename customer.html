@@ -448,6 +448,29 @@ $('orderActionBack').addEventListener('click',()=>closeOrderActionDialog(null));
 function showOrderActionResult(message,type='success'){const root=ensureOrderActionDialog();$('orderActionTitle').textContent=type==='error'?'Could not submit':'Done';$('orderActionSubtitle').textContent=message;$('orderActionFields').innerHTML='<div class="order-action-result '+(type==='error'?'error':'success')+'">'+(type==='error'?'⚠️':'✓')+' '+safe(message)+'</div>';$('orderActionError').textContent='';$('orderActionButtons').innerHTML='<button type="button" class="order-action-btn primary" id="orderActionResultClose">Close</button>';$('orderActionForm').onsubmit=e=>e.preventDefault();root.classList.add('show');$('orderActionResultClose').addEventListener('click',()=>closeOrderActionDialog(null));}
 </script>
 
+<script id="bite-live-checkout-return-handler">
+/* Live payment return is informational only; Supabase verifies with Cashfree server-to-server. */
+(function(){
+ const id=new URLSearchParams(location.search).get('live_checkout_return');
+ if(!id||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return;
+ const note=document.createElement('div');
+ note.setAttribute('role','status');
+ note.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;z-index:99999;background:white;color:#182238;padding:16px;border-radius:14px;box-shadow:0 6px 24px #0003;font:15px system-ui';
+ note.textContent='Payment status Cashfree se verify ho raha hai. Dobara payment na karein.';
+ document.body.appendChild(note);
+ (async()=>{
+ try{
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){note.textContent='Payment status check karne ke liye login karein. Dobara payment na karein. Checkout: '+id;return;}
+  const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:id}});
+  if(error)throw error;
+  if(data?.status==='activated'){note.textContent='Payment verified. Order successfully created. My Orders mein dekhein.';if(typeof loadMyOrders==='function')await loadMyOrders();}
+  else note.textContent='Payment abhi confirm nahi hua. Dobara payment na karein. Checkout: '+id;
+ }catch(e){note.textContent='Payment verification pending. Dobara payment na karein. Checkout: '+id;console.error('Live payment return',e);}
+ finally{history.replaceState(null,'',location.pathname);}
+ })();
+})();
+</script>
 <script id="bite-cashfree-return-handler">
 /* Payment is verified on Supabase, never from a redirect query string. */
 (function(){
