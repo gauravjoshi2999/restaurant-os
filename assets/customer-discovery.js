@@ -3,7 +3,19 @@
   'use strict';
   const text=value=>String(value??'').trim().toLocaleLowerCase('en-IN');
   function isClosed(r,now=Date.now()){
-    return !!(r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until).getTime()>now));
+    if(r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until).getTime()>now))return true;
+    if(!r.opening_time||!r.closing_time||r.opening_time===r.closing_time)return false;
+    const seconds=value=>{
+      const m=String(value).match(/^(\d{2}):([0-5]\d)(?::([0-5]\d)(?:\.\d+)?)?$/);
+      if(!m||Number(m[1])>24||(Number(m[1])===24&&(Number(m[2])||Number(m[3]||0))))return null;
+      return Number(m[1])*3600+Number(m[2])*60+Number(m[3]||0);
+    };
+    const open=seconds(r.opening_time),close=seconds(r.closing_time);
+    if(open===null||close===null||open===close)return false;
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',hourCycle:'h23',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(now));
+    const clock=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+    const current=Number(clock.hour)*3600+Number(clock.minute)*60+Number(clock.second);
+    return open<close?!(current>=open&&current<close):!(current>=open||current<close);
   }
   function safeImage(value,fallback){
     if(!value)return fallback;
