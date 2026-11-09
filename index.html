@@ -2687,5 +2687,37 @@ document.addEventListener('click',function(e){
 },true);
 })();
 </script>
+
+<!-- bite-owner-quick-access-fix -->
+<script id="bite-owner-quick-access-fix">
+(function(){
+ const allowed=new Set(['overview','orders','menu','tables','inventory','purchases','expenses','cashbook','hr','reports','khata','settings']);
+ const loaders={menu:'loadMenuWorkspace',tables:'loadTablesWorkspace',inventory:'loadInventoryWorkspace',purchases:'loadPurchaseWorkspace',expenses:'loadExpenseWorkspace',cashbook:'loadCashbookWorkspace',hr:'loadHRWorkspace',reports:'loadReportsWorkspace',orders:'loadCustomerOrderRequestsWorkspace',khata:'loadKhataWorkspace',settings:'loadOwnerSettings'};
+ function open(page){
+  if(!allowed.has(page))return;
+  const app=document.getElementById('mainApp');if(!app)return;
+  const section=app.querySelector('.page#'+page);
+  if(!section){console.error('Bite missing workspace:',page);return}
+  app.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p===section));
+  app.querySelectorAll('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  const title=document.getElementById('pageTitle');if(title)title.textContent=app.querySelector('.nav button[data-page="'+page+'"] .nav-text')?.textContent?.trim()||page;
+  app.querySelector('.side')?.classList.remove('sidebar-open');document.getElementById('sidebarOverlay')?.classList.remove('visible');
+  const scroller=app.querySelector('.content');if(scroller)scroller.scrollTop=0;window.scrollTo(0,0);
+  const fn=window[loaders[page]];
+  if(typeof fn==='function')Promise.resolve().then(()=>fn()).catch(error=>console.error('Bite workspace load '+page,error));
+ }
+ document.addEventListener('click',function(event){
+  if(document.body.dataset.role!=='owner')return;
+  const target=event.target instanceof Element?event.target:null;
+  const button=target?.closest('#mainApp .bo-tools button, #mainApp .bo-stages button, #mainApp button.bo-link');
+  if(!button)return;
+  const code=button.getAttribute('onclick')||'';const match=code.match(/showPage\(['"]([a-z]+)['"]\)/);
+  if(!match)return;
+  event.preventDefault();event.stopImmediatePropagation();open(match[1]);
+  const status=code.match(/setOrderStatus\(['"]([a-z]+)['"]\)/i);
+  if(status&&typeof window.setOrderStatus==='function')try{window.setOrderStatus(status[1])}catch(error){console.error('Bite order filter',error)}
+ },true);
+})();
+</script>
 </body></html>
 <!-- Login diagnostic update pending verification -->
