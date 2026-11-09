@@ -1990,7 +1990,11 @@ async function loadSandboxPaidOrders(){
   for(const d of data){const card=document.createElement('div');card.style.cssText='padding:12px 0;border-top:1px solid #e5e7eb';
    const header=document.createElement('strong');header.textContent='TEST ONLY · '+money(d.payable_amount)+' · '+new Date(d.created_at).toLocaleString('en-IN');card.append(header);
    const meta=document.createElement('div');meta.className='muted';meta.textContent='Sandbox PAID · '+d.delivery_type+' · '+d.draft_id;card.append(meta);
-   const detail=document.createElement('div');detail.textContent=Array.isArray(d.items)?d.items.map(i=>'Item '+String(i.menu_item_id||'').slice(0,8)+' × '+Number(i.quantity||0)).join(', '):'';card.append(detail);target.append(card);
+   const detail=document.createElement('div');detail.textContent=Array.isArray(d.items)?d.items.map(i=>'Item '+String(i.menu_item_id||'').slice(0,8)+' × '+Number(i.quantity||0)).join(', '):'';card.append(detail);
+   const stage=document.createElement('div');stage.style.cssText='font-weight:700;margin:7px 0';stage.textContent='TEST ORDER STATUS: '+d.fulfillment_status;card.append(stage);
+   const actions=d.fulfillment_status==='Received'?[['Accept Test','accept'],['Reject Test','reject']]:d.fulfillment_status==='Accepted'?[['Mark Ready (Test)','ready']]:d.fulfillment_status==='Ready'?[['Complete Test','complete']]:[];
+   if(access.role==='owner')for(const [label,action] of actions){const btn=document.createElement('button');btn.className='btn secondary';btn.style.margin='4px';btn.textContent=label;btn.onclick=async()=>{btn.disabled=true;try{const {error}=await sb.rpc('bite_sandbox_owner_order_action',{p_draft_id:d.draft_id,p_action:action});if(error)throw error;await loadSandboxPaidOrders()}catch(e){alert('Test order update failed: '+e.message);btn.disabled=false}};card.append(btn)}
+   target.append(card);
   }
  }catch(e){target.textContent='Unable to load sandbox payments: '+(e.message||'Unknown error');}
 }
