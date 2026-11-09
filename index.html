@@ -2106,11 +2106,15 @@ async function shareDeliveryHandoff(id){
  }catch(e){if(popup)popup.close();alert('Delivery link share nahi hua: '+(e.message||'Try again.'));console.error(e);return false}
 }
 async function shareAndHandOverDelivery(id){
- const shared=await shareDeliveryHandoff(id);if(!shared)return;
- if(!confirm('Delivery link WhatsApp mein khul gaya. Kya order vaastav mein delivery person ko hand over kar diya hai?'))return;
- const {error}=await sb.from('orders').update({status:'Handed Over',status_note:'Delivery link shared; physically handed to delivery person'}).eq('id',id);
- if(error){alert('Handover status update nahi hua: '+error.message);return;}
+ if(access.role!=='owner'){alert('Sirf Restaurant Owner handover kar sakta hai.');return;}
+ const o=state.orders.find(x=>x.id===id);
+ if(!o||o.status!=='Ready'||o.deliveryType!=='delivery'){alert('Sirf Ready delivery order handover ho sakta hai.');return;}
+ if(!confirm('Kya order vaastav mein delivery person ko hand over kar diya hai? Confirm karne par status update hoga aur WhatsApp delivery link khulega.'))return;
+ const {data,error}=await sb.from('orders').update({status:'Handed Over',status_note:'Physically handed to delivery person'}).eq('id',id).eq('status','Ready').select('id,status').maybeSingle();
+ if(error||!data){alert('Handover save nahi hua: '+(error?.message||'Order status changed. Refresh karein.'));return;}
  await loadCloudData();
+ const shared=await shareDeliveryHandoff(id);
+ if(!shared)alert('Handover save ho gaya hai, lekin WhatsApp link share nahi hua. Order ke Handover section se dobara link share karein.');
 }
 async function advanceOrder(id,next){if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}const o=state.orders.find(x=>x.id===id);if(!o)return;const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],'Handed Over':['Completed']};if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}let note=null;if(['Rejected','Cancelled'].includes(next)){note=prompt(next==='Rejected'?'Order reject karne ka reason likhein:':'Order cancel karne ka reason likhein:');if(note===null)return;note=note.trim();if(!note){alert('Reason likhna zaroori hai.');return}}const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);if(error){alert('Status update nahi hua: '+error.message);return}await loadCloudData()}
 
