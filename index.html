@@ -1102,7 +1102,7 @@ refreshRecoveryButton();
 setInterval(refreshRecoveryButton,30000);
 recoveryButton.addEventListener('click',async()=>{
  const email=document.getElementById('recoveryEmail').value.trim();
- if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){showAuthError('Pehle registered email ID enter karein. Mobile number se email recovery nahi hogi.');return}
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthError('Pehle registered email ID enter karein. Mobile number se email recovery nahi hogi.');return}
  if(recoveryCooldownRemaining()>0){showAuthError('Recovery email request abhi bheji gayi thi. Kripya cooldown khatam hone dein.');refreshRecoveryButton();return}
  recoveryButton.disabled=true;recoveryButton.textContent='Sending recovery email...';
  try{
