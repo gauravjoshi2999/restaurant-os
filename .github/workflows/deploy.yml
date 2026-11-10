@@ -15,16 +15,17 @@ permissions:
   actions: read
   pages: write
   id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
 jobs:
   deploy:
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.event == 'push')
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_sha == github.sha)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -37,6 +38,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           [[ "$BITE_DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            current_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+            [[ "$BITE_DEPLOY_SHA" == "$current_main" ]] || { echo "Stale automatic deployment skipped"; exit 1; }
+          fi
           runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$BITE_DEPLOY_SHA&per_page=50")
           jq -e --arg sha "$BITE_DEPLOY_SHA" '.workflow_runs | any(.name == "Bite QA" and .head_sha == $sha and .head_branch == "main" and .event == "push" and .conclusion == "success")' <<< "$runs"
       - uses: actions/checkout@v4
@@ -58,6 +63,13 @@ jobs:
         with:
           path: dist/site
           name: github-pages-${{ github.run_attempt }}
+      - name: Recheck latest main before automatic publication
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          [[ "$BITE_DEPLOY_SHA" == "$current_main" ]] || { echo "Main advanced; refusing stale publication"; exit 1; }
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
