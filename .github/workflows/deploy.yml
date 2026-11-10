@@ -1,49 +1,62 @@
 name: Deploy RestaurantOS to GitHub Pages
-
 on:
-  push:
-    branches: ["main"]
+  workflow_run:
+    workflows: ["Bite QA"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
-
+    inputs:
+      commit_sha:
+        description: "Approved, QA-passed main commit (full 40-character SHA)"
+        required: true
+        type: string
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
-
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: true
-
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      BITE_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || inputs.commit_sha }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Validate inline JavaScript syntax
+      - name: Require successful main QA for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python3 - <<'PY'
-          import pathlib, re, subprocess
-          for page in ("index.html", "customer.html", "delivery.html"):
-              html = pathlib.Path(page).read_text(encoding="utf-8")
-              for number, match in enumerate(re.finditer(r"<script([^>]*)>(.*?)</script>", html, re.I | re.S), 1):
-                  attrs, source = match.group(1), match.group(2)
-                  if re.search(r"\bsrc\s*=", attrs, re.I) or not source.strip():
-                      continue
-                  check_file = pathlib.Path("/tmp") / f"{page.replace('.html', '')}-{number}.js"
-                  check_file.write_text(source, encoding="utf-8")
-                  subprocess.run(["node", "--check", str(check_file)], check=True)
-                  print(f"JavaScript syntax OK: {page} inline script {number}")
-          PY
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+          [[ "$BITE_DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$BITE_DEPLOY_SHA&per_page=50")
+          jq -e --arg sha "$BITE_DEPLOY_SHA" '.workflow_runs | any(.name == "Bite QA" and .head_sha == $sha and .head_branch == "main" and .event == "push" and .conclusion == "success")' <<< "$runs"
+      - uses: actions/checkout@v4
         with:
-          path: "."
+          ref: ${{ env.BITE_DEPLOY_SHA }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Check source and package public files
+        run: |
+          python scripts/check_frontend.py
+          python scripts/check_owner_structure.py
+          python scripts/build_static_site.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/site
           name: github-pages-${{ github.run_attempt }}
       - name: Deploy
         id: deployment

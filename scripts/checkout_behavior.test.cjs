@@ -8,16 +8,17 @@ const source=html.split('// BITE CHECKOUT PAYMENT START')[1].split('// BITE CHEC
 function setup(options={}){
  const calls=[],nodes={};
  const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:''};
- const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',setAttribute(){},classList:{add(){},remove(){}}});
+ const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){}}});
  const verify=[...(options.verify||[{status:'activated',order_id:'verified-order'}])];
  let displayedOrders=0,writes=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
+  window:{},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
    if(name==='bite-live-create-session'&&args.body.action==='readiness')return options.unavailable?{error:{message:'disabled'}}:{data:{ready:true,provider:'cashfree',environment:'production'}};
-   if(name==='bite-live-create-session'||name==='cashfree-sandbox-draft-checkout')return{data:{payment_session_id:'test-session'}};
+   if(name==='bite-live-create-session'||name==='cashfree-sandbox-draft-checkout')return{data:{payment_session_id:'test-session',amount:options.paymentAmount??150,currency:'INR'}};
    if(name==='bite-live-verify-checkout'){const result=verify.shift()||{status:'awaiting_payment'};return result.error?{error:{message:'network'}}:{data:result};}
    if(name==='cashfree-sandbox-verify-draft')return{data:{verified:true}};
    throw Error('Unexpected API '+name);
@@ -41,7 +42,7 @@ test('outside delivery area cannot prepare a payment or write customer data',asy
  const t=setup({delivery:true,outsideArea:true});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);assert.match(t.element('checkoutError').textContent,/Outside delivery area/);
 });
 test('normal link uses a priced intent and server verification before showing an order',async()=>{
- const t=setup();await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'bite_prepare_live_checkout');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'production');assert.equal(t.calls.some(c=>c.name==='bite-live-verify-checkout'),true);assert.equal(t.displayedOrders,1);
+ const t=setup();await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'bite_prepare_checkout_v2');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'production');assert.equal(t.calls.some(c=>c.name==='bite-live-verify-checkout'),true);assert.equal(t.displayedOrders,1);
 });
 test('SDK success alone cannot create a paid-order success screen',async()=>{
  const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Continue payment');assert.match(t.element('checkoutError').textContent,/complete nahi hua/);
@@ -75,4 +76,9 @@ test('backend readiness retains the enabled flag, valid-user and configured-key 
  assert.equal((await readinessRequest({env:{BITE_LIVE_CHECKOUT_ENABLED:'false'}})).status,503);
  assert.equal((await readinessRequest({invalidUser:true})).status,401);
  assert.equal((await readinessRequest({env:{CASHFREE_SECRET_KEY:''}})).status,503);
+});
+
+test('a server price change requires reviewing the new total before any SDK payment',async()=>{
+ const t=setup({paymentAmount:170});await t.submit();assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);assert.match(t.element('checkoutError').textContent,/Updated total ₹170/);assert.match(t.element('placeOrderBtn').textContent,/Pay updated total/);
+ await t.submit();assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1);assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
 });

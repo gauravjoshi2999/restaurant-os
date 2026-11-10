@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /restaurant-os/index.html
+Disallow: /restaurant-os/delivery.html
+Disallow: /restaurant-os/cashfree-sandbox-test.html
+Disallow: /restaurant-os/delivery-test.html
+Sitemap: https://gauravjoshi2999.github.io/restaurant-os/sitemap.xml

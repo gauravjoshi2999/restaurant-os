@@ -22,10 +22,24 @@ jobs:
         run: |
           python scripts/check_frontend.py
           python scripts/check_owner_structure.py
-          node --test scripts/owner_behavior.test.cjs scripts/redesign.test.cjs scripts/checkout_behavior.test.cjs scripts/webhook_behavior.test.cjs
+          node --test scripts/*.test.cjs
+          python scripts/build_static_site.py
       - name: Install browser test dependencies
         run: |
           python -m pip install playwright
           python -m playwright install --with-deps chromium
       - name: Run Chromium customer journey smoke tests
-        run: python scripts/browser_smoke.py
+        run: |
+          python scripts/browser_smoke.py
+          python scripts/browser_completion.py
+
+      - name: Upload synthetic QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bite-ui-qa-${{ github.sha }}
+          path: |
+            dist/launch-qa/browser-evidence.json
+            dist/launch-qa/ui-*.png
+            dist/launch-qa/receipt.pdf
+          if-no-files-found: ignore

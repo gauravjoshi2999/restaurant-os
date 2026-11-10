@@ -1,0 +1,105 @@
+{
+  "engine": "PGlite 0.4.0 / PostgreSQL WASM",
+  "transport": "Local PostgreSQL; live schema metadata, wholly synthetic records. Not Supabase Auth/provider acceptance.",
+  "captured_at": "2026-11-10T02:41:14.862Z",
+  "baseline_catalog_sha256": {
+    "structure": "b2518beca2e22e8601780e6274b6b290416abc21f240bb95d63b64bb2d291d12",
+    "routines": "f97eb49f5af9ea5379321a2e3e16ca2226ad6edb40eebeecd866694a39878f25",
+    "permissions": "97c24cd7f9a64f62a8b3d028a4230f1e4bf889d46d0e2a08cfc67e6813d29c7b"
+  },
+  "checks": [
+    {
+      "case": "Owner coupon creation and tenant scope",
+      "status": "PASS"
+    },
+    {
+      "case": "Foreign coupon and platform-funding escalation denied",
+      "status": "PASS"
+    },
+    {
+      "case": "Favourites persist and remain customer-private",
+      "status": "PASS"
+    },
+    {
+      "case": "Storefront PIN coverage and non-serviceable area",
+      "status": "PASS"
+    },
+    {
+      "case": "Server coupon totals and idempotent checkout key",
+      "status": "PASS"
+    },
+    {
+      "case": "Reservation/usage cap enforced",
+      "status": "PASS"
+    },
+    {
+      "case": "Paid activation survives closure/address deletion and preserves contact/commission snapshots",
+      "status": "PASS"
+    },
+    {
+      "case": "Receipt/reorder ownership and snapshot totals",
+      "status": "PASS"
+    },
+    {
+      "case": "Reorder flags discontinued/unavailable dishes",
+      "status": "PASS"
+    },
+    {
+      "case": "Cancellation queues refund without claiming money returned",
+      "status": "PASS"
+    },
+    {
+      "case": "Admin suspension/private directory cannot be bypassed; historical receipt retained",
+      "status": "PASS"
+    },
+    {
+      "case": "Refund pending/wrong amount/success/duplicate evidence guards",
+      "status": "PASS"
+    },
+    {
+      "case": "Admin directory/reactivation and website management boundaries",
+      "status": "PASS"
+    },
+    {
+      "case": "Admin category/feature management and removal audit",
+      "status": "PASS"
+    },
+    {
+      "case": "Metrics are Admin-only and unknown margin is not zero",
+      "status": "PASS"
+    },
+    {
+      "case": "Platform coupon sponsorship preserves restaurant commission base",
+      "status": "PASS"
+    },
+    {
+      "case": "Five-minute timeout rollout guard, cancellation, refund queue and idempotency",
+      "status": "PASS"
+    },
+    {
+      "case": "Only provably unstarted checkout reservations can expire without provider status",
+      "status": "PASS"
+    },
+    {
+      "case": "Deleted menu item cannot strand an already verified payment",
+      "status": "PASS"
+    },
+    {
+      "case": "Account deletion request pauses new orders and preserves necessary records",
+      "status": "PASS"
+    },
+    {
+      "case": "Anonymous PIN discovery works while private customer/Admin APIs stay denied",
+      "status": "PASS"
+    },
+    {
+      "case": "All new tables use RLS and control changes have an audit trail",
+      "status": "PASS"
+    }
+  ],
+  "rollback": {
+    "staged_schema_absent": true,
+    "qa_parent_private": true,
+    "remaining_orders": 0
+  }
+}
