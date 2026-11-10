@@ -34,6 +34,12 @@
     const matches=restaurants.map(restaurant=>({restaurant,dishes:q?items.filter(i=>i.restaurant_id===restaurant.id&&(text(i.name).includes(q)||text(i.description).includes(q))).slice(0,2):[]}))
       .filter(({restaurant:r,dishes})=>{
         const tags=r.cuisine_tags||[];
+        if(options.pin&&options.service!=='pickup'&&r.serviceable!==true)return false;
+        if(options.openNow&&isClosed(r))return false;
+        if(Number(r.average_rating||0)<Number(options.minRating||0))return false;
+        if(options.favourites&&!options.favourites.has(r.id))return false;
+        if(options.diet==='veg'&&!r.has_veg)return false;
+        if(options.diet==='nonveg'&&!r.has_nonveg)return false;
         if(category!=='all'&&!tags.some(t=>text(t).includes(category)))return false;
         if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||isClosed(r)))return false;
         if(options.service==='pickup'&&(!r.accepts_pickup||isClosed(r)))return false;
@@ -42,8 +48,12 @@
     return matches.sort((a,b)=>{
       const closed=Number(isClosed(a.restaurant))-Number(isClosed(b.restaurant));
       if(closed)return closed;
-      // An explicit sort choice takes priority over proximity.
+      // Explicit sorts precede proximity. Missing prices/fees sort last.
+      if(options.sort==='rating')return Number(b.restaurant.average_rating||0)-Number(a.restaurant.average_rating||0);
+      if(options.sort==='price')return (a.restaurant.price_from==null?Infinity:Number(a.restaurant.price_from))-(b.restaurant.price_from==null?Infinity:Number(b.restaurant.price_from));
+      if(options.sort==='delivery_fee')return Number(a.restaurant.zone_delivery_fee??a.restaurant.default_delivery_fee??Infinity)-Number(b.restaurant.zone_delivery_fee??b.restaurant.default_delivery_fee??Infinity);
       if(options.fast){const prep=r=>Number(r.estimated_prep_minutes)>0?Number(r.estimated_prep_minutes):Infinity;return prep(a.restaurant)-prep(b.restaurant);}
+      if(options.sort==='recommended'&&!!a.restaurant.featured!==!!b.restaurant.featured)return a.restaurant.featured?-1:1;
       if(options.geo){const da=distance(a.restaurant,options.geo),db=distance(b.restaurant,options.geo);return (da??Infinity)-(db??Infinity);}
       return 0;
     });

@@ -45,10 +45,11 @@
     const gross = sum('customer_payable_amount');
     const refunds = sum('refund_amount_actual');
     const commission = sum('commission_amount');
+    const platformDiscount = sum('platform_discount');
     const feesKnown = paid.every(o => byOrder.get(o.id).provider_fee_actual != null);
     const fees = feesKnown ? sum('provider_fee_actual') : null;
-    return { paid, gross, refunds, net: round(gross - refunds), commission, fees,
-      payable: feesKnown ? round(gross - refunds - commission - fees) : null };
+    return { paid, gross, refunds, net: round(gross - refunds), commission, platformDiscount, fees,
+      payable: feesKnown ? round(gross - refunds + platformDiscount - commission - fees) : null };
   }
   function csvCell(value) {
     let text = String(value ?? '');
