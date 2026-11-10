@@ -52,8 +52,8 @@ jobs:
           const app = '${{ matrix.app }}';
           const apps = {
             customer: {appId:'in.bite.restaurant',appName:'Bite Customer',url:'https://gauravjoshi2999.github.io/restaurant-os/customer.html'},
-            partner: {appId:'in.bite.partner',appName:'Bite Partner',url:'https://gauravjoshi2999.github.io/restaurant-os/'},
-            admin: {appId:'in.bite.admin',appName:'Bite Admin',url:'https://gauravjoshi2999.github.io/restaurant-os/'}
+            partner: {appId:'in.bite.partner',appName:'Bite Partner',url:'https://gauravjoshi2999.github.io/restaurant-os/?bite_app=partner'},
+            admin: {appId:'in.bite.admin',appName:'Bite Admin',url:'https://gauravjoshi2999.github.io/restaurant-os/?bite_app=admin'}
           };
           const config = JSON.parse(fs.readFileSync('capacitor.config.json','utf8'));
           Object.assign(config, {appId:apps[app].appId,appName:apps[app].appName});
