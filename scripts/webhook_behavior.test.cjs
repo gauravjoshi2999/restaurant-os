@@ -8,7 +8,7 @@ const source=stripTypeScriptTypes(fs.readFileSync('supabase/functions/cashfree-w
 async function invoke(options={}){
  let handler,activations=0,writes=0,providerReads=0;
  const cfId=(options.legacy?'bite_':'bite_live_')+'11111111111141118111111111111111';
- const intent={id:'11111111-1111-4111-8111-111111111111',status:options.activated?'activated':'awaiting_payment',amount:100,currency:'INR',provider_order_id:cfId};
+ const intent={id:'11111111-1111-4111-8111-111111111111',status:options.activated?'activated':options.expiredCheckout?'expired':'awaiting_payment',amount:100,currency:'INR',provider_order_id:options.missingReference?null:cfId};
  const chain={select(){return this},eq(){return this},neq(){return this},maybeSingle:async()=>({data:chain.table==='orders'?{id:intent.id,is_demo:false,status:'Received'}:chain.table==='order_financials'?{id:'qa-financial',customer_payable_amount:100,currency:'INR',is_demo:false,payment_status:'pending'}:intent}),update(){writes++;return this},then(resolve){resolve({})}};
  const context={Deno:{env:{get:k=>({CASHFREE_APP_ID:'qa-app',CASHFREE_SECRET_KEY:'qa-secret',SUPABASE_URL:'https://example.test',SUPABASE_SERVICE_ROLE_KEY:'qa-service'})[k]},serve:fn=>handler=fn},createClient:()=>({from:table=>{chain.table=table;return chain},rpc:async()=>{activations++;return{data:'qa-order'}}}),fetch:async()=>{providerReads++;return new Response(JSON.stringify({order_id:cfId,order_status:options.unpaid?'ACTIVE':'PAID',order_currency:'INR',...(options.noAmount?{}:{order_amount:options.amount??100})}),{status:200})},Response,AbortSignal,TextEncoder,crypto:webcrypto,btoa,Date,JSON,Math,Number,String,Uint8Array};
  vm.createContext(context);vm.runInContext(source,context);
@@ -29,3 +29,5 @@ test('already activated webhook is idempotent without another provider or activa
 test('legacy signed payment verification also rejects missing or nonnumeric amounts',async()=>{for(const options of [{legacy:true,amount:'invalid'},{legacy:true,noAmount:true}]){const r=await invoke(options);assert.equal(r.status,409);assert.equal(r.writes,0)}});
 
 test('legacy paid verification records one payment and does not call checkout activation',async()=>{const r=await invoke({legacy:true});assert.equal(r.status,200);assert.equal(r.writes,1);assert.equal(r.activations,0)});
+
+test('a signed late payment recovers an expired checkout even when the session-save response was lost',async()=>{const r=await invoke({expiredCheckout:true,missingReference:true});assert.equal(r.status,200);assert.equal(r.providerReads,1);assert.equal(r.activations,1);});

@@ -32,6 +32,7 @@ jobs:
         run: |
           python scripts/browser_smoke.py
           python scripts/browser_completion.py
+          python scripts/browser_customer_recovery.py
 
       - name: Upload synthetic QA evidence
         if: always()
@@ -40,6 +41,7 @@ jobs:
           name: bite-ui-qa-${{ github.sha }}
           path: |
             dist/launch-qa/browser-evidence.json
+            dist/launch-qa/customer-recovery-evidence.json
             dist/launch-qa/ui-*.png
             dist/launch-qa/receipt.pdf
           if-no-files-found: ignore

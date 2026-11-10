@@ -31,7 +31,9 @@
   }
   function selectRestaurants(restaurants,items,options={}){
     const q=text(options.query),category=text(options.category||'all');
-    const matches=restaurants.map(restaurant=>({restaurant,dishes:q?items.filter(i=>i.restaurant_id===restaurant.id&&(text(i.name).includes(q)||text(i.description).includes(q))).slice(0,2):[]}))
+    const aliases={'north indian':['thali','dal','paneer','roti','naan','curry','pulao','biryani'],'south indian':['dosa','idli','uttapam','vada','sambhar'],chinese:['noodle','chowmein','manchurian','schezwan','fried rice','hakka'],desserts:['ice cream','kulfi','halwa','gulab','rasgulla','kheer','sweet'],'fast food':['burger','sandwich','fries','pizza','momos','snack','pav']};
+    const categoryDish=i=>category!=='all'&&[category,...(aliases[category]||[])].some(term=>text(i.name+' '+(i.description||'')).includes(term));
+    const matches=restaurants.map(restaurant=>({restaurant,dishes:items.filter(i=>i.restaurant_id===restaurant.id&&(q?(text(i.name).includes(q)||text(i.description).includes(q)):categoryDish(i))).slice(0,2)}))
       .filter(({restaurant:r,dishes})=>{
         const tags=r.cuisine_tags||[];
         if(options.pin&&options.service!=='pickup'&&r.serviceable!==true)return false;
@@ -40,7 +42,7 @@
         if(options.favourites&&!options.favourites.has(r.id))return false;
         if(options.diet==='veg'&&!r.has_veg)return false;
         if(options.diet==='nonveg'&&!r.has_nonveg)return false;
-        if(category!=='all'&&!tags.some(t=>text(t).includes(category)))return false;
+        if(category!=='all'&&!tags.some(t=>text(t).includes(category))&&!items.some(i=>i.restaurant_id===r.id&&categoryDish(i)))return false;
         if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||isClosed(r)))return false;
         if(options.service==='pickup'&&(!r.accepts_pickup||isClosed(r)))return false;
         return !q||text([r.name,r.city,r.public_description,...tags].join(' ')).includes(q)||dishes.length>0;

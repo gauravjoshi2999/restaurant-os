@@ -1,0 +1,45 @@
+-- Embedded in the same rollback-only synthetic regression as launch_completion_regression.sql.
+-- No provider, Auth credential or real financial action is performed.
+execute 'RESET ROLE';perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+delete from public.bite_customer_controls where customer_id=ca;
+-- Earlier cases intentionally leave fixtures unresolved. Close only these in-transaction fixtures.
+update public.bite_live_checkout_intents set safely_closed_at=now(),status='expired' where customer_id=ca and status='awaiting_payment';
+execute 'SET LOCAL ROLE authenticated';perform set_config('request.jwt.claims',json_build_object('sub',oa,'role','authenticated')::text,true);
+insert into public.menu_items(restaurant_id,name,price,is_available,is_vegetarian) values(ra,'QA payment recovery meal',100,true,true) returning id into meal;
+perform set_config('request.jwt.claims',json_build_object('sub',ca,'role','authenticated')::text,true);
+intent:=public.bite_prepare_checkout_v2(ra,'pickup',null,null,jsonb_build_array(jsonb_build_object('menu_item_id',meal,'quantity',1)),null,gen_random_uuid());
+blocked:=false;begin perform public.bite_claim_checkout_provider(intent,ca,gen_random_uuid(),'create');exception when insufficient_privilege or raise_exception then blocked:=true;end;if not blocked then raise exception 'Customer could claim provider operation';end if;
+blocked:=false;begin perform public.bite_record_checkout_provider(intent,gen_random_uuid(),'{"safely_closed":true}');exception when insufficient_privilege or raise_exception then blocked:=true;end;if not blocked then raise exception 'Customer could fake closure';end if;
+blocked:=false;begin perform public.bite_activate_paid_checkout(intent,'bite_live_'||replace(intent::text,'-',''),100,'INR');exception when insufficient_privilege or raise_exception then blocked:=true;end;if not blocked then raise exception 'Customer could fake payment';end if;
+result:=result||jsonb_build_array(jsonb_build_object('case','Customer cannot claim, close or activate payments through service-only RPCs','status','PASS'));
+perform set_config('request.jwt.claims',json_build_object('sub',cb,'role','authenticated')::text,true);
+if exists(select 1 from public.bite_live_checkout_intents where id=intent) then raise exception 'Foreign checkout visible through RLS';end if;
+execute 'RESET ROLE';perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+q:=public.bite_claim_checkout_provider(intent,cb,gen_random_uuid(),'verify');if q->>'error'<>'not_found' then raise exception 'Foreign customer parameter accepted';end if;
+result:=result||jsonb_build_array(jsonb_build_object('case','Checkout RLS and provider claim bind the correct customer','status','PASS'));
+request_key:=gen_random_uuid();q:=public.bite_claim_checkout_provider(intent,ca,request_key,'create');
+if q->'intent'->>'id'<>intent::text or (q->'intent'->>'provider_expires_at')::timestamptz<now()+interval '29 minutes' then raise exception 'Provider lease/expiry not persisted';end if;
+q:=public.bite_claim_checkout_provider(intent,ca,gen_random_uuid(),'cancel');if q->>'error'<>'busy' then raise exception 'Cancellation raced an active create lease';end if;
+blocked:=false;begin perform public.bite_record_checkout_provider(intent,gen_random_uuid(),'{"safely_closed":true,"closure_reason":"never_requested"}');exception when raise_exception then blocked:=true;end;if not blocked then raise exception 'Stale worker could close current checkout';end if;
+result:=result||jsonb_build_array(jsonb_build_object('case','Create/cancel exclusion and fencing reject stale/concurrent workers','status','PASS'));
+perform public.bite_record_checkout_provider(intent,request_key,'{"payload":{"order_id":"synthetic-stable-request"},"attempting":true,"release":true}');
+q:=public.bite_claim_checkout_provider(intent,ca,request_key,'verify');
+blocked:=false;begin perform public.bite_record_checkout_provider(intent,request_key,'{"payload":{"order_id":"changed-request"}}');exception when raise_exception then blocked:=true;end;if not blocked then raise exception 'Provider idempotency payload changed';end if;
+blocked:=false;begin perform public.bite_record_checkout_provider(intent,request_key,'{"safely_closed":true}');exception when raise_exception then blocked:=true;end;if not blocked then raise exception 'Unproven closure accepted';end if;
+perform public.bite_record_checkout_provider(intent,request_key,'{"release":true}');
+result:=result||jsonb_build_array(jsonb_build_object('case','Idempotent provider payload is immutable and closure requires evidence','status','PASS'));
+execute 'SET LOCAL ROLE authenticated';perform set_config('request.jwt.claims',json_build_object('sub',ca,'role','authenticated')::text,true);
+refund_job:=public.bite_prepare_checkout_v2(ra,'pickup',null,null,jsonb_build_array(jsonb_build_object('menu_item_id',meal,'quantity',2)),null,gen_random_uuid());
+execute 'RESET ROLE';perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+q:=public.bite_claim_checkout_provider(refund_job,ca,gen_random_uuid(),'create');if q->>'error'<>'earlier_payment_unresolved' or q->>'blocking_intent_id'<>intent::text then raise exception 'Second payable checkout could bypass unresolved first payment';end if;
+q:=public.bite_claim_checkout_provider(intent,ca,request_key,'cancel');perform public.bite_record_checkout_provider(intent,request_key,'{"safely_closed":true,"closure_reason":"provider_closed_without_pending_payments","order_status":"TERMINATED","http_status":200,"pending_payments":false,"release":true}');
+q:=public.bite_claim_checkout_provider(refund_job,ca,request_key,'create');if q ? 'error' then raise exception 'Safely closed checkout still blocked new payment';end if;
+perform public.bite_record_checkout_provider(refund_job,request_key,'{"release":true}');
+result:=result||jsonb_build_array(jsonb_build_object('case','New draft is allowed but new payment waits for verified old-checkout closure','status','PASS'));
+blocked:=false;begin perform public.bite_activate_paid_checkout(intent,'bite_live_'||replace(intent::text,'-',''),99,'INR');exception when raise_exception then blocked:=true;end;if not blocked then raise exception 'Wrong amount activated checkout';end if;
+blocked:=false;begin perform public.bite_activate_paid_checkout(intent,'bite_live_'||replace(intent::text,'-',''),100,null);exception when raise_exception then blocked:=true;end;if not blocked then raise exception 'Missing currency activated checkout';end if;
+order_id:=public.bite_activate_paid_checkout(intent,'bite_live_'||replace(intent::text,'-',''),100,'INR');
+if public.bite_activate_paid_checkout(intent,'bite_live_'||replace(intent::text,'-',''),100,'INR')<>order_id then raise exception 'Duplicate verified callback created a second order';end if;
+if not exists(select 1 from public.bite_live_checkout_intents where id=intent and status='activated' and safely_closed_at is null) then raise exception 'Late paid checkout remained expired';end if;
+if (select count(*) from public.orders where id=order_id)<>1 then raise exception 'Order activation was not unique';end if;
+result:=result||jsonb_build_array(jsonb_build_object('case','Late verified payment survives closure and duplicate activation returns the same paid order','status','PASS'));

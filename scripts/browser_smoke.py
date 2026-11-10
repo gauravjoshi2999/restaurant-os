@@ -120,8 +120,8 @@ try:
 
         # Payment stays locked until the signed-in checkout checks server readiness.
         button = page.locator("#placeOrderBtn")
-        check(button.is_disabled(), "Checkout stays disabled before authenticated payment readiness is checked")
-        check("checking online payment" in button.inner_text().lower(), "Checkout shows a readiness check instead of the obsolete setup-pending lock")
+        check("retry payment availability" in button.inner_text().lower(), "Checkout offers availability retry before authenticated payment readiness")
+        check(not page.locator("#checkoutModal").is_visible(), "Public browsing never forces a pending payment modal")
         check("cash on delivery" not in page.locator("body").inner_text().lower(), "No cash-on-delivery option is offered")
 
         # Forgot-password UI must be reachable and validate the email before sending.
@@ -129,6 +129,9 @@ try:
         page.locator("#authModal.show").wait_for(state="visible", timeout=5000)
         check(page.locator("#forgotPasswordBtn").is_visible(), "Customer login exposes a forgot-password action")
         page.locator("#forgotPasswordBtn").click()
+        check(page.locator("#customerEmail").is_visible() and not page.locator("#customerPassword").is_visible(), "Forgot-password view only asks for email")
+        page.locator("#customerEmail").fill("")
+        page.locator("#authSubmit").click()
         check("sahi email" in page.locator("#authError").inner_text().lower(),
               "Forgot-password flow validates email before requesting a reset link")
         page.locator('#closeAuth').click()
