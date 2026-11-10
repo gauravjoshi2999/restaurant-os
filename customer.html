@@ -176,6 +176,7 @@ function biteLoadMenuPhotos(){
 }
 function biteMaharaniMenuImage(item){
  if(String(activeRestaurant?.name||'').trim().toLowerCase()==='hotel maharani palace'){
+  if(item.image_url && !String(item.image_url).includes('/assets/menu-maharani/')) return BiteDiscovery.safeImage(item.image_url,'assets/food-placeholder.svg');
   return 'assets/menu-maharani/'+String(item.name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.svg';
  }
  return BiteDiscovery.safeImage(item.image_url,'assets/food-placeholder.svg');
