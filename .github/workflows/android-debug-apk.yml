@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
             echo "Signed release unavailable: configure the four BITE_ANDROID_* repository secrets."
-            exit 0
+            exit 1
           fi
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/bite-release.jks"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
@@ -106,7 +106,7 @@ jobs:
         with:
           name: bite-${{ matrix.app }}-signed-release
           path: android-app/android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk
-          if-no-files-found: ignore
+          if-no-files-found: error
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
