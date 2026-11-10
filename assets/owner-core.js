@@ -48,7 +48,7 @@
     const platformDiscount = sum('platform_discount');
     const feesKnown = paid.every(o => byOrder.get(o.id).provider_fee_actual != null);
     const fees = feesKnown ? sum('provider_fee_actual') : null;
-    return { paid, gross, refunds, net: round(gross - refunds), commission, platformDiscount, fees,
+    return { paid, gross, foodSubtotal: sum('food_subtotal'), refunds, net: round(gross - refunds), commission, platformDiscount, fees,
       payable: feesKnown ? round(gross - refunds + platformDiscount - commission - fees) : null };
   }
   function csvCell(value) {

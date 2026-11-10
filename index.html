@@ -695,7 +695,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <div class="card" id="restaurantReviewsCard" data-owner-review-workspace style="margin-top:18px"><div class="section-head"><div><h3>Customer ratings & reviews</h3><p class="muted">Completed-order verified customer reviews dekhein aur reply dein.</p></div><button class="btn secondary" onclick="loadRestaurantReviewsWorkspace()">Refresh reviews</button></div><div id="restaurantReviewsList"><div class="empty">Reviews load ho rahe hain...</div></div></div>
 </section>
 <section class="page" id="reconciliation"><div class="welcome"><div><h1>Payment reconciliation</h1><div class="muted">Compare platform-reported amount with bank payout entered by you.</div></div></div><div class="notice">Zomato/Swiggy payouts continue to the restaurant under its existing agreement. This demo only records and compares figures; it does not collect or transfer money.</div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Platform reported (₹)</th><th>Bank payout (₹)</th><th>Difference (₹)</th><th>Action</th></tr></thead><tbody id="reconRows"></tbody></table><div class="empty" id="reconEmpty">No orders to reconcile yet.</div></div></section>
-<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard अभी केवल financial records दिखाता है। यह payment collect, bank transfer या settlement approve नहीं करता। नए orders के automatic snapshots की जाँच अलग SQL test के बाद होगी।</div><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
+<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard अभी केवल financial records दिखाता है। यह payment collect, bank transfer या settlement approve नहीं करता। नए orders के automatic snapshots की जाँच अलग SQL test के बाद होगी।</div><div class="grid"><div class="card"><div class="metric-label">Paid website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission booked on paid orders</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
  <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
  <div class="card">
   <div class="notice">यह केवल settlement का draft बनाएगा। कोई payment collect, approve या bank transfer नहीं होगा। Actual gateway fee gateway statement से देखकर ही दर्ज करें। Draft केवल Bite Super Admin बना सकता है।</div>
@@ -1091,7 +1091,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
-<script src="assets/owner-core.js"></script>
+<script src="assets/owner-core.js?v=20261110-paid-finance"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-exports.js"></script>
 <script>
@@ -2449,11 +2449,11 @@ async function saveActualGatewayFee(id){
 function renderFinancials(){
  if(!access.isPlatformAdmin)return;
  const fs=state.financials||[],own=fs.filter(x=>x.channel==='Own Platform');
- const sum=(arr,key)=>arr.reduce((n,x)=>n+Number(x[key]||0),0);
- document.getElementById('finFoodValue').textContent=money(sum(own,'food_subtotal'));
- document.getElementById('finCommission').textContent=money(sum(own,'commission_amount'));
- document.getElementById('finGateway').textContent=money(sum(own,'provider_fee_actual'));
- document.getElementById('finRefunds').textContent=money(sum(own,'refund_amount_actual'));
+ const summary=BiteOwner.financialSummary(state.orders||[],own);
+ document.getElementById('finFoodValue').textContent=money(summary.foodSubtotal);
+ document.getElementById('finCommission').textContent=money(summary.commission);
+ document.getElementById('finGateway').textContent=summary.fees==null?'Not reconciled':money(summary.fees);
+ document.getElementById('finRefunds').textContent=money(summary.refunds);
  document.getElementById('finSnapshotCount').textContent=own.length+' records';
  const restaurantSelect=document.getElementById('settlementRestaurantSelect');
  if(restaurantSelect){
