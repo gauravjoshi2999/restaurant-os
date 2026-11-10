@@ -52,10 +52,14 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Configure selected Bite app
         shell: bash
+        env:
+          BITE_VERSION_CODE: ${{ inputs.version_code || '1' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
           const app = '${{ matrix.app }}';
+          const version = Number(process.env.BITE_VERSION_CODE);
+          if(!Number.isSafeInteger(version)||version<1)throw Error('Invalid app version');
           const apps = {
             customer: {appId:'in.bite.restaurant',appName:'Bite Customer',url:'https://gauravjoshi2999.github.io/restaurant-os/customer.html'},
             partner: {appId:'in.bite.partner',appName:'Bite Partner',url:'https://gauravjoshi2999.github.io/restaurant-os/?bite_app=partner'},
@@ -63,7 +67,7 @@ jobs:
           };
           const config = JSON.parse(fs.readFileSync('capacitor.config.json','utf8'));
           Object.assign(config, {appId:apps[app].appId,appName:apps[app].appName});
-          config.server.url=apps[app].url;
+          config.server.url=apps[app].url+(apps[app].url.includes('?')?'&':'?')+'bite_app='+app+'&bite_version='+version;
           fs.writeFileSync('capacitor.config.json',JSON.stringify(config,null,2));
           NODE
       - name: Generate Android project
