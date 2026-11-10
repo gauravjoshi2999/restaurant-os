@@ -1,0 +1,12 @@
+{
+  "appId": "in.bite.restaurant",
+  "appName": "Bite",
+  "webDir": "www",
+  "server": {
+    "url": "https://gauravjoshi2999.github.io/restaurant-os/customer.html",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
