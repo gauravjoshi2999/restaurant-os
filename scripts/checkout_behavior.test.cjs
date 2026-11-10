@@ -7,11 +7,11 @@ const html=fs.readFileSync('customer.html','utf8');
 const source=html.split('// BITE CHECKOUT PAYMENT START')[1].split('// BITE CHECKOUT PAYMENT END')[0];
 function setup(options={}){
  const calls=[],nodes={};
- const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:''};
+ const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:'',...options.values};
  const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){}}});
  const verify=[...(options.verify||[{status:'activated',order_id:'verified-order'}])];
  let displayedOrders=0,writes=0;
- const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
+ const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
   window:{},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
@@ -57,7 +57,7 @@ test('rapid repeated clicks cannot create two checkout intents',async()=>{
  const t=setup();await Promise.all([t.submit(),t.submit()]);assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
 });
 test('explicit sandbox checkout stays isolated from production and restaurant success UI',async()=>{
- const t=setup({sandbox:true});await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'create_bite_sandbox_order_draft');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'sandbox');assert.equal(t.calls.some(c=>(c.name||'').startsWith('bite-live-')),false);assert.equal(t.displayedOrders,0);
+ const t=setup({sandbox:true});await t.submit();assert.equal(t.writes,0,'Sandbox must not save profile/address data');assert.equal(t.calls.find(c=>c.kind==='rpc').name,'create_bite_sandbox_order_draft');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'sandbox');assert.equal(t.calls.some(c=>(c.name||'').startsWith('bite-live-')),false);assert.equal(t.displayedOrders,0);
 });
 async function readinessRequest(options={}){
  let handler,reads=0,providerCalls=0;
@@ -81,4 +81,14 @@ test('backend readiness retains the enabled flag, valid-user and configured-key 
 test('a server price change requires reviewing the new total before any SDK payment',async()=>{
  const t=setup({paymentAmount:170});await t.submit();assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);assert.match(t.element('checkoutError').textContent,/Updated total ₹170/);assert.match(t.element('placeOrderBtn').textContent,/Pay updated total/);
  await t.submit();assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1);assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
+});
+
+test('sandbox refuses a new delivery address before any persistent write or payment request',async()=>{
+ const t=setup({sandbox:true,delivery:true,values:{savedAddress:'new'}});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.length,0);assert.match(t.element('checkoutError').textContent,/saved address/);
+});
+test('sandbox cannot rewrite the PIN of a saved address',async()=>{
+ const t=setup({sandbox:true,delivery:true,savedPostal:'313399'});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.length,0);assert.match(t.element('checkoutError').textContent,/original PIN/);
+});
+test('sandbox cannot resume a pre-existing live intent or invoke the production SDK',async()=>{
+ const t=setup({sandbox:true});vm.runInContext("pendingLiveCheckout={id:'live-original',session:'production-session',started:true,verifyOnly:true}",t.context);await t.submit();assert.equal(t.calls.length,0);assert.equal(t.writes,0);assert.match(t.element('checkoutError').textContent,/Sandbox mode/);await assert.rejects(t.context.continueLiveCheckout(),/Sandbox mode/);assert.equal(t.calls.length,0);
 });
