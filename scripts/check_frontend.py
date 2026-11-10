@@ -61,12 +61,12 @@ check("customerSupportForm" in customer and "customer_support_tickets" in custom
       "Customer can create and track support tickets from the Account page")
 check("restaurantReviews" in customer and "restaurant_review_reports" in customer and "data-report-review" in customer,
       "Customer can read published restaurant reviews and report inappropriate reviews")
-check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation','customers','storefront']" in owner and "loadReviewReportsWorkspace" in owner and "admin_review_review_report" in owner,
+check("const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront']" in owner and "loadReviewReportsWorkspace" in owner and "admin_review_review_report" in owner,
       "Platform Admin can moderate customer review reports")
 review_report_migration = Path("supabase/20261108190000_bite_customer_review_reporting.sql").read_text(encoding="utf-8")
 check("ENABLE ROW LEVEL SECURITY" in review_report_migration and "Customers report published reviews" in review_report_migration and "Hide Review" in review_report_migration,
       "Review reporting is customer-owned and Admin moderation is guarded")
-check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation','customers','storefront']" in owner and "loadSupportWorkspace" in owner and "saveSupportTicket" in owner,
+check("const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront']" in owner and "loadSupportWorkspace" in owner and "saveSupportTicket" in owner,
       "Platform Admin has a customer support queue with status and reply controls")
 support_migration = Path("supabase/20261108140000_bite_customer_support_tickets.sql").read_text(encoding="utf-8")
 check("ENABLE ROW LEVEL SECURITY" in support_migration and "Customers and admins read support tickets" in support_migration and "audit_support_ticket_change" in support_migration,
@@ -129,7 +129,7 @@ check("loadPOSWorkspace()" in owner and "loadTablesWorkspace()" in owner and "lo
       "Owner overview provides quick actions into POS, tables, cashbook, purchases, inventory and HR")
 check('#mainApp[style*="display:none"]{display:none!important}' in owner,
       "Owner and Admin workspace remains hidden before authentication at mobile widths")
-check("const platformPages=['overview','restaurants','orders','financials','audit','support','moderation','customers','storefront']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
+check("const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront']" in owner and "loadAuditLogWorkspace" in owner and "platform_audit_logs" in owner,
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")

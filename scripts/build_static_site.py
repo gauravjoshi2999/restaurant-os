@@ -4,7 +4,7 @@ import shutil
 root=Path(__file__).resolve().parents[1];out=root/'dist/site'
 if out.exists():shutil.rmtree(out)
 out.mkdir(parents=True)
-for name in ['index.html','customer.html','delivery.html','contact.html','robots.txt','sitemap.xml']:
+for name in ['index.html','customer.html','delivery.html','contact.html','robots.txt','sitemap.xml','android-update-check.js','android-updates.json']:
  source=root/name
  if source.exists():shutil.copy2(source,out/name)
 shutil.copytree(root/'assets',out/'assets',ignore=shutil.ignore_patterns('*.md'))
