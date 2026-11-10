@@ -314,6 +314,7 @@ async function verifyPendingLiveCheckout(){
  return data;
 }
 async function continueLiveCheckout(){
+ if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
  const pending=pendingLiveCheckout;
  if(pending.amountReviewRequired){pending.expectedAmount=pending.amountReviewRequired;pending.amountReviewRequired=null;}
  if(pending.started||pending.verifyOnly){
@@ -350,17 +351,18 @@ async function submitCustomerOrder(){
  if(window.BiteCustomerExtras?.isRecovering?.()){$('checkoutError').textContent='Pichhla checkout recover ho raha hai. Please wait.';return;}
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();$('checkoutError').textContent='';
  try{
-  if(pendingLiveCheckout){await continueLiveCheckout();return;}
+  if(pendingLiveCheckout){if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');await continueLiveCheckout();return;}
   const name=$('checkoutName').value.trim(),phone=$('checkoutPhone').value.trim(),digits=phone.replace(/[^0-9]/g,''),mode=checkoutMode();
   if(name.length<2)throw new Error('Apna poora naam dalein.');
   if(digits.length<10||digits.length>15)throw new Error('Sahi mobile number dalein (10 se 15 digits).');
+  if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw new Error('Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
   if(mode==='delivery'&&$('savedAddress').value==='new'&&(!$('addressLine').value.trim()||!$('addressCity').value.trim()||!$('addressState').value.trim()))throw new Error('Delivery ke liye address, city aur state zaroori hain.');
   const entries=cartEntries();if(!entries.length)throw new Error('Cart khaali hai.');
   if(!BITE_SANDBOX_CHECKOUT&&!await refreshCheckoutPaymentReadiness())throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
   if(mode==='delivery')await getCheckoutDeliveryZone();
   const {data:sessionData}=await sb.auth.getSession();if(!sessionData.session)throw new Error('Please login again.');
   const userId=sessionData.session.user.id;
-  const {error:profileError}=await sb.from('customer_contact_profiles').upsert({customer_id:userId,full_name:name,phone:digits,updated_at:new Date().toISOString()},{onConflict:'customer_id'});if(profileError)throw profileError;
+  if(!BITE_SANDBOX_CHECKOUT){const {error:profileError}=await sb.from('customer_contact_profiles').upsert({customer_id:userId,full_name:name,phone:digits,updated_at:new Date().toISOString()},{onConflict:'customer_id'});if(profileError)throw profileError;}
   let addressId=null;
   if(mode==='delivery'){
    if($('savedAddress').value==='new'){
@@ -371,7 +373,7 @@ async function submitCustomerOrder(){
     const enteredPin=$('addressPostal').value.replace(/[^0-9]/g,'');
     if(enteredPin.length===6){
      const {data:saved,error:lookupError}=await sb.from('customer_addresses').select('postal_code').eq('id',addressId).eq('customer_id',userId).single();if(lookupError)throw lookupError;
-     if(String(saved?.postal_code||'').replace(/[^0-9]/g,'')!==enteredPin){const {error:pinError}=await sb.from('customer_addresses').update({postal_code:enteredPin,updated_at:new Date().toISOString()}).eq('id',addressId).eq('customer_id',userId);if(pinError)throw pinError;}
+     if(String(saved?.postal_code||'').replace(/[^0-9]/g,'')!==enteredPin){if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mein saved address ka original PIN use karein ya Self pickup chunein.');const {error:pinError}=await sb.from('customer_addresses').update({postal_code:enteredPin,updated_at:new Date().toISOString()}).eq('id',addressId).eq('customer_id',userId);if(pinError)throw pinError;}
     }
    }
   }
