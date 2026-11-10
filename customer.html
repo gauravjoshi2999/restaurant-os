@@ -127,10 +127,58 @@ function renderRestaurantReviews(reviews){
  }));
 }
 function renderMenu(cats){activeMenuCategory='all';$('categoryBar').innerHTML='<button class="chip active" data-cat="all" aria-pressed="true">All items</button>'+cats.map(c=>'<button class="chip" data-cat="'+safe(c.id)+'" aria-pressed="false">'+safe(c.name)+'</button>').join('');document.querySelectorAll('[data-cat]').forEach(b=>b.addEventListener('click',()=>{activeMenuCategory=b.dataset.cat;document.querySelectorAll('[data-cat]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});renderMenuItems(activeMenuCategory)}));renderMenuItems('all')}
+
+// Maharani-only lazy Wikimedia Commons dish-photo lookup. Only accept filenames matching
+// the specific dish; never substitute random food, eggs, meat, or unrelated pictures.
+const biteDishImageCache=new Map(),biteDishImagePending=new Set();
+let biteDishImageObserver=null;
+const biteDishImageBad=/\\b(egg|chicken|meat|fish|beef|pork|mutton|shrimp|prawn|non.?veg)\\b/i;
+function biteDishImageTerms(name){
+ return String(name||'').toLowerCase().replace(/\\([^)]*\\)/g,' ').replace(/[^a-z ]/g,' ').split(/\\s+/).filter(x=>x.length>2&&!['with','special','veg','vegetable','plain','butter','maharani','mamma','fried','dry','gravy'].includes(x));
+}
+async function biteFindDishImage(name){
+ const terms=biteDishImageTerms(name),key=name.toLowerCase();
+ if(biteDishImageCache.has(key))return biteDishImageCache.get(key);
+ if(!terms.length||biteDishImageBad.test(name))return '';
+ const query=encodeURIComponent('filetype:bitmap '+terms.join(' '));
+ const api='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch='+query+'&prop=imageinfo&iiprop=url%7Cmime%7Cextmetadata&iiextmetadatafilter=LicenseShortName&iiurlwidth=480';
+ try{
+  const response=await fetch(api,{mode:'cors',credentials:'omit'});
+  if(!response.ok)throw new Error('photo search unavailable');
+  const data=await response.json();
+  const matches=Object.values(data.query?.pages||{}).filter(p=>{
+   const ii=p.imageinfo?.[0];if(!ii?.thumburl||!String(ii.mime||'').startsWith('image/'))return false;
+   const title=p.title.toLowerCase().replace(/^file:/,'').replace(/[_-]/g,' ');
+   if(biteDishImageBad.test(title))return false;
+   const relevant=terms.filter(x=>title.includes(x));
+   return relevant.length>=Math.min(2,terms.length)&&relevant.length===terms.length;
+  }).sort((a,b)=>a.title.length-b.title.length);
+  const best=matches[0]?.imageinfo?.[0];
+  const result=best?.thumburl||'';
+  biteDishImageCache.set(key,result);return result;
+ }catch(e){return '';}
+}
+function biteLoadMenuPhotos(){
+ if(!activeRestaurant||String(activeRestaurant.name||'').trim().toLowerCase()!=='hotel maharani palace')return;
+ if(biteDishImageObserver)biteDishImageObserver.disconnect();
+ biteDishImageObserver=new IntersectionObserver(entries=>{
+  entries.filter(e=>e.isIntersecting).forEach(async e=>{
+   const img=e.target;biteDishImageObserver.unobserve(img);
+   const name=img.dataset.biteDish;
+   if(!name||biteDishImagePending.has(name))return;
+   biteDishImagePending.add(name);
+   const url=await biteFindDishImage(name);
+   biteDishImagePending.delete(name);
+   if(url&&img.isConnected){img.src=url;img.style.opacity='1';}
+  });
+ },{rootMargin:'350px'});
+ document.querySelectorAll('img[data-bite-dish]').forEach(img=>biteDishImageObserver.observe(img));
+}
 function renderMenuItems(cat=activeMenuCategory){
  activeMenuCategory=cat;const list=BiteDiscovery.selectMenu(menuItems,{category:cat,query:$('menuSearchInput').value,vegOnly:$('menuVegToggle').checked});
  $('menuResultCount').textContent=list.length+' item'+(list.length===1?'':'s');
- $('menuItems').innerHTML=list.length?list.map(i=>'<article class="menuitem"><div class="menuinfo"><span class="food-type '+(i.is_vegetarian?'veg':'nonveg')+'" aria-label="'+(i.is_vegetarian?'Vegetarian':'Non-vegetarian')+'"><i></i></span><h3 class="itemname">'+safe(i.name)+'</h3><div class="price">'+money(i.price)+'</div><p class="itemdesc">'+safe(i.description||'Prepared fresh by the restaurant.')+'</p></div><div class="menu-item-end">'+(i.image_url?'<img class="menuphoto" loading="lazy" src="'+safe(BiteDiscovery.safeImage(i.image_url,'assets/food-placeholder.svg'))+'" alt="'+safe(i.name)+'" onerror="this.src=\'assets/food-placeholder.svg\';this.onerror=null">':'<div class="menu-photo-placeholder" aria-hidden="true">'+(i.is_vegetarian?'✦':'B')+'</div>')+'<div class="menu-add-control">'+(cart[i.id]?'<div class="item-quantity"><button type="button" data-menu-dec="'+safe(i.id)+'" aria-label="Remove one '+safe(i.name)+'">−</button><span>'+cart[i.id]+'</span><button type="button" data-add="'+safe(i.id)+'" aria-label="Add one '+safe(i.name)+'" '+(cart[i.id]>=99?'disabled':'')+'>+</button></div>':'<button type="button" class="add" data-add="'+safe(i.id)+'" aria-label="Add '+safe(i.name)+'">ADD +</button>')+'</div></div></article>').join(''):'<div class="food-empty"><h3>No matching dishes</h3><p>Search badlein, doosri category choose karein ya Veg only filter hatayein.</p></div>';
+ $('menuItems').innerHTML=list.length?list.map(i=>'<article class="menuitem"><div class="menuinfo"><span class="food-type '+(i.is_vegetarian?'veg':'nonveg')+'" aria-label="'+(i.is_vegetarian?'Vegetarian':'Non-vegetarian')+'"><i></i></span><h3 class="itemname">'+safe(i.name)+'</h3><div class="price">'+money(i.price)+'</div><p class="itemdesc">'+safe(i.description||'Prepared fresh by the restaurant.')+'</p></div><div class="menu-item-end">'+(i.image_url?'<img class="menuphoto" loading="lazy" src="'+safe(BiteDiscovery.safeImage(i.image_url,'assets/food-placeholder.svg'))+'" alt="'+safe(i.name)+'" onerror="this.src=\'assets/food-placeholder.svg\';this.onerror=null">':(activeRestaurant?.name==='Hotel Maharani Palace'?'<img class="menuphoto" loading="lazy" src="assets/food-placeholder.svg" data-bite-dish="'+safe(i.name)+'" alt="'+safe(i.name)+' vegetarian dish photo" onerror="this.src=\'assets/food-placeholder.svg\';this.onerror=null">':'<div class="menu-photo-placeholder" aria-hidden="true">'+(i.is_vegetarian?'✦':'B')+'</div>'))+'<div class="menu-add-control">'+(cart[i.id]?'<div class="item-quantity"><button type="button" data-menu-dec="'+safe(i.id)+'" aria-label="Remove one '+safe(i.name)+'">−</button><span>'+cart[i.id]+'</span><button type="button" data-add="'+safe(i.id)+'" aria-label="Add one '+safe(i.name)+'" '+(cart[i.id]>=99?'disabled':'')+'>+</button></div>':'<button type="button" class="add" data-add="'+safe(i.id)+'" aria-label="Add '+safe(i.name)+'">ADD +</button>')+'</div></div></article>').join(''):'<div class="food-empty"><h3>No matching dishes</h3><p>Search badlein, doosri category choose karein ya Veg only filter hatayein.</p></div>';
+ biteLoadMenuPhotos();
 }
 $('menuItems').addEventListener('click',e=>{const add=e.target.closest('[data-add]'),dec=e.target.closest('[data-menu-dec]');if(!add&&!dec)return;if(pendingLiveCheckout){alert('Pehle pending payment ka status check karein. Checkout ke items lock hain.');return;}const id=add?.dataset.add||dec.dataset.menuDec;if(!menuItems.some(i=>i.id===id))return;cart[id]=add?Math.min(99,(cart[id]||0)+1):Math.max(0,(cart[id]||0)-1);if(!cart[id])delete cart[id];renderCart();renderMenuItems();});
 $('menuSearchInput').addEventListener('input',()=>renderMenuItems());$('menuVegToggle').addEventListener('change',()=>renderMenuItems());
