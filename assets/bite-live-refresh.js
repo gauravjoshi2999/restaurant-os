@@ -3,15 +3,15 @@
   const scope = new URLSearchParams(location.search).get('bite_app');
   if (scope !== 'partner' && scope !== 'admin') return;
   const built = document.querySelector('meta[name="bite-deploy-sha"]')?.content;
-  if (!built || built === '__BITE_BUILD_SHA__') return;
+  const hasStamp = Boolean(built && /^[a-f0-9]{40}$/.test(built));
   // Small read-only version label for installed-app verification.
   const versionLabel = document.createElement('div');
   versionLabel.id = 'bite-web-version';
   versionLabel.setAttribute('role', 'status');
   versionLabel.style.cssText = 'position:fixed;bottom:4px;right:5px;z-index:2147483646;font:10px system-ui;background:#17253ce8;color:white;padding:3px 6px;border-radius:5px;pointer-events:none';
-  versionLabel.textContent = 'Bite web ' + built.slice(0, 8);
+  versionLabel.textContent = hasStamp ? 'Bite web ' + built.slice(0, 8) : 'Bite web: version pending';
   document.body.appendChild(versionLabel);
-  let latestSeen = built;
+  let latestSeen = hasStamp ? built : '';
   let dismissed = '';
   let checking = false;
   async function check() {
@@ -23,8 +23,8 @@
       const data = await response.json();
       if (!/^[a-f0-9]{40}$/.test(data.sha)) return;
       latestSeen = data.sha;
-      versionLabel.textContent = 'Bite web ' + built.slice(0, 8) + (data.sha !== built ? ' · new ' + data.sha.slice(0, 8) : ' ✓');
-      if (data.sha === built || data.sha === dismissed) return;
+      versionLabel.textContent = hasStamp ? ('Bite web ' + built.slice(0, 8) + (data.sha !== built ? ' · new ' + data.sha.slice(0, 8) : ' ✓')) : ('Bite web latest ' + data.sha.slice(0, 8));
+      if (!hasStamp || data.sha === built || data.sha === dismissed) return;
       if (document.getElementById('bite-refresh-notice')) return;
       const notice = document.createElement('div');
       notice.id = 'bite-refresh-notice';
