@@ -4,6 +4,16 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bite | Eat. Repeat.</title>
 <meta name="bite-deploy-sha" content="__BITE_BUILD_SHA__">
+<script>
+/* Never show Owner/Admin workspace when the URL explicitly requests Customer. */
+(function(){
+ const app=new URLSearchParams(location.search).get('bite_app');
+ if(app!=='customer')return;
+ const destination=new URL('./customer.html',location.href);
+ destination.searchParams.set('bite_app','customer');
+ location.replace(destination.href);
+})();
+</script>
 <style>
 :root{--bg:#f5f6fb;--panel:#fff;--ink:#182238;--muted:#788196;--line:#e9ecf3;--nav:#111a2e;--accent:#6c5ce7;--green:#139b78;--amber:#d68b25}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#eeebff 0,transparent 34%),var(--bg);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.01em}
