@@ -1108,9 +1108,9 @@ function setAuthMode(signup){isSignup=signup;document.getElementById('authTitle'
 const recoveryCooldownKey='bite_recovery_next_attempt';
 const recoveryButton=document.getElementById('sendRecoveryBtn');
 function recoveryCooldownRemaining(){return Math.max(0,Math.ceil((Number(localStorage.getItem(recoveryCooldownKey)||0)-Date.now())/1000))}
-function refreshRecoveryButton(){const remaining=recoveryCooldownRemaining();recoveryButton.disabled=remaining>0;recoveryButton.textContent=remaining>0?'Try again in '+Math.ceil(remaining/60)+' min':'Send reset link';recoveryButton.style.opacity=remaining>0?'0.6':'1'}
+function refreshRecoveryButton(){const remaining=recoveryCooldownRemaining();if(!remaining&&localStorage.getItem(recoveryCooldownKey)){localStorage.removeItem(recoveryCooldownKey);const errorEl=document.getElementById('authError');if(errorEl&&/Email sending limit reached|Recovery email request abhi/.test(errorEl.textContent)){errorEl.style.display='none';errorEl.textContent=''}}recoveryButton.disabled=remaining>0;recoveryButton.textContent=remaining>0?'Try again in '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0'):'Send reset link';recoveryButton.style.opacity=remaining>0?'0.6':'1'}
 refreshRecoveryButton();
-setInterval(refreshRecoveryButton,30000);
+setInterval(refreshRecoveryButton,1000);
 recoveryButton.addEventListener('click',async()=>{
  const email=document.getElementById('recoveryEmail').value.trim();
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthError('Pehle registered email ID enter karein. Mobile number se email recovery nahi hogi.');return}
