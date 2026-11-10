@@ -23,4 +23,10 @@ Status: source prepared for review, not deployed. Market launch remains NO-GO un
 
 ## CI
 
-A PR run will verify the exact reviewed source, public smoke and isolated synthetic browser suite. Its run URL/head SHA/result will be recorded here after completion. Browser test evidence is uploaded as a GitHub Actions artifact. No CI result is assumed before the run finishes.
+[Bite QA run 42745733431](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42745733431) completed **successfully**. Head: `4107552a55adf4a9cb780419f5f835b242b6876c`; PR merge checkout: `65647310a1885e6f4817f2bce6dfc6bd4b473116` (same runtime source). Job `static-qa` / `129597249792`: source/61 Node checks, public packaging, Chromium public smoke and synthetic UI all passed.
+
+- Public browser smoke: **46 checks**, including public restaurant/menu/cart, guarded login/readiness, account/address layout at 1365/390/340px and protected Owner/Admin sign-in. Read-only real public data; no signed-in customer order/payment acceptance.
+- Synthetic Customer/Owner/Admin browser suite: **23 checks**, including PIN/pickup, favourite, downloaded PDF, reorder/coupon, profile/language, Owner offer create/pause, rejected SVG, Admin directory/categories/finance, scheduler guard and pending snapshot recovery. No uncaught JS error.
+- [Screenshots, PDF and browser evidence artifact](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42745733431/artifacts/13730429311): `bite-ui-qa-65647310a1885e6f4817f2bce6dfc6bd4b473116`, 314687 bytes, SHA-256 `1d321c7ce18240d360fa872fe2c1fae6c1e390089cb03b7cebc5e3873638af89`.
+
+[Review PR #7](https://github.com/gauravjoshi2999/restaurant-os/pull/7). This follow-up changes evidence documentation only; no runtime/schema source changed after the successful run. The PR checks must also finish successfully for the final documentation head before approval/merge. No main merge or deployment was performed.
