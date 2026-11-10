@@ -28,7 +28,7 @@ Deno.serve(async req=>{
   let order=await liveLookup(intent);
   if(order?.order_status==="PAID")return liveJson(await liveActivate(db,intent,order));
   if(!order){
-   if(Date.now()-new Date(intent.created_at).getTime()>15*60*1000||new Date(intent.provider_expires_at).getTime()<=Date.now())throw new LivePaymentError("Price quote expire ho gayi. Status check/cancel karke naya cart checkout karein.","quote_expired",409);
+   if(Date.now()-new Date(intent.created_at).getTime()>15*60*1000||new Date(intent.provider_expires_at).getTime()<=Date.now()+15*60*1000)throw new LivePaymentError("Price quote expire ho gayi. Status check/cancel karke naya cart checkout karein.","quote_expired",409);
    const {data:profile}=await db.from("customer_contact_profiles").select("full_name,phone").eq("customer_id",user.id).maybeSingle();
    const contact=intent.customer_snapshot||profile;let phone=String(contact?.phone||"").replace(/\D/g,"");if(phone.length===12&&phone.startsWith("91"))phone=phone.slice(2);
    if(!/^[6-9]\d{9}$/.test(phone))throw new LivePaymentError("Sahi 10-digit Indian mobile number save karein.","invalid_customer_phone",409);

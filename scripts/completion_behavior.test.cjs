@@ -88,3 +88,5 @@ test('sandbox recovery never reads or consumes a saved production checkout',asyn
 test('category discovery can find a dish when a restaurant lacks the corresponding cuisine tag',()=>{const rows=[{id:'a',cuisine_tags:['Cafe']}],items=[{restaurant_id:'a',name:'Paneer Pizza'}];assert.equal(discovery.selectRestaurants(rows,items,{category:'Pizza'}).length,1);assert.equal(discovery.selectRestaurants(rows,items,{category:'South Indian'}).length,0);});
 
 test('provider retry serialization stays stable after JSONB reorders object keys',()=>{const t=paymentEdge('bite-live-create-session');assert.equal(t.context.liveStableJson({b:{z:1,a:2},a:[1,2]}),t.context.liveStableJson({a:[1,2],b:{a:2,z:1}}));});
+
+test('legacy expiry with less than Cashfree minimum remaining cannot send another invalid create request',async()=>{const t=paymentEdge('bite-live-create-session',{noReference:true,intent:{provider_expires_at:new Date(Date.now()+14*60000).toISOString()}}),r=await t.request({intent_id:id});assert.equal(r.status,409);assert.equal(t.calls.some(c=>c.request.method==='POST'),false);});

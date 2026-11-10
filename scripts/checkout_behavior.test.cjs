@@ -14,7 +14,7 @@ function setup(options={}){
  let displayedOrders=0,writes=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{},activeCustomerId:'test-customer',checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
+  window:{},customerStateGeneration:1,activeCustomerId:'test-customer',checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
@@ -102,4 +102,12 @@ test('verification of a detached old payment cannot clear a newly edited cart',a
 });
 test('a new draft cannot bypass an unresolved old payment or silently pay after safe cancellation',async()=>{
  const t=setup({verify:[{status:'awaiting_payment',can_retry:false},{status:'expired',safely_closed:true}]});vm.runInContext("pendingLiveCheckout={id:'old',started:true};viewingPendingCheckout=false",t.context);await t.submit();assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);await t.submit();assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);assert.equal(vm.runInContext('pendingLiveCheckout',t.context),null);
+});
+
+test('a server-detected earlier unresolved checkout becomes the recovery target without replacing the new cart',async()=>{const t=setup();const original=t.context.sb.functions.invoke;t.context.sb.functions.invoke=async(name,args)=>name==='bite-live-create-session'&&!args.body.action?{error:{context:{json:async()=>({error:'Earlier payment unresolved',code:'earlier_payment_unresolved',blocking_intent_id:'earlier-id'})}}}:original(name,args);await t.submit();assert.equal(vm.runInContext('pendingLiveCheckout.id',t.context),'earlier-id');assert.equal(t.context.cart['dish-1'],1);assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);});
+
+test('production checkout cannot silently rewrite a saved address PIN',async()=>{const t=setup({delivery:true,savedPostal:'313399'});await t.submit();assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);assert.equal(t.writes,1,'Only the own contact profile can be saved; the address is not mutated');assert.match(t.element('checkoutError').textContent,/PIN alag/);});
+
+test('account switching while a payment-session response is in flight cannot open the old customer SDK',async()=>{
+ const t=setup(),original=t.context.sb.functions.invoke;let release,entered;const waiting=new Promise(resolve=>entered=resolve);t.context.sb.functions.invoke=async(name,args)=>{if(name==='bite-live-create-session'&&!args.body.action){entered();return new Promise(resolve=>release=resolve);}return original(name,args);};const submission=t.submit();await waiting;t.context.activeCustomerId='other-customer';t.context.customerStateGeneration++;vm.runInContext('pendingLiveCheckout=null',t.context);release({data:{payment_session_id:'old-private-session',amount:150,currency:'INR',environment:'production'}});await submission;assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);assert.equal(t.displayedOrders,0);
 });

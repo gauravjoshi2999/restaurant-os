@@ -17,3 +17,5 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
 .checkoutbox,.authbox{background:#f7f6f3}.checkoutgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.checkoutgrid>*{min-width:0}.checkoutbox input,.checkoutbox select,.checkoutbox textarea{box-sizing:border-box;min-width:0;max-width:100%}
 @media(max-width:360px){.checkoutgrid{grid-template-columns:minmax(0,1fr)!important}.cart-product{gap:8px}.cart-product img{width:48px;height:48px}.food-hero h1{font-size:36px!important}}
+.checkoutbox,.cart-modal-box,.authbox{max-height:calc(var(--bite-visible-height,100dvh) - 24px)}
+.cart-discovery-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.cart-discovery-actions button{flex:1 1 130px;min-height:44px}

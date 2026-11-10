@@ -71,7 +71,7 @@ try:
   menu(page);add(page);page.reload();page.locator('#floatingViewCart').wait_for(state='visible');cart(page)
   check('₹150' in page.locator('#cartModalTotal').inner_text(),'Refresh restores the cart and restaurant without contact data in storage')
   page.locator('#closeCartModal').click();page.go_back();check(page.locator('#homeView').is_visible(),'Browser Back restores Home from menu')
-  page.go_forward();page.locator('#menuView').wait_for(state='visible');check(page.locator('#floatingViewCart').is_visible(),'Browser Forward restores menu and cart')
+  page.go_forward();page.locator('#menuView').wait_for(state='visible');page.locator('#floatingViewCart').wait_for(state='visible');check(page.locator('#floatingViewCart').is_visible(),'Browser Forward restores menu and cart')
   page.locator('#loginBtn').click();check(page.locator('#loginBtn').inner_text()=='Login','Logout clears the session label')
   page.locator('#loginBtn').click();page.locator('#customerEmail').fill('old@example.invalid');page.locator('#forgotPasswordBtn').click()
   check(page.locator('#customerEmail').is_visible() and not page.locator('#customerPassword').is_visible(),'Forgot password requests email only')
