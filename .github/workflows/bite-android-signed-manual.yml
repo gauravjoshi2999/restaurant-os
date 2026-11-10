@@ -74,6 +74,30 @@ jobs:
           config.server.url=url.toString();
           fs.writeFileSync('capacitor.config.json',JSON.stringify(config,null,2));
           NODE
+      - name: Verify app identity and destination before building
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const app = '${{ matrix.app }}';
+          const cfg = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
+          const expected = {
+            customer: ['in.bite.restaurant', '/restaurant-os/customer.html'],
+            partner: ['in.bite.partner', '/restaurant-os/'],
+            admin: ['in.bite.admin', '/restaurant-os/']
+          }[app];
+          const url = new URL(cfg.server.url);
+          if (cfg.appId !== expected[0] || url.pathname !== expected[1] ||
+              url.searchParams.get('bite_app') !== app ||
+              url.searchParams.getAll('bite_app').length !== 1 ||
+              url.origin !== 'https://gauravjoshi2999.github.io') {
+            throw Error('Unsafe app identity or destination: ' + app);
+          }
+          if (app === 'customer' && url.pathname.endsWith('/index.html')) {
+            throw Error('Customer must not open owner/admin workspace');
+          }
+          console.log('Verified', app, cfg.appId, url.pathname);
+          NODE
       - name: Generate Android project
         run: npx cap add android
       - name: Sync Android assets
