@@ -25,17 +25,14 @@ Deno.serve(async req=>{
  const db=createClient(url,service);
  const {data:intent,error:ie}=await db.from("bite_live_checkout_intents").select("id,status,amount,currency,provider_order_id,activated_order_id").eq("id",id).maybeSingle();
  if(ie)return json({error:"Database unavailable"},503);
- if(!intent||intent.provider_order_id!==cfId)return json({ok:true,ignored:true});
+ if(!intent||(intent.provider_order_id&&intent.provider_order_id!==cfId))return json({ok:true,ignored:true});
  if(intent.status==="activated")return json({ok:true,already_activated:true});
  const provider=await fetch("https://api.cashfree.com/pg/orders/"+encodeURIComponent(cfId),{headers:{"x-api-version":"2023-08-01","x-client-id":appId,"x-client-secret":secret},signal:AbortSignal.timeout(12000)}).catch(()=>null);
  if(!provider||!provider.ok)return json({error:"Provider verification unavailable"},503);
  const verified=await provider.json();
  if(verified.order_id!==cfId||verified.order_status!=="PAID"||verified.order_currency!=="INR"||intent.currency!=="INR"||!Number.isFinite(Number(verified.order_amount))||!Number.isFinite(Number(intent.amount))||Math.abs(Number(verified.order_amount)-Number(intent.amount))>0.001)return json({error:"Payment not verified"},409);
- if(intent.status==="awaiting_payment"){
- const {error:ue}=await db.from("bite_live_checkout_intents").update({status:"payment_verified",updated_at:new Date().toISOString()}).eq("id",id).eq("status","awaiting_payment");
- if(ue)return json({error:"Verification update failed"},503);
- }
- const {data:orderId,error:fe}=await db.rpc("bite_finalize_verified_live_checkout",{p_intent_id:id});
+ // Honor delayed verified payments even when the session response was lost or locally expired.
+ const {data:orderId,error:fe}=await db.rpc("bite_activate_paid_checkout",{p_intent_id:id,p_provider_order_id:cfId,p_amount:Number(verified.order_amount),p_currency:verified.order_currency});
  if(fe)return json({error:"Payment verified; activation requires reconciliation"},503);
  return json({ok:true,verified:true,order_id:orderId});
  }

@@ -1,49 +1,46 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.49.8";
-const cors={"access-control-allow-origin":"https://gauravjoshi2999.github.io","access-control-allow-headers":"authorization, apikey, content-type, x-client-info, x-supabase-api-version","access-control-allow-methods":"POST, OPTIONS"};
-const respond=(data:unknown,status=200)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json","cache-control":"no-store",...cors}});
-Deno.serve(async(req)=>{
- if(req.method==="OPTIONS")return new Response(null,{status:204,headers:cors});
- if(req.method!=="POST")return respond({error:"Method not allowed"},405);
- const bearer=req.headers.get("authorization")||"";
- if(!bearer.startsWith("Bearer "))return respond({error:"Authentication required"},401);
+import {liveCors,liveJson,liveUuid,liveReference,LivePaymentError,liveProvider,liveLookup,livePaymentsPending,liveRecord,liveActivate,liveClaim,liveErrorResult} from "../_shared/bite-payment.ts";
+Deno.serve(async req=>{
+ if(req.method==="OPTIONS")return new Response(null,{status:204,headers:liveCors});
+ if(req.method!=="POST")return liveJson({error:"Method not allowed"},405);
+ const bearer=req.headers.get("authorization")||"";if(!bearer.startsWith("Bearer "))return liveJson({error:"Authentication required"},401);
  const url=Deno.env.get("SUPABASE_URL"),anon=Deno.env.get("SUPABASE_ANON_KEY"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!url||!anon||!service)return respond({error:"Server configuration missing"},503);
+ if(!url||!anon||!service)return liveJson({error:"Server configuration unavailable"},503);
  const client=createClient(url,anon,{global:{headers:{Authorization:bearer}}});
- const {data:{user},error:authError}=await client.auth.getUser();
- if(authError||!user)return respond({error:"Invalid session"},401);
- let body;try{body=await req.json()}catch{return respond({error:"Invalid JSON"},400)}
- const id=String(body?.intent_id||"");
- if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return respond({error:"Invalid intent ID"},400);
- const db=createClient(url,service);
- const {data:intent,error:ie}=await db.from("bite_live_checkout_intents").select("id,customer_id,restaurant_id,amount,currency,status,provider_order_id,activated_order_id,created_at").eq("id",id).maybeSingle();
- if(ie)return respond({error:"Database unavailable"},503);
- if(!intent||intent.customer_id!==user.id)return respond({error:"Checkout not found"},404);
- if(intent.status==="activated")return respond({status:"activated",order_id:intent.activated_order_id});
- if(intent.status==="payment_verified"){const {data:orderId,error:finalError}=await db.rpc("bite_finalize_verified_live_checkout",{p_intent_id:id});if(finalError)return respond({status:"payment_verified",error:"Order activation pending reconciliation"},503);return respond({status:"activated",order_id:orderId,verified:true})}
- if(intent.status!=="awaiting_payment")return respond({status:intent.status,verified:false});
- const canonicalId="bite_live_"+id.replaceAll("-","");
- if(intent.provider_order_id&&intent.provider_order_id!==canonicalId)return respond({error:"Valid provider reference missing"},409);
- intent.provider_order_id=canonicalId;
- const app=Deno.env.get("CASHFREE_APP_ID"),secret=Deno.env.get("CASHFREE_SECRET_KEY");
- if(!app||!secret)return respond({error:"Live payment provider not configured"},503);
- let response:Response;
- try{response=await fetch("https://api.cashfree.com/pg/orders/"+encodeURIComponent(intent.provider_order_id),{headers:{"x-api-version":"2023-08-01","x-client-id":app,"x-client-secret":secret},signal:AbortSignal.timeout(12000)})}
- catch{return respond({error:"Payment provider unavailable"},503)}
- if(response.status===404)return respond({error:"Provider payment reference not found. Keep this checkout reference and contact support before paying again."},503);
- if(!response.ok)return respond({error:"Payment verification unavailable"},503);
- const cf=await response.json();
- if(cf.order_id!==intent.provider_order_id||cf.order_currency!=="INR"||intent.currency!=="INR"||!Number.isFinite(Number(cf.order_amount))||Math.abs(Number(cf.order_amount)-Number(intent.amount))>0.001)return respond({error:"Payment amount or currency mismatch"},409);
- if(["EXPIRED","TERMINATED"].includes(cf.order_status)){
-  const {error:expireError}=await db.from("bite_live_checkout_intents").update({status:"expired",updated_at:new Date().toISOString()}).eq("id",id).eq("status","awaiting_payment");
-  if(expireError)return respond({error:"Could not record checkout expiry"},503);
-  return respond({status:"expired",verified:false});
- }
- if(cf.order_status!=="PAID")return respond({status:"awaiting_payment",verified:false});
- const {data:updated,error:ue}=await db.from("bite_live_checkout_intents").update({status:"payment_verified",provider_order_id:canonicalId,updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment").select("id,status").maybeSingle();
- if(ue)return respond({error:"Could not record verification"},503);
- if(!updated){const {data:latest}=await db.from("bite_live_checkout_intents").select("status,activated_order_id").eq("id",id).maybeSingle();return respond({status:latest?.status||"unknown",order_id:latest?.activated_order_id,verified:true})}
- const {data:orderId,error:finalError}=await db.rpc("bite_finalize_verified_live_checkout",{p_intent_id:id});
- if(finalError)return respond({status:"payment_verified",error:"Order activation pending reconciliation"},503);
- return respond({status:"activated",order_id:orderId,verified:true});
+ const {data:{user},error:authError}=await client.auth.getUser();if(authError||!user)return liveJson({error:"Session expire ho gayi. Dobara login karein."},401);
+ let body;try{body=await req.json()}catch{return liveJson({error:"Invalid JSON"},400)}
+ const id=String(body?.intent_id||""),action=body?.action||"verify";
+ if(!liveUuid(id)||!["verify","cancel"].includes(action))return liveJson({error:"Invalid checkout request"},400);
+ const db=createClient(url,service),token=crypto.randomUUID();let held=false;
+ try{
+  const claim=await liveClaim(db,id,user.id,token,action);if(claim.error)return liveJson(claim,claim.http);
+  const intent=claim.intent;if(claim.already_activated)return liveJson({status:"activated",order_id:intent.activated_order_id,verified:true});held=true;
+  if(intent.status==="payment_verified"){const {data,error}=await db.rpc("bite_finalize_verified_live_checkout",{p_intent_id:id});if(error)throw new LivePaymentError("Paid order activate ho raha hai. Dobara payment na karein.","activation_pending");return liveJson({status:"activated",order_id:data,verified:true});}
+  let order=await liveLookup(intent);
+  if(!order){
+   // A generic 404, timeout or recent request is never proof of a failed payment.
+   // Legacy requests expired at created_at +15m; quarantine a further 30m.
+   const expiry=new Date(intent.provider_expires_at||new Date(new Date(intent.created_at).getTime()+15*60000)).getTime();
+   const safe=!intent.provider_attempted_at&&!intent.provider_order_id||Number.isFinite(expiry)&&Date.now()>expiry+30*60000;
+   const evidence={http_status:404,error_code:"order_not_found",order_status:"NOT_FOUND",...(safe?{safely_closed:true,closure_reason:!intent.provider_attempted_at&&!intent.provider_order_id?"never_requested":"provider_not_found_after_expiry"}:{})};
+   const saved=await liveRecord(db,id,token,evidence);
+   if(saved.status==="activated")return liveJson({...saved,verified:true});
+   return liveJson({status:saved.status,verified:false,safely_closed:saved.safely_closed===true,provider_state:"NOT_FOUND",can_retry:!safe&&Date.now()-new Date(intent.created_at).getTime()<15*60000,message:safe?"Cashfree par payment order nahi mila. Checkout safely band hai; naya order kar sakte hain.":"Provider order abhi nahi mila. Failure confirm nahi hai. Isi checkout ko retry/status check karein; menu aur cart khule hain."});
+  }
+  await liveRecord(db,id,token,{provider_order_id:liveReference(id),http_status:200,error_code:"",order_status:order.order_status});
+  if(order.order_status==="PAID")return liveJson(await liveActivate(db,intent,order));
+  // Started payments may succeed after expiry; verify every attempt before closure/retry.
+  let pending=await livePaymentsPending(liveReference(id));
+  if(action==="cancel"&&order.order_status==="ACTIVE"&&!pending){
+   await liveProvider("/orders/"+liveReference(id),{method:"PATCH",headers:{"x-idempotency-key":id},body:JSON.stringify({order_status:"TERMINATED"})});
+   order=await liveLookup(intent);if(!order)throw new LivePaymentError("Cancellation ka final status abhi nahi mila.","cancellation_uncertain");
+   if(order.order_status==="PAID")return liveJson(await liveActivate(db,intent,order));
+   pending=await livePaymentsPending(liveReference(id));
+  }
+  const closed=["EXPIRED","TERMINATED"].includes(order.order_status)&&!pending;
+  if(closed){const saved=await liveRecord(db,id,token,{http_status:200,order_status:order.order_status,safely_closed:true,closure_reason:"provider_closed_without_pending_payments",pending_payments:false});return liveJson({...saved,verified:saved.status==="activated",message:"Payment reconcile ho gaya. Checkout band hai; naya order kar sakte hain."});}
+  return liveJson({status:"awaiting_payment",verified:false,safely_closed:false,provider_state:order.order_status,can_retry:order.order_status==="ACTIVE"&&!pending,message:pending?"Payment processing mein hai. Dobara payment na karein. Menu par ja sakte hain aur status baad mein check kar sakte hain.":action==="cancel"?"Cancellation confirm ho rahi hai. Status dobara check karein; browsing jaari rakh sakte hain.":"Payment complete nahi hua. Isi checkout ko retry kar sakte hain, ya checkout cancel karein."});
+ }catch(error){if(held&&error instanceof LivePaymentError)await liveRecord(db,id,token,{http_status:error.http||null,error_code:error.code}).catch(()=>{});return liveErrorResult(error,id);}
+ finally{if(held)await liveRecord(db,id,token,{release:true}).catch(()=>{});}
 });

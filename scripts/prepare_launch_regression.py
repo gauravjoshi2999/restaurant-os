@@ -3,7 +3,8 @@ from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[1]
 schema=(root/'supabase/migrations/20261109201541_bite_launch_completion.sql').read_text()
-body=(root/'scripts/launch_completion_regression.sql').read_text()
+schema+='\n'+(root/'supabase/migrations/20261110124118_customer_payment_recovery.sql').read_text()
+body=(root/'scripts/launch_completion_regression.sql').read_text()+'\n'+(root/'scripts/customer_payment_recovery_regression.sql').read_text()
 sql="""DO $launch_qa$
 <<launch_qa>>
 DECLARE oa uuid:=gen_random_uuid();ob uuid:=gen_random_uuid();ca uuid:=gen_random_uuid();cb uuid:=gen_random_uuid();
