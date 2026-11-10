@@ -1,6 +1,12 @@
 name: Bite Android debug APK
 on:
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Android version code (increase for each installable update)'
+        required: false
+        default: '1'
+        type: string
   push:
     branches: [feature/bite-android-apk]
     paths:
@@ -64,6 +70,39 @@ jobs:
         run: npx cap add android
       - name: Sync Android assets
         run: npx cap sync android
+      - name: Set version code for signed releases
+        shell: bash
+        env:
+          BITE_VERSION_CODE: ${{ inputs.version_code || '1' }}
+        run: |
+          node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\\s+\\d+/, 'versionCode '+v);fs.writeFileSync(p,s)"
+      - name: Build release APK (unsigned)
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Sign release APK with stable private key
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.BITE_ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.BITE_ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.BITE_ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.BITE_ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "No release signing secrets configured; skipping signed release APK."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/bite-release.jks"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "android/app/build/outputs/apk/release/bite-aligned.apk"
+          "$BUILD_TOOLS/apksigner" sign --ks "$RUNNER_TEMP/bite-release.jks" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD --out "android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk" "android/app/build/outputs/apk/release/bite-aligned.apk"
+          "$BUILD_TOOLS/apksigner" verify --verbose "android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk"
+          rm -f "$RUNNER_TEMP/bite-release.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bite-${{ matrix.app }}-signed-release
+          path: android-app/android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk
+          if-no-files-found: ignore
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
