@@ -684,6 +684,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <section class="platform-restaurant-manager" id="platformRestaurantManager">
  <div class="platform-manager-head"><div><span class="platform-manager-kicker">NETWORK CONTROL</span><h2>Restaurant Network</h2><p>Ek restaurant chunein. Uske website orders aur payment ka hisaab alag khulega.</p></div><div class="platform-restaurant-total"><strong id="platformRestaurantCount">0</strong><span>Restaurants</span></div></div>
  <div class="platform-manager-tools"><label class="platform-search"><span>⌕</span><input id="platformRestaurantSearch" type="search" placeholder="Restaurant name, city ya phone search karein..." oninput="renderPlatformRestaurantDirectory()"></label><span class="platform-manager-hint">Restaurant select karne par usi ke orders dikhenge</span></div>
+ <label class="platform-manager-hint" style="display:inline-flex;align-items:center;gap:7px;margin:8px 0 12px"><input type="checkbox" id="platformShowQaRestaurants" onchange="renderPlatformRestaurantDirectory()"> Show QA/test restaurants</label>
  <div class="platform-restaurant-list" id="platformRestaurantList"></div>
  <div class="platform-selected-summary" id="platformSelectedSummary" style="display:none"></div>
 </section>
@@ -2267,11 +2268,13 @@ function renderPlatformRestaurantDirectory(){
  if(access.role!=='super_admin')return;
  const list=document.getElementById('platformRestaurantList');if(!list)return;
  const search=String(document.getElementById('platformRestaurantSearch')?.value||'').trim().toLowerCase();
- const restaurants=state.restaurants.filter(r=>[r.name,r.city,r.phone,r.contact_person].some(v=>String(v||'').toLowerCase().includes(search))).sort((a,b)=>{
+ const showQa=Boolean(document.getElementById('platformShowQaRestaurants')?.checked);
+ const visibleRestaurants=state.restaurants.filter(r=>showQa || r.id!=='b112ad6b-c597-497a-98a2-d01d70a69209');
+ const restaurants=visibleRestaurants.filter(r=>[r.name,r.city,r.phone,r.contact_person].some(v=>String(v||'').toLowerCase().includes(search))).sort((a,b)=>{
   const pending=x=>state.orders.filter(o=>o.restaurant===x.id&&orderChannelKey(o.channel)==='website'&&o.status==='Received').length;
   return pending(b)-pending(a)||String(a.name||'').localeCompare(String(b.name||''));
  });
- const count=document.getElementById('platformRestaurantCount');if(count)count.textContent=state.restaurants.length;
+ const count=document.getElementById('platformRestaurantCount');if(count)count.textContent=visibleRestaurants.length;
  list.innerHTML=restaurants.length?restaurants.map(r=>{
   const orders=state.orders.filter(o=>o.restaurant===r.id&&orderChannelKey(o.channel)==='website');
   const active=orders.filter(o=>!['Rejected','Cancelled'].includes(o.status));
