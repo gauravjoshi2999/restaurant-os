@@ -132,9 +132,9 @@ function renderMenu(cats){activeMenuCategory='all';$('categoryBar').innerHTML='<
 // the specific dish; never substitute random food, eggs, meat, or unrelated pictures.
 const biteDishImageCache=new Map(),biteDishImagePending=new Set();
 let biteDishImageObserver=null;
-const biteDishImageBad=/\\b(egg|chicken|meat|fish|beef|pork|mutton|shrimp|prawn|non.?veg)\\b/i;
+const biteDishImageBad=/\b(egg|chicken|meat|fish|beef|pork|mutton|shrimp|prawn|non.?veg)\b/i;
 function biteDishImageTerms(name){
- return String(name||'').toLowerCase().replace(/\\([^)]*\\)/g,' ').replace(/[^a-z ]/g,' ').split(/\\s+/).filter(x=>x.length>2&&!['with','special','veg','vegetable','plain','butter','maharani','mamma','fried','dry','gravy'].includes(x));
+ return String(name||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[^a-z ]/g,' ').split(/\s+/).filter(x=>x.length>2&&!['with','special','veg','vegetable','plain','butter','maharani','mamma','fried','dry','gravy'].includes(x));
 }
 async function biteFindDishImage(name){
  const terms=biteDishImageTerms(name),key=name.toLowerCase();
