@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   android-debug:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: android-app
@@ -23,7 +23,21 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        working-directory: .
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager missing: $SDKMANAGER"
+            exit 1
+          fi
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses
+          RESULT=${PIPESTATUS[1]}
+          set -o pipefail
+          exit "$RESULT"
       - name: Install JS dependencies
         run: npm install --no-audit --no-fund
       - name: Generate Android project
