@@ -4,7 +4,7 @@ Status: source prepared for review, not deployed. Market launch remains NO-GO un
 
 | Layer | Result | Practical limit |
 | --- | --- | --- |
-| Node behavior suites | 61/61 pass, zero skipped | Mocked provider/network responses; no real charge, refund or payout |
+| Node behavior suites | 62/62 pass, zero skipped | Mocked provider/network responses; no real charge, refund or payout |
 | Frontend/Owner structure checks | Pass | Parsing, wiring and guard checks do not replace signed-in acceptance |
 | All external asset JavaScript | Node syntax pass | Not a complete browser execution proof |
 | Workflow YAML / public package | Parse/build pass | Only runtime files packaged; QA fixtures/SQL/docs excluded |
@@ -29,4 +29,4 @@ Status: source prepared for review, not deployed. Market launch remains NO-GO un
 - Synthetic Customer/Owner/Admin browser suite: **23 checks**, including PIN/pickup, favourite, downloaded PDF, reorder/coupon, profile/language, Owner offer create/pause, rejected SVG, Admin directory/categories/finance, scheduler guard and pending snapshot recovery. No uncaught JS error.
 - [Screenshots, PDF and browser evidence artifact](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/42745733431/artifacts/13730429311): `bite-ui-qa-65647310a1885e6f4817f2bce6dfc6bd4b473116`, 314687 bytes, SHA-256 `1d321c7ce18240d360fa872fe2c1fae6c1e390089cb03b7cebc5e3873638af89`.
 
-[Review PR #7](https://github.com/gauravjoshi2999/restaurant-os/pull/7). This follow-up changes evidence documentation only; no runtime/schema source changed after the successful run. The PR checks must also finish successfully for the final documentation head before approval/merge. No main merge or deployment was performed.
+[Review PR #7](https://github.com/gauravjoshi2999/restaurant-os/pull/7). A final recovery display regression also restores pickup/delivery, note and address label from the saved checkout instead of a stale form selection. The PR checks must finish successfully for that final head before approval/merge. No main merge or deployment was performed.
