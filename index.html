@@ -1094,7 +1094,31 @@ function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFract
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showAuthError(msg){const el=document.getElementById('authError');el.textContent=msg;el.style.display='block'}
 function setAuthMode(signup){isSignup=signup;document.getElementById('authTitle').textContent=signup?'Create your account':'Login to your account';document.getElementById('authSubtitle').textContent=signup?'Create a secure account for your workspace.':'Mobile number ya email se login karein.';document.getElementById('authEmail').type=signup?'email':'text';document.getElementById('authEmail').placeholder=signup?'you@example.com':'10-digit mobile number or email';document.getElementById('authEmail').previousElementSibling.textContent=signup?'Email address':'Mobile number / Email';document.getElementById('fullNameField').style.display=signup?'block':'none';document.getElementById('authName').required=signup;document.getElementById('authSubmit').textContent=signup?'Create account':'Login';document.getElementById('authSwitchLabel').textContent=signup?'Already have an account?':'New to Bite?';document.getElementById('authSwitch').textContent=signup?'Login':'Create account';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';document.getElementById('authError').style.display='none'}
-document.getElementById('forgotPasswordBtn').addEventListener('click',async()=>{const email=document.getElementById('authEmail').value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showAuthError('Pehle apni registered email ID enter karein. Mobile number se email recovery nahi hogi.');return}const btn=document.getElementById('forgotPasswordBtn');btn.disabled=true;btn.textContent='Sending recovery email...';try{const redirectTo=location.origin+location.pathname;const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});if(error)throw error;showAuthError('Agar yeh email registered hai, to password reset link inbox ya spam folder mein milega.')}catch(e){const msg=String(e.message||e);if(/rate.limit|too.many.requests|429/i.test(msg)){showAuthError('Email sending limit temporarily reached. Kripya kuch der baad try karein. Baar-baar click na karein.');}else{showAuthError('Recovery email send nahi hua: '+msg)}}finally{btn.disabled=false;btn.textContent='Forgot password?'}});
+const recoveryCooldownKey='bite_recovery_next_attempt';
+const recoveryButton=document.getElementById('forgotPasswordBtn');
+function recoveryCooldownRemaining(){return Math.max(0,Math.ceil((Number(localStorage.getItem(recoveryCooldownKey)||0)-Date.now())/1000))}
+function refreshRecoveryButton(){const remaining=recoveryCooldownRemaining();recoveryButton.disabled=remaining>0;recoveryButton.textContent=remaining>0?'Try again in '+Math.ceil(remaining/60)+' min':'Forgot password?';recoveryButton.style.opacity=remaining>0?'0.6':'1'}
+refreshRecoveryButton();
+setInterval(refreshRecoveryButton,30000);
+recoveryButton.addEventListener('click',async()=>{
+ const email=document.getElementById('authEmail').value.trim();
+ if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){showAuthError('Pehle registered email ID enter karein. Mobile number se email recovery nahi hogi.');return}
+ if(recoveryCooldownRemaining()>0){showAuthError('Recovery email request abhi bheji gayi thi. Kripya cooldown khatam hone dein.');refreshRecoveryButton();return}
+ recoveryButton.disabled=true;recoveryButton.textContent='Sending recovery email...';
+ try{
+  const redirectTo=location.origin+location.pathname;
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error)throw error;
+  localStorage.setItem(recoveryCooldownKey,String(Date.now()+120000));
+  showAuthError('Agar yeh email registered hai, to password reset link inbox ya spam folder mein milega. Dobara email mangne se pehle 2 minute wait karein.');
+ }catch(e){
+  const msg=String(e.message||e);
+  if(/rate.limit|too.many.requests|429/i.test(msg)){
+   localStorage.setItem(recoveryCooldownKey,String(Date.now()+900000));
+   showAuthError('Email sending limit reached. Kam se kam 15 minute baad try karein; provider limit zyada bhi ho sakti hai. Baar-baar click na karein.');
+  }else{showAuthError('Recovery email send nahi hua: '+msg)}
+ }finally{refreshRecoveryButton()}
+});
 function showRecoveryPanel(){document.getElementById('authScreen').style.display='flex';document.getElementById('mainApp').style.display='none';document.getElementById('recoveryPanel').style.display='block';document.getElementById('authForm').style.display='none';document.querySelector('.auth-actions').style.display='none';document.getElementById('authTitle').textContent='Choose a new password';document.getElementById('authSubtitle').textContent='Secure recovery link verified. Set a new password below.'}
 document.getElementById('saveRecoveryPassword').addEventListener('click',async()=>{const pass=document.getElementById('recoveryPassword').value;const status=document.getElementById('recoveryStatus');const verifiedSession=await sb.auth.getSession();if(!verifiedSession.data?.session?.user){status.textContent='Recovery session missing ya expired. Naya reset email link kholen.';return}if(pass.length<8){status.textContent='Minimum 8 characters ka password rakhein.';return}const btn=document.getElementById('saveRecoveryPassword');btn.disabled=true;try{const {error}=await sb.auth.updateUser({password:pass});if(error)throw error;status.textContent='Password updated. Ab naye password se login karein.';document.getElementById('recoveryPassword').value='';history.replaceState(null,'',location.pathname);await sb.auth.signOut();document.getElementById('recoveryPanel').style.display='none';document.getElementById('authForm').style.display='block';document.querySelector('.auth-actions').style.display='flex';setAuthMode(false);showAuthError('Password reset successful. Naye password se login karein.')}catch(e){status.textContent=e.message||'Password update failed.'}finally{btn.disabled=false}});
 sb.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')showRecoveryPanel()});
