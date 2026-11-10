@@ -51,6 +51,8 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
   window.addEventListener('focus', check);
   window.addEventListener('online', check);
+  // Recheck when returning to the app, and periodically while it stays open.
+  window.addEventListener('pageshow', check);
   setInterval(check, 120000);
   setTimeout(check, 5000);
 })();
