@@ -85,7 +85,7 @@ try:
   check('Payment collected' in admin.locator('#biteProviderOperations').inner_text(),'Admin finance distinguishes collection, settlement and payout stages')
   admin.screenshot(path=str(OUT/'ui-admin.png'),full_page=False)
   pending=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(pending)
-  pending.goto('http://127.0.0.1:4174/dist/qa/pending-customer-flow.html',wait_until='domcontentloaded');pending.locator('#pendingPaymentBanner button').wait_for(state='visible');pending.locator('#pendingPaymentBanner button').click()
+  pending.goto('http://127.0.0.1:4174/dist/qa/pending-customer-flow.html',wait_until='domcontentloaded');pending.locator('#pendingPaymentBanner [data-pending-check]').wait_for(state='visible');pending.locator('#pendingPaymentBanner [data-pending-check]').click()
   check('₹155' in pending.locator('#checkoutSummary').inner_text(),'Reload recovery shows the saved server-priced payment total')
   check(pending.locator('#checkoutName').is_disabled() and pending.locator('#addressPostal').is_disabled(),'Recovered checkout contact/address stay immutable until payment resolution')
   check(pending.locator('#quickCancelCheckout').is_visible(), 'Recovered pending payment offers visible Cancel old checkout on mobile')
