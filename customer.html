@@ -383,10 +383,10 @@ async function continueLiveCheckout(){
   pending.verifyOnly=false;
   if(checkOnly){$('checkoutError').textContent='Payment abhi confirm nahi hua. Isi checkout ko continue karne ke liye Continue payment dabayein.';return;}
  }
- if(!await refreshCheckoutPaymentReadiness())throw new Error('Online payment abhi available nahi hai. Thodi der baad isi checkout par retry karein.');
+ if(!await refreshCheckoutPaymentReadiness())throw new Error('Online payment gateway abhi available nahi hai. Cancel checkout se naya order shuru kar sakte hain.');
  if(!pending.session){
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{intent_id:pending.id}});
-  if(error||!data?.payment_session_id)throw new Error('Payment page nahi khul saka. Isi checkout par retry karein. Checkout: '+pending.id);
+  if(error||!data?.payment_session_id){let detail=null;try{detail=await error?.context?.json?.();}catch{}const gatewayStatus=Number(detail?.provider_status);const code=Number.isInteger(gatewayStatus)&&gatewayStatus>=400&&gatewayStatus<=599?' (Gateway HTTP '+gatewayStatus+')':'';throw new Error('Cashfree payment session nahi bana'+code+'. Cancel checkout se naya order shuru karein ya payment dobara try karein. Checkout: '+pending.id);}
   if(!Number.isFinite(Number(data.amount))||Number(data.amount)<1||data.currency!=='INR')throw new Error('Trusted payment amount missing. Isi checkout ka status check karein.');
   pending.session=data.payment_session_id;
   if(pending.expectedAmount!=null&&Math.abs(Number(pending.expectedAmount)-Number(data.amount))>0.001){
