@@ -8,12 +8,12 @@ const source=html.split('// BITE CHECKOUT PAYMENT START')[1].split('// BITE CHEC
 function setup(options={}){
  const calls=[],nodes={};
  const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:'',...options.values};
- const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){}}});
+ const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){},toggle(){}}});
  const verify=[...(options.verify||[{status:'activated',order_id:'verified-order'}])];
  let displayedOrders=0,writes=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
+  window:{matchMedia:()=>({matches:false})},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
