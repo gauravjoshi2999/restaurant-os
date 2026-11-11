@@ -66,7 +66,19 @@ Deno.serve(async req=>{
   console.warn("Cashfree order creation rejected:",{status:res.status,providerCode,has_session:!!data?.payment_session_id});
   return json({error:"Cashfree order creation was rejected; retry or cancel this checkout",provider_status:res.status,provider_code:providerCode},503);
  }
+
+ // Never forward a stale or already-paid provider session to Cashfree SDK.
+ if(data.order_status==="PAID")return json({error:"Cashfree reports payment paid. Verify order status instead of paying again.",status:"payment_check_required"},409);
+ if(["EXPIRED","TERMINATED"].includes(data.order_status)){
+  const {error:expiryError}=await db.from("bite_live_checkout_intents").update({status:"expired",updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment");
+  if(expiryError)return json({error:"Provider expiry confirmed but status update failed. Verify payment status.",status:"payment_check_required"},503);
+  return json({error:"Cashfree order has expired. Check status then start a new checkout.",status:"expired"},409);
+ }
+ if(data.order_status!=="ACTIVE")return json({error:"Cashfree status uncertain. Verify payment before retrying.",status:"payment_check_required"},409);
+ const expiryMs=data.order_expiry_time?Date.parse(String(data.order_expiry_time)):NaN;
+ if(data.order_expiry_time&&!Number.isFinite(expiryMs))return json({error:"Provider expiry invalid. Payment session withheld.",status:"payment_check_required"},409);
+ if(Number.isFinite(expiryMs)&&expiryMs<Date.now()+120000)return json({error:"Cashfree order is close to expiry. Check or cancel the old checkout to start fresh.",status:"session_expiring"},409);
  const {data:savedIntent,error:ue}=await db.from("bite_live_checkout_intents").update({provider_order_id:cfId,updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment").select("id").maybeSingle();
  if(ue||!savedIntent)return json({error:"Checkout was cancelled or expired before session confirmation; no payment session was issued"},409);
- return json({intent_id:id,order_id:cfId,payment_session_id:data.payment_session_id,amount,priced_items:intent.priced_items,delivery_fee:Number(intent.delivery_fee),discount_amount:Number(intent.discount_amount||0),currency:"INR",environment:"production"});
+ return json({intent_id:id,order_id:cfId,payment_session_id:data.payment_session_id,amount,priced_items:intent.priced_items,delivery_fee:Number(intent.delivery_fee),discount_amount:Number(intent.discount_amount||0),currency:"INR",environment:"production",expires_at:data.order_expiry_time||null});
 });
