@@ -39,10 +39,32 @@ function paymentEdge(kind,options={}){
   if(selection==='status,activated_order_id')return{data:{status:'activated',activated_order_id:oid}};
   return{data:{...intent}};
  },then:resolve=>{if(update)updates.push(update);resolve({data:null,error:null});}};return q;},rpc:async(name,args)=>{activations.push({name,args});return{data:oid};}};
- const t=edge('supabase/functions/'+kind+'/index.ts',{client,fetch:async(url,request={})=>{calls.push({url,request});providerCalls++;if(options.provider404)return new Response('{}',{status:404});if(kind==='bite-live-create-session'&&options.duplicate&&providerCalls===1)return new Response('{}',{status:409});orderFetches++;return new Response(JSON.stringify({order_id:cfId,order_currency:'INR',order_amount:190,order_status:options.providerStatus||'PAID',payment_session_id:'same-provider-session',...options.provider}),{status:200});}});return{...t,calls,updates,activations,intent};
+ const t=edge('supabase/functions/'+kind+'/index.ts',{client,fetch:async(url,request={})=>{calls.push({url,request});providerCalls++;if(options.provider404)return new Response('{}',{status:404});if(kind==='bite-live-create-session'&&options.duplicate&&providerCalls===1)return new Response('{}',{status:409});orderFetches++;return new Response(JSON.stringify({order_id:cfId,order_currency:'INR',order_amount:190,order_status:options.providerStatus||(kind==='bite-live-create-session'?'ACTIVE':'PAID'),payment_session_id:'same-provider-session',...options.provider}),{status:200});}});return{...t,calls,updates,activations,intent};
 }
 test('provider session retry reuses the canonical ID and recovers a duplicate response via GET',async()=>{const t=paymentEdge('bite-live-create-session',{duplicate:true}),r=await t.request({intent_id:id});assert.equal(r.status,200);assert.equal(r.body.amount,190);assert.equal(t.calls[0].request.headers['x-idempotency-key'],id);assert.match(t.calls[1].url,new RegExp(cfId+'$'));assert.equal(t.calls[1].request.method,undefined);assert.ok(t.updates.some(u=>u.provider_attempted_at));});
 test('payment session preserves frozen contact and discounted amount without invalid Cashfree expiry override',async()=>{const t=paymentEdge('bite-live-create-session'),r=await t.request({intent_id:id});assert.equal(r.status,200);const payload=JSON.parse(t.calls[0].request.body);assert.equal(payload.order_amount,190);assert.equal(payload.customer_details.customer_name,'Snapshot customer');assert.equal(payload.customer_details.customer_phone,'9999999999');assert.equal(Object.prototype.hasOwnProperty.call(payload,'order_expiry_time'),false,'Cashfree validates the optional expiry separately; use provider default');});
+
+test('production checkout never opens an expired or already-paid Cashfree order',async()=>{
+ for(const status of ['EXPIRED','TERMINATED','PAID','FAILED']){
+  const t=paymentEdge('bite-live-create-session',{providerStatus:status}),r=await t.request({intent_id:id});
+  assert.equal(r.status,409,status+' must not yield a payment session');
+  assert.equal(r.body.payment_session_id,undefined);
+  if(status==='PAID')assert.equal(r.body.status,'payment_check_required');
+  if(status==='EXPIRED'||status==='TERMINATED')assert.equal(r.body.status,'expired');
+ }
+});
+test('session with less than two minutes of provider validity is blocked',async()=>{
+ const expiry=new Date(Date.now()+45*1000).toISOString();
+ const t=paymentEdge('bite-live-create-session',{provider:{order_expiry_time:expiry}}),r=await t.request({intent_id:id});
+ assert.equal(r.status,409);assert.equal(r.body.status,'session_expiring');
+ assert.equal(r.body.payment_session_id,undefined);
+});
+test('fresh ACTIVE Cashfree session preserves provider expiry for browser-side double check',async()=>{
+ const expiry=new Date(Date.now()+25*60*1000).toISOString();
+ const t=paymentEdge('bite-live-create-session',{provider:{order_expiry_time:expiry}}),r=await t.request({intent_id:id});
+ assert.equal(r.status,200);assert.equal(r.body.expires_at,expiry);
+ assert.equal(r.body.payment_session_id,'same-provider-session');
+});
 test('inconsistent or NaN checkout snapshots cannot reach the provider session API',async()=>{for(const intent of [{food_subtotal:null},{delivery_fee:'NaN'},{discount_amount:201},{amount:191}]){const t=paymentEdge('bite-live-create-session',{intent}),r=await t.request({intent_id:id});assert.equal(r.status,409);assert.equal(t.calls.length,0);}});
 test('a provider session response with a different total cannot be passed to the SDK',async()=>{const t=paymentEdge('bite-live-create-session',{provider:{order_amount:191}}),r=await t.request({intent_id:id});assert.equal(r.status,503);assert.equal(r.body.payment_session_id,undefined);});
 test('verification can recover a canonical provider reference missing from the saved row',async()=>{const t=paymentEdge('bite-live-verify-checkout',{noReference:true}),r=await t.request({intent_id:id});assert.equal(r.status,200);assert.equal(r.body.order_id,oid);assert.equal(t.updates[0].provider_order_id,cfId);assert.equal(t.activations.length,1);});
