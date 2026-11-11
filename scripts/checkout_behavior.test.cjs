@@ -45,13 +45,31 @@ test('normal link uses a priced intent and server verification before showing an
  const t=setup();await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'bite_prepare_checkout_v2');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'production');assert.equal(t.calls.some(c=>c.name==='bite-live-verify-checkout'),true);assert.equal(t.displayedOrders,1);
 });
 test('SDK success alone cannot create a paid-order success screen',async()=>{
- const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Continue payment');assert.match(t.element('checkoutError').textContent,/complete nahi hua/);
+ const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');assert.match(t.element('checkoutError').textContent,/complete nahi hua/);
 });
 test('an uncertain verification retry checks the same intent without taking another payment',async()=>{
  const t=setup({verify:[{error:true},{status:'activated',order_id:'verified-order'}]});await t.submit();assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');await t.submit();assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1);assert.equal(t.displayedOrders,1);
 });
-test('a cancelled payment resumes the same provider session and priced intent',async()=>{
- const t=setup({sdkThrows:true,verify:[{status:'awaiting_payment'},{status:'awaiting_payment'},{status:'activated',order_id:'verified-order'}]});await t.submit();await t.submit();assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);assert.equal(t.calls.filter(c=>c.kind==='function'&&c.name==='bite-live-create-session'&&!c.args.body.action).length,1);assert.equal(t.calls.filter(c=>c.kind==='sdk').length,2);assert.equal(t.displayedOrders,1);
+test('expired SDK session is consumed once; subsequent click checks provider before a new attempt',async()=>{
+ const t=setup({sdkThrows:true,verify:[{status:'awaiting_payment'},{status:'awaiting_payment'},{status:'activated',order_id:'verified-order'}]});
+ await t.submit();
+ assert.equal(t.context.pendingLiveCheckout.session,null,'SDK session must be consumed before redirect');
+ assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');
+ await t.submit();
+ assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1,'status check never pays again');
+ assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
+ await t.submit();
+ assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1,'verified payment must not reopen previous session');
+ assert.equal(t.displayedOrders,1);
+});
+
+test('stale production checkout cannot launch Cashfree SDK even when verification is still awaiting',async()=>{
+ const t=setup({verify:[{status:'awaiting_payment'}]});
+ t.context.pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',intentCreatedAt:new Date(Date.now()-25*60*1000).toISOString(),session:'old-sdk-token',started:true,verifyOnly:false,expectedAmount:150};
+ await t.submit();
+ assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);
+ assert.equal(t.calls.filter(c=>c.kind==='function'&&c.name==='bite-live-create-session'&&!c.args.body.action).length,0);
+ assert.match(t.element('checkoutError').textContent,/15 minute se purana/);
 });
 test('rapid repeated clicks cannot create two checkout intents',async()=>{
  const t=setup();await Promise.all([t.submit(),t.submit()]);assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
