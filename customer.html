@@ -393,6 +393,18 @@ async function verifyPendingLiveCheckout(){
 async function continueLiveCheckout(){
  if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
  const pending=pendingLiveCheckout;
+ const createdMs=Date.parse(pending.intentCreatedAt||'');
+ if(Number.isFinite(createdMs)&&Date.now()-createdMs>15*60*1000){
+  const last=await verifyPendingLiveCheckout();
+  if(last?.status==='activated'){await finishVerifiedCheckout(last);return;}
+  if(['expired','failed'].includes(last?.status)){
+   pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
+   window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();syncCheckoutPaymentButton();
+   throw new Error('Purana Cashfree checkout expire ho gaya. Back to menu se naya order start karein.');
+  }
+  pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();
+  throw new Error('Yeh checkout 15 minute se purana hai. Iska Cashfree session dubara nahi khulega. Payment status check karein ya Cancel old checkout se naya order banayein.');
+ }
  if(pending.amountReviewRequired){pending.expectedAmount=pending.amountReviewRequired;pending.amountReviewRequired=null;}
  if(pending.started||pending.verifyOnly){
   const checkOnly=pending.verifyOnly;
@@ -407,6 +419,16 @@ async function continueLiveCheckout(){
  if(!pending.session){
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{intent_id:pending.id}});
   if(error||!data?.payment_session_id){let detail=null;try{detail=await error?.context?.json?.();}catch{}
+   if(detail?.status==='payment_check_required'){
+    const last=await verifyPendingLiveCheckout();
+    if(last?.status==='activated'){await finishVerifiedCheckout(last);return;}
+    pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
+    throw new Error('Cashfree order ka status pehle check karna zaroori hai. Dobara payment na karein.');
+   }
+   if(detail?.status==='session_expiring'){
+    pending.verifyOnly=true;pending.session=null;window.BiteCustomerExtras?.savePendingCheckout();
+    throw new Error('Purana Cashfree payment session expire hone wala hai. Cancel old checkout se fresh order shuru karein.');
+   }
    if(detail?.status==='expired'&&pendingLiveCheckout?.id===pending.id){
     pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
     window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
@@ -414,16 +436,23 @@ async function continueLiveCheckout(){
    }
    const gatewayStatus=Number(detail?.provider_status);const code=Number.isInteger(gatewayStatus)&&gatewayStatus>=400&&gatewayStatus<=599?' (Gateway HTTP '+gatewayStatus+')':'';const providerCode=String(detail?.provider_code||'').replace(/[^A-Za-z0-9_ -]/g,'').slice(0,50);const providerNote=providerCode?' · '+providerCode:'';throw new Error('Cashfree payment session nahi bana'+code+providerNote+'. Cancel old checkout se naya order shuru karein ya payment dobara try karein. Checkout: '+pending.id);}
   if(!Number.isFinite(Number(data.amount))||Number(data.amount)<1||data.currency!=='INR')throw new Error('Trusted payment amount missing. Isi checkout ka status check karein.');
+  const expiresAt=Date.parse(data.expires_at||'');
+  if(Number.isFinite(expiresAt)&&expiresAt<Date.now()+120000){
+   pending.session=null;pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
+   throw new Error('Cashfree session expire hone wala hai. Purane checkout ko cancel karke naya order shuru karein.');
+  }
   pending.session=data.payment_session_id;
   if(pending.expectedAmount!=null&&Math.abs(Number(pending.expectedAmount)-Number(data.amount))>0.001){
-   pending.amountReviewRequired=Number(data.amount);window.BiteCustomerExtras?.showServerQuote?.(data);window.BiteCustomerExtras?.savePendingCheckout();
+   pending.amountReviewRequired=Number(data.amount);pending.session=null;window.BiteCustomerExtras?.showServerQuote?.(data);window.BiteCustomerExtras?.savePendingCheckout();
    $('checkoutError').textContent='Price ya delivery fee update hui hai. Updated total ₹'+data.amount+' review karein. Dobara Pay dabane par hi payment khulega.';return;
   }
  }
- pending.started=true;window.BiteCustomerExtras?.savePendingCheckout();
+ const sessionToOpen=pending.session;
+ pending.session=null;pending.started=true;pending.verifyOnly=true;
+ window.BiteCustomerExtras?.savePendingCheckout();
  let sdkProblem='';
  try{
-  const result=await Cashfree({mode:'production'}).checkout({paymentSessionId:pending.session,redirectTarget:window.matchMedia('(max-width: 768px)').matches?'_self':'_modal'});
+  const result=await Cashfree({mode:'production'}).checkout({paymentSessionId:sessionToOpen,redirectTarget:window.matchMedia('(max-width: 768px)').matches?'_self':'_modal'});
   if(result?.error)sdkProblem=result.error.message||'Payment window did not open';
  }catch(error){sdkProblem=error?.message||'Payment window did not open';}
  const verified=await verifyPendingLiveCheckout();
@@ -431,7 +460,8 @@ async function continueLiveCheckout(){
 
  if(verified?.status==='activated'){await finishVerifiedCheckout(verified);return;}
  if(['expired','failed'].includes(verified?.status)){pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Checkout expire ho gaya. Cart review karke dobara checkout karein.');}
- if(verified?.status!=='awaiting_payment')pending.verifyOnly=true;
+ pending.verifyOnly=true;
+ window.BiteCustomerExtras?.savePendingCheckout();
  if(!sdkProblem)$('checkoutError').textContent=verified?.status==='awaiting_payment'?'Payment complete nahi hua. Continue payment ya Cancel checkout choose karein.':'Payment confirmation pending hai. Dobara payment na karein. Checkout: '+pending.id;
 }
 // Authenticated server-side cancellation: never discard a payment which might have succeeded.
@@ -531,7 +561,7 @@ async function submitCustomerOrder(){
   const checkoutArgs={p_restaurant_id:activeRestaurant.id,p_delivery_type:mode,p_address_id:addressId,p_customer_note:$('customerNote').value.trim()||null,p_items:items};
   if(!BITE_SANDBOX_CHECKOUT){checkoutArgs.p_coupon_code=appliedCheckoutCoupon?.code||null;checkoutArgs.p_checkout_key=checkoutRequestKey;}
   const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(error)throw error;
-  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
+  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
   const {data:payment,error:paymentError}=await sb.functions.invoke('cashfree-sandbox-draft-checkout',{body:{draft_id:orderId}});if(paymentError)throw paymentError;
   if(!payment?.payment_session_id)throw new Error('Cashfree sandbox session missing');
   const result=await Cashfree({mode:'sandbox'}).checkout({paymentSessionId:payment.payment_session_id,redirectTarget:'_modal'});if(result?.error)throw new Error(result.error.message||'Sandbox checkout failed');
@@ -557,6 +587,15 @@ $('cancelCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('checkoutModal').addEventListener('click',e=>{if(e.target===$('checkoutModal'))closeCheckoutAndReturnToMenu();});
 $('placeOrderBtn').addEventListener('click',submitCustomerOrder);
 $('quickCancelCheckout').addEventListener('click',cancelPendingCustomerCheckout);
+window.addEventListener('pageshow',event=>{
+ if(event.persisted&&pendingLiveCheckout&&!checkoutPaymentBusy){
+  // Browser Back from Cashfree may restore a cached Bite page. Read provider status,
+  // never retry the old payment session or assume the transaction succeeded.
+  pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
+  window.BiteCustomerExtras?.savePendingCheckout();
+  void checkPendingCustomerPayment();
+ }
+});
 $('checkPendingPaymentBtn').addEventListener('click',checkPendingCustomerPayment);
 
 loadRestaurants();
