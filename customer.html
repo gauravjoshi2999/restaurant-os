@@ -2,6 +2,7 @@
 <html lang="hi">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="bite-customer-build" content="__BITE_BUILD_SHA__">
 <meta name="description" content="Discover local restaurants, explore menus and order your favourite food with Bite. Eat. Repeat."><title>Bite | Local food in Rajsamand · Eat. Repeat.</title><link rel="canonical" href="https://gauravjoshi2999.github.io/restaurant-os/customer.html"><meta property="og:title" content="Bite — Eat. Repeat."><meta property="og:description" content="Discover local restaurants, choose your delivery PIN and explore fresh food in Rajsamand."><meta property="og:type" content="website"><meta property="og:url" content="https://gauravjoshi2999.github.io/restaurant-os/customer.html"><meta property="og:image" content="https://gauravjoshi2999.github.io/restaurant-os/assets/food/meal-1100.jpg"><meta name="referrer" content="strict-origin-when-cross-origin"><link rel="icon" type="image/svg+xml" href="assets/bite-logo.svg">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -562,4 +563,25 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
 })();
 </script>
 <script src="assets/customer-completion.js?v=20261111-cancel1"></script><script src="assets/bite-language.js?v=20261110"></script><script src="./android-update-check.js" defer></script>
+<script id="bite-customer-update-prompt">
+/* Only offer a reload after comparing the actual deployed SHA; never reload during payment. */
+(async function(){
+ const embedded=document.querySelector('meta[name="bite-customer-build"]')?.content||'';
+ if(!/^[a-f0-9]{40}$/i.test(embedded))return;
+ try{
+  const response=await fetch('bite-deploy-version.json?stamp='+Date.now(),{cache:'no-store'});
+  if(!response.ok)return;
+  const release=await response.json();
+  if(!/^[a-f0-9]{40}$/i.test(release?.sha)||release.sha===embedded)return;
+  const box=document.createElement('aside');
+  box.setAttribute('role','status');box.id='biteClientVersionAlert';
+  box.style.cssText='position:fixed;right:12px;left:12px;bottom:80px;z-index:9998;padding:12px 14px;background:#182238;color:#fff;border-radius:12px;box-shadow:0 8px 30px #0005;display:flex;align-items:center;gap:10px;font:13px system-ui';
+  const label=document.createElement('span');label.textContent='Bite ka naya update available hai.';label.style.flex='1';
+  const button=document.createElement('button');button.type='button';button.textContent='Update';button.style.cssText='background:#e02d3f;color:#fff;border:0;border-radius:8px;padding:10px 13px;font-weight:700';
+  button.onclick=()=>{const next=new URL(location.href);next.searchParams.set('v',release.sha.slice(0,12));location.assign(next.href)};
+  const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss update');dismiss.style.cssText='border:0;background:transparent;color:#fff;font-size:20px';dismiss.onclick=()=>box.remove();
+  box.append(label,button,dismiss);document.body.append(box);
+ }catch(e){/* Site remains usable when deployment check is temporarily unavailable. */}
+})();
+</script>
 </body></html>
