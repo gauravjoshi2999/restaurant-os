@@ -53,7 +53,7 @@ test('an uncertain verification retry checks the same intent without taking anot
 test('expired SDK session is consumed once; subsequent click checks provider before a new attempt',async()=>{
  const t=setup({sdkThrows:true,verify:[{status:'awaiting_payment'},{status:'awaiting_payment'},{status:'activated',order_id:'verified-order'}]});
  await t.submit();
- assert.equal(t.context.pendingLiveCheckout.session,null,'SDK session must be consumed before redirect');
+ assert.equal(vm.runInContext('pendingLiveCheckout?.session',t.context),null,'SDK session must be consumed before redirect');
  assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');
  await t.submit();
  assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1,'status check never pays again');
@@ -65,7 +65,7 @@ test('expired SDK session is consumed once; subsequent click checks provider bef
 
 test('stale production checkout cannot launch Cashfree SDK even when verification is still awaiting',async()=>{
  const t=setup({verify:[{status:'awaiting_payment'}]});
- t.context.pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',intentCreatedAt:new Date(Date.now()-25*60*1000).toISOString(),session:'old-sdk-token',started:true,verifyOnly:false,expectedAmount:150};
+ vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',intentCreatedAt:new Date(Date.now()-25*60*1000).toISOString(),session:'old-sdk-token',started:true,verifyOnly:false,expectedAmount:150}",t.context);
  await t.submit();
  assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);
  assert.equal(t.calls.filter(c=>c.kind==='function'&&c.name==='bite-live-create-session'&&!c.args.body.action).length,0);
