@@ -70,8 +70,9 @@ Deno.serve(async req=>{
  // Never forward a stale or already-paid provider session to Cashfree SDK.
  if(data.order_status==="PAID")return json({error:"Cashfree reports payment paid. Verify order status instead of paying again.",status:"payment_check_required"},409);
  if(["EXPIRED","TERMINATED"].includes(data.order_status)){
-  const {error:expiryError}=await db.from("bite_live_checkout_intents").update({status:"expired",updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment");
+  const {data:expirySaved,error:expiryError}=await db.from("bite_live_checkout_intents").update({status:"expired",updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment").select("id").maybeSingle();
   if(expiryError)return json({error:"Provider expiry confirmed but status update failed. Verify payment status.",status:"payment_check_required"},503);
+  if(!expirySaved)return json({error:"Checkout status changed while checking provider expiry. Verify payment status.",status:"payment_check_required"},409);
   return json({error:"Cashfree order has expired. Check status then start a new checkout.",status:"expired"},409);
  }
  if(data.order_status!=="ACTIVE")return json({error:"Cashfree status uncertain. Verify payment before retrying.",status:"payment_check_required"},409);
