@@ -381,13 +381,13 @@ $('addressPostal').addEventListener('input',refreshCheckoutZoneEstimate);
 let checkoutPaymentReady=false,checkoutPaymentBusy=false,pendingLiveCheckout=null;
 function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
- btn.disabled=checkoutPaymentBusy||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady);
+ btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady);
  btn.setAttribute('aria-disabled',String(btn.disabled));
- btn.textContent=checkoutPaymentBusy?'Please wait…':BITE_SANDBOX_CHECKOUT?'Pay with Cashfree Sandbox':pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
+ btn.textContent=checkoutPaymentBusy?'Please wait…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
  $('quickCancelCheckout')?.classList.toggle('hidden',!pendingLiveCheckout);
  $('checkPendingPaymentBtn')?.classList.toggle('hidden',!pendingLiveCheckout||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
- if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'SANDBOX ONLY: Test payment; no real restaurant order or charge will be created.':pendingLiveCheckout?'Cashfree se payment PAID confirm nahi hua. Agar bank se paise kate hain to Continue payment na dabayein—Check payment status chunein. Agar paise nahi kate, isi checkout ko continue ya cancel kar sakte hain.':checkoutPaymentReady?'Cashfree se secure online payment. Payment confirm hone par order restaurant ko bheja jayega.':'Online payment abhi available nahi hai. Checkout dobara kholkar retry karein.';
+ if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':pendingLiveCheckout?'Previous payment needs confirmation. You can return to the menu anytime.':checkoutPaymentReady?'Secure online payment via Cashfree.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
   if(pendingLiveCheckout){if(!('paymentWasDisabled' in el.dataset))el.dataset.paymentWasDisabled=String(el.disabled);el.disabled=true;}
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
@@ -415,7 +415,7 @@ async function finishVerifiedCheckout(result){
 }
 async function verifyPendingLiveCheckout(){
  const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:pendingLiveCheckout.id}});
- if(error){pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Payment status verify nahi hua. Dobara payment na karein. Check payment status dabayein. Checkout: '+pendingLiveCheckout.id);}
+ if(error){pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Payment status check nahi ho saka. Dobara pay na karein; thodi der baad status check karein.');}
  return data;
 }
 async function continueLiveCheckout(){
@@ -439,9 +439,9 @@ async function continueLiveCheckout(){
   const status=await verifyPendingLiveCheckout();
   if(status?.status==='activated'){await finishVerifiedCheckout(status);return;}
   if(['expired','failed'].includes(status?.status)){pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();throw new Error('Pichhla checkout expire ho gaya. Cart review karke naya checkout karein.');}
-  if(status?.status!=='awaiting_payment'){pending.verifyOnly=true;throw new Error('Payment confirmation pending hai. Dobara payment na karein. Checkout: '+pending.id);}
+  if(status?.status!=='awaiting_payment'){pending.verifyOnly=true;throw new Error('Payment status pending hai. Dobara pay na karein.');}
   pending.verifyOnly=false;
-  if(checkOnly){$('checkoutError').textContent='Cashfree par payment PAID confirm nahi hua. Paise kate hon to dobara pay na karein, Check payment status dabayein. Paise nahi kate hon to isi checkout ka Continue payment choose kar sakte hain.';return;}
+  if(checkOnly){$('checkoutError').textContent='Payment confirm nahi hua. Agar paise kate hain to dobara pay na karein. Status check karein.';return;}
  }
  if(!await refreshCheckoutPaymentReadiness())throw new Error('Online payment gateway abhi available nahi hai. Cancel checkout se naya order shuru kar sakte hain.');
  if(!pending.session){
@@ -490,7 +490,7 @@ async function continueLiveCheckout(){
  if(['expired','failed'].includes(verified?.status)){pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Checkout expire ho gaya. Cart review karke dobara checkout karein.');}
  pending.verifyOnly=true;
  window.BiteCustomerExtras?.savePendingCheckout();
- if(!sdkProblem)$('checkoutError').textContent=verified?.status==='awaiting_payment'?'Payment complete nahi hua. Continue payment ya Cancel checkout choose karein.':'Payment confirmation pending hai. Dobara payment na karein. Checkout: '+pending.id;
+ if(!sdkProblem)$('checkoutError').textContent=verified?.status==='awaiting_payment'?'Payment confirm nahi hua. Status check karein ya menu par lautein.':'Payment verification pending hai. Dobara pay na karein.';
 }
 // Authenticated server-side cancellation: never discard a payment which might have succeeded.
 // Read-only payment status check; never opens Cashfree or creates a new payment attempt.
@@ -510,11 +510,11 @@ async function checkPendingCustomerPayment(){
    renderCart();return;
   }
   if(result?.status==='awaiting_payment'){
-   $('checkoutError').textContent='Cashfree par payment abhi PAID confirm nahi hua. Agar bank se paise kate hain to dobara payment na karein. Agar paise nahi kate, isi checkout ko continue ya cancel kar sakte hain.';
+   $('checkoutError').textContent='Payment confirm nahi hua hai. Agar paise kate hain to dobara pay na karein. Status check karein ya menu par lautein.';
    return;
   }
   pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
-  $('checkoutError').textContent='Payment verification pending hai. Dobara payment na karein; My Orders ya support se status check karein.';
+  $('checkoutError').textContent='Payment status abhi clear nahi hai. Dobara pay na karein; thodi der baad check karein.';
  }catch(e){$('checkoutError').textContent=e?.message||'Cashfree status verify nahi ho paaya. Paise kate hon to dobara payment na karein.';}
  finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();}
 }
@@ -532,11 +532,11 @@ async function cancelPendingCustomerCheckout(){
    else throw new Error(detail?.error||data?.error||'Payment status check failed. Try again. Checkout was not cancelled.');
   }
   if(result?.status==='activated'||result?.status==='payment_verified'){
-   $('checkoutError').textContent='Payment mil chuka hai. Is checkout ko cancel nahi kar sakte. My Orders mein status check karein.';
+   $('checkoutError').textContent='Payment mil gaya hai. Apna order My Orders mein dekhein.';
    if(result.status==='activated'&&result.order_id)await finishVerifiedCheckout(result);
    return;
   }
-  if(!result?.cancelled&&!['expired','failed'].includes(result?.status))throw new Error(result?.error||'Payment status abhi clear nahi hai. Cancel nahi hua; aap menu browse kar sakte hain.');
+  if(!result?.cancelled&&!['expired','failed'].includes(result?.status))throw new Error(result?.error||'Payment status abhi clear nahi hai. Menu par laut sakte hain.');
   if(!pendingLiveCheckout||pendingLiveCheckout.id!==id)return;
   pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
   window.BiteCustomerExtras?.savePendingCheckout();
@@ -550,7 +550,7 @@ async function cancelPendingCustomerCheckout(){
   notice.role='status';notice.textContent='Purana checkout cancel ho gaya. Aap naya order kar sakte hain.';
   Object.assign(notice.style,{position:'fixed',bottom:'90px',left:'12px',right:'12px',zIndex:'9999',background:'#153d2a',color:'white',padding:'14px',borderRadius:'10px',textAlign:'center',boxShadow:'0 5px 20px #0002'});
   document.body.append(notice);setTimeout(()=>notice.remove(),5500);
- }catch(e){$('checkoutError').textContent=(e.message||'Cancellation failed')+'. Aap Back to menu se doosri dishes dekh sakte hain.';}
+ }catch(e){console.warn('Checkout cancellation not confirmed',e);$('checkoutError').textContent='Payment status abhi clear nahi hai. Aap menu par laut sakte hain aur baad mein status check kar sakte hain.';}
  finally{button.disabled=false;button.textContent='Cancel old checkout · Start fresh';}
 }
 async function submitCustomerOrder(){
@@ -559,6 +559,15 @@ async function submitCustomerOrder(){
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();$('checkoutError').textContent='';
  try{
   if(pendingLiveCheckout){if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');await continueLiveCheckout();return;}
+  if(BITE_SANDBOX_CHECKOUT&&window.BiteCheckoutUX?.sandboxPending){
+   const {data:previous,error:statusError}=await sb.functions.invoke('cashfree-sandbox-verify-draft',{body:{draft_id:window.BiteCheckoutUX.sandboxPending}});
+   if(statusError)throw new Error('Status check unavailable. Please try again.');
+   if(previous?.verified){
+    localStorage.setItem('bite_last_sandbox_draft',window.BiteCheckoutUX.sandboxPending);
+    biteRefreshSandboxStatus();window.BiteCheckoutUX.showSandboxSuccess();
+   }else $('checkoutError').textContent='Test payment not confirmed yet. You can check again or return to the menu.';
+   return;
+  }
   const name=$('checkoutName').value.trim(),phone=$('checkoutPhone').value.trim(),digits=phone.replace(/[^0-9]/g,''),mode=checkoutMode();
   if(name.length<2)throw new Error('Apna poora naam dalein.');
   if(digits.length<10||digits.length>15)throw new Error('Sahi mobile number dalein (10 se 15 digits).');
@@ -590,12 +599,16 @@ async function submitCustomerOrder(){
   if(!BITE_SANDBOX_CHECKOUT){checkoutArgs.p_coupon_code=appliedCheckoutCoupon?.code||null;checkoutArgs.p_checkout_key=checkoutRequestKey;}
   const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(error)throw error;
   if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
+  window.BiteCheckoutUX?.markPending?.(orderId);
   const {data:payment,error:paymentError}=await sb.functions.invoke('cashfree-sandbox-draft-checkout',{body:{draft_id:orderId}});if(paymentError)throw paymentError;
-  if(!payment?.payment_session_id)throw new Error('Cashfree sandbox session missing');
-  const result=await Cashfree({mode:'sandbox'}).checkout({paymentSessionId:payment.payment_session_id,redirectTarget:'_modal'});if(result?.error)throw new Error(result.error.message||'Sandbox checkout failed');
+  if(!payment?.payment_session_id)throw new Error('Payment service is unavailable. Please try again.');
+  const result=await Cashfree({mode:'sandbox'}).checkout({paymentSessionId:payment.payment_session_id,redirectTarget:'_modal'});if(result?.error)throw new Error('Payment was not completed. You can check its status.');
   const {data:verified,error:verifyError}=await sb.functions.invoke('cashfree-sandbox-verify-draft',{body:{draft_id:orderId}});if(verifyError)throw verifyError;
-  if(verified?.verified){localStorage.setItem('bite_last_sandbox_draft',orderId);biteRefreshSandboxStatus();}
-  $('checkoutError').textContent=verified?.verified?'SANDBOX PAYMENT VERIFIED. Owner can now process this TEST order in Sandbox Payment Tests. Draft: '+orderId:'Sandbox payment not yet verified ('+(verified?.status||'pending')+'). No real order created.';
+  if(verified?.verified){
+   localStorage.setItem('bite_last_sandbox_draft',orderId);biteRefreshSandboxStatus();
+   if(window.BiteCheckoutUX?.showSandboxSuccess)window.BiteCheckoutUX.showSandboxSuccess();
+   else $('checkoutError').textContent='Test payment successful. No real charge was made.';
+  }else $('checkoutError').textContent='Test payment not confirmed yet. Check status before trying again.';
  }catch(error){$('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';}
  finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();}
 }
