@@ -66,7 +66,18 @@ Deno.serve(async(req:Request)=>{
   .or("last_test_at.is.null,last_test_at.lt."+since)
   .select("fcm_token");
  if(devicesError)return result({error:"Device check unavailable"},503);
- if(!devices?.length)return result({error:"No registered device, or test already sent within the past minute"},429);
+ if(!devices?.length){
+  const {data:existing,error:lookupError}=await db.from("bite_owner_push_devices")
+    .select("last_test_at").eq("restaurant_id",restaurant)
+    .eq("user_id",user.id).eq("enabled",true).limit(20);
+  if(lookupError)return result({error:"Registered device check temporarily unavailable"},503);
+  if(!existing?.length)return result({error:"No registered Bite Partner device. Open the signed Partner APK and allow notifications.",code:"no_device"},409);
+  const remaining=existing.map(row=>Math.max(1,Math.ceil(
+    (Date.parse(row.last_test_at||"")+60000-Date.now())/1000
+  ))).filter(Number.isFinite);
+  const retryAfterSeconds=Math.min(60,Math.max(1,...remaining));
+  return result({error:"Previous push test already requested. Wait for the cooldown.",code:"test_cooldown",retry_after_seconds:retryAfterSeconds},429);
+ }
  // Deliberate short delay gives the owner time to lock the screen for a test.
  EdgeRuntime.waitUntil((async()=>{
   await new Promise(resolve=>setTimeout(resolve,8000));
