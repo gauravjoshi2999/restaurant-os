@@ -35,5 +35,5 @@ test('Android APK build does not wipe session cookies and installs native notifi
  assert.match(workflow,/python3 patch_bite_native\.py/);
  assert.doesNotMatch(workflow,/webView\.clearCache\(true\)/);
  assert.match(workflow,/BITE_VERSION_CODE:.*\|\| '10'/);
- assert.match(workflow,/signed release APK/);
+ assert.match(workflow,/Sign release APK with stable private key/);
 });
