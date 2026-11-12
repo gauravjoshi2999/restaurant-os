@@ -731,47 +731,51 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
 </script>
 
 <script id="bite-live-checkout-return-handler">
-/* Cashfree return is only a redirect. A paid order requires server-to-server verification. */
+/* Returning from Cashfree is not proof of payment. Verify via the server, once per return. */
 (function(){
- const id=new URLSearchParams(location.search).get('live_checkout_return');
+ const url=new URL(location.href);
+ const id=url.searchParams.get('live_checkout_return');
  if(!id||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return;
- const banner=document.createElement('div');banner.id='bitePaymentReturnStatus';
- banner.setAttribute('role','status');banner.style.cssText='margin:12px 0;padding:14px 16px;border:1px solid #d9dce4;border-radius:12px;background:#fff;color:#182238;font:14px/1.6 system-ui';
- const msg=document.createElement('span');msg.textContent='Cashfree se payment status check ho raha hai…';
- const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment message');dismiss.style.cssText='float:right;border:0;background:transparent;font-size:22px;margin-left:10px;color:#344054';dismiss.onclick=()=>banner.remove();
- banner.append(dismiss,msg);
- const place=document.getElementById('homeView')||document.body;place.prepend(banner);
- const update=message=>{msg.textContent=message;const box=document.getElementById('checkoutError');if(box)box.textContent=message;};
+ url.searchParams.delete('live_checkout_return');
+ history.replaceState(null,'',url.pathname+url.search+url.hash);
+ // Use a small dismissible notice, never block browsing or reopen Checkout.
+ let notice=document.getElementById('bitePaymentReturnStatus');
+ if(!notice){notice=document.createElement('div');notice.id='bitePaymentReturnStatus';notice.setAttribute('role','status');
+  notice.style.cssText='display:flex;align-items:center;gap:10px;max-width:660px;margin:8px auto;padding:9px 12px;border-radius:12px;background:#f6f7fa;color:#344054;font:13px/1.4 system-ui';
+  const box=document.getElementById('homeView')||document.body;box.prepend(notice);
+ }
+ const msg=document.createElement('span');msg.style.flex='1';msg.textContent='Checking your payment status…';
+ const dismiss=document.createElement('button');dismiss.type='button';dismiss.setAttribute('aria-label','Dismiss payment update');dismiss.textContent='×';dismiss.style.cssText='border:0;background:transparent;color:inherit;font:20px system-ui;min-width:32px';dismiss.onclick=()=>notice.remove();
+ const action=document.createElement('button');action.type='button';action.textContent='Check status';action.hidden=true;action.style.cssText='border:0;background:#fff;color:#bd2433;border-radius:8px;padding:7px 9px;font-weight:700';action.onclick=()=>{if(pendingLiveCheckout?.id===id)window.BiteCheckoutUX?.showPending?.();else showCustomerView('orders');};
+ notice.replaceChildren(msg,action,dismiss);
+ const update=(message,canCheck=false)=>{msg.textContent=message;action.hidden=!canCheck;};
  (async()=>{
   try{
    const {data:{session}}=await sb.auth.getSession();
-   if(!session){update('Payment status confirm karne ke liye login karein. Agar paise kate hain to dobara payment na karein.');return;}
+   if(!session){update('Sign in to check your payment.',true);return;}
    const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:id}});
    if(error)throw error;
    if(data?.status==='activated'){
-    update('Payment verified! Order My Orders mein dekhein.');
-    if(pendingLiveCheckout?.id===id)await finishVerifiedCheckout(data);
-    else if(typeof loadMyOrders==='function')await loadMyOrders();
+    if(pendingLiveCheckout?.id===id)await finishVerifiedCheckout(data,{background:true});
+    update('Payment confirmed. Your order is in My Orders.',true);
+    action.onclick=()=>showCustomerView('orders');
     return;
    }
    if(['expired','failed'].includes(data?.status)){
     if(pendingLiveCheckout?.id===id){
      pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
-     window.BiteCustomerExtras?.savePendingCheckout();document.getElementById('pendingPaymentBanner')?.remove();
-     syncCheckoutPaymentButton();
+     window.BiteCustomerExtras?.savePendingCheckout();document.getElementById('pendingPaymentBanner')?.remove();syncCheckoutPaymentButton();
     }
-    update('Checkout samapt ho gaya. Back to menu se fresh order shuru kar sakte hain.');return;
+    update('The previous checkout ended. You can order again.');return;
    }
-   if(data?.status==='awaiting_payment'){
-    if(pendingLiveCheckout?.id===id){pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();}
-    update('Cashfree par payment PAID confirm nahi hua. Agar bank se paise kate hain to dobara payment na karein—Check payment status dabayein. Agar nahi kate to isi checkout ko continue ya cancel karein.');
-    return;
+   if(pendingLiveCheckout?.id===id){
+    pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
+    window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();
    }
-   update('Payment verification pending hai. Paise kate hon to dobara payment na karein, status check karein.');
-  }catch(e){update('Payment verification abhi available nahi hai. Paise kate hon to dobara payment na karein; Check payment status se dobara verify karein.');console.error('Live payment verification',e);}
-  finally{
-   const u=new URL(location.href);u.searchParams.delete('live_checkout_return');
-   history.replaceState(null,'',u.pathname+u.search+u.hash);
+   update('Payment is not confirmed. Continue browsing while we check.',true);
+  }catch(error){
+   console.warn('Cashfree return verification could not finish',error);
+   update('Payment status is unavailable. Check again before paying.',true);
   }
  })();
 })();
