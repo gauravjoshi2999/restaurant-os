@@ -10,7 +10,7 @@ function setup(options={}){
  const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:'',...options.values};
  const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){},toggle(){}}});
  const verify=[...(options.verify||[{status:'activated',order_id:'verified-order'}])];
- let displayedOrders=0,writes=0;
+ let displayedOrders=0,writes=0,returnedToMenu=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
   window:{matchMedia:()=>({matches:false})},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
@@ -25,11 +25,11 @@ function setup(options={}){
   }}},
   Cashfree:({mode})=>({checkout:async args=>{calls.push({kind:'sdk',mode,args});if(options.sdkThrows)throw Error('Window closed');return{paymentDetails:{paymentStatus:'SUCCESS'}};}}),
   checkoutMode:()=>options.delivery?'delivery':'pickup',cartEntries:()=>[['dish-1',1]],getCheckoutDeliveryZone:async()=>{if(options.outsideArea)throw Error('Outside delivery area');},
-  activeRestaurant:{id:'restaurant-1'},checkoutAddresses:[],addressPin:null,cart:{'dish-1':1},renderCart(){},showCustomerView(){displayedOrders++;},loadMyOrders:async()=>{},
+  activeRestaurant:{id:'restaurant-1'},checkoutAddresses:[],addressPin:null,cart:{'dish-1':1},renderCart(){},closeCheckoutAndReturnToMenu(){returnedToMenu++;},showCustomerView(){displayedOrders++;},loadMyOrders:async()=>{},
   localStorage:{setItem(){}},biteRefreshSandboxStatus(){},Date,console
  };
  vm.createContext(context);vm.runInContext(source,context);
- return {context,calls,nodes,element,get writes(){return writes;},get displayedOrders(){return displayedOrders;},submit:()=>context.submitCustomerOrder(),refresh:()=>context.refreshCheckoutPaymentReadiness()};
+ return {context,calls,nodes,element,get writes(){return writes;},get displayedOrders(){return displayedOrders;},get returnedToMenu(){return returnedToMenu;},submit:()=>context.submitCustomerOrder(),refresh:()=>context.refreshCheckoutPaymentReadiness()};
 }
 test('normal checkout unlocks only after authenticated production readiness',async()=>{
  const t=setup();t.context.syncCheckoutPaymentButton();assert.equal(t.element('placeOrderBtn').disabled,true);
@@ -45,7 +45,7 @@ test('normal link uses a priced intent and server verification before showing an
  const t=setup();await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'bite_prepare_checkout_v2');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'production');assert.equal(t.calls.some(c=>c.name==='bite-live-verify-checkout'),true);assert.equal(t.displayedOrders,1);
 });
 test('SDK success alone cannot create a paid-order success screen',async()=>{
- const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');assert.match(t.element('checkoutError').textContent,/Payment confirm nahi hua/);
+ const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');assert.equal(t.returnedToMenu,1,'unpaid Cashfree returns directly to menu without checkout overlay');
 });
 test('an uncertain verification retry checks the same intent without taking another payment',async()=>{
  const t=setup({verify:[{error:true},{status:'activated',order_id:'verified-order'}]});await t.submit();assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');await t.submit();assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1);assert.equal(t.displayedOrders,1);
