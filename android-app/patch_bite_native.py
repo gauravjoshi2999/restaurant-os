@@ -132,3 +132,71 @@ public class BiteOrderAlertsPlugin extends Plugin {
 plugin=activity.parent/"BiteOrderAlertsPlugin.java"
 plugin.write_text(code.replace("PACKAGE",package,1))
 print("Installed persistent WebView + active WebView notification bridge",plugin)
+
+# Partner-only Android share intent opens WhatsApp even when the handoff link
+# was asynchronously generated. No about:blank tab, no browser redirect.
+if package == "in.bite.partner":
+    updated_main = activity.read_text()
+    plugin_line = "registerPlugin(BiteOrderAlertsPlugin.class);"
+    if plugin_line not in updated_main:
+        raise SystemExit("Expected native alert registration missing")
+    updated_main = updated_main.replace(
+        plugin_line,
+        plugin_line + "\\n    registerPlugin(BiteDeliverySharePlugin.class);",
+        1,
+    )
+    activity.write_text(updated_main)
+
+    share_plugin = r'''package PACKAGE;
+
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name="BiteDeliveryShare")
+public class BiteDeliverySharePlugin extends Plugin {
+  @PluginMethod
+  public void shareText(PluginCall call) {
+    String message = call.getString("text", "");
+    if (message == null || message.isEmpty() || message.length() > 12000) {
+      call.reject("Invalid delivery share message");
+      return;
+    }
+    getActivity().runOnUiThread(() -> {
+      try {
+        if (tryWhatsApp("com.whatsapp", message)
+            || tryWhatsApp("com.whatsapp.w4b", message)) {
+          call.resolve();
+          return;
+        }
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, message);
+        getActivity().startActivity(Intent.createChooser(send, "Share Bite delivery link"));
+        call.resolve();
+      } catch (Exception e) {
+        call.reject("Android share app unavailable");
+      }
+    });
+  }
+  private boolean tryWhatsApp(String packageName, String message) {
+    Intent intent = new Intent(Intent.ACTION_SEND);
+    intent.setType("text/plain");
+    intent.putExtra(Intent.EXTRA_TEXT, message);
+    intent.setPackage(packageName);
+    try {
+      getActivity().startActivity(intent);
+      return true;
+    } catch (ActivityNotFoundException exception) {
+      return false;
+    }
+  }
+}
+'''
+    (activity.parent / "BiteDeliverySharePlugin.java").write_text(
+        share_plugin.replace("PACKAGE", package, 1)
+    )
+    print("Installed native WhatsApp handoff share plugin")
