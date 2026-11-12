@@ -2328,15 +2328,37 @@ function testOwnerOrderAlert(){
  else showOrderLiveToast('Test alert · Bite Partner is running.');
 }
 
-function armSavedOrderSound(){
- if(!orderAlertsEnabled||orderAudioContext?.state==='running')return;
+let ownerNativePermissionRequested=false;
+function armSavedOrderSound(event){
+ if(!orderAlertsEnabled)return;
+ // The sound button handles its own first activation; don't flip it off.
+ if(event?.target?.closest?.('#orderSoundToggle'))return;
+ if(window.Capacitor?.Plugins?.BiteOrderAlerts&&!ownerNativePermissionRequested&&access.role==='owner'){
+  ownerNativePermissionRequested=true;
+  void prepareOwnerOrderNotifications();
+ }
+ if(orderAudioContext?.state==='running')return;
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  try{orderAudioContext=orderAudioContext||new AudioCtx();const result=orderAudioContext.resume();if(result?.then)result.then(updateOrderSoundButton).catch(()=>{});else updateOrderSoundButton();}
  catch(error){console.warn('Sound activation requires a tap',error);}
 }
 document.addEventListener('pointerdown',armSavedOrderSound,{passive:true});
 
-async function toggleOrderSound(){if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();void prepareOwnerOrderNotifications();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
+async function toggleOrderSound(){
+ if(orderAlertsEnabled&&(!orderAudioContext||orderAudioContext.state!=='running')){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx){alert('Is device par sound alert unavailable hai.');return;}
+  try{
+   orderAudioContext=orderAudioContext||new AudioCtx();
+   await orderAudioContext.resume();
+   ownerNativePermissionRequested=true;
+   void prepareOwnerOrderNotifications();
+   updateOrderSoundButton();
+   showOrderLiveToast('Bite order sound and phone alerts enabled.');
+  }catch(error){alert('Sound permission enable nahi hua. Phone sound settings check karein.');}
+  return;
+ }
+ if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();void prepareOwnerOrderNotifications();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
 function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&orderChannelKey(order.channel)==='website'&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound();sendOwnerOrderNotification(order,rest)}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
 
 /* Android/WebView can suspend Realtime while the application is backgrounded.
