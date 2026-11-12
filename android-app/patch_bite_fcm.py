@@ -100,6 +100,14 @@ channel_statement = """    if (android.os.Build.VERSION.SDK_INT >= 26) {
 """
 if 'channel.enableVibration(true);' not in main:
     main = main.replace("super.onCreate(savedInstanceState);", "super.onCreate(savedInstanceState);\n" + channel_statement, 1)
+if 'void onNewIntent(android.content.Intent intent)' not in main:
+    main = main[:main.rfind("}")] + """
+  @Override
+  protected void onNewIntent(android.content.Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+  }
+""" + main[main.rfind("}"):]
 activity.write_text(main)
 
 plugin = r'''package PACKAGE;
@@ -110,6 +118,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.firebase.messaging.FirebaseMessaging;
+import android.content.Intent;
 
 @CapacitorPlugin(name="BiteOwnerPush")
 public class BiteOwnerPushPlugin extends Plugin {
@@ -123,8 +132,29 @@ public class BiteOwnerPushPlugin extends Plugin {
       }
       JSObject result = new JSObject();
       result.put("token", task.getResult());
+      result.put("supports_order_actions", true);
       call.resolve(result);
     });
+  }
+
+  @PluginMethod
+  public void consumeOrderAction(PluginCall call) {
+    Intent intent=getActivity().getIntent();
+    JSObject result=new JSObject();
+    if(intent!=null){
+      String id=intent.getStringExtra("bite_order_id");
+      String restaurant=intent.getStringExtra("bite_restaurant_id");
+      String action=intent.getStringExtra("bite_order_action");
+      if(id!=null&&restaurant!=null&&("Accepted".equals(action)||"Rejected".equals(action))){
+        result.put("order_id",id);
+        result.put("restaurant_id",restaurant);
+        result.put("action",action);
+        intent.removeExtra("bite_order_id");
+        intent.removeExtra("bite_restaurant_id");
+        intent.removeExtra("bite_order_action");
+      }
+    }
+    call.resolve(result);
   }
 
   @PluginMethod
@@ -142,7 +172,6 @@ public class BiteOwnerPushPlugin extends Plugin {
 service_code = r'''package PACKAGE;
 
 import android.Manifest;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -154,45 +183,79 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import java.util.Map;
 
-// For foreground notifications; Android renders notification payloads itself in background.
+// New, verified live orders are DATA-only so Android can add owner actions
+// while the app is in the background. Legacy APKs receive notification payloads.
 public class BiteFirebaseMessagingService extends FirebaseMessagingService {
-  private static final String CHANNEL = "bite_owner_new_orders_v1";
+  private static final String CHANNEL="bite_owner_new_orders_v1";
+
+  private PendingIntent activityIntent(String orderId,String restaurantId,String action) {
+    Intent open=new Intent(this,MainActivity.class);
+    open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    open.setAction("in.bite.partner.ORDER_"+action+"_"+orderId);
+    open.putExtra("bite_order_id",orderId);
+    open.putExtra("bite_restaurant_id",restaurantId);
+    if(action!=null)open.putExtra("bite_order_action",action);
+    int requestCode=(orderId+":"+action).hashCode() & 0x7fffffff;
+    return PendingIntent.getActivity(this,requestCode,open,
+      PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+  }
+
   @Override
   public void onMessageReceived(RemoteMessage message) {
-    if (message.getNotification() == null) return;
-    if (Build.VERSION.SDK_INT >= 33 &&
-        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-          != PackageManager.PERMISSION_GRANTED) return;
-    NotificationManager manager =
-      (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-    if (manager == null) return;
-    if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL) == null) {
-      NotificationChannel channel =
-        new NotificationChannel(CHANNEL, "New restaurant orders", NotificationManager.IMPORTANCE_HIGH);
+    if(Build.VERSION.SDK_INT>=33 &&
+      ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)
+        !=PackageManager.PERMISSION_GRANTED)return;
+    Map<String,String> data=message.getData();
+    boolean isOrder="bite_order".equals(data.get("event_type"));
+    String id=data.get("order_id"),restaurant=data.get("restaurant_id");
+    // Never show order-action buttons for test pushes or arbitrary payloads.
+    if(isOrder&&(id==null||restaurant==null||
+       !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
+
+    NotificationManager manager=(NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+    if(manager==null)return;
+    if(Build.VERSION.SDK_INT>=26&&manager.getNotificationChannel(CHANNEL)==null){
+      NotificationChannel channel=new NotificationChannel(CHANNEL,"New restaurant orders",
+        NotificationManager.IMPORTANCE_HIGH);
       channel.enableVibration(true);
       manager.createNotificationChannel(channel);
     }
-    String id = message.getData().get("order_id");
-    if (id == null || id.isEmpty()) id = message.getMessageId();
-    if (id == null || id.isEmpty()) id = "bite-new-order";
-    Intent open = new Intent(this, MainActivity.class);
-    open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-    PendingIntent pending = PendingIntent.getActivity(
-      this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL)
+    String title=data.get("title");
+    if(title==null||title.isEmpty())
+      title=message.getNotification()!=null?message.getNotification().getTitle():"New Bite order";
+    String body=data.get("body");
+    if(body==null||body.isEmpty())
+      body=message.getNotification()!=null?message.getNotification().getBody():"Open Bite Partner.";
+    if(title==null)title="Bite notification";
+    if(body==null)body="Open Bite Partner.";
+
+    if(id==null||id.isEmpty())id=message.getMessageId();
+    if(id==null||id.isEmpty())id="bite-general";
+    NotificationCompat.Builder builder=new NotificationCompat.Builder(this,CHANNEL)
       .setSmallIcon(android.R.drawable.ic_dialog_info)
-      .setContentTitle("New Bite order")
-      .setContentText("Open Bite Partner to accept or reject.")
+      .setContentTitle(title)
+      .setContentText(body)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setCategory(NotificationCompat.CATEGORY_MESSAGE)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setContentIntent(pending).setAutoCancel(true);
-    manager.notify(id.hashCode() & 0x7fffffff, builder.build());
+      .setContentIntent(activityIntent(id,restaurant,null))
+      .setAutoCancel(true);
+    if(isOrder){
+      NotificationCompat.Action accept=new NotificationCompat.Action.Builder(
+         0,"Accept",activityIntent(id,restaurant,"Accepted"))
+        .setAuthenticationRequired(true).build();
+      NotificationCompat.Action reject=new NotificationCompat.Action.Builder(
+         0,"Reject",activityIntent(id,restaurant,"Rejected"))
+        .setAuthenticationRequired(true).build();
+      builder.addAction(accept).addAction(reject);
+    }
+    manager.notify(id.hashCode() & 0x7fffffff,builder.build());
   }
 }
-'''
-(activity.parent / "BiteFirebaseMessagingService.java").write_text(service_code.replace("PACKAGE", package, 1))
+'''\n(activity.parent / "BiteFirebaseMessagingService.java").write_text(service_code.replace("PACKAGE", package, 1))
 manifest = app / "src/main/AndroidManifest.xml"
 xml = manifest.read_text()
 service_xml = """
