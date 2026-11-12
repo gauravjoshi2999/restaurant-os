@@ -509,9 +509,10 @@ async function continueLiveCheckout(){
 
  if(verified?.status==='activated'){await finishVerifiedCheckout(verified);return;}
  if(['expired','failed'].includes(verified?.status)){pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Checkout expire ho gaya. Cart review karke dobara checkout karein.');}
- pending.verifyOnly=true;
+ pending.verifyOnly=true;pending.session=null;
  window.BiteCustomerExtras?.savePendingCheckout();
- if(!sdkProblem)$('checkoutError').textContent=verified?.status==='awaiting_payment'?'Payment confirm nahi hua. Status check karein ya menu par lautein.':'Payment verification pending hai. Dobara pay na karein.';
+ closeCheckoutAndReturnToMenu();window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
+ // An abandoned Cashfree session must not reopen the old checkout form.
 }
 // Authenticated server-side cancellation: never discard a payment which might have succeeded.
 // Read-only payment status check; never opens Cashfree or creates a new payment attempt.
@@ -667,7 +668,7 @@ window.addEventListener('pageshow',event=>{
   // never retry the old payment session or assume the transaction succeeded.
   pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
   window.BiteCustomerExtras?.savePendingCheckout();
-  syncCheckoutPaymentButton();void checkPendingCustomerPayment();
+  syncCheckoutPaymentButton();window.BiteCustomerExtras?.renderPendingPaymentBanner?.();void checkPendingCustomerPayment();
  }
 });
 $('checkPendingPaymentBtn').addEventListener('click',checkPendingCustomerPayment);
