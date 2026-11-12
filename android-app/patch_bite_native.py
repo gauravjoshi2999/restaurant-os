@@ -29,6 +29,10 @@ method="""
       // Never clear WebView cache/data, cookies, localStorage, or login sessions.
       webView.getSettings().setDomStorageEnabled(true);
       webView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+      // Session recovery can also depend on Android WebView's HTTPS cookies.
+      // Do not delete user cookies or app data on activity recreation.
+      android.webkit.CookieManager.getInstance().setAcceptCookie(true);
+      webView.setSaveEnabled(true);
     }
   }
 """
