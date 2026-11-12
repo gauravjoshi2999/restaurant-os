@@ -512,8 +512,14 @@ async function continueLiveCheckout(){
    }
    const gatewayStatus=Number(detail?.provider_status);const code=Number.isInteger(gatewayStatus)&&gatewayStatus>=400&&gatewayStatus<=599?' (Gateway HTTP '+gatewayStatus+')':'';const providerCode=String(detail?.provider_code||'').replace(/[^A-Za-z0-9_ -]/g,'').slice(0,50);const providerNote=providerCode?' · '+providerCode:'';throw new Error('Cashfree payment session nahi bana'+code+providerNote+'. Cancel old checkout se naya order shuru karein ya payment dobara try karein. Checkout: '+pending.id);}
   if(!Number.isFinite(Number(data.amount))||Number(data.amount)<1||data.currency!=='INR')throw new Error('Trusted payment amount missing. Isi checkout ka status check karein.');
+  // Sessions from old or ambiguous server responses must never open Cashfree.
   const expiresAt=Date.parse(data.expires_at||'');
-  if(Number.isFinite(expiresAt)&&expiresAt<Date.now()+120000){
+  const issuedAt=Date.parse(data.issued_at||'');
+  if(!Number.isFinite(issuedAt)||issuedAt>Date.now()+30000||Date.now()-issuedAt>60000){
+   pending.session=null;pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
+   throw new Error('Payment session is no longer fresh. Check previous payment status before trying again.');
+  }
+  if(!Number.isFinite(expiresAt)||expiresAt<Date.now()+180000){
    pending.session=null;pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
    throw new Error('Cashfree session expire hone wala hai. Purane checkout ko cancel karke naya order shuru karein.');
   }
@@ -528,11 +534,16 @@ async function continueLiveCheckout(){
  window.BiteCustomerExtras?.savePendingCheckout();
  let sdkProblem='';
  try{
-  const result=await Cashfree({mode:'production'}).checkout({paymentSessionId:sessionToOpen,redirectTarget:window.matchMedia('(max-width: 768px)').matches?'_self':'_modal'});
+  // Keep Bite on the same browser tab, including Android Chrome. The verified
+  // server-side return handler still supports Cashfree's redirect fallback.
+  const result=await Cashfree({mode:'production'}).checkout({paymentSessionId:sessionToOpen,redirectTarget:'_modal'});
   if(result?.error)sdkProblem=result.error.message||'Payment window did not open';
  }catch(error){sdkProblem=error?.message||'Payment window did not open';}
  const verified=await verifyPendingLiveCheckout();
- if(sdkProblem&&verified?.status!=='activated')$('checkoutError').textContent='Cashfree payment page nahi khula: '+sdkProblem+'. Same checkout retry karein ya Cancel checkout se naya order shuru karein.';
+ if(sdkProblem&&verified?.status!=='activated'){
+  console.warn('Cashfree checkout did not complete; provider status checked',sdkProblem);
+  $('checkoutError').textContent='Payment did not complete. Your cart is saved. Check payment status before trying again.';
+ }
 
  if(verified?.status==='activated'){await finishVerifiedCheckout(verified);return;}
  if(['expired','failed'].includes(verified?.status)){pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Checkout expire ho gaya. Cart review karke dobara checkout karein.');}
