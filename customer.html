@@ -592,13 +592,26 @@ async function cancelPendingCustomerCheckout(options={}){
  const button=$('quickCancelCheckout'),fresh=$('bitePendingStartFresh'),id=pendingLiveCheckout.id;
  button.disabled=true;fresh.disabled=true;button.textContent='Checking payment & cancelling…';fresh.textContent='Checking payment…';if(!background)$('checkoutError').textContent='';
  try{
-  const {data,error}=await sb.functions.invoke('bite-live-cancel-checkout',{body:{intent_id:id}});
-  let result=data;
-  if(error){
-   let detail=null;
-   try{detail=await error.context?.json?.();}catch{}
-   if(detail?.status==='expired'||detail?.status==='failed')result=detail;
-   else throw new Error(detail?.error||data?.error||'Payment status check failed. Try again. Checkout was not cancelled.');
+  let result=null;
+  for(let attempt=0;attempt<2;attempt++){
+   const {data,error}=await sb.functions.invoke('bite-live-cancel-checkout',{body:{intent_id:id}});
+   result=data;
+   if(error){
+    let detail=null;try{detail=await error.context?.json?.();}catch{}
+    if(detail?.status==='expired'||detail?.status==='failed')result=detail;
+    else throw new Error('Cancellation check is temporarily unavailable. Your cart is saved.');
+   }
+   if(result?.status!=='cancellation_processing')break;
+   // One click performs a second provider-confirmation attempt when Cashfree
+   // reports asynchronous termination; never start a new payment until terminal.
+   if(attempt===0){
+    if(!background)$('checkoutError').textContent='Cashfree is confirming cancellation…';
+    await new Promise(resolve=>setTimeout(resolve,1200));
+   }
+  }
+  if(result?.status==='cancellation_processing'){
+   $('checkoutError').textContent='Cashfree is still cancelling the old payment. You can keep your new cart; payment will unlock after confirmation.';
+   return false;
   }
   if(result?.status==='activated'||result?.status==='payment_verified'){
    if(result.status==='activated'&&result.order_id)await finishVerifiedCheckout(result,{background});
@@ -624,7 +637,7 @@ async function cancelPendingCustomerCheckout(options={}){
   document.body.append(notice);setTimeout(()=>notice.remove(),5500);
  }catch(e){
   console.warn('Checkout cancellation not confirmed',e);
-  $('checkoutError').textContent='We could not safely close the previous payment. Please check its status.';
+  $('checkoutError').textContent='Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
   if(background){if(!$('checkoutFormPanel').classList.contains('hidden')&&!$('checkoutModal').classList.contains('hidden'))$('checkoutError').textContent='Earlier payment is still being checked. Cart is saved; payment is paused.';}
   else if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
   else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
@@ -712,7 +725,7 @@ $('closeCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('cancelCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('checkoutModal').addEventListener('click',e=>{if(e.target===$('checkoutModal'))closeCheckoutAndReturnToMenu();});
 $('placeOrderBtn').addEventListener('click',submitCustomerOrder);
-$('quickCancelCheckout').addEventListener('click',cancelPendingCustomerCheckout);
+$('quickCancelCheckout').addEventListener('click',()=>cancelPendingCustomerCheckout({startFresh:true}));
 $('bitePendingCheck').addEventListener('click',checkPendingCustomerPayment);
 $('bitePendingStartFresh').addEventListener('click',startNewOrderFromPending);
 $('bitePendingBack').addEventListener('click',closeCheckoutAndReturnToMenu);
