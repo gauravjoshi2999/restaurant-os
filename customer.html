@@ -259,7 +259,27 @@ $('menuSearchInput').addEventListener('input',()=>{clearTimeout(biteMenuSearchTi
 $('menuVegToggle').addEventListener('change',()=>{clearTimeout(biteMenuSearchTimer);renderMenuItems();});
 function renderCart(){const nextSignature=JSON.stringify([activeRestaurant?.id,cart]);if(!pendingLiveCheckout&&cartPricingSignature!==nextSignature){cartPricingSignature=nextSignature;appliedCheckoutCoupon=null;checkoutRequestKey=null;window.BiteCustomerExtras?.resetCoupon();}const entries=cartEntries();const count=entries.reduce((s,[,q])=>s+q,0);const total=entries.reduce((sum,[id,q])=>sum+(Number(menuItems.find(x=>x.id===id)?.price||0)*q),0);$('cartCount').textContent='('+count+')';$('cartTotal').textContent=money(total);$('cartLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);return '<div class="cartline"><span>'+safe(i?.name)+' × '+q+'</span><strong>'+money(Number(i?.price||0)*q)+'</strong></div>'}).join(''):'Add items to start your order.';const restaurantClosed=activeRestaurant?BiteDiscovery.isClosed(activeRestaurant):false;$('continueBtn').disabled=!entries.length||restaurantClosed;$('continueBtn').textContent=restaurantClosed?'Closed now':'Continue';$('cartFloating').classList.toggle('show',count>0&&!$('menuView').classList.contains('hidden'));$('floatingCartCount').textContent=count+' item'+(count===1?'':'s');$('floatingCartTotal').textContent=money(total);if(!$('cartModal').classList.contains('hidden'))renderCartModal();saveCustomerCart();}
 $('customerUseLocation').addEventListener('click',enableCustomerLocation);$('searchInput').addEventListener('input',()=>{if($('homeSearchInput'))$('homeSearchInput').value=$('searchInput').value;renderRestaurants()});$('searchBtn').addEventListener('click',renderRestaurants);if($('homeSearchInput')){$('homeSearchInput').addEventListener('input',()=>{$('searchInput').value=$('homeSearchInput').value;renderRestaurants()});$('homeSearchBtn').addEventListener('click',()=>{renderRestaurants();$('restaurantResults').scrollIntoView({behavior:'smooth',block:'start'});})}$('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;activeFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderRestaurants()});
-if($('homeCategories'))$('homeCategories').addEventListener('click',e=>{const b=e.target.closest('[data-home-filter]');if(!b)return;activeFilter=b.dataset.homeFilter;document.querySelectorAll('.home-category').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});document.querySelectorAll('#filters .chip').forEach(x=>x.classList.toggle('active',x.dataset.filter===activeFilter));renderRestaurants()});
+// "Aaj kya khayenge?" is navigation as well as a category filter.
+function scrollToFilteredRestaurants(){
+ const results=$('restaurantResults');
+ if(!results)return;
+ const stickyHeader=document.querySelector('.header');
+ const headerHeight=stickyHeader?stickyHeader.getBoundingClientRect().height:0;
+ const target=Math.max(0,window.scrollY+results.getBoundingClientRect().top-headerHeight-12);
+ const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+ window.scrollTo({top:target,behavior:reduceMotion?'instant':'smooth'});
+}
+if($('homeCategories'))$('homeCategories').addEventListener('click',e=>{
+ const b=e.target.closest('[data-home-filter]');if(!b)return;
+ activeFilter=b.dataset.homeFilter;
+ document.querySelectorAll('.home-category').forEach(x=>{
+  x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b));
+ });
+ document.querySelectorAll('#filters .chip').forEach(x=>x.classList.toggle('active',x.dataset.filter===activeFilter));
+ renderRestaurants();
+ // Run after the results have been rendered, so the destination is the new filtered list.
+ requestAnimationFrame(scrollToFilteredRestaurants);
+});
 if($('discoveryTools'))$('discoveryTools').addEventListener('click',e=>{const b=e.target.closest('[data-service-filter]');if(!b)return;window.restaurantServiceFilter=b.dataset.serviceFilter;document.querySelectorAll('[data-service-filter]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});renderRestaurants()});
 if($('sortFastBtn'))$('sortFastBtn').addEventListener('click',()=>{window.restaurantSortFast=!window.restaurantSortFast;$('sortFastBtn').classList.toggle('active',window.restaurantSortFast);$('sortFastBtn').setAttribute('aria-pressed',String(window.restaurantSortFast));$('sortFastBtn').textContent=window.restaurantSortFast?'✓ Fastest prep':'Fastest prep ↕';renderRestaurants()});
 if($('homeAccountBtn'))$('homeAccountBtn').addEventListener('click',openAccountView);
