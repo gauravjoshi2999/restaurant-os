@@ -47,11 +47,18 @@ Deno.serve(async req=>{
  }
  const cfId="bite_live_"+id.replaceAll("-","");
  if(intent.provider_order_id&&intent.provider_order_id!==cfId)return json({error:"Provider reference mismatch"},409);
+ // A Cashfree payment_session_id is NOT renewable. Avoid reissuing an
+ // old ACTIVE order's session just because its order_status is ACTIVE.
+ const previousAttemptMs=intent.provider_attempted_at?Date.parse(intent.provider_attempted_at):NaN;
+ if(intent.provider_attempted_at&&!Number.isFinite(previousAttemptMs))
+  return json({error:"Payment attempt timestamp invalid; status verification required.",status:"payment_check_required"},409);
+ if(Number.isFinite(previousAttemptMs)&&Date.now()-previousAttemptMs>90_000)
+  return json({error:"Old payment session cannot be reopened. Verify or cancel before fresh payment.",status:"session_stale"},409);
  const {data:profile}=await db.from("customer_contact_profiles").select("full_name,phone").eq("customer_id",user.id).maybeSingle();
  const contact=intent.customer_snapshot||profile;
  if(!contact?.phone)return json({error:"Customer phone required"},409);
  const amount=Number(intent.amount);if(!Number.isFinite(amount)||amount<1||amount>1000000||intent.currency!=="INR")return json({error:"Invalid checkout amount"},409);
- const payload={order_id:cfId,order_amount:amount,order_currency:"INR",customer_details:{customer_id:user.id,customer_name:contact.full_name||"Customer",customer_phone:contact.phone,customer_email:user.email||"customer@example.com"},order_meta:{return_url:"https://gauravjoshi2999.github.io/restaurant-os/customer.html?live_checkout_return="+encodeURIComponent(id)}};
+ const payload={order_id:cfId,order_amount:amount,order_currency:"INR",order_expiry_time:new Date(Date.now()+20*60*1000).toISOString(),customer_details:{customer_id:user.id,customer_name:contact.full_name||"Customer",customer_phone:contact.phone,customer_email:user.email||"customer@example.com"},order_meta:{return_url:"https://gauravjoshi2999.github.io/restaurant-os/customer.html?live_checkout_return="+encodeURIComponent(id)}};
  const {error:attemptError}=await db.from("bite_live_checkout_intents").update({provider_attempted_at:new Date().toISOString()}).eq("id",id).eq("status","awaiting_payment");
  if(attemptError)return json({error:"Could not record provider attempt; no payment session requested"},503);
  let res:Response;let data:any;
@@ -59,7 +66,15 @@ Deno.serve(async req=>{
  try{
   res=await fetch("https://api.cashfree.com/pg/orders",{method:"POST",headers:{...providerHeaders,"x-idempotency-key":id},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
   data=await res.json().catch(()=>({}));
-  if(res.status===409){res=await fetch("https://api.cashfree.com/pg/orders/"+encodeURIComponent(cfId),{headers:providerHeaders,signal:AbortSignal.timeout(12000)});data=await res.json().catch(()=>({}));}
+  if(res.status===409){
+   // Idempotent retry allowed only while the first Cashfree session is fresh.
+   // A 409 GET on an old order can return ACTIVE with an already expired session.
+   res=await fetch("https://api.cashfree.com/pg/orders/"+encodeURIComponent(cfId),{headers:providerHeaders,signal:AbortSignal.timeout(12000)});
+   data=await res.json().catch(()=>({}));
+   const providerCreatedAt=Date.parse(String(data.created_at||""));
+   if(res.ok&&(!Number.isFinite(providerCreatedAt)||Date.now()-providerCreatedAt>90_000))
+    return json({error:"Old Cashfree payment session is no longer reusable. Check status and start fresh.",status:"session_stale"},409);
+  }
  }catch{return json({error:"Provider session uncertain. Retry this same checkout; do not create another payment."},503);}
  if(!res.ok||data.order_id!==cfId||!data.payment_session_id||data.order_currency!=="INR"||!Number.isFinite(Number(data.order_amount))||Math.abs(Number(data.order_amount)-amount)>0.001){
   const providerCode=String(data?.code||data?.type||"ORDER_CREATE_FAILED").replace(/[^a-zA-Z0-9_-]/g,"").slice(0,64);
@@ -76,10 +91,10 @@ Deno.serve(async req=>{
   return json({error:"Cashfree order has expired. Check status then start a new checkout.",status:"expired"},409);
  }
  if(data.order_status!=="ACTIVE")return json({error:"Cashfree status uncertain. Verify payment before retrying.",status:"payment_check_required"},409);
- const expiryMs=data.order_expiry_time?Date.parse(String(data.order_expiry_time)):NaN;
- if(data.order_expiry_time&&!Number.isFinite(expiryMs))return json({error:"Provider expiry invalid. Payment session withheld.",status:"payment_check_required"},409);
- if(Number.isFinite(expiryMs)&&expiryMs<Date.now()+120000)return json({error:"Cashfree order is close to expiry. Check or cancel the old checkout to start fresh.",status:"session_expiring"},409);
+ const expiryMs=Date.parse(String(data.order_expiry_time||""));
+ if(!Number.isFinite(expiryMs))return json({error:"Cashfree expiry was not supplied. Payment session withheld.",status:"payment_check_required"},409);
+ if(expiryMs<Date.now()+5*60*1000)return json({error:"Cashfree order is too close to expiry. Check or cancel the previous checkout.",status:"session_expiring"},409);
  const {data:savedIntent,error:ue}=await db.from("bite_live_checkout_intents").update({provider_order_id:cfId,updated_at:new Date().toISOString()}).eq("id",id).eq("customer_id",user.id).eq("status","awaiting_payment").select("id").maybeSingle();
  if(ue||!savedIntent)return json({error:"Checkout was cancelled or expired before session confirmation; no payment session was issued"},409);
- return json({intent_id:id,order_id:cfId,payment_session_id:data.payment_session_id,amount,priced_items:intent.priced_items,delivery_fee:Number(intent.delivery_fee),discount_amount:Number(intent.discount_amount||0),currency:"INR",environment:"production",expires_at:data.order_expiry_time||null});
+ return json({intent_id:id,order_id:cfId,payment_session_id:data.payment_session_id,amount,priced_items:intent.priced_items,delivery_fee:Number(intent.delivery_fee),discount_amount:Number(intent.discount_amount||0),currency:"INR",environment:"production",issued_at:new Date().toISOString(),expires_at:data.order_expiry_time});
 });
