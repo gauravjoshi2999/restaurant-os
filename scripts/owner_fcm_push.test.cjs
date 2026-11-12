@@ -16,7 +16,9 @@ test('FCM token registration requires authenticated owner membership matching re
 test('Push dispatcher requires private secret and checks live paid-platform order before send',()=>{
  assert.match(dispatch,/BITE_PUSH_DISPATCH_SECRET/);
  assert.match(dispatch,/safeEqual\(configured,supplied\)/);
- assert.match(dispatch,/db\.rpc\("bite_verify_owner_push_dispatch",\{candidate:supplied\}\)/);
+ assert.match(dispatch,/bite_verify_owner_push_dispatch/);
+ assert.match(dispatch,/bite_verify_owner_push_dispatch_secret/);
+ assert.match(dispatch,/db\.rpc\(verifier,\{candidate:supplied\}\)/);
  assert.match(dispatch,/FIREBASE_SERVICE_ACCOUNT_JSON/);
  assert.match(dispatch,/orders"\)/);
  assert.match(dispatch,/order\.status!=="Received"/);
