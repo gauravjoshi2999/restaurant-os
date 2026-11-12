@@ -94,3 +94,11 @@ test('Android notification buttons open Partner and require unlock + owner verif
  assert.match(html,/pending.restaurant_id!==access.restaurantId/);
  assert.match(html,/Reject reason likhna zaroori hai/);
 });
+
+test('Real order push uses the actual orders.order_code field (not nonexistent code)',()=>{
+ assert.match(dispatch,/\.select\("id,restaurant_id,status,channel,is_demo,order_code"\)/);
+ assert.doesNotMatch(dispatch,/is_demo,code"/);
+ assert.match(dispatch,/\.eq\("id",ev\.order_id\)\.eq\("restaurant_id",ev\.restaurant_id\)/);
+ assert.match(dispatch,/order\.status!=="Received"/,'Older completed orders must never fire again');
+ assert.match(dispatch,/finance\?\.payment_status!=="paid"/,'Unpaid orders cannot trigger owner push');
+});
