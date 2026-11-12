@@ -29,17 +29,24 @@ async function googleToken(account:{client_email:string;private_key:string}){
 }
 Deno.serve(async req=>{
  if(req.method!=="POST")return reply({error:"Method not allowed"},405);
- const expected=Deno.env.get("BITE_PUSH_DISPATCH_SECRET")||"";
  const supplied=req.headers.get("x-bite-push-secret")||"";
- if(!safeEqual(expected,supplied))return reply({error:"Forbidden"},403);
- const accountJson=Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON")||"";
- let account:any;
- try{account=JSON.parse(accountJson)}catch{return reply({error:"FCM not configured"},503)}
- if(!account?.project_id||!account?.client_email||!account?.private_key)return reply({error:"FCM not configured"},503);
+ const configured=Deno.env.get("BITE_PUSH_DISPATCH_SECRET")||"";
  const url=Deno.env.get("SUPABASE_URL")||"";
  const secret=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
  if(!url||!secret)return reply({error:"Supabase credentials unavailable"},503);
  const db=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+ // PostgreSQL sends an encrypted-Vault-generated header. The verification RPC
+ // is only executable as service_role, never from the public customer API.
+ let authorized=safeEqual(configured,supplied);
+ if(!authorized&&supplied.length===64){
+   const verification=await db.rpc("bite_verify_owner_push_dispatch_secret",{candidate:supplied});
+   authorized=!verification.error&&verification.data===true;
+ }
+ if(!authorized)return reply({error:"Forbidden"},403);
+ const accountJson=Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON")||"";
+ let account:any;
+ try{account=JSON.parse(accountJson)}catch{return reply({error:"FCM not configured"},503)}
+ if(!account?.project_id||!account?.client_email||!account?.private_key)return reply({error:"FCM not configured"},503);
  let bearer:string;
  try{bearer=await googleToken(account)}catch(e){console.warn("FCM OAuth unavailable",String(e));return reply({error:"Push sender unavailable"},503)}
  const {data:events,error}=await db.from("bite_owner_push_events").select("order_id,restaurant_id,delivery_status,attempts").in("delivery_status",["queued","retry"]).order("created_at",{ascending:true}).limit(12);
