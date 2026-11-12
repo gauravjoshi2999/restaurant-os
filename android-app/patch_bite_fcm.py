@@ -91,9 +91,13 @@ channel_statement = """    if (android.os.Build.VERSION.SDK_INT >= 26) {
       android.app.NotificationManager nm = getSystemService(android.app.NotificationManager.class);
       if (nm != null) {
         android.app.NotificationChannel channel = new android.app.NotificationChannel(
-          "bite_owner_new_orders_v1", "New restaurant orders",
+          "bite_owner_new_orders_v2", "New restaurant orders",
           android.app.NotificationManager.IMPORTANCE_HIGH);
         channel.enableVibration(true);
+        channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
         nm.createNotificationChannel(channel);
       }
     }
@@ -158,6 +162,25 @@ public class BiteOwnerPushPlugin extends Plugin {
   }
 
   @PluginMethod
+  public void openNotificationSettings(PluginCall call) {
+    try {
+      Intent settings;
+      if (android.os.Build.VERSION.SDK_INT >= 26) {
+        settings=new Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+        settings.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getContext().getPackageName());
+        settings.putExtra(android.provider.Settings.EXTRA_CHANNEL_ID,"bite_owner_new_orders_v2");
+      } else {
+        settings=new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        settings.setData(android.net.Uri.parse("package:"+getContext().getPackageName()));
+      }
+      getActivity().startActivity(settings);
+      call.resolve();
+    } catch (Exception error) {
+      call.reject("Notification sound settings unavailable");
+    }
+  }
+
+  @PluginMethod
   public void disable(PluginCall call) {
     FirebaseMessaging.getInstance().setAutoInitEnabled(false);
     FirebaseMessaging.getInstance().deleteToken().addOnCompleteListener(task -> {
@@ -188,7 +211,7 @@ import java.util.Map;
 // New, verified live orders are DATA-only so Android can add owner actions
 // while the app is in the background. Legacy APKs receive notification payloads.
 public class BiteFirebaseMessagingService extends FirebaseMessagingService {
-  private static final String CHANNEL="bite_owner_new_orders_v1";
+  private static final String CHANNEL="bite_owner_new_orders_v2";
 
   private PendingIntent activityIntent(String orderId,String restaurantId,String action) {
     Intent open=new Intent(this,MainActivity.class);
@@ -221,6 +244,10 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
       NotificationChannel channel=new NotificationChannel(CHANNEL,"New restaurant orders",
         NotificationManager.IMPORTANCE_HIGH);
       channel.enableVibration(true);
+      channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
       manager.createNotificationChannel(channel);
     }
     String title=data.get("title");
@@ -241,6 +268,7 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setCategory(NotificationCompat.CATEGORY_MESSAGE)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+      .setDefaults(NotificationCompat.DEFAULT_SOUND|NotificationCompat.DEFAULT_VIBRATE)
       .setContentIntent(activityIntent(id,restaurant,null))
       .setAutoCancel(true);
     if(isOrder){
@@ -267,7 +295,7 @@ service_xml = """
             </intent-filter>
         </service>
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id"
-                   android:value="bite_owner_new_orders_v1" />
+                   android:value="bite_owner_new_orders_v2" />
 """
 if "BiteFirebaseMessagingService" not in xml:
     if "</application>" not in xml:
