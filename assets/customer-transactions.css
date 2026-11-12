@@ -86,3 +86,18 @@ html{scroll-behavior:smooth;overflow-x:hidden}body{overflow-x:hidden;-webkit-tex
 #checkoutModal .checkoutactions{gap:8px}
 #checkoutModal .checkoutactions button{overflow-wrap:normal}
 @media(max-width:650px){#checkoutModal .bite-outcome-panel{max-width:calc(100vw - 28px);padding:27px 20px}#checkoutModal .checkoutbox{max-height:calc(100dvh - 28px)}}
+
+
+/* Previous payment recovery is a compact choice, not the entire disabled address form. */
+#checkoutModal .bite-pending-panel{width:min(100%,430px);max-height:calc(100dvh - 28px);overflow:auto;padding:30px 25px;text-align:center}
+#checkoutModal .bite-pending-panel h2{color:#182238;font-size:24px;margin:0 0 10px}
+#checkoutModal .bite-pending-panel p{color:#516073;font-size:14px;line-height:1.55;max-width:330px;margin:0 auto 24px}
+#checkoutModal .bite-pending-symbol{display:grid;place-items:center;margin:2px auto 18px;width:64px;height:64px;border-radius:50%;background:#fff2e7;color:#aa611c;font-size:37px}
+#checkoutModal .bite-pending-actions{display:flex;flex-direction:column;gap:11px}
+#checkoutModal .bite-pending-actions button{width:100%;min-height:48px;border-radius:12px;font-size:15px}
+#checkoutModal .bite-pending-actions .bite-text-button{border:0;background:transparent;color:#4a5260;min-height:36px;font-weight:650;cursor:pointer}
+.bite-pending-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e5e8ec;border-radius:12px;background:#fff;color:#435067;margin:8px 0 14px;font-size:12px;line-height:1.4}
+.bite-pending-banner span{flex:1}
+.bite-pending-banner button{padding:7px 9px!important;min-height:34px;border-radius:8px;font-size:12px}
+.bite-pending-banner .bite-pending-dismiss{font-size:18px;min-width:30px;background:transparent;border:0;color:#687385}
+@media(max-width:650px){#checkoutModal .bite-pending-panel{width:calc(100vw - 28px);padding:26px 22px}.bite-pending-banner{margin:8px 4px 14px}}
