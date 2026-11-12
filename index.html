@@ -638,7 +638,7 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 <header class="od-welcome"><div><div class="od-eyebrow">YOUR BUSINESS, AT A GLANCE</div><h1 id="ownerHomeTitle">Namaste.</h1><p id="ownerHomeSubtitle">Aaj ka kaam aur hisaab yahan se dekhein.</p></div><div class="od-date" id="biteTodayDate">Today</div></header>
 <section class="od-outlet"><div><span class="od-status-dot" aria-hidden="true"></span><strong id="ownerHomeRestaurant">Your restaurant</strong><span id="ownerOutletStatus" class="od-outlet-state"></span></div><button class="od-text-button" type="button" onclick="showPage('settings')">Manage restaurant ↗</button></section>
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
-<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
+<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button><button type="button" class="btn secondary od-test-alert" id="ownerLockScreenPushTest" onclick="testOwnerLockScreenPush()" aria-label="Test lock screen push notification">Test lock-screen push</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
 <article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>AAJ KI PAID SALES</small><strong id="ownerTodaySales">₹0</strong><span>Confirmed payments</span></article>
 <article class="od-metric"><small>AAJ KE ORDERS</small><strong id="ownerTodayOrders">0</strong><span>Received today</span></article>
@@ -2358,6 +2358,26 @@ function sendOwnerOrderNotification(order,restaurant){
   void native.notifyOrder({orderId:String(order.id),title,body}).catch(error=>console.warn('Native order notification unavailable',error));
  }else if('Notification' in window&&Notification.permission==='granted'){
   try{new Notification(title,{body,tag:'bite-order-'+order.id});}catch(error){console.warn('Browser order notification unavailable',error);}
+ }
+}
+async function testOwnerLockScreenPush(){
+ if(access.role!=='owner'||!access.restaurantId)return;
+ const button=document.getElementById('ownerLockScreenPushTest');
+ if(button){button.disabled=true;button.textContent='Sending test…';}
+ try{
+  // The Partner APK registers its own FCM device. Browsers can also request
+  // a test for the already-registered phone, without accessing the token.
+  if(window.Capacitor?.Plugins?.BiteOwnerPush)await syncOwnerPushToken(true);
+  const {data,error}=await sb.functions.invoke('bite-owner-push-test',{
+   body:{restaurant_id:access.restaurantId}
+  });
+  if(error||data?.scheduled!==true)throw new Error(data?.error||'Server push test not available.');
+  showOrderLiveToast('🔔 Push test scheduled. Ab phone lock karein — 8 seconds ke baad notification aayega.');
+ }catch(err){
+  console.warn('Bite lock-screen push test unavailable',err);
+  showOrderLiveToast('Push test send nahi hua. Firebase/owner login check karein.');
+ }finally{
+  if(button){button.disabled=false;button.textContent='Test lock-screen push';}
  }
 }
 function testOwnerOrderAlert(){
