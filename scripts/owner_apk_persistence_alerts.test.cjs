@@ -34,6 +34,6 @@ test('New live owner order sends native notification only for the current mapped
 test('Android APK build does not wipe session cookies and installs native notification bridge',()=>{
  assert.match(workflow,/python3 patch_bite_native\.py/);
  assert.doesNotMatch(workflow,/webView\.clearCache\(true\)/);
- assert.match(workflow,/BITE_VERSION_CODE:.*\|\| '14'/);
+ assert.match(workflow,/BITE_VERSION_CODE:.*\|\| '15'/);
  assert.match(workflow,/Sign release APK with stable private key/);
 });
