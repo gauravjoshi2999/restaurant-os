@@ -111,7 +111,7 @@ jobs:
           BITE_FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON }}
         run: |
           python3 -m py_compile patch_bite_fcm.py
-          # Firebase Messaging 26 requires API 24; Partner-only patch handles it.
+          # Partner v13: verified locked-screen actions, SDK 24, and capability-gated FCM.
           python3 patch_bite_fcm.py
       - name: Set version code for signed releases
         shell: bash
