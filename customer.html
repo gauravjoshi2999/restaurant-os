@@ -107,6 +107,7 @@ window.BiteCheckoutUX={
   this.showResult('Test payment successful','Your test order is confirmed. No real money was charged.');
  },
  showPending(message){
+  syncCheckoutPaymentButton();
   $('checkoutFormPanel').classList.add('hidden');$('checkoutOutcomePanel').classList.add('hidden');
   $('checkoutPendingPanel').classList.remove('hidden');
   $('checkoutPendingMessage').textContent=message||'Payment is not confirmed yet. Check status, or start a fresh order.';
