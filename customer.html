@@ -453,9 +453,13 @@ function syncCheckoutPaymentButton(){
  const freshPending=!!(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested);
  btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady);
  btn.setAttribute('aria-disabled',String(btn.disabled));
- btn.textContent=checkoutPaymentBusy?'Please wait…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
- $('quickCancelCheckout')?.classList.toggle('hidden',!pendingLiveCheckout);
- $('checkPendingPaymentBtn')?.classList.toggle('hidden',!pendingLiveCheckout||pendingLiveCheckout.verifyOnly);
+ btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
+ // A freshly created intent is NOT an "old checkout". Keep recovery controls
+ // hidden while Cashfree is being prepared or opened, so they never flash
+ // between Pay online and the secure payment sheet.
+ const showRecovery=Boolean(pendingLiveCheckout)&&!checkoutPaymentBusy;
+ $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery);
+ $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
  if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':pendingLiveCheckout?'Previous payment needs confirmation. You can return to the menu anytime.':checkoutPaymentReady?'Secure online payment via Cashfree.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
