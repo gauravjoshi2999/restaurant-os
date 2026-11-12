@@ -638,7 +638,7 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 <header class="od-welcome"><div><div class="od-eyebrow">YOUR BUSINESS, AT A GLANCE</div><h1 id="ownerHomeTitle">Namaste.</h1><p id="ownerHomeSubtitle">Aaj ka kaam aur hisaab yahan se dekhein.</p></div><div class="od-date" id="biteTodayDate">Today</div></header>
 <section class="od-outlet"><div><span class="od-status-dot" aria-hidden="true"></span><strong id="ownerHomeRestaurant">Your restaurant</strong><span id="ownerOutletStatus" class="od-outlet-state"></span></div><button class="od-text-button" type="button" onclick="showPage('settings')">Manage restaurant ↗</button></section>
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
-<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button><button type="button" class="btn secondary od-test-alert" id="ownerLockScreenPushTest" onclick="testOwnerLockScreenPush()" aria-label="Test lock screen push notification">Test lock-screen push</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
+<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button><button type="button" class="btn secondary od-test-alert" id="ownerLockScreenPushTest" onclick="testOwnerLockScreenPush()" aria-label="Test lock screen push notification">Test lock-screen push</button><button type="button" class="btn secondary od-test-alert" id="ownerNotificationSoundSettings" onclick="openOwnerNotificationSoundSettings()" aria-label="Android new order notification sound settings">🔊 Notification sound settings</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
 <article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>AAJ KI PAID SALES</small><strong id="ownerTodaySales">₹0</strong><span>Confirmed payments</span></article>
 <article class="od-metric"><small>AAJ KE ORDERS</small><strong id="ownerTodayOrders">0</strong><span>Received today</span></article>
@@ -2448,6 +2448,17 @@ async function handlePendingNativeOwnerAction(){
  finally{ownerNativeActionBusy=false;}
 }
 window.addEventListener('focus',()=>{if(currentUser&&access.role==='owner')void handlePendingNativeOwnerAction();});
+function openOwnerNotificationSoundSettings(){
+ const native=window.Capacitor?.Plugins?.BiteOwnerPush;
+ if(native?.openNotificationSettings){
+  void native.openNotificationSettings().catch(error=>{
+   console.warn('Android sound settings could not open',error);
+   showOrderLiveToast('Phone Settings → Apps → Bite Partner → Notifications → New restaurant orders → Sound check karein.');
+  });
+ }else{
+  showOrderLiveToast('Partner APK update karein. Phir Android Settings → Apps → Bite Partner → Notifications → New restaurant orders kholein.');
+ }
+}
 async function prepareOwnerOrderNotifications(){
  if(access.role!=='owner')return false;
  const native=window.Capacitor?.Plugins?.BiteOrderAlerts;
