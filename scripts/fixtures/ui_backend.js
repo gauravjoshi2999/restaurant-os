@@ -32,6 +32,12 @@
   }
   if(window.__BITE_QA_PENDING&&name==='bite-live-cancel-checkout'){
    const intent=data.bite_live_checkout_intents?.[0];
+   if(window.__BITE_QA_TERMINATION_DELAY&&intent?.status==='awaiting_payment'){
+    window.__BITE_QA_CANCEL_CALLS=1+Number(window.__BITE_QA_CANCEL_CALLS||0);
+    // Mimic Cashfree's TERMINATION_REQUESTED response for the first two
+    // provider checks, then terminal cancellation. No real gateway calls.
+    if(window.__BITE_QA_CANCEL_CALLS<=2)return {data:{status:'cancellation_processing',cancelled:false},error:null};
+   }
    if(intent?.status==='awaiting_payment'){
     intent.status='expired';return {data:{status:'expired',cancelled:true},error:null};
    }
