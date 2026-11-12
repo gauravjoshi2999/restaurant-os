@@ -64,14 +64,14 @@ test('simulated sandbox checkout uses only test draft, test session and test ver
  assert.equal(h.calls.find(c=>c.kind==='sdk-mode').mode,'sandbox');
  assert.equal(h.calls.find(c=>c.kind==='sdk-checkout').opts.paymentSessionId,'synthetic-session');
  assert.ok(!h.calls.some(c=>String(c.name).includes('live')||c.mode==='production'));
- assert.match(h.el('checkoutError').textContent,/SANDBOX PAYMENT VERIFIED/);
+ assert.match(h.el('checkoutError').textContent,/Test payment successful/);
 });
 
 test('sandbox unverified state does not claim paid or create a live order',async()=>{
  const h=harness({verification:false});
  await h.run();
- assert.doesNotMatch(h.el('checkoutError').textContent,/SANDBOX PAYMENT VERIFIED/);
- assert.match(h.el('checkoutError').textContent,/No real order created/);
+ assert.doesNotMatch(h.el('checkoutError').textContent,/Test payment successful/);
+ assert.match(h.el('checkoutError').textContent,/Test payment not confirmed yet/);
  assert.ok(!h.calls.some(c=>c.kind==='storage'));
 });
 
