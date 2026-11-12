@@ -408,6 +408,10 @@ document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventLis
 $('addressPostal').addEventListener('input',refreshCheckoutZoneEstimate);
 // BITE CHECKOUT PAYMENT START
 let checkoutPaymentReady=false,checkoutPaymentBusy=false,pendingLiveCheckout=null;
+// Compare the exact paid cart before clearing it; a later payment webhook must not erase a new cart.
+function biteCheckoutCartSignature(restaurantId,entries){
+ return JSON.stringify([restaurantId||null,[...(entries||[])].map(([id,q])=>[String(id),Number(q)]).sort((a,b)=>a[0].localeCompare(b[0]))]);
+}
 function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
  btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady);
@@ -437,8 +441,9 @@ async function refreshCheckoutPaymentReadiness(){
 async function finishVerifiedCheckout(result,options={}){
  if(result?.status!=='activated'||!result.order_id)throw new Error('Payment verification pending. Dobara payment na karein.');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
+ const pendingCartSignature=pendingLiveCheckout?.cartSignature||null;
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
- if(completedRestaurantId&&completedRestaurantId===activeRestaurant?.id){cart={};renderCart();}
+ if(completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};renderCart();}
  $('checkoutModal').classList.add('hidden');$('checkoutModal').classList.remove('show');
  window.BiteCheckoutUX?.resetResult?.();syncCheckoutPaymentButton();
  if(options?.background===true){
@@ -652,7 +657,7 @@ async function submitCustomerOrder(){
   const checkoutArgs={p_restaurant_id:activeRestaurant.id,p_delivery_type:mode,p_address_id:addressId,p_customer_note:$('customerNote').value.trim()||null,p_items:items};
   if(!BITE_SANDBOX_CHECKOUT){checkoutArgs.p_coupon_code=appliedCheckoutCoupon?.code||null;checkoutArgs.p_checkout_key=checkoutRequestKey;}
   const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(error)throw error;
-  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
+  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,cartSignature:biteCheckoutCartSignature(activeRestaurant.id,entries),intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
   window.BiteCheckoutUX?.markPending?.(orderId);
   const {data:payment,error:paymentError}=await sb.functions.invoke('cashfree-sandbox-draft-checkout',{body:{draft_id:orderId}});if(paymentError)throw paymentError;
   if(!payment?.payment_session_id)throw new Error('Payment service is unavailable. Please try again.');
