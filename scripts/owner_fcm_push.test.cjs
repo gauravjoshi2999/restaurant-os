@@ -15,7 +15,8 @@ test('FCM token registration requires authenticated owner membership matching re
 });
 test('Push dispatcher requires private secret and checks live paid-platform order before send',()=>{
  assert.match(dispatch,/BITE_PUSH_DISPATCH_SECRET/);
- assert.match(dispatch,/safeEqual\(expected,supplied\)/);
+ assert.match(dispatch,/safeEqual\(configured,supplied\)/);
+ assert.match(dispatch,/bite_verify_owner_push_dispatch_secret/);
  assert.match(dispatch,/FIREBASE_SERVICE_ACCOUNT_JSON/);
  assert.match(dispatch,/orders"\)/);
  assert.match(dispatch,/order\.status!=="Received"/);
@@ -40,4 +41,23 @@ test('Signed APK build never includes FCM without explicit Firebase config secre
  assert.match(workflow,/patch_bite_fcm\.py/);
  assert.match(workflow,/BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64:.*secrets\./);
  assert.doesNotMatch(workflow,/FIREBASE_SERVICE_ACCOUNT_JSON/);
+});
+
+const pushTest=fs.readFileSync('supabase/functions/bite-owner-push-test/index.ts','utf8');
+test('Lock-screen push test is owner authenticated, rate-limited and contains no fake order',()=>{
+ assert.match(pushTest,/auth\.getUser\(token\)/);
+ assert.match(pushTest,/owners\.length!==1/);
+ assert.match(pushTest,/owners\[0\]\.user_id!==user\.id/);
+ assert.match(pushTest,/last_test_at/);
+ assert.match(pushTest,/EdgeRuntime\.waitUntil/);
+ assert.match(pushTest,/setTimeout\(resolve,8000\)/);
+ assert.match(pushTest,/test notification/);
+ assert.doesNotMatch(pushTest,/orders"\)/);
+});
+test('Overview exposes separate native sound test and real lock-screen FCM push test',()=>{
+ const overview=html.split('<section class="page active" id="overview">')[1].split('<section class="page" id="orders">')[0];
+ assert.match(overview,/id="ownerLockScreenPushTest"/);
+ assert.match(overview,/onclick="testOwnerOrderAlert\(\)"/);
+ assert.match(overview,/onclick="testOwnerLockScreenPush\(\)"/);
+ assert.match(html,/sb\.functions\.invoke\('bite-owner-push-test'/);
 });
