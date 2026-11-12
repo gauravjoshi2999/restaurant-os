@@ -59,6 +59,31 @@ try:
   check(receipt.read_bytes().startswith(b'%PDF-1.4'),'Customer bill downloads as an actual PDF file')
   customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
   check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),'Reorder opens a reviewable cart with current available items')
+  # Simulate a very long order visually: the checkout footer must remain within the viewport.
+  customer.evaluate("""() => {
+    const lines=document.getElementById('cartModalLines');
+    const sample=lines.querySelector('.cart-product');
+    if(!sample)throw Error('Synthetic fixture has no cart product');
+    for(let i=0;i<14;i++)lines.appendChild(sample.cloneNode(true));
+    document.getElementById('cartModalScroll').scrollTop=0;
+  }""")
+  for height in (844,568):
+   customer.set_viewport_size({'width':390,'height':height})
+   check(customer.evaluate("""() => {
+    const button=document.getElementById('cartCheckoutBtn');
+    const panel=document.querySelector('#cartModal .cart-modal-box');
+    const scroll=document.getElementById('cartModalScroll');
+    const r=button.getBoundingClientRect(),p=panel.getBoundingClientRect();
+    return button.offsetParent!==null && !button.disabled &&
+      r.top>=p.top && r.bottom<=Math.min(innerHeight,p.bottom)+1 &&
+      scroll.scrollHeight>scroll.clientHeight;
+   }"""),f'Proceed to checkout remains visible with 15 cart rows at {height}px viewport')
+   customer.evaluate("document.getElementById('cartModalScroll').scrollTop=99999")
+   check(customer.evaluate("""() => {
+    const r=document.getElementById('cartCheckoutBtn').getBoundingClientRect();
+    return r.top>=0 && r.bottom<=innerHeight+1;
+   }"""),f'Cart footer stays visible after scrolling the items at {height}px viewport')
+  customer.set_viewport_size({'width':390,'height':844})
   customer.locator('#cartCheckoutBtn').click();customer.locator('#checkoutCoupon').fill('QA10');customer.locator('#applyCheckoutCoupon').click()
   customer.wait_for_function("document.querySelector('#checkoutSummary').textContent.includes('155')")
   check('₹155' in customer.locator('#checkoutSummary').inner_text(),'Coupon total is 150 food + 20 delivery − 15 discount')
