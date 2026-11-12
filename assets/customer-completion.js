@@ -1,21 +1,28 @@
 /* Customer tools use the signed-in client's RLS. Never store contact/address data locally. */
 (function(){
  'use strict';
- const pendingKey='bite_pending_checkout_v2';let favouritesUser=null,offersToken=0,restoreToken=0,recoveryBusy=false;
+ const pendingKey='bite_pending_checkout_v2',dismissedPendingKey='bite_hidden_payment_reminder';let favouritesUser=null,offersToken=0,restoreToken=0,recoveryBusy=false;
  const notice=(message)=>{let el=document.getElementById('biteCustomerNotice');if(!el){el=document.createElement('div');el.id='biteCustomerNotice';el.className='bite-toast';el.setAttribute('role','status');document.body.append(el);}el.textContent=message;el.hidden=false;clearTimeout(notice.timer);notice.timer=setTimeout(()=>el.hidden=true,7000);};
  const readPending=()=>{try{return JSON.parse(localStorage.getItem(pendingKey)||'null');}catch{return null;}};
  function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,cartSignature:pendingLiveCheckout.cartSignature||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired}));}catch{}}
  function saveCheckoutKey(key){try{localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,key}));}catch{}}
+ function dismissPendingPaymentBanner(id){
+  if(id)try{sessionStorage.setItem(dismissedPendingKey,id);}catch{}
+  $('pendingPaymentBanner')?.remove();
+ }
  function renderPendingPaymentBanner(){
   let bar=$('pendingPaymentBanner');
   if(!pendingLiveCheckout){bar?.remove();return;}
+  let dismissed=false;
+  try{dismissed=sessionStorage.getItem(dismissedPendingKey)===pendingLiveCheckout.id;}catch{}
+  if(dismissed||window.BiteCheckoutUX?.freshCartRequested){bar?.remove();return;}
   if(!bar){bar=document.createElement('div');bar.id='pendingPaymentBanner';bar.className='bite-pending-banner';$('homeView').prepend(bar);}
   bar.replaceChildren();
   const message=document.createElement('span');message.textContent='Previous payment not confirmed';
   const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent='Check status';check.dataset.pendingCheck='';
   const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='bite-pending-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment reminder');
   check.addEventListener('click',()=>window.BiteCheckoutUX?.showPending?.());
-  dismiss.addEventListener('click',()=>bar.remove());
+  dismiss.addEventListener('click',()=>dismissPendingPaymentBanner(pendingLiveCheckout?.id));
   bar.append(message,check,dismiss);
  }
  async function restorePendingCheckout(userId){if(BITE_SANDBOX_CHECKOUT)return;const token=++restoreToken,saved=readPending();if(!saved||saved.customerId!==userId)return;recoveryBusy=true;checkoutRequestKey=saved.key||null;if(saved.id)pendingLiveCheckout={id:saved.id,session:null,started:!!saved.started,verifyOnly:true};
@@ -54,7 +61,7 @@
  }
  function clearSensitiveState(){restoreToken++;recoveryBusy=false;pendingLiveCheckout=null;checkoutRequestKey=null;favouritesUser=null;$('customerProfileEdit')?.remove();$('pendingPaymentBanner')?.remove();}
  function showPaymentVerifiedNotice(){notice('Payment confirmed. View your order in My Orders.');}
-  window.BiteCustomerExtras={renderPendingPaymentBanner,showPaymentVerifiedNotice,showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
+  window.BiteCustomerExtras={renderPendingPaymentBanner,dismissPendingPaymentBanner,showPaymentVerifiedNotice,showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
  renderCategories();$('discoveryPinInput').value=currentDiscoveryPin;if(currentDiscoveryPin)$('customerLocationLabel').textContent='Delivery PIN '+currentDiscoveryPin;
  $('discoveryLocationForm').addEventListener('submit',e=>{e.preventDefault();setPin($('discoveryPinInput').value.trim());});$('chooseDiscoveryAddress').addEventListener('click',chooseAddress);
  ['filterOpenNow','filterFavourites'].forEach(id=>$(id).addEventListener('click',()=>{if(id==='filterFavourites'&&!activeCustomerId){showAuth('login');return;}const active=$(id).getAttribute('aria-pressed')!=='true';$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('active',active);renderRestaurants();}));
