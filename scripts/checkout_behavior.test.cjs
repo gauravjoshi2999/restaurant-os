@@ -162,10 +162,13 @@ test('server-activated pending checkout opens My Orders without new Cashfree pay
  assert.equal(t.displayedOrders,1);
  assert.equal(t.calls.filter(c=>c.kind==='sdk'||c.kind==='rpc').length,0);
 });
-test('Cashfree return handler uses an inline status, not a sticky contradictory modal overlay',()=>{
+test('Cashfree return quietly verifies payment without reopening checkout',()=>{
  const handler=html.split('<script id="bite-live-checkout-return-handler">')[1].split('</script>')[0];
  assert.match(handler,/bitePaymentReturnStatus/);
- assert.doesNotMatch(handler,/position:fixed|bottom:12px|Payment abhi confirm nahi hua\. Dobara payment na karein\. Checkout:/);
- assert.match(handler,/status==='awaiting_payment'/);
- assert.match(handler,/replaceState\(null,''/);
+ assert.match(handler,/finishVerifiedCheckout\(data,\{background:true\}\)/);
+ assert.match(handler,/history\.replaceState\(null,''/);
+ assert.match(handler,/Check status/);
+ assert.doesNotMatch(handler,/position:fixed|Checkout:|Pay again/);
+ assert.doesNotMatch(handler,/checkoutError.*textContent/,'no checkout form error changes during payment return');
+ assert.doesNotMatch(handler,/Cashfree\(\{/,'Cashfree SDK must never reopen during return');
 });
