@@ -20,6 +20,7 @@ test('Push dispatcher requires private secret and checks live paid-platform orde
  assert.match(dispatch,/orders"\)/);
  assert.match(dispatch,/order\.status!=="Received"/);
  assert.match(dispatch,/order\.is_demo===true/);
+ assert.match(dispatch,/finance\?\.payment_status!=="paid"/);
  assert.match(dispatch,/eq\("role","owner"\)/);
  assert.match(dispatch,/ids\.length!==1/);
  assert.match(dispatch,/service_role|SUPABASE_SERVICE_ROLE_KEY/);
