@@ -75,3 +75,22 @@ test('Repeated push test shows cooldown rather than blaming Firebase or owner lo
  assert.match(testHandler,/refreshOwnerPushTestButton/);
  assert.doesNotMatch(testHandler,/Push test send nahi hua\. Firebase\/owner login check karein/);
 });
+
+const androidPatch=fs.readFileSync('android-app/patch_bite_fcm.py','utf8');
+test('Action-ready FCM is gated to new APK; older APKs keep background notifications',()=>{
+ assert.match(dispatch,/supports_order_actions/);
+ assert.match(dispatch,/nativeActions=device.supports_order_actions===true/);
+ assert.match(dispatch,/data:dataFields/);
+ assert.match(dispatch,/event_type:"bite_order"/);
+ assert.match(register,/supports_order_actions:supportsActions/);
+});
+test('Android notification buttons open Partner and require unlock + owner verification',()=>{
+ assert.match(androidPatch,/setAuthenticationRequired\(true\)/);
+ assert.match(androidPatch,/activityIntent\(id,restaurant,"Accepted"\)/);
+ assert.match(androidPatch,/activityIntent\(id,restaurant,"Rejected"\)/);
+ assert.match(androidPatch,/consumeOrderAction/);
+ assert.match(androidPatch,/setIntent\(intent\)/);
+ assert.match(html,/bite_owner_notification_order_action/);
+ assert.match(html,/pending.restaurant_id!==access.restaurantId/);
+ assert.match(html,/Reject reason likhna zaroori hai/);
+});
