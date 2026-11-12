@@ -2338,6 +2338,33 @@ document.addEventListener('pointerdown',armSavedOrderSound,{passive:true});
 
 async function toggleOrderSound(){if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();void prepareOwnerOrderNotifications();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
 function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&orderChannelKey(order.channel)==='website'&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound();sendOwnerOrderNotification(order,rest)}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
+
+/* Android/WebView can suspend Realtime while the application is backgrounded.
+   Reconnect on resume and report only orders that arrived while the page slept.
+   FCM is still required for delivery when Android has killed the application. */
+let ownerResumeRefreshActive=false,ownerLastResumeAt=0;
+async function catchUpOwnerLiveOrders(){
+ if(ownerResumeRefreshActive||!currentUser||access.role!=='owner'||document.visibilityState==='hidden')return;
+ if(Date.now()-ownerLastResumeAt<1500)return;
+ ownerLastResumeAt=Date.now();ownerResumeRefreshActive=true;
+ try{
+  const seen=new Set((state.orders||[]).map(order=>order.id));
+  startRealtimeOrderUpdates();
+  await loadCloudData();
+  const latest=(state.orders||[]).filter(order=>
+   !seen.has(order.id)&&order.restaurant===access.restaurantId&&
+   orderChannelKey(order.channel)==='website'&&order.status==='Received'&&
+   Date.now()-Date.parse(order.created_at||order.order_date||0)<30*60*1000);
+  for(const order of latest){
+   const restaurant=state.restaurants.find(item=>item.id===order.restaurant);
+   showOrderLiveToast('🛎️ New order · '+(order.code||'Bite'));
+   playOrderAlertSound();sendOwnerOrderNotification(order,restaurant);
+  }
+ }catch(error){console.warn('Owner order catch-up postponed',error);}
+ finally{ownerResumeRefreshActive=false;}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void catchUpOwnerLiveOrders();});
+window.addEventListener('pageshow',event=>{if(event.persisted)void catchUpOwnerLiveOrders();});
 function orderChannelKey(channel){const c=String(channel||'').toLowerCase();if(c.includes('bite demo simulation'))return 'website';if(c.includes('zomato'))return 'zomato';if(c.includes('swiggy'))return 'swiggy';if(c.includes('own platform')||c.includes('website')||c.includes('web'))return 'website';if(c.startsWith('pos')||c.includes('counter')||c.includes('takeaway')||c.includes('dine-in')||c.includes('offline'))return 'pos';return 'other'}
 
 function renderPlatformRestaurantDirectory(){
