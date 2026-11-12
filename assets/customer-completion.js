@@ -6,6 +6,18 @@
  const readPending=()=>{try{return JSON.parse(localStorage.getItem(pendingKey)||'null');}catch{return null;}};
  function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired}));}catch{}}
  function saveCheckoutKey(key){try{localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,key}));}catch{}}
+ function renderPendingPaymentBanner(){
+  let bar=$('pendingPaymentBanner');
+  if(!pendingLiveCheckout){bar?.remove();return;}
+  if(!bar){bar=document.createElement('div');bar.id='pendingPaymentBanner';bar.className='bite-pending-banner';$('homeView').prepend(bar);}
+  bar.replaceChildren();
+  const message=document.createElement('span');message.textContent='Previous payment not confirmed';
+  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent='Check status';check.dataset.pendingCheck='';
+  const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='bite-pending-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment reminder');
+  check.addEventListener('click',()=>window.BiteCheckoutUX?.showPending?.());
+  dismiss.addEventListener('click',()=>bar.remove());
+  bar.append(message,check,dismiss);
+ }
  async function restorePendingCheckout(userId){if(BITE_SANDBOX_CHECKOUT)return;const token=++restoreToken,saved=readPending();if(!saved||saved.customerId!==userId)return;recoveryBusy=true;checkoutRequestKey=saved.key||null;if(saved.id)pendingLiveCheckout={id:saved.id,session:null,started:!!saved.started,verifyOnly:true};
   try{let q=sb.from('bite_live_checkout_intents').select('id,status,provider_order_id,amount,restaurant_id,created_at,delivery_type,priced_items,food_subtotal,delivery_fee,discount_amount,coupon_code,address_snapshot,customer_snapshot,customer_note').eq('customer_id',userId);q=saved.id?q.eq('id',saved.id):q.eq('checkout_key',saved.key);const {data,error}=await q.maybeSingle();if(error)throw error;if(token!==restoreToken||activeCustomerId!==userId)return;
    if(!data){pendingLiveCheckout=null;checkoutRequestKey=null;savePendingCheckout();return;}if(['activated','failed','expired'].includes(data.status)){pendingLiveCheckout=null;checkoutRequestKey=null;savePendingCheckout();$('pendingPaymentBanner')?.remove();return;}
@@ -17,7 +29,7 @@
    $('deliveryFields').classList.toggle('hidden',data.delivery_type!=='delivery');$('savedAddressSection').classList.add('hidden');
    if(data.delivery_type==='delivery'){const address=data.address_snapshot||{};$('newAddressFields').classList.remove('hidden');for(const [key,id] of Object.entries({address_line:'addressLine',landmark:'addressLandmark',city:'addressCity',state:'addressState',postal_code:'addressPostal'}))$(id).value=address[key]||'';}
 
-   let bar=$('pendingPaymentBanner');if(!bar){bar=document.createElement('div');bar.id='pendingPaymentBanner';bar.className='bite-pending-banner';$('homeView').prepend(bar);}bar.innerHTML='<span>'+(Date.now()-Date.parse(data.created_at)>15*60*1000?'Purana Cashfree session dobara nahi khulega. Payment status check karein ya cancel karke naya order banayein.':'Payment complete nahi hua? Check status ya checkout cancel karein. Naye restaurants aur dishes browse kar sakte hain.')+'</span><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="secondary" data-pending-check>Check payment</button><button type="button" class="secondary" data-pending-cancel style="background:#fff;color:#ba2231;border:1px solid #ba2231">Cancel checkout</button></div>';bar.querySelector('[data-pending-check]').onclick=()=>{ $('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');syncCheckoutPaymentButton();};bar.querySelector('[data-pending-cancel]').onclick=()=>{ $('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');syncCheckoutPaymentButton();cancelPendingCustomerCheckout();};
+   renderPendingPaymentBanner();
   }catch{notice('Pending payment ka status abhi nahi mila. Dobara payment se pehle My Orders ya support mein check karein.');}finally{if(token===restoreToken)recoveryBusy=false;}
  }
  async function loadFavourites(){const user=activeCustomerId;if(!user){favouriteRestaurantIds.clear();renderFavouriteButton();return;}try{const {data,error}=await sb.from('bite_customer_favourites').select('restaurant_id').eq('customer_id',user);if(error)throw error;if(user!==activeCustomerId)return;favouritesUser=user;favouriteRestaurantIds=new Set((data||[]).map(x=>x.restaurant_id));renderFavouriteButton();renderRestaurants();}catch{favouritesUser=null;}}
@@ -41,7 +53,7 @@
  $('requestAccountDeletion').addEventListener('click',async()=>{if(!confirm('Account deletion request bhejein? Naye orders pause ho jayenge.'))return;const {error}=await sb.rpc('bite_request_account_deletion');notice(error?error.message:'Deletion request save ho gayi. Support account aur records review karega.');});
  }
  function clearSensitiveState(){restoreToken++;recoveryBusy=false;pendingLiveCheckout=null;checkoutRequestKey=null;favouritesUser=null;$('customerProfileEdit')?.remove();$('pendingPaymentBanner')?.remove();}
- window.BiteCustomerExtras={showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
+ window.BiteCustomerExtras={renderPendingPaymentBanner,showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
  renderCategories();$('discoveryPinInput').value=currentDiscoveryPin;if(currentDiscoveryPin)$('customerLocationLabel').textContent='Delivery PIN '+currentDiscoveryPin;
  $('discoveryLocationForm').addEventListener('submit',e=>{e.preventDefault();setPin($('discoveryPinInput').value.trim());});$('chooseDiscoveryAddress').addEventListener('click',chooseAddress);
  ['filterOpenNow','filterFavourites'].forEach(id=>$(id).addEventListener('click',()=>{if(id==='filterFavourites'&&!activeCustomerId){showAuth('login');return;}const active=$(id).getAttribute('aria-pressed')!=='true';$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('active',active);renderRestaurants();}));
