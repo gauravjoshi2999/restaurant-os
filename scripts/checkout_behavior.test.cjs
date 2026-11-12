@@ -13,12 +13,12 @@ function setup(options={}){
  let displayedOrders=0,writes=0,returnedToMenu=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{matchMedia:()=>({matches:false})},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
+  window:{matchMedia:()=>({matches:!!options.mobile})},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
    if(name==='bite-live-create-session'&&args.body.action==='readiness')return options.unavailable?{error:{message:'disabled'}}:{data:{ready:true,provider:'cashfree',environment:'production'}};
-   if(name==='bite-live-create-session'||name==='cashfree-sandbox-draft-checkout')return{data:{payment_session_id:'test-session',amount:options.paymentAmount??150,currency:'INR'}};
+   if(name==='bite-live-create-session'||name==='cashfree-sandbox-draft-checkout')return{data:{payment_session_id:'test-session',amount:options.paymentAmount??150,currency:'INR',issued_at:new Date().toISOString(),expires_at:new Date(Date.now()+20*60*1000).toISOString()}};
    if(name==='bite-live-verify-checkout'){const result=verify.shift()||{status:'awaiting_payment'};return result.error?{error:{message:'network'}}:{data:result};}
    if(name==='cashfree-sandbox-verify-draft')return{data:{verified:true}};
    throw Error('Unexpected API '+name);
@@ -31,6 +31,26 @@ function setup(options={}){
  vm.createContext(context);vm.runInContext(source,context);
  return {context,calls,nodes,element,get writes(){return writes;},get displayedOrders(){return displayedOrders;},get returnedToMenu(){return returnedToMenu;},submit:()=>context.submitCustomerOrder(),refresh:()=>context.refreshCheckoutPaymentReadiness()};
 }
+test('production mobile checkout stays in Bite modal with a freshly issued session',async()=>{
+ const t=setup({mobile:true});await t.submit();
+ const sdk=t.calls.find(x=>x.kind==='sdk');
+ assert.equal(sdk.mode,'production');
+ assert.equal(sdk.args.redirectTarget,'_modal','Android Chrome must not strand customers on an old external Cashfree tab');
+ assert.equal(t.displayedOrders,1);
+});
+test('expired payment session is withheld from the SDK even if backend returns it',async()=>{
+ const t=setup({mobile:true});
+ const fn=t.context.sb.functions.invoke;
+ t.context.sb.functions.invoke=async(name,args)=>{
+  const res=await fn(name,args);
+  if(name==='bite-live-create-session'&&!args.body.action&&res.data?.payment_session_id){
+   res.data.expires_at=new Date(Date.now()+1000).toISOString();
+  }
+  return res;
+ };
+ await t.submit();
+ assert.equal(t.calls.some(x=>x.kind==='sdk'),false,'expired token may not be opened');
+});
 test('normal checkout unlocks only after authenticated production readiness',async()=>{
  const t=setup();t.context.syncCheckoutPaymentButton();assert.equal(t.element('placeOrderBtn').disabled,true);
  assert.equal(await t.refresh(),true);assert.equal(t.element('placeOrderBtn').disabled,false);assert.equal(t.element('placeOrderBtn').textContent,'Pay online');
