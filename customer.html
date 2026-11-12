@@ -394,7 +394,14 @@ function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='del
 async function getCheckoutDeliveryZone(){if(checkoutMode()!=='delivery')return null;const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});if(error)throw error;const zone=Array.isArray(data)?data[0]:data;if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);if(subtotal<Number(zone.minimum_order_amount||0))throw new Error('Is delivery zone ka minimum food order '+money(zone.minimum_order_amount)+' hai.');return zone;}
 async function refreshCheckoutZoneEstimate(){if(checkoutMode()!=='delivery'){renderCheckoutSummary(0);$('checkoutError').textContent='';return;}const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal)){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';return;}try{const zone=await getCheckoutDeliveryZone();renderCheckoutSummary(zone.delivery_fee);$('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);}catch(e){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';}}
 function toggleCheckoutDelivery(){const delivery=checkoutMode()==='delivery';$('deliveryFields').classList.toggle('hidden',!delivery);renderCheckoutSummary(delivery?activeRestaurant?.default_delivery_fee||0:0);refreshCheckoutZoneEstimate();}
-async function openCheckout(){window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){window.BiteCheckoutUX.showPending('Pichhle payment ki confirmation baaki hai. Status check karein ya purana checkout safely close karke naya order shuru karein.');return;}if(!activeRestaurant||!cartEntries().length)return;const selectedBeforeRefresh=cartEntries();try{const {data:freshItems,error:menuRefreshError}=await sb.from('menu_items').select('id,category_id,name,description,price,is_vegetarian,image_url').eq('restaurant_id',activeRestaurant.id).eq('is_available',true).order('sort_order');if(menuRefreshError)throw menuRefreshError;const freshMenu=freshItems||[];const freshIds=new Set(freshMenu.map(i=>i.id));const removed=selectedBeforeRefresh.filter(([id])=>!freshIds.has(id));const priceChanged=selectedBeforeRefresh.some(([id])=>{const oldItem=menuItems.find(i=>i.id===id),newItem=freshMenu.find(i=>i.id===id);return !!oldItem&&!!newItem&&Number(oldItem.price)!==Number(newItem.price)});menuItems=freshMenu;if(removed.length){removed.forEach(([id])=>delete cart[id]);renderCart();closeCartModal();alert('Kuch items ab available nahi hain. Cart update kar diya hai; please dobara review karein.');return;}renderCart();if(priceChanged){$('checkoutError').textContent='Restaurant ne menu price update ki hai. Neeche updated total check karein.';}}catch(refreshError){alert('Latest menu price check nahi ho paaya: '+(refreshError.message||'Please try again.'));return;}$('checkoutError').textContent='';$('checkoutRestaurant').textContent=activeRestaurant.name+' • '+cartEntries().reduce((n,[,q])=>n+q,0)+' items';$('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');$('checkoutName').value='';$('checkoutPhone').value='';$('savedAddress').innerHTML='<option value="new">New address</option>';checkoutAddresses=[];$('savedAddressSection').classList.add('hidden');$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.remove('hidden');try{const [profileRes,legacyProfileRes,addressRes]=await Promise.all([sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle(),sb.from('profiles').select('full_name').eq('id',data.session.user.id).maybeSingle(),sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false})]);if(profileRes.error)throw profileRes.error;if(legacyProfileRes.error)throw legacyProfileRes.error;if(addressRes.error)throw addressRes.error;const p=profileRes.data||{};const accountName=p.full_name||legacyProfileRes.data?.full_name||data.session.user.user_metadata?.full_name||'';const accountPhone=p.phone||data.session.user.user_metadata?.phone||'';$('checkoutName').value=accountName;$('checkoutPhone').value=accountPhone;checkoutAddresses=addressRes.data||[];checkoutAddresses.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=(a.label||'Address')+' — '+a.address_line+', '+a.city;$('savedAddress').appendChild(o);});const def=checkoutAddresses.find(a=>a.id===window.discoveryAddressId&&a.postal_code===currentDiscoveryPin)||checkoutAddresses.find(a=>currentDiscoveryPin&&a.postal_code===currentDiscoveryPin)||(!currentDiscoveryPin?(checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0]):null);if(def){$('savedAddressSection').classList.remove('hidden');$('savedAddress').value=def.id;$('checkoutName').value=accountName||def.recipient_name||'';$('checkoutPhone').value=accountPhone||def.recipient_phone||'';$('newAddressFields').classList.add('hidden');$('addressLabel').value=def.label||'Home';$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';}else{$('savedAddressSection').classList.add('hidden');$('savedAddress').value='new';$('newAddressFields').classList.remove('hidden');if(currentDiscoveryPin)$('addressPostal').value=currentDiscoveryPin;}}catch(e){$('checkoutError').textContent='Saved details load nahi ho paaye: '+(e.message||'Try again');return;}const canDelivery=!!activeRestaurant.accepts_delivery,canPickup=!!activeRestaurant.accepts_pickup;if(canPickup&&(!canDelivery||window.restaurantServiceFilter==='pickup'))document.querySelector('input[name="deliveryMode"][value="pickup"]').checked=true;document.querySelector('input[name="deliveryMode"][value="delivery"]').disabled=!canDelivery;document.querySelector('input[name="deliveryMode"][value="pickup"]').disabled=!canPickup;toggleCheckoutDelivery();await refreshCheckoutPaymentReadiness();window.BiteCustomerExtras?.loadOffers();}
+async function openCheckout(){window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
+  if(activeRestaurant&&cartEntries().length){
+   // "Proceed to checkout" is the customer's choice to start a new order.
+   // Server verifies/terminates the old attempt before ANY new payment starts.
+   await cancelPendingCustomerCheckout({startFresh:true});
+  }else window.BiteCheckoutUX.showPending('Previous payment is not confirmed. Check its status or return to browse.');
+  return;
+ }if(!activeRestaurant||!cartEntries().length)return;const selectedBeforeRefresh=cartEntries();try{const {data:freshItems,error:menuRefreshError}=await sb.from('menu_items').select('id,category_id,name,description,price,is_vegetarian,image_url').eq('restaurant_id',activeRestaurant.id).eq('is_available',true).order('sort_order');if(menuRefreshError)throw menuRefreshError;const freshMenu=freshItems||[];const freshIds=new Set(freshMenu.map(i=>i.id));const removed=selectedBeforeRefresh.filter(([id])=>!freshIds.has(id));const priceChanged=selectedBeforeRefresh.some(([id])=>{const oldItem=menuItems.find(i=>i.id===id),newItem=freshMenu.find(i=>i.id===id);return !!oldItem&&!!newItem&&Number(oldItem.price)!==Number(newItem.price)});menuItems=freshMenu;if(removed.length){removed.forEach(([id])=>delete cart[id]);renderCart();closeCartModal();alert('Kuch items ab available nahi hain. Cart update kar diya hai; please dobara review karein.');return;}renderCart();if(priceChanged){$('checkoutError').textContent='Restaurant ne menu price update ki hai. Neeche updated total check karein.';}}catch(refreshError){alert('Latest menu price check nahi ho paaya: '+(refreshError.message||'Please try again.'));return;}$('checkoutError').textContent='';$('checkoutRestaurant').textContent=activeRestaurant.name+' • '+cartEntries().reduce((n,[,q])=>n+q,0)+' items';$('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');$('checkoutName').value='';$('checkoutPhone').value='';$('savedAddress').innerHTML='<option value="new">New address</option>';checkoutAddresses=[];$('savedAddressSection').classList.add('hidden');$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.remove('hidden');try{const [profileRes,legacyProfileRes,addressRes]=await Promise.all([sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle(),sb.from('profiles').select('full_name').eq('id',data.session.user.id).maybeSingle(),sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false})]);if(profileRes.error)throw profileRes.error;if(legacyProfileRes.error)throw legacyProfileRes.error;if(addressRes.error)throw addressRes.error;const p=profileRes.data||{};const accountName=p.full_name||legacyProfileRes.data?.full_name||data.session.user.user_metadata?.full_name||'';const accountPhone=p.phone||data.session.user.user_metadata?.phone||'';$('checkoutName').value=accountName;$('checkoutPhone').value=accountPhone;checkoutAddresses=addressRes.data||[];checkoutAddresses.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=(a.label||'Address')+' — '+a.address_line+', '+a.city;$('savedAddress').appendChild(o);});const def=checkoutAddresses.find(a=>a.id===window.discoveryAddressId&&a.postal_code===currentDiscoveryPin)||checkoutAddresses.find(a=>currentDiscoveryPin&&a.postal_code===currentDiscoveryPin)||(!currentDiscoveryPin?(checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0]):null);if(def){$('savedAddressSection').classList.remove('hidden');$('savedAddress').value=def.id;$('checkoutName').value=accountName||def.recipient_name||'';$('checkoutPhone').value=accountPhone||def.recipient_phone||'';$('newAddressFields').classList.add('hidden');$('addressLabel').value=def.label||'Home';$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';}else{$('savedAddressSection').classList.add('hidden');$('savedAddress').value='new';$('newAddressFields').classList.remove('hidden');if(currentDiscoveryPin)$('addressPostal').value=currentDiscoveryPin;}}catch(e){$('checkoutError').textContent='Saved details load nahi ho paaye: '+(e.message||'Try again');return;}const canDelivery=!!activeRestaurant.accepts_delivery,canPickup=!!activeRestaurant.accepts_pickup;if(canPickup&&(!canDelivery||window.restaurantServiceFilter==='pickup'))document.querySelector('input[name="deliveryMode"][value="pickup"]').checked=true;document.querySelector('input[name="deliveryMode"][value="delivery"]').disabled=!canDelivery;document.querySelector('input[name="deliveryMode"][value="pickup"]').disabled=!canPickup;toggleCheckoutDelivery();await refreshCheckoutPaymentReadiness();window.BiteCustomerExtras?.loadOffers();}
 $('savedAddress').addEventListener('change',()=>{const isNew=$('savedAddress').value==='new';$('newAddressFields').classList.toggle('hidden',!isNew);if(!isNew){const a=checkoutAddresses.find(x=>x.id===$('savedAddress').value);if(a){$('checkoutName').value=$('checkoutName').value||a.recipient_name||'';$('checkoutPhone').value=$('checkoutPhone').value||a.recipient_phone||'';$('addressLabel').value=a.label||'Home';$('addressLine').value=a.address_line||'';$('addressLandmark').value=a.landmark||'';$('addressCity').value=a.city||'';$('addressState').value=a.state||'Rajasthan';$('addressPostal').value=a.postal_code||'';}}refreshCheckoutZoneEstimate();});
 $('addAnotherAddress').addEventListener('click',()=>{if($('savedAddress').value==='new'&&checkoutAddresses.length){const def=checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0];$('savedAddress').value=def.id;$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.add('hidden');$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';$('addressLabel').value=def.label||'Home';return;}$('savedAddress').value='new';$('savedAddressPicker').classList.add('hidden');$('addAnotherAddress').textContent='← Use saved address';$('newAddressFields').classList.remove('hidden');$('addressLine').value='';$('addressLandmark').value='';$('addressCity').value='';$('addressPostal').value='';$('addressLabel').value='Home';addressPin=null;if(addressMarker&&addressMap){addressMap.removeLayer(addressMarker);addressMarker=null;}refreshCheckoutZoneEstimate();});
 document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventListener('change',toggleCheckoutDelivery));
@@ -427,12 +434,18 @@ async function refreshCheckoutPaymentReadiness(){
  }catch{return false;}
  finally{syncCheckoutPaymentButton();}
 }
-async function finishVerifiedCheckout(result){
+async function finishVerifiedCheckout(result,options={}){
  if(result?.status!=='activated'||!result.order_id)throw new Error('Payment verification pending. Dobara payment na karein.');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
  if(completedRestaurantId&&completedRestaurantId===activeRestaurant?.id){cart={};renderCart();}
  $('checkoutModal').classList.add('hidden');$('checkoutModal').classList.remove('show');
+ window.BiteCheckoutUX?.resetResult?.();syncCheckoutPaymentButton();
+ if(options?.background===true){
+  // An external Cashfree return must not steal focus from the customer's browsing.
+  window.BiteCustomerExtras?.showPaymentVerifiedNotice?.();
+  return;
+ }
  showCustomerView('orders');await loadMyOrders();
 }
 async function verifyPendingLiveCheckout(){
@@ -517,29 +530,39 @@ async function continueLiveCheckout(){
 }
 // Authenticated server-side cancellation: never discard a payment which might have succeeded.
 // Read-only payment status check; never opens Cashfree or creates a new payment attempt.
-async function checkPendingCustomerPayment(){
+async function checkPendingCustomerPayment(options={}){
  if(!pendingLiveCheckout||checkoutPaymentBusy)return;
+ const background=options?.background===true;
  const id=pendingLiveCheckout.id;
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();
- $('checkoutError').textContent='Cashfree se payment status check ho raha hai…';
+ if(!background)$('checkoutError').textContent='Checking payment status…';
  try{
   const result=await verifyPendingLiveCheckout();
   if(!pendingLiveCheckout||pendingLiveCheckout.id!==id)return;
-  if(result?.status==='activated'){await finishVerifiedCheckout(result);return;}
+  if(result?.status==='activated'){await finishVerifiedCheckout(result,{background});return;}
   if(result?.status==='expired'||result?.status==='failed'){
    pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
    window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
-   $('checkoutError').textContent='Pichhla checkout samapt ho gaya. Back to menu se naya checkout kar sakte hain.';
+   if(!background)$('checkoutError').textContent='Previous checkout ended. You can start a new order.';
+   window.BiteCheckoutUX?.resetResult?.();syncCheckoutPaymentButton();
    renderCart();return;
   }
   if(result?.status==='awaiting_payment'){
-   $('checkoutError').textContent='Payment confirm nahi hua hai. Agar paise kate hain to dobara pay na karein. Status check karein ya menu par lautein.';
+   pendingLiveCheckout.verifyOnly=true;pendingLiveCheckout.session=null;
+   window.BiteCustomerExtras?.savePendingCheckout();
+   if(!background)$('checkoutError').textContent='Payment is not confirmed. Please check status before paying again.';
    return;
   }
   pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
-  $('checkoutError').textContent='Payment status abhi clear nahi hai. Dobara pay na karein; thodi der baad check karein.';
- }catch(e){$('checkoutError').textContent=e?.message||'Cashfree status verify nahi ho paaya. Paise kate hon to dobara payment na karein.';}
- finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();window.BiteCheckoutUX?.setPendingMessage?.($('checkoutError').textContent);}
+  if(!background)$('checkoutError').textContent='Payment status is still being checked. Please do not pay again.';
+ }catch(e){
+  if(!background)$('checkoutError').textContent='We could not check payment status. Please try again.';
+  else console.warn('Background payment status check unavailable',e);
+ }
+ finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();
+  if(!background)window.BiteCheckoutUX?.setPendingMessage?.($('checkoutError').textContent);
+  window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
+ }
 }
 async function cancelPendingCustomerCheckout(options={}){
  if(!pendingLiveCheckout||checkoutPaymentBusy||window.BiteCheckoutUX?.cancelBusy)return;
@@ -557,9 +580,9 @@ async function cancelPendingCustomerCheckout(options={}){
    else throw new Error(detail?.error||data?.error||'Payment status check failed. Try again. Checkout was not cancelled.');
   }
   if(result?.status==='activated'||result?.status==='payment_verified'){
-   $('checkoutError').textContent='Payment mil gaya hai. Apna order My Orders mein dekhein.';
    if(result.status==='activated'&&result.order_id)await finishVerifiedCheckout(result);
-   return;
+   else window.BiteCheckoutUX?.showPending?.('Payment is being confirmed. Check My Orders before paying again.');
+   return false;
   }
   if(!result?.cancelled&&!['expired','failed'].includes(result?.status))throw new Error(result?.error||'Payment status abhi clear nahi hai. Menu par laut sakte hain.');
   if(!pendingLiveCheckout||pendingLiveCheckout.id!==id)return;
@@ -575,7 +598,13 @@ async function cancelPendingCustomerCheckout(options={}){
   notice.role='status';notice.textContent='Purana checkout cancel ho gaya. Aap naya order kar sakte hain.';
   Object.assign(notice.style,{position:'fixed',bottom:'90px',left:'12px',right:'12px',zIndex:'9999',background:'#153d2a',color:'white',padding:'14px',borderRadius:'10px',textAlign:'center',boxShadow:'0 5px 20px #0002'});
   document.body.append(notice);setTimeout(()=>notice.remove(),5500);
- }catch(e){console.warn('Checkout cancellation not confirmed',e);$('checkoutError').textContent='Payment status abhi clear nahi hai. Aap menu par laut sakte hain aur baad mein status check kar sakte hain.';window.BiteCheckoutUX?.setPendingMessage?.('Payment status clear nahi hai. Dobara pay na karein. Back to menu ja sakte hain.');}
+ }catch(e){
+  console.warn('Checkout cancellation not confirmed',e);
+  $('checkoutError').textContent='We could not safely close the previous payment. Please check its status.';
+  if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
+  else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
+  return false;
+ }
  finally{window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}
 }
 async function submitCustomerOrder(){
@@ -662,16 +691,27 @@ $('checkoutOutcomeOrders').addEventListener('click',()=>{
  $('checkoutModal').classList.remove('show');$('checkoutModal').classList.add('hidden');
  showCustomerView('orders');void loadMyOrders();
 });
-window.addEventListener('pageshow',event=>{
- if(event.persisted&&pendingLiveCheckout){
-  checkoutPaymentBusy=false;closeCheckoutAndReturnToMenu();
-  // Browser Back from Cashfree may restore a cached Bite page. Read provider status,
-  // never retry the old payment session or assume the transaction succeeded.
-  pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
-  window.BiteCustomerExtras?.savePendingCheckout();
-  syncCheckoutPaymentButton();window.BiteCustomerExtras?.renderPendingPaymentBanner?.();void checkPendingCustomerPayment();
- }
+let biteLastReturnCheckAt=0;
+function biteReconcileReturnFromCashfree(){
+ if(BITE_SANDBOX_CHECKOUT||!pendingLiveCheckout?.started||document.visibilityState==='hidden')return;
+ if(Date.now()-biteLastReturnCheckAt<5000)return; // prevent focus/pageshow duplicate requests
+ biteLastReturnCheckAt=Date.now();
+ checkoutPaymentBusy=false;
+ pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
+ window.BiteCustomerExtras?.savePendingCheckout();
+ if(!$('checkoutModal').classList.contains('hidden'))closeCheckoutAndReturnToMenu();
+ syncCheckoutPaymentButton();
+ window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
+ void checkPendingCustomerPayment({background:true});
+}
+window.addEventListener('pageshow',event=>{if(event.persisted)biteReconcileReturnFromCashfree();});
+// External checkout often returns through browser/app switching rather than back-forward cache.
+let bitePageWasHidden=false;
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='hidden'){bitePageWasHidden=true;return;}
+ if(bitePageWasHidden){bitePageWasHidden=false;biteReconcileReturnFromCashfree();}
 });
+window.addEventListener('focus',()=>{if(bitePageWasHidden){bitePageWasHidden=false;biteReconcileReturnFromCashfree();}});
 $('checkPendingPaymentBtn').addEventListener('click',checkPendingCustomerPayment);
 
 loadRestaurants();
