@@ -87,7 +87,7 @@ Deno.serve(async(req:Request)=>{
       token:device.fcm_token,
       notification:{title:"Bite test notification",body:"Push test successful — no real customer order."},
       data:{event_type:"bite_push_test",restaurant_id:restaurant},
-      android:{priority:"HIGH",ttl:"120s",notification:{channel_id:"bite_owner_new_orders_v1",sound:"default",tag:"bite-test"}}
+      android:{priority:"HIGH",ttl:"120s",notification:{channel_id:"bite_owner_new_orders_v2",sound:"default",tag:"bite-test"}}
     }};
     const response=await fetch("https://fcm.googleapis.com/v1/projects/"+
       encodeURIComponent(account.project_id)+"/messages:send",{
