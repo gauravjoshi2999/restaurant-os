@@ -69,7 +69,7 @@ import com.getcapacitor.annotation.PermissionCallback;
   permissions={@Permission(alias="notifications",
     strings={Manifest.permission.POST_NOTIFICATIONS})})
 public class BiteOrderAlertsPlugin extends Plugin {
-  private static final String CHANNEL_ID="bite_owner_new_orders_v1";
+  private static final String CHANNEL_ID="bite_owner_new_orders_v2";
 
   @PluginMethod
   public void enable(PluginCall call) {
@@ -111,6 +111,10 @@ public class BiteOrderAlertsPlugin extends Plugin {
     if(Build.VERSION.SDK_INT>=26 && nm.getNotificationChannel(CHANNEL_ID)==null){
       NotificationChannel channel=new NotificationChannel(CHANNEL_ID,"New restaurant orders",NotificationManager.IMPORTANCE_HIGH);
       channel.enableVibration(true);
+      channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new android.media.AudioAttributes.Builder()
+            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
       nm.createNotificationChannel(channel);
     }
     Intent intent=new Intent(getContext(),getActivity().getClass());
