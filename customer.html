@@ -414,13 +414,14 @@ function biteCheckoutCartSignature(restaurantId,entries){
 }
 function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
+ const freshPending=!!(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested);
  btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady);
  btn.setAttribute('aria-disabled',String(btn.disabled));
- btn.textContent=checkoutPaymentBusy?'Please wait…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
+ btn.textContent=checkoutPaymentBusy?'Please wait…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):checkoutPaymentReady?'Pay online':'Online payment unavailable';
  $('quickCancelCheckout')?.classList.toggle('hidden',!pendingLiveCheckout);
  $('checkPendingPaymentBtn')?.classList.toggle('hidden',!pendingLiveCheckout||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
- if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':pendingLiveCheckout?'Previous payment needs confirmation. You can return to the menu anytime.':checkoutPaymentReady?'Secure online payment via Cashfree.':'Payment temporarily unavailable.';
+ if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Your new cart is saved. Finish checking the earlier payment before paying.':pendingLiveCheckout?'Previous payment needs confirmation. You can return to the menu anytime.':checkoutPaymentReady?'Secure online payment via Cashfree.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
   if(pendingLiveCheckout){if(!('paymentWasDisabled' in el.dataset))el.dataset.paymentWasDisabled=String(el.disabled);el.disabled=true;}
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
@@ -440,10 +441,17 @@ async function refreshCheckoutPaymentReadiness(){
 }
 async function finishVerifiedCheckout(result,options={}){
  if(result?.status!=='activated'||!result.order_id)throw new Error('Payment verification pending. Dobara payment na karein.');
+ const preserveNewCheckout=options?.background===true&&window.BiteCheckoutUX?.freshCartRequested===true&&
+  !$('checkoutFormPanel').classList.contains('hidden')&&$('checkoutModal').classList.contains('show');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
  const pendingCartSignature=pendingLiveCheckout?.cartSignature||null;
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
+ if(window.BiteCheckoutUX)window.BiteCheckoutUX.freshCartRequested=false;
  if(completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};renderCart();}
+ if(preserveNewCheckout){
+  syncCheckoutPaymentButton();void refreshCheckoutPaymentReadiness();
+  window.BiteCustomerExtras?.showPaymentVerifiedNotice?.();return;
+ }
  $('checkoutModal').classList.add('hidden');$('checkoutModal').classList.remove('show');
  window.BiteCheckoutUX?.resetResult?.();syncCheckoutPaymentButton();
  if(options?.background===true){
@@ -626,6 +634,12 @@ async function cancelPendingCustomerCheckout(options={}){
 }
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
+ if(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested){
+  // A new cart may be edited but payment must never be sent to an old Cashfree intent.
+  if(!window.BiteCheckoutUX.cancelBusy)await cancelPendingCustomerCheckout({background:true});
+  syncCheckoutPaymentButton();
+  return;
+ }
  if(window.BiteCustomerExtras?.isRecovering?.()){$('checkoutError').textContent='Pichhla checkout recover ho raha hai. Please wait.';return;}
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();$('checkoutError').textContent='';
  try{
