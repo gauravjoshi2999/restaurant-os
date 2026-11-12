@@ -60,6 +60,11 @@ Deno.serve(async req=>{
    if(order.status!=="Received"||String(order.channel||"").toLowerCase()!=="own platform"||order.is_demo===true){
     state="failed";lastError="Not an eligible new paid order";skipped++;
    }else{
+    const {data:finance,error:financeError}=await db.from("order_financials")
+      .select("payment_status").eq("order_id",ev.order_id).maybeSingle();
+    if(financeError||finance?.payment_status!=="paid"){
+      state=claimed.attempts>=4?"failed":"retry";lastError="Awaiting verified payment";failed++;
+    }else{
     const {data:members,error:memberError}=await db.from("restaurant_members").select("user_id")
      .eq("restaurant_id",ev.restaurant_id).eq("role","owner");
     if(memberError)throw Error("Owner mapping unavailable");
@@ -92,6 +97,7 @@ Deno.serve(async req=>{
      }
      if(errors===0){state="sent";sent++}
      else {state=ev.attempts>=4?"failed":"retry";failed++;lastError="FCM delivery failed for one or more registered devices"}
+    }
     }
    }
   }catch(error){state=ev.attempts>=4?"failed":"retry";lastError=String(error).slice(0,130);failed++}
