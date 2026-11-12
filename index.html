@@ -2418,7 +2418,9 @@ async function handlePendingNativeOwnerAction(){
   const label=order.code||order.id.slice(0,8);
   let note=null;
   if(pending.action==='Accepted'){
-   if(!confirm('Order #'+label+' accept karna hai?'))return;
+   // Tapping the authenticated Android notification Accept button IS the
+   // owner's confirmation. Do not require a second acceptance in the WebView.
+   note=null;
   }else{
    const input=prompt('Order #'+label+' reject karne ka reason likhein:');
    if(input===null)return;
@@ -2439,7 +2441,9 @@ async function handlePendingNativeOwnerAction(){
   }
   await loadCloudData();
   showPage('orders');
-  setOrderStatus('Received');
+  // Accepted orders must be shown under Accepted, not hidden in New.
+  // Reject requires a reason; otherwise leave the order untouched.
+  setOrderStatus(data?.ok===true&&pending.action==='Accepted'?'Accepted':'all');
  }catch(err){console.warn('Bite notification action failed',err);showOrderLiveToast('Action verify nahi hua. Orders screen par status dekhein.');}
  finally{ownerNativeActionBusy=false;}
 }
