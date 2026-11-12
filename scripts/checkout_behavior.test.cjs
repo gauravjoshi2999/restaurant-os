@@ -162,12 +162,30 @@ test('server-activated pending checkout opens My Orders without new Cashfree pay
  assert.equal(t.displayedOrders,1);
  assert.equal(t.calls.filter(c=>c.kind==='sdk'||c.kind==='rpc').length,0);
 });
+test('Start new order is immediate navigation, never gated by a bank-side cancellation await',()=>{
+ assert.match(html,/function startNewOrderFromPending\(\)/);
+ const begin=html.indexOf('function startNewOrderFromPending()');
+ const end=html.indexOf('async function cancelPendingCustomerCheckout(',begin);
+ const start=html.slice(begin,end);
+ assert.match(start,/closeCheckoutAndReturnToMenu\(\)/);
+ assert.match(start,/clearCustomerCart\(\)/);
+ assert.match(start,/void cancelPendingCustomerCheckout\(\{background:true\}\)/);
+ assert.doesNotMatch(start,/await cancelPendingCustomerCheckout/);
+ assert.match(html,/\$\('bitePendingStartFresh'\)\.addEventListener\('click',startNewOrderFromPending\)/);
+});
+test('new cart never resumes an old Cashfree intent while payment status is unresolved',()=>{
+ assert.match(html,/window\.BiteCheckoutUX\.freshCartRequested=true/);
+ assert.match(html,/if\(pendingLiveCheckout&&window\.BiteCheckoutUX\?\.freshCartRequested\)/);
+ assert.match(html,/Check earlier payment/);
+ assert.match(html,/cancelPendingCustomerCheckout\(\{background:true\}\)/);
+});
 test('Cashfree return quietly verifies payment without reopening checkout',()=>{
  const handler=html.split('<script id="bite-live-checkout-return-handler">')[1].split('</script>')[0];
- assert.match(handler,/bitePaymentReturnStatus/);
+ assert.doesNotMatch(handler,/bitePaymentReturnStatus/,'Cashfree return must not create a second reminder');
+ assert.match(handler,/renderPendingPaymentBanner/,'reuse the existing dismissible reminder');
  assert.match(handler,/finishVerifiedCheckout\(data,\{background:true\}\)/);
  assert.match(handler,/history\.replaceState\(null,''/);
- assert.match(handler,/Check status/);
+ assert.doesNotMatch(handler,/createElement\('div'\)/,'return callback cannot create another payment banner');
  assert.doesNotMatch(handler,/position:fixed|Checkout:|Pay again/);
  assert.doesNotMatch(handler,/checkoutError.*textContent/,'no checkout form error changes during payment return');
  assert.doesNotMatch(handler,/Cashfree\(\{/,'Cashfree SDK must never reopen during return');
