@@ -63,3 +63,15 @@ test('Overview exposes separate native sound test and real lock-screen FCM push 
  assert.match(overview,/onclick="testOwnerLockScreenPush\(\)"/);
  assert.match(html,/sb\.functions\.invoke\('bite-owner-push-test'/);
 });
+
+test('Repeated push test shows cooldown rather than blaming Firebase or owner login',()=>{
+ assert.match(pushTest,/code:"test_cooldown"/);
+ assert.match(pushTest,/retry_after_seconds:retryAfterSeconds/);
+ assert.match(pushTest,/No registered Bite Partner device/);
+ const testHandler=html.slice(html.indexOf('async function testOwnerLockScreenPush(){'),html.indexOf('function testOwnerOrderAlert(){'));
+ assert.match(testHandler,/ownerPushTestSending/);
+ assert.match(testHandler,/status===429/);
+ assert.match(testHandler,/ownerPushTestCooldownUntil/);
+ assert.match(testHandler,/refreshOwnerPushTestButton/);
+ assert.doesNotMatch(testHandler,/Push test send nahi hua\. Firebase\/owner login check karein/);
+});
