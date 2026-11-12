@@ -104,6 +104,13 @@ jobs:
         run: npx cap sync android
       - name: Preserve WebView login and install native new-order notifications
         run: python3 patch_bite_native.py
+      - name: Install Firebase push only when Bite Partner Firebase config is available
+        shell: bash
+        env:
+          BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          python3 -m py_compile patch_bite_fcm.py
+          python3 patch_bite_fcm.py
       - name: Set version code for signed releases
         shell: bash
         env:
