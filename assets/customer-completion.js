@@ -30,7 +30,7 @@
    if(data.delivery_type==='delivery'){const address=data.address_snapshot||{};$('newAddressFields').classList.remove('hidden');for(const [key,id] of Object.entries({address_line:'addressLine',landmark:'addressLandmark',city:'addressCity',state:'addressState',postal_code:'addressPostal'}))$(id).value=address[key]||'';}
 
    renderPendingPaymentBanner();
-  }catch{notice('Pending payment ka status abhi nahi mila. Dobara payment se pehle My Orders ya support mein check karein.');}finally{if(token===restoreToken)recoveryBusy=false;}
+  }catch{notice('Could not check the previous payment. You can continue browsing.');}finally{if(token===restoreToken){recoveryBusy=false;if(pendingLiveCheckout?.id===saved.id)void checkPendingCustomerPayment({background:true});}}
  }
  async function loadFavourites(){const user=activeCustomerId;if(!user){favouriteRestaurantIds.clear();renderFavouriteButton();return;}try{const {data,error}=await sb.from('bite_customer_favourites').select('restaurant_id').eq('customer_id',user);if(error)throw error;if(user!==activeCustomerId)return;favouritesUser=user;favouriteRestaurantIds=new Set((data||[]).map(x=>x.restaurant_id));renderFavouriteButton();renderRestaurants();}catch{favouritesUser=null;}}
  function renderFavouriteButton(){let button=$('restaurantFavourite');if(!button){button=document.createElement('button');button.id='restaurantFavourite';button.className='secondary bite-favourite';button.type='button';$('restaurantDescription').after(button);button.addEventListener('click',toggleFavourite);}const saved=activeRestaurant&&favouriteRestaurantIds.has(activeRestaurant.id);button.textContent=saved?'♥ Saved to favourites':'♡ Save restaurant';button.setAttribute('aria-pressed',String(!!saved));}
@@ -53,7 +53,8 @@
  $('requestAccountDeletion').addEventListener('click',async()=>{if(!confirm('Account deletion request bhejein? Naye orders pause ho jayenge.'))return;const {error}=await sb.rpc('bite_request_account_deletion');notice(error?error.message:'Deletion request save ho gayi. Support account aur records review karega.');});
  }
  function clearSensitiveState(){restoreToken++;recoveryBusy=false;pendingLiveCheckout=null;checkoutRequestKey=null;favouritesUser=null;$('customerProfileEdit')?.remove();$('pendingPaymentBanner')?.remove();}
- window.BiteCustomerExtras={renderPendingPaymentBanner,showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
+ function showPaymentVerifiedNotice(){notice('Payment confirmed. View your order in My Orders.');}
+  window.BiteCustomerExtras={renderPendingPaymentBanner,showPaymentVerifiedNotice,showServerQuote,isRecovering:()=>recoveryBusy,renderCategories,renderFavouriteButton,loadFavourites,resetCoupon,loadOffers,savePendingCheckout,saveCheckoutKey,restorePendingCheckout,renderAccountExtras,clearSensitiveState};
  renderCategories();$('discoveryPinInput').value=currentDiscoveryPin;if(currentDiscoveryPin)$('customerLocationLabel').textContent='Delivery PIN '+currentDiscoveryPin;
  $('discoveryLocationForm').addEventListener('submit',e=>{e.preventDefault();setPin($('discoveryPinInput').value.trim());});$('chooseDiscoveryAddress').addEventListener('click',chooseAddress);
  ['filterOpenNow','filterFavourites'].forEach(id=>$(id).addEventListener('click',()=>{if(id==='filterFavourites'&&!activeCustomerId){showAuth('login');return;}const active=$(id).getAttribute('aria-pressed')!=='true';$(id).setAttribute('aria-pressed',String(active));$(id).classList.toggle('active',active);renderRestaurants();}));
