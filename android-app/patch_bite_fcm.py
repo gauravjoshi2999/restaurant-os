@@ -255,7 +255,8 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
     manager.notify(id.hashCode() & 0x7fffffff,builder.build());
   }
 }
-'''\n(activity.parent / "BiteFirebaseMessagingService.java").write_text(service_code.replace("PACKAGE", package, 1))
+'''
+(activity.parent / "BiteFirebaseMessagingService.java").write_text(service_code.replace("PACKAGE", package, 1))
 manifest = app / "src/main/AndroidManifest.xml"
 xml = manifest.read_text()
 service_xml = """
