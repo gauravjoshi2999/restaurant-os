@@ -108,6 +108,7 @@ jobs:
         shell: bash
         env:
           BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+          BITE_FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON }}
         run: |
           python3 -m py_compile patch_bite_fcm.py
           python3 patch_bite_fcm.py
