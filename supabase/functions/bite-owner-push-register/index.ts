@@ -22,6 +22,7 @@ Deno.serve(async(req:Request)=>{
  const restaurantId=String(body?.restaurant_id||"");
  const token=String(body?.fcm_token||"");
  const action=body?.action==="unregister"?"unregister":"register";
+ const supportsActions=body?.supports_order_actions===true;
  if(!uuid.test(restaurantId)||token.length<40||token.length>4096||/[^\x21-\x7e]/.test(token))return respond({error:"Invalid device or restaurant"},400);
  const db=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:membership,error:membershipError}=await db.from("restaurant_members")
@@ -33,6 +34,6 @@ Deno.serve(async(req:Request)=>{
    return error?respond({error:"Could not unregister device"},503):respond({registered:false});
  }
  const {error}=await db.from("bite_owner_push_devices")
- .upsert({user_id:user.id,restaurant_id:restaurantId,fcm_token:token,app_id:"in.bite.partner",enabled:true,updated_at:new Date().toISOString(),last_seen_at:new Date().toISOString()},{onConflict:"fcm_token"});
+ .upsert({user_id:user.id,restaurant_id:restaurantId,fcm_token:token,app_id:"in.bite.partner",supports_order_actions:supportsActions,enabled:true,updated_at:new Date().toISOString(),last_seen_at:new Date().toISOString()},{onConflict:"fcm_token"});
  return error?respond({error:"Device registration unavailable"},503):respond({registered:true});
 });
