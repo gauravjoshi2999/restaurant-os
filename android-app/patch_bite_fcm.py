@@ -44,6 +44,18 @@ if not configuration.get("project_info", {}).get("project_id"):
 app = Path("android/app")
 (app / "google-services.json").write_bytes(payload)
 
+# Firebase Messaging 26.x requires Android API 24. Only the Partner build
+# uses this newer minimum; Customer and Admin builds remain unchanged.
+variables_gradle = Path("android/variables.gradle")
+variables = variables_gradle.read_text()
+old_min_sdk = re.search(r"(minSdkVersion\s*=\s*)(\d+)", variables)
+if not old_min_sdk:
+    raise SystemExit("Could not locate Android minimum SDK version")
+if int(old_min_sdk.group(2)) < 24:
+    variables = (variables[:old_min_sdk.start(2)] + "24" + variables[old_min_sdk.end(2):])
+    variables_gradle.write_text(variables)
+print("FCM compatible Partner Android minSdkVersion:", max(24, int(old_min_sdk.group(2))))
+
 root_gradle = Path("android/build.gradle")
 root = root_gradle.read_text()
 if "com.google.gms:google-services" not in root:
