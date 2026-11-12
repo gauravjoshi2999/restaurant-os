@@ -257,7 +257,7 @@ $('menuItems').addEventListener('click',e=>{const add=e.target.closest('[data-ad
 let biteMenuSearchTimer=null;
 $('menuSearchInput').addEventListener('input',()=>{clearTimeout(biteMenuSearchTimer);biteMenuSearchTimer=setTimeout(()=>renderMenuItems(),120);});
 $('menuVegToggle').addEventListener('change',()=>{clearTimeout(biteMenuSearchTimer);renderMenuItems();});
-function renderCart(){const nextSignature=JSON.stringify([activeRestaurant?.id,cart]);if(!pendingLiveCheckout&&cartPricingSignature!==nextSignature){cartPricingSignature=nextSignature;appliedCheckoutCoupon=null;checkoutRequestKey=null;window.BiteCustomerExtras?.resetCoupon();}const entries=cartEntries();const count=entries.reduce((s,[,q])=>s+q,0);const total=entries.reduce((sum,[id,q])=>sum+(Number(menuItems.find(x=>x.id===id)?.price||0)*q),0);$('cartCount').textContent='('+count+')';$('cartTotal').textContent=money(total);$('cartLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);return '<div class="cartline"><span>'+safe(i?.name)+' × '+q+'</span><strong>'+money(Number(i?.price||0)*q)+'</strong></div>'}).join(''):'Add items to start your order.';const restaurantClosed=activeRestaurant?BiteDiscovery.isClosed(activeRestaurant):false;$('continueBtn').disabled=!entries.length||restaurantClosed;$('continueBtn').textContent=restaurantClosed?'Closed now':'Continue';$('cartFloating').classList.toggle('show',count>0&&!$('menuView').classList.contains('hidden'));$('floatingCartCount').textContent=count+' item'+(count===1?'':'s');$('floatingCartTotal').textContent=money(total);if(!$('cartModal').classList.contains('hidden'))renderCartModal();saveCustomerCart();}
+function renderCart(){const nextSignature=JSON.stringify([activeRestaurant?.id,cart]);if(!pendingLiveCheckout&&cartPricingSignature!==nextSignature){cartPricingSignature=nextSignature;appliedCheckoutCoupon=null;checkoutRequestKey=null;window.BiteCustomerExtras?.resetCoupon();}const entries=cartEntries();const count=entries.reduce((s,[,q])=>s+q,0);const total=entries.reduce((sum,[id,q])=>sum+(Number(menuItems.find(x=>x.id===id)?.price||0)*q),0);$('cartCount').textContent='('+count+')';$('cartTotal').textContent=money(total);$('cartLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);return '<div class="cartline"><span>'+safe(i?.name)+' × '+q+'</span><strong>'+money(Number(i?.price||0)*q)+'</strong></div>'}).join(''):'Add items to start your order.';const restaurantClosed=activeRestaurant?BiteDiscovery.isClosed(activeRestaurant):false;$('continueBtn').disabled=!entries.length;$('continueBtn').textContent=restaurantClosed?'Review cart · Closed now':'Continue';$('cartFloating').classList.toggle('show',count>0&&!$('menuView').classList.contains('hidden'));$('floatingCartCount').textContent=count+' item'+(count===1?'':'s');$('floatingCartTotal').textContent=money(total);if(!$('cartModal').classList.contains('hidden'))renderCartModal();saveCustomerCart();}
 $('customerUseLocation').addEventListener('click',enableCustomerLocation);$('searchInput').addEventListener('input',()=>{if($('homeSearchInput'))$('homeSearchInput').value=$('searchInput').value;renderRestaurants()});$('searchBtn').addEventListener('click',renderRestaurants);if($('homeSearchInput')){$('homeSearchInput').addEventListener('input',()=>{$('searchInput').value=$('homeSearchInput').value;renderRestaurants()});$('homeSearchBtn').addEventListener('click',()=>{renderRestaurants();$('restaurantResults').scrollIntoView({behavior:'smooth',block:'start'});})}$('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;activeFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderRestaurants()});
 // "Aaj kya khayenge?" is navigation as well as a category filter.
 function scrollToFilteredRestaurants(){
@@ -406,7 +406,21 @@ function useCurrentAddressLocation(){
 }
 $('openAddressMap').addEventListener('click',openAddressMap);
 $('useCurrentLocation').addEventListener('click',()=>{if($('addressMap').classList.contains('hidden'))openAddressMap();useCurrentAddressLocation();});
-function cartEntries(){return Object.entries(cart).filter(([id,q])=>q>0&&menuItems.some(i=>i.id===id));}function renderCartModal(){const entries=cartEntries();const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);$('cartRestaurantName').textContent=activeRestaurant?.name||'';$('cartModalLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);const photo=i.image_url||'assets/food-placeholder.svg';return '<div class="cart-product"><img src="'+safe(photo)+'" alt="'+safe(i.name)+'"><div class="cart-product-info"><div class="cart-product-name">'+safe(i.name)+'</div><div class="cart-product-price">'+money(i.price)+'</div></div><div><div class="cart-qty"><button data-cart-dec="'+id+'">−</button><span>'+q+'</span><button data-cart-inc="'+id+'">+</button></div><div style="font-size:12px;text-align:right;margin-top:5px;font-weight:800">'+money(Number(i.price)*q)+'</div></div></div>'}).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';$('cartModalTotal').innerHTML='<div style="display:flex;justify-content:space-between"><span>Item total</span><strong>'+money(total)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span>Delivery fee</span><strong>Shown at checkout</strong></div>';$('cartCheckoutBtn').disabled=!entries.length||!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));$('emptyCartBtn').disabled=!entries.length;}
+function cartRestaurantClosedMessage(){
+ const r=activeRestaurant;if(!r)return 'Restaurant is not available for new orders right now.';
+ if(r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until).getTime()>Date.now()))
+  return 'Restaurant is temporarily closed. Your cart is saved; orders cannot be placed right now.';
+ const format=t=>{const m=String(t||'').match(/^(\d{2}):([0-5]\d)/);if(!m)return '';const h=Number(m[1]);return (h%12||12)+':'+m[2]+' '+(h<12?'AM':'PM');};
+ const open=format(r.opening_time),close=format(r.closing_time);
+ return 'Restaurant abhi closed hai.'+(open&&close?' Orders '+open+' se '+close+' (IST) tak liye jaate hain.':'')+' Aapka cart safe hai; khulne par checkout karein.';
+}
+function cartEntries(){return Object.entries(cart).filter(([id,q])=>q>0&&menuItems.some(i=>i.id===id));}function renderCartModal(){const entries=cartEntries();const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);$('cartRestaurantName').textContent=activeRestaurant?.name||'';$('cartModalLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);const photo=i.image_url||'assets/food-placeholder.svg';return '<div class="cart-product"><img src="'+safe(photo)+'" alt="'+safe(i.name)+'"><div class="cart-product-info"><div class="cart-product-name">'+safe(i.name)+'</div><div class="cart-product-price">'+money(i.price)+'</div></div><div><div class="cart-qty"><button data-cart-dec="'+id+'">−</button><span>'+q+'</span><button data-cart-inc="'+id+'">+</button></div><div style="font-size:12px;text-align:right;margin-top:5px;font-weight:800">'+money(Number(i.price)*q)+'</div></div></div>'}).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
+ const closedNotice=closed?cartRestaurantClosedMessage():'';
+ $('cartModalTotal').innerHTML='<div style="display:flex;justify-content:space-between"><span>Item total</span><strong>'+money(total)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span>Delivery fee</span><strong>Shown at checkout</strong></div>'+(closed?'<div id="cartClosedNotice" role="status" style="color:#8a3b22;background:#fff3e9;border:1px solid #efc3a6;border-radius:10px;margin-top:10px;padding:9px 11px;font-size:13px;line-height:1.45">'+safe(closedNotice)+'</div>':'');
+ $('cartCheckoutBtn').disabled=!entries.length;
+ $('cartCheckoutBtn').textContent=closed?'Restaurant closed · View hours':'Proceed to checkout';
+ $('cartCheckoutBtn').setAttribute('aria-label',closed?closedNotice:'Proceed to checkout');
+ $('emptyCartBtn').disabled=!entries.length;}
 function openCartModal(){if(!cartEntries().length)return;$('cartOrderNote').value=$('customerNote')?.value||'';renderCartModal();$('cartModal').classList.remove('hidden');$('cartModal').classList.add('show');}
 function closeCartModal(){$('cartModal').classList.add('hidden');$('cartModal').classList.remove('show');}
 function checkoutMode(){return document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';}
@@ -414,7 +428,9 @@ function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='del
 async function getCheckoutDeliveryZone(){if(checkoutMode()!=='delivery')return null;const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});if(error)throw error;const zone=Array.isArray(data)?data[0]:data;if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);if(subtotal<Number(zone.minimum_order_amount||0))throw new Error('Is delivery zone ka minimum food order '+money(zone.minimum_order_amount)+' hai.');return zone;}
 async function refreshCheckoutZoneEstimate(){if(checkoutMode()!=='delivery'){renderCheckoutSummary(0);$('checkoutError').textContent='';return;}const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal)){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';return;}try{const zone=await getCheckoutDeliveryZone();renderCheckoutSummary(zone.delivery_fee);$('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);}catch(e){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';}}
 function toggleCheckoutDelivery(){const delivery=checkoutMode()==='delivery';$('deliveryFields').classList.toggle('hidden',!delivery);renderCheckoutSummary(delivery?activeRestaurant?.default_delivery_fee||0:0);refreshCheckoutZoneEstimate();}
-async function openCheckout(){window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
+async function openCheckout(){
+ if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)){openCartModal();return;}
+ window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
   if(!activeRestaurant||!cartEntries().length){window.BiteCheckoutUX.showPending('Check earlier payment status or browse the menu.');return;}
   // Allow editing the NEW cart immediately; payment is gated until the old
   // Cashfree attempt is proven cancelled or safely expired.
@@ -766,7 +782,28 @@ $('cartModal').addEventListener('click',e=>{if(e.target===$('cartModal'))closeCa
 $('addMoreItems').addEventListener('click',()=>{closeCartModal();$('menuItems').scrollIntoView({behavior:'smooth',block:'start'});});
 $('cartModalLines').addEventListener('click',e=>{const inc=e.target.closest('[data-cart-inc]'),dec=e.target.closest('[data-cart-dec]');if(inc){const id=inc.dataset.cartInc;cart[id]=Math.min(99,(cart[id]||0)+1);}else if(dec){const id=dec.dataset.cartDec;cart[id]=Math.max(0,(cart[id]||0)-1);if(!cart[id])delete cart[id];}else return;renderCart();refreshMenuQuantityControl(inc?.dataset.cartInc||dec.dataset.cartDec);});
 $('emptyCartBtn').addEventListener('click',()=>{clearCustomerCart();renderCart();});
-$('cartCheckoutBtn').addEventListener('click',async()=>{$('customerNote').value=$('cartOrderNote').value.trim();closeCartModal();try{await openCheckout();}catch(e){showAuth('login');$('authError').textContent=e.message||'Please login to continue.';}});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&!$('cartModal').classList.contains('hidden'))renderCartModal();
+});
+$('cartCheckoutBtn').addEventListener('click',async()=>{
+ if(!cartEntries().length)return;
+ if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)){
+  renderCartModal();
+  $('cartClosedNotice')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+  return;
+ }
+ $('customerNote').value=$('cartOrderNote').value.trim();
+ closeCartModal();
+ try{await openCheckout();}
+ catch(e){
+  openCartModal();
+  const warning=document.createElement('p');warning.role='alert';
+  warning.style.cssText='color:#a4262c;font-size:13px;margin:8px 0 0';
+  warning.textContent='Checkout abhi nahi khul saka. Cart safe hai. '+(e.message||'Please retry.');
+  $('cartModalTotal').appendChild(warning);
+  console.warn('Customer checkout setup failed',e);
+ }
+});
 function closeCheckoutAndReturnToMenu(){if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
 $('closeCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('cancelCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
