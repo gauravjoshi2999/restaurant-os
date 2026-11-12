@@ -2656,7 +2656,11 @@ function renderFinancials(){
 async function saveReconciliation(id){const reportedInput=document.getElementById('reported-'+id),payoutInput=document.getElementById('payout-'+id);const reported=Number(reportedInput?.value),payoutText=payoutInput?.value.trim();if(!Number.isFinite(reported)||reported<0){alert('Valid platform reported amount enter karein.');return}if(payoutText!==''&&(!Number.isFinite(Number(payoutText))||Number(payoutText)<0)){alert('Valid bank payout amount enter karein.');return}const patch={platform_reported:reported,bank_payout:payoutText===''?null:Number(payoutText)};const {error}=await sb.from('orders').update(patch).eq('id',id);if(error){alert('Reconciliation save nahi hua: '+error.message);return}await loadCloudData();alert('Reconciliation details cloud mein save ho gayi.')}
 function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='restaurantos-cloud-export.json';a.click();URL.revokeObjectURL(a.href)}
 async function resetData(){alert('Cloud data ko is demo screen se bulk delete nahi kiya jayega. Supabase dashboard se admin review ke baad hi delete karein.')}
-sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){currentUser=null;state={restaurants:[],orders:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex'}});
+sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){
+ const nativePush=window.Capacitor?.Plugins?.BiteOwnerPush;
+ if(nativePush?.disable)void nativePush.disable().catch(error=>console.warn('FCM token cleanup delayed',error));
+ ownerPushToken=null;ownerPushRestaurantId=null;lastOwnerPushSync=0;
+ currentUser=null;state={restaurants:[],orders:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex'}});
 (async()=>{
  let session=null,restoreError=null;
  for(let attempt=0;attempt<3;attempt++){
