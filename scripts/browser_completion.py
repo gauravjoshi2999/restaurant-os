@@ -34,6 +34,25 @@ try:
   customer.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html',wait_until='domcontentloaded')
   customer.locator('#restaurantGrid .restaurant').wait_for(state='visible')
   check('QA FIXTURE' in customer.locator('body').inner_text(),'Preview is explicitly synthetic and cannot charge or sign in real users')
+  # Category selection must navigate to the actual refreshed restaurant results,
+  # not merely toggle the active chip while leaving the hero on screen.
+  customer.locator('[data-home-filter="all"]').click()
+  customer.wait_for_function("""() => {
+    const results=document.getElementById('restaurantResults');
+    const header=document.querySelector('.header');
+    if(!results||!header)return false;
+    const y=results.getBoundingClientRect().top,headerBottom=header.getBoundingClientRect().bottom;
+    return window.scrollY>50 && y>=headerBottom-8 && y<=headerBottom+65;
+  }""",timeout=6000)
+  check(customer.evaluate("""() => {
+    const results=document.getElementById('restaurantResults').getBoundingClientRect();
+    return results.top>0 && results.top<innerHeight*0.4;
+  }"""),'Aaj kya khayenge category click scrolls filtered restaurants below the mobile sticky header')
+  customer.evaluate("window.scrollTo({top:0,behavior:'instant'})")
+  customer.locator('[data-home-filter="North Indian"]').click()
+  check(customer.locator('[data-home-filter="North Indian"]').get_attribute('aria-pressed')=='true','Thali and curries category keeps selected filter after scrolling')
+  customer.locator('[data-home-filter="all"]').click()
+  check(customer.locator('[data-home-filter="all"]').get_attribute('aria-pressed')=='true','Everything category restores all restaurant results')
   customer.locator('#discoveryPinInput').fill('313399');customer.locator('#discoveryLocationForm button[type=submit]').click()
   customer.wait_for_function("document.querySelector('#resultCount').textContent.startsWith('0 ')")
   check(customer.locator('#restaurantGrid .restaurant').count()==0,'Out-of-area PIN removes delivery restaurants')
