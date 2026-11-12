@@ -2360,24 +2360,60 @@ function sendOwnerOrderNotification(order,restaurant){
   try{new Notification(title,{body,tag:'bite-order-'+order.id});}catch(error){console.warn('Browser order notification unavailable',error);}
  }
 }
-async function testOwnerLockScreenPush(){
- if(access.role!=='owner'||!access.restaurantId)return;
+let ownerPushTestCooldownUntil=0;
+let ownerPushTestSending=false;
+let ownerPushCooldownTimer=null;
+function refreshOwnerPushTestButton(){
  const button=document.getElementById('ownerLockScreenPushTest');
- if(button){button.disabled=true;button.textContent='Sending test…';}
+ if(!button)return;
+ const seconds=Math.max(0,Math.ceil((ownerPushTestCooldownUntil-Date.now())/1000));
+ button.disabled=ownerPushTestSending||seconds>0;
+ button.textContent=ownerPushTestSending?'Sending test…':seconds>0?'Retry push in '+seconds+'s':'Test lock-screen push';
+ if(ownerPushCooldownTimer){clearTimeout(ownerPushCooldownTimer);ownerPushCooldownTimer=null;}
+ if(seconds>0)ownerPushCooldownTimer=setTimeout(refreshOwnerPushTestButton,1000);
+}
+async function testOwnerLockScreenPush(){
+ if(access.role!=='owner'||!access.restaurantId||ownerPushTestSending)return;
+ if(Date.now()<ownerPushTestCooldownUntil){
+  showOrderLiveToast('Previous push test already requested. Phone lock karke notifications check karein.');
+  return;
+ }
+ ownerPushTestSending=true;refreshOwnerPushTestButton();
  try{
-  // The Partner APK registers its own FCM device. Browsers can also request
-  // a test for the already-registered phone, without accessing the token.
+  // Keep this owner-only, with the restaurant's registered device token held by the server.
   if(window.Capacitor?.Plugins?.BiteOwnerPush)await syncOwnerPushToken(true);
   const {data,error}=await sb.functions.invoke('bite-owner-push-test',{
    body:{restaurant_id:access.restaurantId}
   });
-  if(error||data?.scheduled!==true)throw new Error(data?.error||'Server push test not available.');
-  showOrderLiveToast('🔔 Push test scheduled. Ab phone lock karein — 8 seconds ke baad notification aayega.');
+  if(error){
+   let details=data;
+   try{details=(await error.context?.json?.())||data;}catch{}
+   const status=Number(error.context?.status||0);
+   if(status===429||details?.code==='test_cooldown'){
+    const retrySeconds=Math.min(60,Math.max(1,Number(details?.retry_after_seconds)||60));
+    ownerPushTestCooldownUntil=Date.now()+retrySeconds*1000;
+    showOrderLiveToast('Previous push test already sent. Phone lock karke notification dekhein; retry '+retrySeconds+'s baad.');
+    return;
+   }
+   if(status===401||status===403){
+    showOrderLiveToast('Owner session verify nahi hui. Partner App dobara kholkar login check karein.');
+    return;
+   }
+   if(status===409||details?.code==='no_device'){
+    showOrderLiveToast('Partner device registered nahi mila. App kholkar notification permission check karein.');
+    return;
+   }
+   throw new Error(details?.error||'Push test unavailable');
+  }
+  if(data?.scheduled!==true)throw new Error(data?.error||'Push test unavailable');
+  ownerPushTestCooldownUntil=Date.now()+60000;
+  showOrderLiveToast('🔔 Test Firebase ko schedule hua. Ab phone lock karein; lagbhag 8s baad notification dekhein.');
  }catch(err){
   console.warn('Bite lock-screen push test unavailable',err);
-  showOrderLiveToast('Push test send nahi hua. Firebase/owner login check karein.');
+  showOrderLiveToast('Push test server se nahi bheja ja saka. Connection check karke baad mein retry karein.');
  }finally{
-  if(button){button.disabled=false;button.textContent='Test lock-screen push';}
+  ownerPushTestSending=false;
+  refreshOwnerPushTestButton();
  }
 }
 function testOwnerOrderAlert(){
