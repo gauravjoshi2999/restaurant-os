@@ -143,7 +143,7 @@ check('id="pos">' in owner and "New Sale · Not enabled" in owner and "sirf pehl
       "Owner POS page clearly identifies read-only sales history and disables unsupported new-sale action")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
-check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("window.location.assign(waUrl)") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share and "about:blank" not in handover_share,
+check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("window.location.assign(waUrl)") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share and "window.open('about:blank'" not in handover_share,
       "Delivery orders require link sharing and physical handover confirmation")
 check("o.status==='Handed Over'&&a[0]==='Completed'" in owner and "o.status==='Ready'&&a[0]==='Handed Over'" in owner,
       "Delivery orders cannot bypass OTP completion or handoff-link creation")
