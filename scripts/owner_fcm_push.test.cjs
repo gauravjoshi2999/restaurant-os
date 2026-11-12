@@ -21,6 +21,9 @@ test('Push dispatcher requires private secret and checks live paid-platform orde
  assert.match(dispatch,/db\.rpc\(verifier,\{candidate:supplied\}\)/);
  assert.match(dispatch,/FIREBASE_SERVICE_ACCOUNT_JSON/);
  assert.match(dispatch,/orders"\)/);
+ assert.match(dispatch,/order_code/);
+ assert.doesNotMatch(dispatch,/status,channel,is_demo,code["']/);
+
  assert.match(dispatch,/order\.status!=="Received"/);
  assert.match(dispatch,/order\.is_demo===true/);
  assert.match(dispatch,/finance\?\.payment_status!=="paid"/);
