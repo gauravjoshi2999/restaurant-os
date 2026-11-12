@@ -13,6 +13,6 @@ for role,source in [('customer','customer.html'),('owner','index.html'),('admin'
  html=html.replace('<body ', '<body ',1).replace('>', '>',1)
  html=re.sub(r'(<body\b[^>]*>)',r'\1<div style="position:sticky;top:0;z-index:200000;background:#382d42;color:#fff;padding:9px 14px;font:12px system-ui">QA FIXTURE — synthetic data, no real login, charge, refund, payout or upload</div>',html,count=1)
  (out/(role+'-flow.html')).write_text(html)
- if role=='customer':(out/'pending-customer-flow.html').write_text(html.replace("window.__BITE_QA_ROLE='customer';","window.__BITE_QA_ROLE='customer';window.__BITE_QA_PENDING=true;"))
+ if role=='customer':(out/'pending-customer-flow.html').write_text(html.replace("window.__BITE_QA_ROLE='customer';","window.__BITE_QA_ROLE='customer';window.__BITE_QA_PENDING=true;window.Cashfree=()=>({checkout:async()=>({error:{message: \"Synthetic fixture: never a real charge\"}})});"))
 (out/'mobile-customer.html').write_text('<!doctype html><html><head><title>Bite mobile QA preview</title><style>body{margin:0;padding:16px;background:#dfe3eb;display:grid;place-items:start center}iframe{width:390px;height:844px;border:0;border-radius:14px;box-shadow:0 8px 30px #1a243733}</style></head><body><iframe title="Bite mobile QA" src="customer-flow.html"></iframe></body></html>')
 print('Prepared three isolated fixture pages and mobile frame.')
