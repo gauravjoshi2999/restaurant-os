@@ -757,51 +757,41 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
 </script>
 
 <script id="bite-live-checkout-return-handler">
-/* Returning from Cashfree is not proof of payment. Verify via the server, once per return. */
+/* Cashfree return never opens checkout or duplicates the existing payment reminder. */
 (function(){
  const url=new URL(location.href);
  const id=url.searchParams.get('live_checkout_return');
  if(!id||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return;
  url.searchParams.delete('live_checkout_return');
  history.replaceState(null,'',url.pathname+url.search+url.hash);
- // Use a small dismissible notice, never block browsing or reopen Checkout.
- let notice=document.getElementById('bitePaymentReturnStatus');
- if(!notice){notice=document.createElement('div');notice.id='bitePaymentReturnStatus';notice.setAttribute('role','status');
-  notice.style.cssText='display:flex;align-items:center;gap:10px;max-width:660px;margin:8px auto;padding:9px 12px;border-radius:12px;background:#f6f7fa;color:#344054;font:13px/1.4 system-ui';
-  const box=document.getElementById('homeView')||document.body;box.prepend(notice);
- }
- const msg=document.createElement('span');msg.style.flex='1';msg.textContent='Checking your payment status…';
- const dismiss=document.createElement('button');dismiss.type='button';dismiss.setAttribute('aria-label','Dismiss payment update');dismiss.textContent='×';dismiss.style.cssText='border:0;background:transparent;color:inherit;font:20px system-ui;min-width:32px';dismiss.onclick=()=>notice.remove();
- const action=document.createElement('button');action.type='button';action.textContent='Check status';action.hidden=true;action.style.cssText='border:0;background:#fff;color:#bd2433;border-radius:8px;padding:7px 9px;font-weight:700';action.onclick=()=>{if(pendingLiveCheckout?.id===id)window.BiteCheckoutUX?.showPending?.();else showCustomerView('orders');};
- notice.replaceChildren(msg,action,dismiss);
- const update=(message,canCheck=false)=>{msg.textContent=message;action.hidden=!canCheck;};
  (async()=>{
   try{
    const {data:{session}}=await sb.auth.getSession();
-   if(!session){update('Sign in to check your payment.',true);return;}
+   if(!session)return;
    const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:id}});
    if(error)throw error;
    if(data?.status==='activated'){
     if(pendingLiveCheckout?.id===id)await finishVerifiedCheckout(data,{background:true});
-    update('Payment confirmed. Your order is in My Orders.',true);
-    action.onclick=()=>showCustomerView('orders');
+    else window.BiteCustomerExtras?.showPaymentVerifiedNotice?.();
     return;
    }
    if(['expired','failed'].includes(data?.status)){
     if(pendingLiveCheckout?.id===id){
      pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
-     window.BiteCustomerExtras?.savePendingCheckout();document.getElementById('pendingPaymentBanner')?.remove();syncCheckoutPaymentButton();
+     window.BiteCheckoutUX.freshCartRequested=false;
+     window.BiteCustomerExtras?.savePendingCheckout();
+     document.getElementById('pendingPaymentBanner')?.remove();
+     syncCheckoutPaymentButton();
     }
-    update('The previous checkout ended. You can order again.');return;
+    return;
    }
    if(pendingLiveCheckout?.id===id){
     pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
     window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();
    }
-   update('Payment is not confirmed. Continue browsing while we check.',true);
+   window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
   }catch(error){
-   console.warn('Cashfree return verification could not finish',error);
-   update('Payment status is unavailable. Check again before paying.',true);
+   console.warn('Cashfree return verification unavailable; no new charge attempted',error);
   }
  })();
 })();
