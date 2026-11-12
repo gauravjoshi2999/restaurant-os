@@ -119,7 +119,7 @@ test('status-only pending checkout recheck never launches Cashfree or creates an
  assert.equal(t.calls.filter(c=>c.name==='bite-live-verify-checkout').length,1);
  assert.equal(t.calls.filter(c=>c.name==='bite-live-create-session'||c.kind==='rpc'||c.kind==='sdk').length,0);
  assert.match(t.element('checkoutError').textContent,/Payment is not confirmed/);
- assert.match(t.element('checkoutError').textContent,/paise kate hain/i);
+ assert.match(t.element('checkoutError').textContent,/before paying again/i);
 });
 test('server-activated pending checkout opens My Orders without new Cashfree payment',async()=>{
  const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
