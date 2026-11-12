@@ -98,7 +98,7 @@ Deno.serve(async req=>{
   let state="failed",lastError:string|null=null;
   try{
    const {data:order,error:orderError}=await db.from("orders")
-     .select("id,restaurant_id,status,channel,is_demo,code")
+     .select("id,restaurant_id,status,channel,is_demo,order_code")
      .eq("id",ev.order_id).eq("restaurant_id",ev.restaurant_id).maybeSingle();
    if(orderError||!order)throw Error("Order unavailable");
    if(order.status!=="Received"||String(order.channel||"").toLowerCase()!=="own platform"||order.is_demo===true){
