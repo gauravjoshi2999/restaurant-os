@@ -2113,6 +2113,53 @@ document.getElementById('restaurantUseLocation').addEventListener('click',()=>{i
 document.getElementById('restaurantForm').addEventListener('submit',async e=>{e.preventDefault();if(!access.isPlatformAdmin){alert('Only Super Admin can save onboarding records.');return}const f=new FormData(e.target),btn=e.submitter,id=f.get('id');btn.disabled=true;try{const publish=f.get('is_published')==='on',status=String(f.get('status')||'');if(publish&&status!=='Active')throw new Error('Customer Website par publish karne se pehle onboarding status Active karein.');if(publish&&id){const {count,error:menuCheckError}=await sb.from('menu_items').select('id',{count:'exact',head:true}).eq('restaurant_id',id).eq('is_available',true);if(menuCheckError)throw menuCheckError;if(!count)throw new Error('Publish karne se pehle kam se kam ek available menu item add karein.');}else if(publish&&!id){throw new Error('Pehle restaurant save karein, phir menu item add karke publish karein.');}const payload={name:String(f.get('name')||'').trim(),contact_person:String(f.get('contact_person')||'').trim()||null,phone:String(f.get('phone')||'').trim()||null,email:String(f.get('email')||'').trim()||null,city:String(f.get('city')||'Rajsamand').trim()||'Rajsamand',status,address:String(f.get('address')||'').trim()||null,latitude:f.get('latitude')?Number(f.get('latitude')):null,longitude:f.get('longitude')?Number(f.get('longitude')):null,notes:String(f.get('notes')||'').trim()||null,is_published:publish,updated_at:new Date().toISOString()};let result;if(id){/* Admin may publish and edit onboarding, but operational fields are owner-only. */delete payload.city;delete payload.latitude;delete payload.longitude;result=await sb.from('restaurants').update(payload).eq('id',id)}else{payload.created_by=currentUser.id;result=await sb.from('restaurants').insert(payload)}if(result.error)throw result.error;e.target.reset();closeModal('restaurantModal');await loadCloudData()}catch(err){alert('Restaurant save nahi hua: '+err.message)}finally{btn.disabled=false}});
 document.getElementById('orderChannel').addEventListener('change',()=>{togglePosPaymentFields();refreshOrderTableOptions()});document.getElementById('posPaidAmount').addEventListener('input',updateOrderTotal);document.getElementById('posBalanceAction').addEventListener('change',updateOrderTotal);document.getElementById('posPickerItemName').addEventListener('input',syncPosPickerMenuPrice);document.getElementById('posPickerItemName').addEventListener('change',syncPosPickerMenuPrice);
 document.getElementById('orderForm').addEventListener('submit',async e=>{e.preventDefault();if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));if(!items.length||items.some(x=>!x.name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_price)||x.unit_price<0)){alert('Har item ka naam, sahi quantity aur price bharein.');return}btn.disabled=true;try{let data,error;if(channel.startsWith('POS - ')){const paid=Number(f.get('paid_amount')||0),billTotal=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0),remaining=Math.max(0,Math.round((billTotal-paid)*100)/100),balanceAction=remaining>0?String(f.get('balance_action')||''): 'none';if(!Number.isFinite(paid)||paid<0||paid>billTotal)throw new Error('Received amount 0 se lekar bill total tak hi ho sakta hai.');if(remaining>0&&!['udhar','waive_off'].includes(balanceAction))throw new Error('Remaining amount ke liye Udhar ya Waive-off chunein.');const result=await sb.rpc('create_pos_order_with_balance_action',{p_restaurant_id:f.get('restaurant'),p_order_code:'POS-'+Date.now(),p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',p_items:items,p_paid_amount:paid,p_payment_method:paid>0?f.get('payment_method'):null,p_payment_date:f.get('payment_date')||localDateInput(),p_reference:f.get('payment_reference')||null,p_balance_action:balanceAction,p_writeoff_reason:null});data=result.data;error=result.error}else{const result=await sb.rpc('create_order_with_items',{p_restaurant_id:f.get('restaurant'),p_order_code:'ROS-'+Date.now().toString().slice(-8),p_channel:channel,p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',p_items:items});data=result.data;error=result.error}if(error)throw error;if(!data)throw new Error('Order ID return nahi hua.');e.target.reset();closeModal('orderModal');await loadCloudData();alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.')}catch(err){alert('Order save nahi hua: '+(err.message||String(err)))}finally{btn.disabled=false}});
+async function openDeliveryWhatsAppShare(message,waUrl){
+ // The new Bite Partner APK can launch Android WhatsApp from an asynchronous
+ // checkout/handover callback without relying on WebView user activation.
+ const native=window.Capacitor?.Plugins?.BiteDeliveryShare;
+ if(native?.shareText){
+  try{await native.shareText({text:message});return true}
+  catch(err){console.warn('Native delivery sharing unavailable; using in-page fallback',err)}
+ }
+ // In older WebViews an asynchronous redirect to wa.me can show about:blank.
+ // Present the prepared share message so the next tap has a fresh user gesture.
+ document.getElementById('biteDeliveryShareDialog')?.remove();
+ const shade=document.createElement('div');shade.id='biteDeliveryShareDialog';
+ shade.setAttribute('role','dialog');shade.setAttribute('aria-modal','true');
+ shade.setAttribute('aria-label','Share delivery on WhatsApp');
+ shade.style.cssText='position:fixed;inset:0;background:rgba(8,19,31,.75);display:flex;align-items:center;justify-content:center;padding:16px;z-index:2147483646';
+ const panel=document.createElement('div');
+ panel.style.cssText='background:#fff;color:#162238;border-radius:16px;padding:22px;max-width:440px;width:100%;box-shadow:0 24px 55px #1115';
+ const heading=document.createElement('h2');heading.textContent='Delivery link taiyar hai';
+ heading.style.cssText='font-size:20px;margin:0 0 8px';
+ const note=document.createElement('p');
+ note.textContent='Handover save ho gaya. WhatsApp par delivery details bhejne ke liye neeche tap karein.';
+ note.style.cssText='line-height:1.5;margin:0 0 16px';
+ const buttons=document.createElement('div');buttons.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+ const makeButton=(label,primary)=>{
+  const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+  btn.style.cssText='border:0;border-radius:10px;padding:12px 14px;font-weight:700;cursor:pointer;background:'+(primary?'#128c53':'#eaf0f5')+';color:'+(primary?'white':'#162238');
+  return btn;
+ };
+ const whatsapp=makeButton('WhatsApp par bhejein',true);
+ whatsapp.addEventListener('click',async()=>{
+  if(navigator.share){
+   try{await navigator.share({text:message});shade.remove();return}
+   catch(err){if(err?.name==='AbortError')return;console.warn('Web Share unavailable',err)}
+  }
+  window.location.assign(waUrl);
+ });
+ const copy=makeButton('Copy message',false);
+ copy.addEventListener('click',async()=>{
+  try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+   await navigator.clipboard.writeText(message);copy.textContent='Copied ✓';
+  }catch{window.prompt('Delivery message copy karein:',message)}
+ });
+ const close=makeButton('Close',false);close.addEventListener('click',()=>shade.remove());
+ buttons.append(whatsapp,copy,close);panel.append(heading,note,buttons);shade.append(panel);
+ document.body.append(shade);whatsapp.focus();
+ return true;
+}
 const deliveryShareInFlight=new Set();
 async function shareDeliveryHandoff(id,commitHandover=false){
  if(deliveryShareInFlight.has(id))return false;
@@ -2139,10 +2186,7 @@ async function shareDeliveryHandoff(id,commitHandover=false){
   const items=(h.items||[]).map(i=>i.item_name+' × '+i.quantity).join(', ');
   const message='Bite Delivery Handoff\nOrder: '+h.order_code+'\nRestaurant: '+h.restaurant_name+'\nCustomer: '+h.customer_name+' ('+h.customer_phone+')\nAddress: '+address+'\nMap: '+mapUrl+'\nItems: '+items+(h.customer_note?'\nInstructions: '+h.customer_note:'')+'\n\nDelivery details & OTP verification link: '+deliveryUrl+'\nCustomer apne Bite My Orders page par delivery OTP dekhega. OTP customer se destination par poochhein.';
   const waUrl='https://wa.me/?text='+encodeURIComponent(message);
-  // A pre-opened about:blank tab is unreliable in Android Chrome/WebView.
-  // This direct same-tab navigation launches WhatsApp on the FIRST tap.
-  // Back from WhatsApp returns to the Bite owner screen; no blank tab remains.
-  window.location.assign(waUrl);
+  await openDeliveryWhatsAppShare(message,waUrl);
   return true;
  }catch(e){
   alert('Delivery link share nahi hua: '+(e.message||'Try again.'));
