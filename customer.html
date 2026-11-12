@@ -537,12 +537,14 @@ async function checkPendingCustomerPayment(){
   pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
   $('checkoutError').textContent='Payment status abhi clear nahi hai. Dobara pay na karein; thodi der baad check karein.';
  }catch(e){$('checkoutError').textContent=e?.message||'Cashfree status verify nahi ho paaya. Paise kate hon to dobara payment na karein.';}
- finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();}
+ finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();window.BiteCheckoutUX?.setPendingMessage?.($('checkoutError').textContent);}
 }
-async function cancelPendingCustomerCheckout(){
- if(!pendingLiveCheckout||checkoutPaymentBusy)return;
- const button=$('quickCancelCheckout'),id=pendingLiveCheckout.id;
- button.disabled=true;button.textContent='Checking payment & cancelling…';$('checkoutError').textContent='';
+async function cancelPendingCustomerCheckout(options={}){
+ if(!pendingLiveCheckout||checkoutPaymentBusy||window.BiteCheckoutUX?.cancelBusy)return;
+ window.BiteCheckoutUX.cancelBusy=true;
+ const startFresh=options?.startFresh===true;
+ const button=$('quickCancelCheckout'),fresh=$('bitePendingStartFresh'),id=pendingLiveCheckout.id;
+ button.disabled=true;fresh.disabled=true;button.textContent='Checking payment & cancelling…';fresh.textContent='Checking payment…';$('checkoutError').textContent='';
  try{
   const {data,error}=await sb.functions.invoke('bite-live-cancel-checkout',{body:{intent_id:id}});
   let result=data;
@@ -563,16 +565,16 @@ async function cancelPendingCustomerCheckout(){
   window.BiteCustomerExtras?.savePendingCheckout();
   $('pendingPaymentBanner')?.remove();
   $('checkoutModal').classList.remove('show');$('checkoutModal').classList.add('hidden');
-  $('checkoutError').textContent='';
-  syncCheckoutPaymentButton();
-  renderCart();if(menuItems.length)renderMenuItems();
-  refreshCheckoutPaymentReadiness();
+  window.BiteCheckoutUX?.resetResult?.();$('checkoutError').textContent='';
+  syncCheckoutPaymentButton();renderCart();if(menuItems.length)renderMenuItems();
+  await refreshCheckoutPaymentReadiness();
+  if(startFresh&&activeRestaurant&&cartEntries().length){await openCheckout();return true;}
   const notice=document.createElement('div');
   notice.role='status';notice.textContent='Purana checkout cancel ho gaya. Aap naya order kar sakte hain.';
   Object.assign(notice.style,{position:'fixed',bottom:'90px',left:'12px',right:'12px',zIndex:'9999',background:'#153d2a',color:'white',padding:'14px',borderRadius:'10px',textAlign:'center',boxShadow:'0 5px 20px #0002'});
   document.body.append(notice);setTimeout(()=>notice.remove(),5500);
- }catch(e){console.warn('Checkout cancellation not confirmed',e);$('checkoutError').textContent='Payment status abhi clear nahi hai. Aap menu par laut sakte hain aur baad mein status check kar sakte hain.';}
- finally{button.disabled=false;button.textContent='Cancel old checkout · Start fresh';}
+ }catch(e){console.warn('Checkout cancellation not confirmed',e);$('checkoutError').textContent='Payment status abhi clear nahi hai. Aap menu par laut sakte hain aur baad mein status check kar sakte hain.';window.BiteCheckoutUX?.setPendingMessage?.('Payment status clear nahi hai. Dobara pay na karein. Back to menu ja sakte hain.');}
+ finally{window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}
 }
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
@@ -659,12 +661,13 @@ $('checkoutOutcomeOrders').addEventListener('click',()=>{
  showCustomerView('orders');void loadMyOrders();
 });
 window.addEventListener('pageshow',event=>{
- if(event.persisted&&pendingLiveCheckout&&!checkoutPaymentBusy){
+ if(event.persisted&&pendingLiveCheckout){
+  checkoutPaymentBusy=false;closeCheckoutAndReturnToMenu();
   // Browser Back from Cashfree may restore a cached Bite page. Read provider status,
   // never retry the old payment session or assume the transaction succeeded.
   pendingLiveCheckout.session=null;pendingLiveCheckout.verifyOnly=true;
   window.BiteCustomerExtras?.savePendingCheckout();
-  void checkPendingCustomerPayment();
+  syncCheckoutPaymentButton();void checkPendingCustomerPayment();
  }
 });
 $('checkPendingPaymentBtn').addEventListener('click',checkPendingCustomerPayment);
