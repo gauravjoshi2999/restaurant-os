@@ -114,17 +114,30 @@ Deno.serve(async req=>{
     if(memberError)throw Error("Owner mapping unavailable");
     const ids=(members||[]).map(x=>x.user_id);
     if(ids.length!==1)throw Error("Owner mapping not unique");
-    const {data:devices,error:devicesError}=await db.from("bite_owner_push_devices").select("fcm_token,user_id")
+    const {data:devices,error:devicesError}=await db.from("bite_owner_push_devices").select("fcm_token,user_id,supports_order_actions")
       .eq("restaurant_id",ev.restaurant_id).eq("enabled",true).in("user_id",ids);
     if(devicesError)throw Error("Device lookup unavailable");
     if(!devices?.length){state="no_devices";skipped++;}
     else{
      let errors=0;
      for(const device of devices){
-      const push={message:{
+      // Data-only messages let Partner v13 build a native notification with
+      // safe action buttons, even when the activity is in the background.
+      // Older installed APKs still receive FCM-managed notification payloads.
+      const nativeActions=device.supports_order_actions===true;
+      const dataFields={
+       order_id:String(order.id),restaurant_id:String(ev.restaurant_id),
+       screen:"orders",event_type:"bite_order",title:"New Bite order",
+       body:"New paid order. Accept or reject in Bite Partner."
+      };
+      const push={message:nativeActions?{
+       token:device.fcm_token,
+       data:dataFields,
+       android:{priority:"HIGH",ttl:"600s"}
+      }:{
        token:device.fcm_token,
        notification:{title:"New Bite order",body:"New order received. Open Bite Partner to accept or reject."},
-       data:{order_id:String(order.id),restaurant_id:String(ev.restaurant_id),screen:"orders"},
+       data:dataFields,
        android:{priority:"HIGH",ttl:"600s",notification:{channel_id:"bite_owner_new_orders_v1",tag:"bite-"+order.id,sound:"default"}}
       }};
       const response=await fetch("https://fcm.googleapis.com/v1/projects/"+encodeURIComponent(account.project_id)+"/messages:send",
