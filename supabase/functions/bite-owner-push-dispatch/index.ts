@@ -39,8 +39,12 @@ Deno.serve(async req=>{
  // is only executable as service_role, never from the public customer API.
  let authorized=safeEqual(configured,supplied);
  if(!authorized&&supplied.length===64){
-   const verification=await db.rpc("bite_verify_owner_push_dispatch",{candidate:supplied});
-   authorized=!verification.error&&verification.data===true;
+   // Both approved private Vault-dispatch keys are accepted during migration.
+   // These SQL functions are callable by service_role only.
+   for(const verifier of ["bite_verify_owner_push_dispatch","bite_verify_owner_push_dispatch_secret"]){
+     const verification=await db.rpc(verifier,{candidate:supplied});
+     if(!verification.error&&verification.data===true){authorized=true;break;}
+   }
  }
  if(!authorized)return reply({error:"Forbidden"},403);
  const accountJson=Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON")||"";
