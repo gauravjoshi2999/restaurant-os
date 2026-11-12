@@ -24,6 +24,22 @@
   if(name==='bite_request_account_deletion')value=null;
   return{data:structuredClone(value),error:null};
  };
- const client={from:query,rpc,auth:{getSession:async()=>({data:{session}}),getUser:async()=>({data:{user}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({data:{session,user}})},channel:()=>{const c={on:()=>c,subscribe:()=>c};return c;},removeChannel(){},functions:{invoke:async()=>({data:{ready:false,error:'QA preview cannot execute provider operations'},error:null})},storage:{from:()=>({upload:async()=>({error:{message:'QA preview does not upload real files'}}),createSignedUrl:async()=>({error:{message:'QA preview has no private files'}})})}};
+ const client={from:query,rpc,auth:{getSession:async()=>({data:{session}}),getUser:async()=>({data:{user}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({data:{session,user}})},channel:()=>{const c={on:()=>c,subscribe:()=>c};return c;},removeChannel(){},functions:{invoke:async(name,args={})=>{
+  // Isolated browser fixture: fake status/cancellation, never a real Cashfree request.
+  if(window.__BITE_QA_PENDING&&name==='bite-live-verify-checkout'){
+   const state=data.bite_live_checkout_intents?.[0]?.status||'expired';
+   return {data:{status:state},error:null};
+  }
+  if(window.__BITE_QA_PENDING&&name==='bite-live-cancel-checkout'){
+   const intent=data.bite_live_checkout_intents?.[0];
+   if(intent?.status==='awaiting_payment'){
+    intent.status='expired';return {data:{status:'expired',cancelled:true},error:null};
+   }
+   return {data:{status:intent?.status||'expired',cancelled:true},error:null};
+  }
+  if(window.__BITE_QA_PENDING&&name==='bite-live-create-session'&&args?.body?.action==='readiness')
+   return {data:{ready:true,provider:'cashfree',environment:'production'},error:null};
+  return {data:{ready:false,error:'QA preview cannot execute provider operations'},error:null};
+ }},storage:{from:()=>({upload:async()=>({error:{message:'QA preview does not upload real files'}}),createSignedUrl:async()=>({error:{message:'QA preview has no private files'}})})}};
  window.supabase={createClient:()=>client};
 })();
