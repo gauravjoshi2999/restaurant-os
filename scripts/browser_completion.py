@@ -105,13 +105,13 @@ try:
   customer.set_viewport_size({'width':390,'height':844})
   # Real restaurant after-hours bug: cart button used to be silently disabled.
   # Keep review possible, show opening hours, and never launch a payment while closed.
-  customer.evaluate("activeRestaurant.is_temporarily_closed=true;activeRestaurant.temporary_closure_until=null;renderCartModal()")
+  customer.evaluate("activeRestaurant.is_temporarily_closed=true;activeRestaurant.temporary_closure_until=null;window.__BITE_QA_SERVER_RESTAURANT.is_temporarily_closed=true;renderCartModal()")
   check(customer.locator('#cartCheckoutBtn').is_enabled(),'Closed restaurant CTA stays tappable to explain hours rather than silently disabling')
   check(customer.locator('#cartClosedNotice').is_visible(),'Closed restaurant cart shows an explanatory warning')
   check('temporarily closed' in customer.locator('#cartClosedNotice').inner_text().lower(),'Temporary closure provides a specific reason')
   customer.locator('#cartCheckoutBtn').click()
   check(customer.locator('#cartModal.show').is_visible() and not customer.locator('#checkoutModal').is_visible(),'Closed restaurant never launches checkout or charges the customer')
-  customer.evaluate("activeRestaurant.is_temporarily_closed=false;renderCartModal()")
+  customer.evaluate("activeRestaurant.is_temporarily_closed=false;window.__BITE_QA_SERVER_RESTAURANT.is_temporarily_closed=false;renderCartModal()")
   check(customer.locator('#cartCheckoutBtn').is_enabled() and customer.locator('#cartCheckoutBtn').inner_text()=='Proceed to checkout','Available restaurant restores working checkout button')
   customer.locator('#cartCheckoutBtn').click();customer.locator('#checkoutCoupon').fill('QA10');customer.locator('#applyCheckoutCoupon').click()
   customer.wait_for_function("document.querySelector('#checkoutSummary').textContent.includes('155')")
