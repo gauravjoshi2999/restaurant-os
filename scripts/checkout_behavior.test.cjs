@@ -45,7 +45,7 @@ test('normal link uses a priced intent and server verification before showing an
  const t=setup();await t.submit();assert.equal(t.calls.find(c=>c.kind==='rpc').name,'bite_prepare_checkout_v2');assert.equal(t.calls.find(c=>c.kind==='sdk').mode,'production');assert.equal(t.calls.some(c=>c.name==='bite-live-verify-checkout'),true);assert.equal(t.displayedOrders,1);
 });
 test('SDK success alone cannot create a paid-order success screen',async()=>{
- const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');assert.match(t.element('checkoutError').textContent,/complete nahi hua/);
+ const t=setup({verify:[{status:'awaiting_payment'}]});await t.submit();assert.equal(t.displayedOrders,0);assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');assert.match(t.element('checkoutError').textContent,/Payment confirm nahi hua/);
 });
 test('an uncertain verification retry checks the same intent without taking another payment',async()=>{
  const t=setup({verify:[{error:true},{status:'activated',order_id:'verified-order'}]});await t.submit();assert.equal(t.element('placeOrderBtn').textContent,'Check payment status');await t.submit();assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);assert.equal(t.calls.filter(c=>c.kind==='sdk').length,1);assert.equal(t.displayedOrders,1);
@@ -118,7 +118,7 @@ test('status-only pending checkout recheck never launches Cashfree or creates an
  await t.context.checkPendingCustomerPayment();
  assert.equal(t.calls.filter(c=>c.name==='bite-live-verify-checkout').length,1);
  assert.equal(t.calls.filter(c=>c.name==='bite-live-create-session'||c.kind==='rpc'||c.kind==='sdk').length,0);
- assert.match(t.element('checkoutError').textContent,/PAID confirm nahi hua/);
+ assert.match(t.element('checkoutError').textContent,/Payment confirm nahi hua/);
  assert.match(t.element('checkoutError').textContent,/paise kate hain/i);
 });
 test('server-activated pending checkout opens My Orders without new Cashfree payment',async()=>{
