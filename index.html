@@ -378,6 +378,10 @@ body[data-role="owner"] #mainApp .nav button[data-page="moderation"]{display:non
 body[data-role="owner"] .od-priority-title>div{display:grid;gap:3px}
 body[data-role="owner"] .od-priority-title #orderSoundToggle{min-height:42px;border-radius:12px;white-space:normal;font-weight:700}
 @media(max-width:540px){body[data-role="owner"] .od-priority-title #orderSoundToggle{width:100%;text-align:center;margin-top:4px}}
+
+body[data-role="owner"] .od-alert-controls{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+body[data-role="owner"] .od-alert-controls .od-test-alert{font-size:12px;min-height:42px}
+@media(max-width:540px){body[data-role="owner"] .od-alert-controls{width:100%}body[data-role="owner"] .od-alert-controls #orderSoundToggle{flex:1}body[data-role="owner"] .od-alert-controls .od-test-alert{flex:0 0 auto}}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}/* Platform restaurant manager */
@@ -634,7 +638,7 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 <header class="od-welcome"><div><div class="od-eyebrow">YOUR BUSINESS, AT A GLANCE</div><h1 id="ownerHomeTitle">Namaste.</h1><p id="ownerHomeSubtitle">Aaj ka kaam aur hisaab yahan se dekhein.</p></div><div class="od-date" id="biteTodayDate">Today</div></header>
 <section class="od-outlet"><div><span class="od-status-dot" aria-hidden="true"></span><strong id="ownerHomeRestaurant">Your restaurant</strong><span id="ownerOutletStatus" class="od-outlet-state"></span></div><button class="od-text-button" type="button" onclick="showPage('settings')">Manage restaurant ↗</button></section>
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
-<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
+<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
 <article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>AAJ KI PAID SALES</small><strong id="ownerTodaySales">₹0</strong><span>Confirmed payments</span></article>
 <article class="od-metric"><small>AAJ KE ORDERS</small><strong id="ownerTodayOrders">0</strong><span>Received today</span></article>
@@ -2287,11 +2291,43 @@ function renderPOSWorkspace(){
 let activeOrderChannel='all';
 let activeOrderStatus='all';
 let selectedPlatformRestaurantId=null;
-let orderRealtimeChannel=null,orderAlertsEnabled=(()=>{try{return localStorage.getItem('restaurantos_order_sound')==='on'}catch(e){return false}})(),orderAudioContext=null,orderToastTimer=null,orderRefreshTimer=null;
+let orderRealtimeChannel=null,orderAlertsEnabled=(()=>{try{const value=localStorage.getItem('restaurantos_order_sound');return value===null?new URLSearchParams(location.search).get('bite_app')==='partner':value==='on'}catch(e){return false}})(),orderAudioContext=null,orderToastTimer=null,orderRefreshTimer=null;
 function setOrderLiveState(label,state){const el=document.getElementById('orderLiveState'),dot=document.getElementById('orderLiveDot');if(el)el.textContent=label;if(dot)dot.className='order-live-dot'+(state?' '+state:'')}
 function showOrderLiveToast(message){const el=document.getElementById('orderLiveToast');if(!el)return;el.textContent=message;el.classList.add('show');if(orderToastTimer)clearTimeout(orderToastTimer);orderToastTimer=setTimeout(()=>el.classList.remove('show'),6500)}
 function playOrderAlertSound(){if(!orderAlertsEnabled||!orderAudioContext)return;try{const ctx=orderAudioContext,now=ctx.currentTime;[0,0.22].forEach((offset,index)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=index?880:660;gain.gain.setValueAtTime(.0001,now+offset);gain.gain.exponentialRampToValueAtTime(.18,now+offset+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+offset+.17);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+offset);osc.stop(now+offset+.18)})}catch(e){console.warn('Order alert sound unavailable',e)}}
 function updateOrderSoundButton(){const b=document.getElementById('orderSoundToggle');if(!b)return;const armed=!!orderAudioContext&&orderAudioContext.state==='running';b.textContent=orderAlertsEnabled?(armed?'🔔 Sound alerts: On':'🔔 Enable sound'):'🔕 Sound alerts: Off';b.setAttribute('aria-pressed',String(orderAlertsEnabled&&armed))}
+async function prepareOwnerOrderNotifications(){
+ if(access.role!=='owner')return false;
+ const native=window.Capacitor?.Plugins?.BiteOrderAlerts;
+ if(native?.enable){
+  try{const value=await native.enable();return value?.granted===true;}
+  catch(error){console.warn('Native notification permission not yet available',error);return false;}
+ }
+ if('Notification' in window){
+  try{const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;return permission==='granted';}
+  catch(error){console.warn('Browser notification permission unavailable',error);}
+ }
+ return false;
+}
+function sendOwnerOrderNotification(order,restaurant){
+ if(!orderAlertsEnabled||access.role!=='owner'||!order||order.restaurant!==access.restaurantId)return;
+ const title='New Bite order';
+ const body=(restaurant?.name||'Your restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount);
+ const native=window.Capacitor?.Plugins?.BiteOrderAlerts;
+ if(native?.notifyOrder){
+  void native.notifyOrder({orderId:String(order.id),title,body}).catch(error=>console.warn('Native order notification unavailable',error));
+ }else if('Notification' in window&&Notification.permission==='granted'){
+  try{new Notification(title,{body,tag:'bite-order-'+order.id});}catch(error){console.warn('Browser order notification unavailable',error);}
+ }
+}
+function testOwnerOrderAlert(){
+ if(access.role!=='owner')return;
+ playOrderAlertSound();
+ const native=window.Capacitor?.Plugins?.BiteOrderAlerts;
+ if(native?.notifyOrder)void native.notifyOrder({orderId:'bite-test-'+Date.now(),title:'Bite test notification',body:'Live orders will alert your phone while this app is active.'}).catch(error=>console.warn(error));
+ else showOrderLiveToast('Test alert · Bite Partner is running.');
+}
+
 function armSavedOrderSound(){
  if(!orderAlertsEnabled||orderAudioContext?.state==='running')return;
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
@@ -2300,8 +2336,8 @@ function armSavedOrderSound(){
 }
 document.addEventListener('pointerdown',armSavedOrderSound,{passive:true});
 
-async function toggleOrderSound(){if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
-function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&orderChannelKey(order.channel)==='website'&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound()}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
+async function toggleOrderSound(){if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();void prepareOwnerOrderNotifications();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
+function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&orderChannelKey(order.channel)==='website'&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound();sendOwnerOrderNotification(order,rest)}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
 function orderChannelKey(channel){const c=String(channel||'').toLowerCase();if(c.includes('bite demo simulation'))return 'website';if(c.includes('zomato'))return 'zomato';if(c.includes('swiggy'))return 'swiggy';if(c.includes('own platform')||c.includes('website')||c.includes('web'))return 'website';if(c.startsWith('pos')||c.includes('counter')||c.includes('takeaway')||c.includes('dine-in')||c.includes('offline'))return 'pos';return 'other'}
 
 function renderPlatformRestaurantDirectory(){
