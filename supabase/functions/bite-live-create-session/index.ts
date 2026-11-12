@@ -82,6 +82,11 @@ Deno.serve(async req=>{
   return json({error:"Cashfree order creation was rejected; retry or cancel this checkout",provider_status:res.status,provider_code:providerCode},503);
  }
 
+ // Cashfree's idempotent POST can itself return HTTP 200 for a previously
+ // created order. Validate its real creation time regardless of HTTP status.
+ const providerCreatedMs=Date.parse(String(data.created_at||""));
+ if(!Number.isFinite(providerCreatedMs)||providerCreatedMs>Date.now()+30000||Date.now()-providerCreatedMs>90_000)
+  return json({error:"Cashfree returned an old or unverified payment session. Reconcile before paying again.",status:"session_stale"},409);
  // Never forward a stale or already-paid provider session to Cashfree SDK.
  if(data.order_status==="PAID")return json({error:"Cashfree reports payment paid. Verify order status instead of paying again.",status:"payment_check_required"},409);
  if(["EXPIRED","TERMINATED"].includes(data.order_status)){
