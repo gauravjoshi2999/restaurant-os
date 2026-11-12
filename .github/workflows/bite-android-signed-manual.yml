@@ -5,7 +5,7 @@ on:
       version_code:
         description: 'Android version code (increase for each installable update)'
         required: false
-        default: '14'
+        default: '15'
         type: string
   push:
     branches: [main]
@@ -54,7 +54,7 @@ jobs:
       - name: Configure selected Bite app
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '14' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '15' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -111,12 +111,12 @@ jobs:
           BITE_FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON }}
         run: |
           python3 -m py_compile patch_bite_fcm.py
-          # Partner v14: locked-screen actions and native first-tap WhatsApp delivery sharing.
+          # Partner v15: audible Android notifications and verified single-tap order acceptance.
           python3 patch_bite_fcm.py
       - name: Set version code for signed releases
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '14' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '15' }}
         run: |
           node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\s+\d+/, 'versionCode '+v);if(!s.includes('versionCode '+v))throw Error('versionCode update failed');fs.writeFileSync(p,s)"
       - name: Build release APK (unsigned)
