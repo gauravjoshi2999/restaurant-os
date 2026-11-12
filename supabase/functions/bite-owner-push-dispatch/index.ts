@@ -39,7 +39,7 @@ Deno.serve(async req=>{
  // is only executable as service_role, never from the public customer API.
  let authorized=safeEqual(configured,supplied);
  if(!authorized&&supplied.length===64){
-   const verification=await db.rpc("bite_verify_owner_push_dispatch_secret",{candidate:supplied});
+   const verification=await db.rpc("bite_verify_owner_push_dispatch",{candidate:supplied});
    authorized=!verification.error&&verification.data===true;
  }
  if(!authorized)return reply({error:"Forbidden"},403);
@@ -49,6 +49,39 @@ Deno.serve(async req=>{
  if(!account?.project_id||!account?.client_email||!account?.private_key)return reply({error:"FCM not configured"},503);
  let bearer:string;
  try{bearer=await googleToken(account)}catch(e){console.warn("FCM OAuth unavailable",String(e));return reply({error:"Push sender unavailable"},503)}
+ // Server-authenticated diagnostic; this never creates a real or simulated customer order.
+ const requestBody=await req.json().catch(()=>({}));
+ if(requestBody?.kind==="partner_push_test"){
+  const {data:devices,error:deviceError}=await db.from("bite_owner_push_devices")
+   .select("user_id,restaurant_id,fcm_token").eq("enabled",true).limit(20);
+  if(deviceError)return reply({error:"Test device lookup unavailable"},503);
+  if(!devices?.length)return reply({error:"No registered partner devices"},409);
+  let submitted=0,failed=0;
+  for(const device of devices){
+   const membership=await db.from("restaurant_members").select("role")
+     .eq("user_id",device.user_id).eq("restaurant_id",device.restaurant_id)
+     .eq("role","owner").maybeSingle();
+   if(membership.error||!membership.data){failed++;continue}
+   const testMessage={message:{
+     token:device.fcm_token,
+     notification:{title:"Bite Push Test",body:"Test notification only. No food order was placed."},
+     data:{screen:"orders",test:"true"},
+     android:{priority:"HIGH",ttl:"300s",notification:{channel_id:"bite_owner_new_orders_v1",sound:"default"}}
+   }};
+   try{
+    const response=await fetch("https://fcm.googleapis.com/v1/projects/"+
+     encodeURIComponent(account.project_id)+"/messages:send",{
+      method:"POST",
+      headers:{"Authorization":"Bearer "+bearer,"Content-Type":"application/json"},
+      body:JSON.stringify(testMessage),signal:AbortSignal.timeout(12000)
+    });
+    if(response.ok)submitted++;else{
+     failed++;console.warn("FCM test rejected",response.status)
+    }
+   }catch(err){failed++;console.warn("FCM test request unavailable",String(err).slice(0,100))}
+  }
+  return reply({test:"partner_push",registered:devices.length,submitted,failed});
+ }
  const {data:events,error}=await db.from("bite_owner_push_events").select("order_id,restaurant_id,delivery_status,attempts").in("delivery_status",["queued","retry"]).order("created_at",{ascending:true}).limit(12);
  if(error)return reply({error:"Outbox unavailable"},503);
  let sent=0,failed=0,skipped=0;
