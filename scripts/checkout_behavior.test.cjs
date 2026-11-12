@@ -121,6 +121,25 @@ test('status-only pending checkout recheck never launches Cashfree or creates an
  assert.match(t.element('checkoutError').textContent,/Payment is not confirmed/);
  assert.match(t.element('checkoutError').textContent,/before paying again/i);
 });
+
+test('automatic background reconciliation never reopens gateway or interrupts shopping when unpaid',async()=>{
+ const t=setup({verify:[{status:'awaiting_payment'}]});
+ vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',started:true,session:null,verifyOnly:true}",t.context);
+ await t.context.checkPendingCustomerPayment({background:true});
+ assert.equal(t.calls.filter(c=>c.name==='bite-live-verify-checkout').length,1);
+ assert.equal(t.calls.filter(c=>c.kind==='sdk'||c.kind==='rpc').length,0);
+ assert.equal(t.displayedOrders,0);
+ assert.equal(t.element('checkoutError').textContent,'');
+ assert.equal(vm.runInContext('pendingLiveCheckout.verifyOnly',t.context),true);
+});
+test('background reconciliation of paid checkout clears pending without forcing My Orders',async()=>{
+ const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
+ vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',started:true,session:null,verifyOnly:true}",t.context);
+ await t.context.checkPendingCustomerPayment({background:true});
+ assert.equal(t.displayedOrders,0,'no unrequested navigation during browser return');
+ assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);
+ assert.equal(vm.runInContext('pendingLiveCheckout',t.context),null);
+});
 test('server-activated pending checkout opens My Orders without new Cashfree payment',async()=>{
  const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
  vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',started:true,session:null,verifyOnly:false}",t.context);
