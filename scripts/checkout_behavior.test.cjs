@@ -132,6 +132,21 @@ test('automatic background reconciliation never reopens gateway or interrupts sh
  assert.equal(t.element('checkoutError').textContent,'');
  assert.equal(vm.runInContext('pendingLiveCheckout.verifyOnly',t.context),true);
 });
+
+test('late payment confirmation cannot erase a newly changed cart',async()=>{
+ const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
+ vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',cartSignature:'different-paid-cart',started:true,verifyOnly:true}",t.context);
+ await t.context.checkPendingCustomerPayment({background:true});
+ assert.equal(t.context.cart['dish-1'],1,'current shopping cart must survive late payment verification');
+ assert.equal(t.displayedOrders,0,'no surprise My Orders navigation');
+});
+test('verified payment clears the cart only when it matches the paid snapshot',async()=>{
+ const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
+ const signature=vm.runInContext("biteCheckoutCartSignature('restaurant-1',[['dish-1',1]])",t.context);
+ vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',cartSignature:"+JSON.stringify(signature)+",started:true,verifyOnly:true}",t.context);
+ await t.context.checkPendingCustomerPayment({background:true});
+ assert.deepEqual(Object.keys(t.context.cart),[],'matching paid cart must be cleared');
+});
 test('background reconciliation of paid checkout clears pending without forcing My Orders',async()=>{
  const t=setup({verify:[{status:'activated',order_id:'real-order'}]});
  vm.runInContext("pendingLiveCheckout={id:'checkout-1',restaurantId:'restaurant-1',started:true,session:null,verifyOnly:true}",t.context);
