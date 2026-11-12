@@ -142,7 +142,7 @@ if package == "in.bite.partner":
         raise SystemExit("Expected native alert registration missing")
     updated_main = updated_main.replace(
         plugin_line,
-        plugin_line + "\\n    registerPlugin(BiteDeliverySharePlugin.class);",
+        plugin_line + "\n    registerPlugin(BiteDeliverySharePlugin.class);",
         1,
     )
     activity.write_text(updated_main)
