@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 encoded = os.environ.get("BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64", "").strip()
+raw_json = os.environ.get("BITE_FIREBASE_GOOGLE_SERVICES_JSON", "").strip()
 java_activities = list(Path("android/app/src/main/java").rglob("MainActivity.java"))
 if len(java_activities) != 1:
     raise SystemExit("Generated MainActivity missing")
@@ -23,12 +24,12 @@ package = package_match.group(1)
 if package != "in.bite.partner":
     print("FCM is intentionally restricted to Bite Partner APK")
     raise SystemExit(0)
-if not encoded:
+if not encoded and not raw_json:
     print("FCM CONFIG MISSING: Partner APK will keep active-app alerts only.")
     raise SystemExit(0)
 
 try:
-    payload = base64.b64decode(encoded, validate=True)
+    payload = raw_json.encode("utf-8") if raw_json else base64.b64decode(encoded, validate=True)
     configuration = json.loads(payload.decode("utf-8"))
 except (ValueError, UnicodeError) as exc:
     raise SystemExit("Invalid Firebase Android configuration") from exc
