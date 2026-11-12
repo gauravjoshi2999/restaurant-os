@@ -5,7 +5,7 @@ on:
       version_code:
         description: 'Android version code (increase for each installable update)'
         required: false
-        default: '3'
+        default: '10'
         type: string
   push:
     branches: [main]
@@ -54,7 +54,7 @@ jobs:
       - name: Configure selected Bite app
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '3' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '10' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -102,38 +102,12 @@ jobs:
         run: npx cap add android
       - name: Sync Android assets
         run: npx cap sync android
-      - name: Prevent stale WebView HTML while preserving login sessions
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          matches=list(Path('android/app/src/main/java').rglob('MainActivity.java'))
-          if len(matches)!=1: raise SystemExit('Expected exactly one Capacitor MainActivity')
-          p=matches[0]
-          s=p.read_text()
-          if 'extends BridgeActivity' not in s or 'onCreate(' in s:
-              raise SystemExit('Unexpected Capacitor activity; refusing unsafe patch')
-          method="""
-            @Override
-            public void onCreate(android.os.Bundle savedInstanceState) {
-              super.onCreate(savedInstanceState);
-              android.webkit.WebView webView = getBridge().getWebView();
-              if (webView != null) {
-                // Reload website resources from network; do not touch cookies, storage or sessions.
-                webView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
-                webView.clearCache(true);
-              }
-            }
-          """
-          pos=s.rfind('}')
-          if pos<0: raise SystemExit('Malformed MainActivity')
-          p.write_text(s[:pos]+method+s[pos:])
-          print('Native WebView cache policy applied:',p)
-          PY
+      - name: Preserve WebView login and install native new-order notifications
+        run: python3 patch_bite_native.py
       - name: Set version code for signed releases
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '3' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '10' }}
         run: |
           node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\s+\d+/, 'versionCode '+v);if(!s.includes('versionCode '+v))throw Error('versionCode update failed');fs.writeFileSync(p,s)"
       - name: Build release APK (unsigned)
