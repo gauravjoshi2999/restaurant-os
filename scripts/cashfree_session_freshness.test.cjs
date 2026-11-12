@@ -39,6 +39,11 @@ test('a Cashfree 409 GET returning an old ACTIVE session is not payable',async()
  const r=await run({collision:true,providerAge:300,attemptAge:4});
  assert.equal(r.status,409);assert.equal(r.payload.status,'session_stale');assert.equal(r.providerCalls,2);
 });
+test('idempotent HTTP 200 response cannot revive an already expired Cashfree order session',async()=>{
+ const r=await run({providerAge:240,attemptAge:5});
+ assert.equal(r.status,409);assert.equal(r.payload.status,'session_stale');
+ assert.equal(r.payload.payment_session_id,undefined);
+});
 test('a fast idempotent retry remains allowed when provider session is only seconds old',async()=>{
  const r=await run({collision:true,providerAge:5,attemptAge:3});
  assert.equal(r.status,200);assert.equal(r.payload.payment_session_id,'session_quick_fresh');
