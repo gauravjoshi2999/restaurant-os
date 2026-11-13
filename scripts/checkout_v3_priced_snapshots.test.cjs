@@ -36,7 +36,7 @@ test('read-only quote V2 includes separate per-line cooking requests with truste
 });
 
 test('new V3 priced preparation rechecks hours, delivery area, minimum and customer identity',()=>{
- assert.match(candidate,/FUNCTION public\.bite_prepare_checkout_v3_priced_candidate\(/);
+ assert.match(candidate,/function public\.bite_prepare_checkout_v3_priced_candidate\(/i);
  assert.match(candidate,/perform public\.bite_assert_customer_can_order\(\)/);
  assert.match(candidate,/customer_contact_profiles/);
  assert.match(candidate,/v_restaurant\.opening_time/);
