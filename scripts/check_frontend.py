@@ -3,6 +3,7 @@
 from html.parser import HTMLParser
 from pathlib import Path
 import subprocess
+import re
 import tempfile
 
 FILES = ("customer.html", "index.html", "delivery.html")
@@ -147,7 +148,7 @@ check(blocked_pos_handler or guarded_pos_handler,
       "Legacy POS submit is disabled or restricted to the assigned restaurant Owner/Manager")
 check('id="pos">' in owner and 'id="posNewSaleBtn"' in owner
       and "onclick=\"openOrder()\"" in owner
-      and "async function openOrder(){if(access.role!=='owner'||!access.restaurantId)" in owner
+      and re.search(r"async function openOrder\(\)\s*\{\s*if\s*\(access\.role\s*!==\s*'owner'\s*\|\|\s*!access\.restaurantId\)", owner) is not None
       and "create_pos_order_with_balance_action" in owner
       and 'id="posWhatsAppConsent"' in owner,
       "Owner POS page provides an enabled, role-guarded sales form with optional WhatsApp bill")
