@@ -78,6 +78,16 @@ try:
     window.__BITE_QA_SERVER_RESTAURANT.cover_image_updated_at='2026-11-13T12:42:00Z';
     await refreshCustomerCoverPhotos(true);
   }""")
+  customer.wait_for_timeout(250)
+  debug_fallback=customer.evaluate("""() => {
+    const hero=document.getElementById('biteRestaurantHeroImage');
+    const chosen=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
+    return {heroSrc:hero?.src,complete:hero?.complete,width:hero?.naturalWidth,
+      label:document.getElementById('biteRestaurantCoverLabel')?.textContent,
+      chosen,activeCover:activeRestaurant?.cover_image_path,
+      serverCover:window.__BITE_QA_SERVER_RESTAURANT.cover_image_path};
+  }""")
+  print('QA COVER AFTER REMOVAL DEBUG:',debug_fallback)
   customer.wait_for_function("""() => {
     const hero=document.getElementById('biteRestaurantHeroImage');
     const chosen=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
