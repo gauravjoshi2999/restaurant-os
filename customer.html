@@ -729,6 +729,15 @@ function renderCheckoutDishInstructions(){
   ?'Cooking requests for your dishes (applies to all units):\n'+instructions.dishLines.join('\n')
   :'';
 }
+function onCustomerInstructionsEdited(){
+ if(!pendingLiveCheckout){
+  checkoutRequestKey=null;
+  window.BiteCustomerExtras?.saveCheckoutKey(null);
+ }
+ saveCustomerCart();
+ updateCartInstructionsStatus();
+ renderCheckoutDishInstructions();
+}
 function renderCartModal(){
  const entries=cartEntries();
  const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
@@ -778,7 +787,7 @@ function closeCartModal(){
  else if(!$('menuView').classList.contains('hidden'))$('menuSearchInput').focus({preventScroll:true});
 }
 function checkoutMode(){return document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';}
-function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='delivery',subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0),fee=delivery?Number(deliveryFee??activeRestaurant?.default_delivery_fee??0):0;checkoutQuotedTotal=subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0);$('checkoutSummary').innerHTML='<div style="display:flex;justify-content:space-between"><span>Food subtotal</span><strong>'+money(subtotal)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>'+(delivery?'Delivery fee':'Pickup')+'</span><strong>'+(delivery?money(fee):'Free')+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid #e9e2dc;padding-top:8px"><strong>Estimated total</strong><strong>'+money(subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0))+'</strong></div>'+(appliedCheckoutCoupon?'<div class="summaryrow"><span>Coupon '+safe(appliedCheckoutCoupon.code)+'</span><strong>−'+money(appliedCheckoutCoupon.discount_amount)+'</strong></div>':'');}
+function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='delivery',subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0),fee=delivery?Number(deliveryFee??activeRestaurant?.default_delivery_fee??0):0;checkoutQuotedTotal=subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0);$('checkoutSummary').innerHTML='<div style="display:flex;justify-content:space-between"><span>Food subtotal</span><strong>'+money(subtotal)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>'+(delivery?'Delivery fee':'Pickup')+'</span><strong>'+(delivery?money(fee):'Free')+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid #e9e2dc;padding-top:8px"><strong>Estimated total</strong><strong>'+money(subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0))+'</strong></div>'+(appliedCheckoutCoupon?'<div class="summaryrow"><span>Coupon '+safe(appliedCheckoutCoupon.code)+'</span><strong>−'+money(appliedCheckoutCoupon.discount_amount)+'</strong></div>':'');renderCheckoutDishInstructions();}
 async function getCheckoutDeliveryZone(){if(checkoutMode()!=='delivery')return null;const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});if(error)throw error;const zone=Array.isArray(data)?data[0]:data;if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);if(subtotal<Number(zone.minimum_order_amount||0))throw new Error('Is delivery zone ka minimum food order '+money(zone.minimum_order_amount)+' hai.');return zone;}
 async function refreshCheckoutZoneEstimate(){if(checkoutMode()!=='delivery'){renderCheckoutSummary(0);$('checkoutError').textContent='';return;}const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal)){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';return;}try{const zone=await getCheckoutDeliveryZone();renderCheckoutSummary(zone.delivery_fee);$('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);}catch(e){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';}}
 function toggleCheckoutDelivery(){const delivery=checkoutMode()==='delivery';$('deliveryFields').classList.toggle('hidden',!delivery);renderCheckoutSummary(delivery?activeRestaurant?.default_delivery_fee||0:0);refreshCheckoutZoneEstimate();}
@@ -1093,6 +1102,8 @@ async function submitCustomerOrder(){
   if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw new Error('Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
   if(mode==='delivery'&&$('savedAddress').value==='new'&&(!$('addressLine').value.trim()||!$('addressCity').value.trim()||!$('addressState').value.trim()))throw new Error('Delivery ke liye address, city aur state zaroori hain.');
   const entries=cartEntries();if(!entries.length)throw new Error('Cart khaali hai.');
+  const instructions=cartInstructionSnapshot();
+  if(instructions.tooLong)throw new Error('Cooking requests 500 characters se zyada hain. Cart mein notes chhote karein.');
   if(!BITE_SANDBOX_CHECKOUT&&!await refreshCheckoutPaymentReadiness())throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
   if(mode==='delivery')await getCheckoutDeliveryZone();
   const {data:sessionData}=await sb.auth.getSession();if(!sessionData.session)throw new Error('Please login again.');
@@ -1114,7 +1125,7 @@ async function submitCustomerOrder(){
   }
   const items=entries.map(([id,quantity])=>({menu_item_id:id,quantity}));
   if(!BITE_SANDBOX_CHECKOUT&&!checkoutRequestKey){checkoutRequestKey=crypto.randomUUID();window.BiteCustomerExtras?.saveCheckoutKey(checkoutRequestKey);}
-  const checkoutArgs={p_restaurant_id:activeRestaurant.id,p_delivery_type:mode,p_address_id:addressId,p_customer_note:$('customerNote').value.trim()||null,p_items:items};
+  const checkoutArgs={p_restaurant_id:activeRestaurant.id,p_delivery_type:mode,p_address_id:addressId,p_customer_note:instructions.note||null,p_items:items};
   if(!BITE_SANDBOX_CHECKOUT){checkoutArgs.p_coupon_code=appliedCheckoutCoupon?.code||null;checkoutArgs.p_checkout_key=checkoutRequestKey;}
   const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(error)throw error;
   if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,cartSignature:biteCheckoutCartSignature(activeRestaurant.id,entries),intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
@@ -1135,7 +1146,38 @@ async function submitCustomerOrder(){
 
 $('continueBtn').addEventListener('click',openCartModal);
 $('floatingViewCart').addEventListener('click',openCartModal);
-$('closeCartModal').addEventListener('click',closeCartModal);$('cartOrderNote').addEventListener('input',()=>{if($('customerNote'))$('customerNote').value=$('cartOrderNote').value;});
+$('closeCartModal').addEventListener('click',closeCartModal);
+$('cartOrderNote').addEventListener('input',()=>{
+ $('customerNote').value=$('cartOrderNote').value;
+ onCustomerInstructionsEdited();
+});
+$('customerNote').addEventListener('input',()=>{
+ $('cartOrderNote').value=$('customerNote').value;
+ onCustomerInstructionsEdited();
+});
+$('cartModalLines').addEventListener('click',event=>{
+ const button=event.target.closest('[data-cart-note-toggle]');
+ if(!button)return;
+ const editor=$('cart-note-editor-'+button.dataset.cartNoteToggle);
+ if(!editor)return;
+ const expanded=editor.classList.contains('hidden');
+ editor.classList.toggle('hidden',!expanded);
+ button.setAttribute('aria-expanded',String(expanded));
+ if(expanded)editor.querySelector('textarea')?.focus({preventScroll:true});
+ else button.focus({preventScroll:true});
+});
+$('cartModalLines').addEventListener('input',event=>{
+ const field=event.target.closest('[data-cart-item-note]');
+ if(!field||!cart[field.dataset.cartItemNote])return;
+ const id=field.dataset.cartItemNote,note=BiteItemNotes.clean(field.value).slice(0,BiteItemNotes.MAX_ITEM_NOTE);
+ if(note)itemNotes[id]=note;else delete itemNotes[id];
+ const product=field.closest('.cart-product');
+ const preview=product?.querySelector('.cart-item-note-preview');
+ if(preview){preview.textContent=note;preview.hidden=!note;}
+ const toggle=product?.querySelector('[data-cart-note-toggle]');
+ if(toggle)toggle.textContent=note?'Edit cooking request':'Add cooking request';
+ onCustomerInstructionsEdited();
+});
 $('cartModal').addEventListener('click',e=>{if(e.target===$('cartModal'))closeCartModal();});
 $('cartModal').addEventListener('keydown',e=>{
  if(e.key==='Escape'){e.preventDefault();closeCartModal();return;}
@@ -1206,6 +1248,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 $('cartCheckoutBtn').addEventListener('click',async()=>{
  if(!cartEntries().length||biteCartHoursBusy)return;
+ if(cartInstructionSnapshot().tooLong){updateCartInstructionsStatus();return;}
  // Revalidate immediately before checkout even when the cart was opened earlier.
  // Never trust the hours cached on initial page load.
  if(!await refreshActiveRestaurantHoursForCart())return;
