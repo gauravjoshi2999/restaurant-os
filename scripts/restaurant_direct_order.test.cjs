@@ -115,3 +115,11 @@ test('Branded marketing caption welcomes customer and has only the original rest
  }),true);
  assert.equal(Direct.canNativeShare({name:'bill.pdf'},{canShare:()=>true}),false);
 });
+
+test('Direct restaurant page has prominent inline Menu CTA wired to scroll to dishes',()=>{
+ assert.match(customer,/id="biteMenuInlineCTA" class="bite-menu-inline-cta" type="button"/);
+ assert.match(customer,/html\.bite-direct-order \.bite-menu-inline-cta\{/);
+ assert.match(customer,/browse\.scrollIntoView\(\{behavior:/);
+ assert.match(customer,/\$\('biteMenuInlineCTA'\)\?\.addEventListener\('click',goToRestaurantMenu\)/);
+ assert.match(customer,/aria-controls="biteMenuBrowseStart"/);
+});
