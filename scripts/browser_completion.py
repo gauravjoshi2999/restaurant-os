@@ -348,6 +348,22 @@ try:
     "(nodes)=>nodes.map(node=>node.dataset.biteStage)")
   check(stage_names==['new','preparing','ready','delivery','completed','cancelled','all'],
         'Owner Orders has one grouped stage bar backed by real status values')
+  check(owner.locator('#biteOwnerOrdersCalendar').count()==1,
+        'Owner Orders includes a date-wise calendar alongside the live stage filters')
+  owner.locator('#biteOwnerOrdersCalendar>summary').click()
+  check(owner.locator('#biteOwnerOrdersCalendar .bite-order-cal-day').count()>=28,
+        'Calendar opens to real month day buttons and per-day order badges')
+  owner.evaluate("""() => {
+    const now=new Date(),key=BiteOwnerCalendar.dateKey(now);
+    BiteOwnerCalendar.update(document,[{createdAt:now.toISOString(),isDemo:false}],date=>window.__qaChosenOrderDate=date);
+    window.__qaCurrentCalendarDay=key;
+  }""")
+  owner.locator('#biteOwnerOrdersCalendar .bite-order-cal-day.has-orders').first.click()
+  check(owner.evaluate('window.__qaChosenOrderDate===window.__qaCurrentCalendarDay'),
+        'Tap on an order-count badge selects that real India-local calendar date')
+  owner.evaluate("BiteOwnerCalendar.choose(null)")
+  owner.evaluate("BiteOwnerCalendar.update(document,[],null)")
+
   check(owner.locator('#orders .order-inbox').is_hidden()
         and owner.locator('#orders #orderStatusTabs').is_hidden(),
         'Owner Orders does not repeat actionable orders in inbox and old bar')
@@ -602,6 +618,23 @@ try:
      and owner.locator('#overview .od-recent').is_hidden(),
      'Mobile Home no longer repeats account/order shortcuts already in More/Orders')
   owner.screenshot(path=str(OUT/'ui-owner.png'),full_page=False)
+  nav(owner,'khata')
+  owner.locator('#khataCustomerRows').wait_for(state='visible')
+  owner.evaluate("""() => {
+    const id='11111111-1111-4111-8111-111111111111';
+    khataCustomers=[{id,full_name:'QA Khata Client',status:'Active',phone:'9999999999'}];
+    khataBalances=[{customer_id:id,balance:0}];khataEntries=[];
+    selectedKhataCustomerId=null;renderKhata();
+  }""")
+  owner.locator('#khataCustomerRows button').first.click()
+  owner.wait_for_function("document.activeElement?.id==='khataLedgerTitle'")
+  check(owner.locator('#khataLedgerTitle').inner_text()=='Khata · QA Khata Client'
+    and 'abhi koi entry nahi' in owner.locator('#khataLedgerEmpty').inner_text(),
+    'Khata Open selects customer, focuses and scrolls to ledger with correct empty message')
+  check(owner.locator('#khataLedgerTitle').evaluate(
+    "(el)=>el.getBoundingClientRect().top<450"),
+    'Khata Open visibly scrolls the mobile owner to selected customer history')
+  nav(owner,'overview')
   admin=browser.new_page(viewport={'width':1365,'height':900});observe(admin)
   admin.goto('http://127.0.0.1:4174/dist/qa/admin-flow.html',wait_until='domcontentloaded');admin.locator('#mainApp').wait_for(state='visible');nav(admin,'customers');admin.locator('#biteCustomerRows .bite-record').wait_for(state='visible')
   check('QA customer' in admin.locator('#biteCustomerRows').inner_text(),'Admin customer directory is reachable from guarded navigation')
