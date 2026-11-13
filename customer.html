@@ -1051,7 +1051,7 @@ if(BITE_DIRECT_MODE){
  const jump=$('biteMenuQuickNav'),browse=$('biteMenuBrowseStart'),cartFloat=$('cartFloating');
  function updateDirectMenuJump(){
   if(!jump||!browse)return;
-  const menuReached=browse.getBoundingClientRect().top<=145;
+  const menuReached=browse.getBoundingClientRect().top<=195 || (window.scrollY>0 && window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-4);
   jump.hidden=document.body.dataset.view!=='menu'||menuReached||cartFloat?.classList.contains('show');
  }
  jump?.addEventListener('click',()=>{
