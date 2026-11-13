@@ -30,10 +30,11 @@ function persistDeletions(ident,rows){
  catch{return false}
 }
 function queueDeletion(ident,id){
- deletedThisSession.add(deletedId(ident,id));
  const rows=deletionList(ident).filter(x=>x.id!==id);
  rows.push({id,at:new Date().toISOString(),pending:true});
- return persistDeletions(ident,rows);
+ const recorded=persistDeletions(ident,rows);
+ if(recorded)deletedThisSession.add(deletedId(ident,id));
+ return recorded;
 }
 function markDeletionDone(ident,id){
  const rows=deletionList(ident),rec=rows.find(x=>x.id===id);
@@ -198,7 +199,11 @@ async function finishOrder(){
  // Sale has committed. Never let cloud draft deletion block or undo the sale.
  // Persist a deletion fence before removing local data so an in-flight upsert
  // cannot resurrect a completed bill on the next dashboard refresh.
- if(!queueDeletion(ident,id))console.warn('POS draft deletion marker could not persist; cloud cleanup will be attempted.');
+ if(!queueDeletion(ident,id)){
+  deletedThisSession.add(deletedId(ident,id));
+  console.warn('POS draft deletion marker could not persist; immediate cloud cleanup will be attempted.');
+  void removeCloudDraft(ident,id).catch(err=>console.warn('Completed draft cloud deletion failed:',err.message));
+ }
  writeCache(ident,readCache(ident).filter(x=>x.id!==id));
  renderDrafts();
  void cleanupDeletions();
