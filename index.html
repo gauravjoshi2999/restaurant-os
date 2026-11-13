@@ -714,12 +714,8 @@ body.bite-session-check #biteSessionSplash{
 <div class="content">
 <div id="workspaceRuntimeNotice" role="status" aria-live="polite"></div><div class="notice workspace-sync-note">BITE cloud workspace · Restaurant data securely syncs with your signed-in account.</div>
 <section class="page active" id="overview"><div data-owner-dashboard class="od-home" style="display:none">
-<header class="od-welcome"><div><div class="od-eyebrow">YOUR BUSINESS, AT A GLANCE</div><h1 id="ownerHomeTitle">Namaste.</h1><p id="ownerHomeSubtitle">Aaj ka kaam aur hisaab yahan se dekhein.</p></div><div class="od-date" id="biteTodayDate">Today</div></header>
+<header class="od-welcome"><div><div class="od-eyebrow">YOUR BUSINESS, AT A GLANCE</div><h1 id="ownerHomeTitle">Namaste.</h1><p id="ownerHomeSubtitle">Aaj ka kaam aur hisaab yahan se dekhein.</p></div><div class="od-welcome-actions"><div class="od-date" id="biteTodayDate">Today</div><button type="button" class="btn" id="ownerQuickPosBtn" onclick="openPosFromOverview(this)">＋ New POS Bill</button></div></header>
 <section class="od-outlet"><div><span class="od-status-dot" aria-hidden="true"></span><strong id="ownerHomeRestaurant">Your restaurant</strong><span id="ownerOutletStatus" class="od-outlet-state"></span></div><button class="od-text-button" type="button" onclick="showPage('settings')">Manage restaurant ↗</button></section>
-<div class="owner-pos-shortcut" role="group" aria-label="Quick POS billing" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #dde5ea;padding:13px 15px;border-radius:14px;margin:14px 0">
- <div><strong style="font-weight:800;display:block">🧾 POS &amp; Billing</strong><span style="font-size:12px;color:#596476">Customer ka bill banayein aur WhatsApp par share karein</span></div>
- <button type="button" class="btn" id="ownerQuickPosBtn" onclick="showPage('pos')" style="min-height:44px">＋ New POS Bill</button>
-</div>
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
 <section class="od-owner-priority" aria-label="Live restaurant orders"><div class="od-priority-title"><div><strong>Live Orders</strong><span>Naye orders aur unka status yahan dikhega</span></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
@@ -1209,6 +1205,14 @@ body.bite-session-check #biteSessionSplash{
  <div class="actions"><button class="btn" id="paymentSaveBtn" type="button" onclick="saveOrderPayment()">Save payment</button><span class="small" id="paymentMessage" role="status"></span></div>
 </div></div>
 <style>
+/* The one-tap POS action belongs inside the owner home header, not a floating card. */
+body[data-role="owner"] .od-welcome-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;white-space:nowrap;touch-action:manipulation}
+@media(max-width:760px){
+ body[data-role="owner"] .od-welcome{flex-wrap:wrap;gap:10px}
+ body[data-role="owner"] .od-welcome-actions{width:100%;justify-content:space-between;gap:8px}
+ body[data-role="owner"] #ownerQuickPosBtn{flex:1 1 auto;min-width:160px}
+}
 .pos-draft-toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 12px;margin:8px 0 16px;border:1px solid #d9e9df;background:#f4fbf7;border-radius:10px;flex-wrap:wrap}
 #posDraftStatus{font-size:12px;color:#166347;flex:1;min-width:130px}
 .pos-draft-cards{display:grid;gap:9px}
@@ -2501,7 +2505,47 @@ async function loadPosMenuItems(restaurantId){
  posMenuItems=data||[];
  if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
 }
-async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const restaurantId=access.restaurantId;const linkedOwner=(access.memberships||[]).some(m=>m.role==='owner'&&m.restaurant_id===restaurantId);if(!linkedOwner||!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show');window.BitePOS?.newBill()}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
+async function openOrder(){
+ if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}
+ const restaurantId=access.restaurantId;
+ const linkedOwner=(access.memberships||[]).some(m=>m.role==='owner'&&m.restaurant_id===restaurantId);
+ if(!linkedOwner||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return;}
+ const modal=document.getElementById('orderModal');
+ if(modal.classList.contains('show'))return; // A second tap must not reset an unfinished bill.
+ const form=document.getElementById('orderForm');
+ form.reset();
+ document.getElementById('posPaidAmount').value='';
+ document.getElementById('orderChannel').value='POS - Counter';
+ document.getElementById('orderRestaurant').value=restaurantId;
+ document.getElementById('posPaymentSection').style.display='block';
+ togglePosPaymentFields();
+ refreshOrderTableOptions();
+ document.getElementById('orderItemRows').innerHTML='';
+ document.getElementById('posPickerItemName').value='';
+ document.getElementById('posPickerQuantity').value='1';
+ document.getElementById('posPickerPrice').value='';
+ delete document.getElementById('posPickerPrice').dataset.menuItemId;
+ hidePosMenuSuggestions();
+ document.getElementById('posItemEntry').style.display='grid';
+ renderPosItemSummary();
+ updateOrderTotal();
+ window.BitePOS?.newBill();
+ modal.classList.add('show'); // Open immediately; don't wait on the menu network request.
+ void loadPosMenuItems(restaurantId).catch(err=>console.warn('POS menu loading delayed:',err));
+}
+async function openPosFromOverview(button){
+ if(access.role!=='owner')return;
+ if(button?.disabled)return;
+ if(button)button.disabled=true;
+ try{
+  await showPage('pos');
+  await openOrder();
+ }catch(err){
+  console.error('POS quick billing open failed:',err);
+  alert('POS bill nahi khul paya: '+(err.message||'Dobara try karein.'));
+ }finally{if(button)button.disabled=false;}
+}
+function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
 function syncPosPickerMenuPrice(){
  const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
  const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
