@@ -96,7 +96,9 @@ test('POS item editor uses a distinct but accessible visual hierarchy without ch
  assert.match(style,/border-left:4px solid #3989ad/);
  assert.match(style,/button\[onclick="confirmPosItemInline\(\)"\]/);
  assert.match(style,/background:#d92d3a!important/);
- assert.match(style,/button\[onclick="togglePosItemEntry\(false\)"\]/);
+ assert.doesNotMatch(html,/id="posAddItemTrigger"/);
+ assert.doesNotMatch(html,/togglePosItemEntry\(/);
+ assert.doesNotMatch(html,/onclick="togglePosItemEntry\(false\)"/);
  assert.match(html,/id="posPickerItemName"/);
  assert.match(html,/id="posPickerQuantity"/);
  assert.match(html,/id="posPickerPrice"/);
@@ -111,4 +113,18 @@ test('POS received amount begins blank; zero is only a visual hint',()=>{
  const calc=html.slice(html.indexOf('function updateOrderTotal(){'),html.indexOf('function closeModal(',html.indexOf('function updateOrderTotal(){')));
  assert.match(calc,/received=Number\(receivedEl\?\.value\|\|0\)/);
  assert.doesNotMatch(calc,/receivedEl\.value\s*=/);
+});
+
+test('POS inline picker stays ready for next item after Add to bill',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const section=html.slice(html.indexOf('function confirmPosItemInline(){'),html.indexOf('function confirmPosItem(event)'));
+ assert.match(html,/<div class="pos-item-entry" id="posItemEntry">/);
+ assert.match(html,/document\.getElementById\('posItemEntry'\)\.style\.display='grid'/);
+ assert.match(section,/addOrderItemRow\(\{name,quantity,price/);
+ assert.match(section,/document\.getElementById\('posPickerItemName'\)\.value=''/);
+ assert.match(section,/document\.getElementById\('posPickerQuantity'\)\.value='1'/);
+ assert.match(section,/document\.getElementById\('posPickerPrice'\)\.value=''/);
+ assert.match(section,/document\.getElementById\('posPickerItemName'\)\.focus\(\)/);
+ assert.doesNotMatch(section,/togglePosItemEntry\(/);
+ assert.equal((html.match(/onclick="confirmPosItemInline\(\)"/g)||[]).length,1);
 });
