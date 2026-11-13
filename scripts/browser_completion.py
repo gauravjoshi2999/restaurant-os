@@ -100,6 +100,10 @@ try:
   direct.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',wait_until='domcontentloaded')
   direct.locator('#menuItems [data-menu-item-id]').first.wait_for(state='visible')
   check(direct.locator('#restaurantName').inner_text()=='QA Rajsamand Kitchen','Restaurant link opens only the linked restaurant menu')
+  explore=direct.locator('#biteExploreCityLink')
+  check(explore.is_visible() and 'Explore food in your city' in explore.inner_text()
+    and 'direct=' not in explore.get_attribute('href'),
+    'Direct restaurant page offers an explicit, small escape link to the Bite city marketplace')
   check(direct.locator('#biteRestaurantHeroImage').is_visible() and bool(direct.locator('#biteRestaurantHeroImage').get_attribute('src')),
         'Direct restaurant page displays a full-width food hero image')
   direct.evaluate("""async () => {
@@ -230,6 +234,9 @@ try:
   customer.locator('[data-bite-language="en"]').click()
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
   owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html?bite_page=pos&v=qa-pos',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
+  check(not owner.locator('#authScreen').is_visible() and
+    not owner.evaluate("document.body.classList.contains('bite-session-check')"),
+    'Saved Owner session opens workspace without leaving login overlay or boot splash')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(owner.evaluate("""() => document.querySelector('#pos.page')?.classList.contains('active') && document.getElementById('pageTitle')?.textContent==='POS & Billing'"""),
         'Direct POS URL opens authenticated Owner POS & Billing without navigating the sidebar')
@@ -282,14 +289,9 @@ try:
   check(owner.locator('#posPaidAmount').input_value()=='' and owner.locator('#posPaidAmount').get_attribute('placeholder')=='0.00',
         'Reopening a new POS bill clears previously entered received payment')
   owner.locator('#orderModal button.close').click()
-  # Real POS share UI, synthetic order only: render itemized photo and PDF in
-  # Chromium, and intercept the native OS share target (never contact WhatsApp).
+  # Verify the exact customer's wa.me destination and full bill message.
+  # Never actually contact WhatsApp or send any real message in synthetic QA.
   owner.evaluate("""() => {
-    window.__qaBillShares=[];
-    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>Boolean(data?.files?.length)});
-    Object.defineProperty(navigator,'share',{configurable:true,value:data=>{
-      window.__qaBillShares.push(data);return Promise.resolve();
-    }});
     showPosWhatsAppBillDialog({
       restaurantId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       restaurantName:'QA Rajsamand Kitchen',restaurantAddress:'QA fixture address',
@@ -299,34 +301,25 @@ try:
       total:300,paid:300,due:0,waived:0
     });
   }""")
-  owner.wait_for_function("""() => [...document.querySelectorAll('#bitePosWhatsAppDialog button')]
-    .some(b=>b.textContent.includes('WhatsApp par bill photo')&&!b.disabled)""",timeout=12000)
-  check('Agli baar restaurant aaye bina' in owner.locator('#bitePosWhatsAppDialog pre').inner_text(),
-        'POS WhatsApp caption invites customers to order again from the same restaurant')
-  check(owner.evaluate("""() => document.querySelector('#bitePosWhatsAppDialog pre').textContent.includes(
-    'direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')"""),
-        'POS promotional caption contains only the originating restaurant direct link')
-  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='WhatsApp par bill photo').click()
-  img=owner.evaluate("""async () => {
-    const data=window.__qaBillShares[0],f=data?.files?.[0];
-    if(!f)return null;
-    const a=new Uint8Array(await f.arrayBuffer());
-    return {type:f.type,startsJpeg:a[0]===255&&a[1]===216,
-      correctRestaurant:data.text.includes('QA Rajsamand Kitchen'),
-      correctLink:data.text.includes('direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')};
+  owner.locator('#bitePosWhatsAppDialog').wait_for(state='visible')
+  bill=owner.evaluate("""() => {
+    const modal=document.getElementById('bitePosWhatsAppDialog');
+    const share=modal.querySelector('a'),url=new URL(share.href),text=url.searchParams.get('text');
+    return {links:modal.querySelectorAll('a').length,buttons:modal.querySelectorAll('button').length,
+      number:url.pathname,host:url.host,content:text,
+      preview:modal.querySelector('pre').textContent,
+      shareLabel:share.textContent,hasNativeShare:modal.outerHTML.includes('PDF bill + link')};
   }""")
-  check(bool(img and img['type']=='image/jpeg' and img['startsJpeg'] and img['correctRestaurant'] and img['correctLink']),
-        'POS itemized JPG bill and restaurant-only marketing caption are shared in one user action')
-  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='PDF bill + link').click()
-  pdf=owner.evaluate("""async () => {
-    const data=window.__qaBillShares[1],f=data?.files?.[0];
-    if(!f)return null;
-    const a=new Uint8Array(await f.arrayBuffer());
-    return {type:f.type,pdfMagic:new TextDecoder().decode(a.slice(0,8)),size:a.length};
-  }""")
-  check(bool(pdf and pdf['type']=='application/pdf' and pdf['pdfMagic'].startswith('%PDF-1.4') and pdf['size']>1000),
-        'POS receipt PDF is a real, shareable PDF attachment without copy/paste')
-  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='Close').click()
+  check(bill['links']==1 and bill['buttons']==1 and bill['host']=='wa.me' and bill['number']=='/919468456669',
+        'Exactly one WhatsApp bill action opens the intended saved customer number')
+  check('QA Veg Thali × 2' in bill['content'] and 'Total: ₹300.00' in bill['content']
+        and 'Received: ₹300.00' in bill['content']
+        and 'direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' in bill['content'],
+        'Single addressed WhatsApp message contains itemized bill and this restaurant menu link')
+  check(bill['preview']==bill['content'] and 'sirf QA Rajsamand Kitchen' not in bill['content']
+        and not bill['hasNativeShare'],
+        'Bill message preview and customer chat match without confusing technical marketing copy or extra actions')
+  owner.locator('#bitePosWhatsAppDialog button[aria-label="Close bill preview"]').click()
   nav(owner,'menu');owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
   owner.locator('#biteCouponForm [name=code]').fill('QATEST10');owner.locator('#biteCouponForm [name=title]').fill('QA ten percent');owner.locator('#biteCouponForm [name=discount_value]').fill('10');owner.locator('#biteCouponForm button[type=submit]').click()
   check('QATEST10' in owner.locator('#biteCouponList').inner_text(),'Owner coupon form creates a scoped offer')
