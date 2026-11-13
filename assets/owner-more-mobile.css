@@ -110,7 +110,7 @@
     display:block!important;min-height:48px!important;min-width:0!important;
     border:1px solid #e3dcf0!important;border-radius:11px!important;
     background:#fff!important;color:#514667!important;padding:10px 7px!important;
-    font:700 13px/1.35 inherit!important;cursor:pointer!important;
+    font-family:inherit!important;font-size:13px!important;font-weight:700!important;line-height:1.35!important;cursor:pointer!important;
   }
   body[data-role="owner"] #mainApp #hr .bite-hr-tab[aria-selected="true"]{
     background:#35166e!important;color:#fff!important;border-color:#35166e!important;
@@ -130,7 +130,6 @@
   body[data-role="owner"] #mainApp #hr .bite-hr-editor-grid .card>.actions{
     margin-top:13px!important;
   }
-  /* Hide empty duplicated phone headers; never change any stored data or actions. */
 }
 @media(max-width:360px){
   body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .card{
