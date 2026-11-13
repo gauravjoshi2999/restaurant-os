@@ -124,3 +124,15 @@ test('Direct restaurant page has prominent inline Menu CTA wired to scroll to di
  assert.doesNotMatch(customer,/id="biteMenuQuickNav"|#biteMenuQuickNav/);
  assert.match(customer,/aria-controls="biteMenuBrowseStart"/);
 });
+
+test('Customer menu reset restores all dishes and cart buttons remain accessible',()=>{
+ assert.ok(customer.includes('id="menuResetFilters" class="menu-reset" type="button" hidden'));
+ assert.ok(customer.includes('function resetMenuFilters(){'));
+ assert.ok(customer.includes('data-reset-menu>Show all dishes'));
+ assert.ok(customer.includes("button.setAttribute('aria-pressed',String(selected))"));
+ assert.ok(customer.includes("$('menuVegToggle').checked=false"));
+ assert.ok(customer.includes("$('menuResetFilters').hidden=!filtersActive"));
+ assert.ok(customer.includes('aria-label="Close cart"'));
+ assert.ok(customer.includes('aria-label="Remove one '));
+ assert.ok(customer.includes('aria-label="Add one '));
+});
