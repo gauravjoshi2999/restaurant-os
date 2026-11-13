@@ -33,6 +33,10 @@ try:
   customer=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(customer)
   customer.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html',wait_until='domcontentloaded')
   customer.locator('#restaurantGrid .restaurant').wait_for(state='visible')
+  check(customer.evaluate("""() => {
+    const photos=[...document.querySelectorAll('#restaurantGrid .restaurant .cover img')];
+    return photos.length>0 && photos.every(img=>img.getAttribute('src') && img.getAttribute('alt'));
+  }"""),'Every restaurant card includes an accessible automatically suggested or Owner cover photo')
   check('QA FIXTURE' in customer.locator('body').inner_text(),'Preview is explicitly synthetic and cannot charge or sign in real users')
   # Direct Restaurant Ordering: WhatsApp source link must open only one restaurant,
   # with no discovery or escape into another restaurant catalogue.
@@ -40,6 +44,8 @@ try:
   direct.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',wait_until='domcontentloaded')
   direct.locator('#menuItems [data-menu-item-id]').first.wait_for(state='visible')
   check(direct.locator('#restaurantName').inner_text()=='QA Rajsamand Kitchen','Restaurant link opens only the linked restaurant menu')
+  check(direct.locator('#biteRestaurantHeroImage').is_visible() and bool(direct.locator('#biteRestaurantHeroImage').get_attribute('src')),
+        'Direct restaurant page displays a full-width food hero image')
   check(direct.evaluate("""() => {
     return BITE_DIRECT_MODE===true
       && restaurants.length===1
@@ -235,7 +241,13 @@ try:
   check('Enable' in owner.locator('#biteCouponList').inner_text(),'Owner can pause an existing offer')
   owner.locator('#addMenuItemBtn').click();owner.locator('#biteMenuPhoto').set_input_files({'name':'unsupported.svg','mimeType':'image/svg+xml','buffer':b'<svg/>'});owner.locator('#biteUploadMenuPhoto').click()
   check('only' in owner.locator('#biteMenuUploadStatus').inner_text(),'Unsupported SVG uploads fail before any Storage request')
-  owner.locator('#menuItemModal button.close').click();nav(owner,'settings');owner.locator('#biteDocumentForm').wait_for(state='visible')
+  owner.locator('#menuItemModal button.close').click();nav(owner,'settings')
+  owner.locator('#ownerRestaurantCoverPreview').wait_for(state='visible')
+  check(owner.locator('#ownerRestaurantCoverUpload').is_visible() and owner.locator('#ownerRestaurantCoverReset').count()==1,
+        'Restaurant Owner settings show cover photo upload, preview and restore Bite suggestion')
+  check(owner.locator('#ownerRestaurantCoverSource').inner_text()=='Bite suggested photo',
+        'Missing Owner photo automatically shows Bite suggested restaurant cover')
+  owner.locator('#biteDocumentForm').wait_for(state='visible')
   check(owner.locator('#biteDocumentForm input[type=file]').count()==1,'Owner private-document upload form is present')
   check(owner.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),'Owner has no horizontal overflow at 390px')
   owner.screenshot(path=str(OUT/'ui-owner.png'),full_page=False)
