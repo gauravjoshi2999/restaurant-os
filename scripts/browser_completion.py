@@ -158,7 +158,7 @@ try:
   owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
   nav(owner,'pos')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
-  check(owner.locator('.nav [data-page="pos"]').is_visible() is False and owner.locator('#posNewSaleBtn').is_visible(),
+  check(not owner.locator('.side').evaluate("(el) => el.classList.contains('sidebar-open')") and owner.locator('#posNewSaleBtn').is_visible(),
         'POS & Billing is reachable from mobile sidebar and the drawer closes on selection')
   owner.locator('#posNewSaleBtn').click()
   owner.locator('#orderModal.show').wait_for(state='visible')
