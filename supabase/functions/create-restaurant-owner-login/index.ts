@@ -98,8 +98,8 @@ Deno.serve(async(req:Request)=>{
   if(replace){
    // Existing admin-only SQL RPC switches the Owner atomically, audit logs the
    // previous mapping, and prevents duplicate Owner access in one transaction.
-   const {data:ok,error:resolveError}=await caller.rpc("admin_resolve_owner_mapping",{
-     p_user_id:uid,p_restaurant_id:rid
+   const {data:ok,error:resolveError}=await caller.rpc("admin_replace_owner_mapping",{
+     p_restaurant_id:rid,p_expected_owner_id:expectedOwnerId,p_new_owner_id:uid
    });
    assigned=!resolveError&&ok===true;
    if(!assigned)console.error("Owner replacement RPC failed",resolveError?.message);
