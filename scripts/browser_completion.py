@@ -100,6 +100,28 @@ try:
   direct.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',wait_until='domcontentloaded')
   direct.locator('#menuItems [data-menu-item-id]').first.wait_for(state='visible')
   check(direct.locator('#restaurantName').inner_text()=='QA Rajsamand Kitchen','Restaurant link opens only the linked restaurant menu')
+  # Mobile direct-link visitors must see how to reach the dishes instead of
+  # getting stranded on a large cover and restaurant introduction.
+  check(direct.evaluate("""() => {
+    const first=document.querySelector('#menuItems .menuitem');
+    const cover=document.getElementById('biteRestaurantHeroImage');
+    const jump=document.getElementById('biteMenuQuickNav');
+    const header=document.querySelector('.header');
+    return first && cover && jump && header
+      && cover.getBoundingClientRect().height<=160
+      && first.getBoundingClientRect().top<innerHeight
+      && getComputedStyle(header).position==='sticky'
+      && !jump.hidden;
+  }"""),'Mobile direct menu uses compact food hero, first dish above fold and visible Menu dekhein action')
+  direct.locator('#biteMenuQuickNav').click()
+  direct.wait_for_function("""() => {
+    const b=document.getElementById('biteMenuBrowseStart');
+    return window.scrollY>0 && b.getBoundingClientRect().top>=35
+      && b.getBoundingClientRect().top<=150
+      && document.getElementById('biteMenuQuickNav').hidden;
+  }""",timeout=8000)
+  check(direct.locator('#menuSearchInput').is_visible() and direct.locator('#categoryBar').is_visible(),
+        'Menu dekhein smooth-scroll lands on menu search and categories with no obscuring floating button')
   explore=direct.locator('#biteExploreCityLink')
   check(explore.is_visible() and 'Explore food in your city' in explore.inner_text()
     and 'direct=' not in explore.get_attribute('href'),
