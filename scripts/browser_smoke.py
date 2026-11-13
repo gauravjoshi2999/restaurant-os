@@ -120,11 +120,27 @@ try:
         page.locator('#cartModalLines [data-cart-inc="' + item_id + '"]').click()
         check(page.evaluate("(id) => document.activeElement?.getAttribute('data-cart-inc') === id", item_id),
               'Cart quantity update preserves focus on the increment button')
+        # Per-dish cooking requests remain local until a real, authenticated order.
+        page.locator('#cartModalLines [data-cart-note-toggle="' + item_id + '"]').click()
+        page.locator('#cartModalLines [data-cart-item-note="' + item_id + '"]').fill('Less spicy, no onion')
+        check(page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
+              'Dish cooking request previews without affecting the item price')
+        check(page.evaluate("(id) => JSON.parse(localStorage.getItem('restaurantos_customer_cart_v1')).itemNotes[id]", item_id) == 'Less spicy, no onion',
+              'Dish cooking request persists in the restaurant-scoped saved cart')
         page.locator('#emptyCartBtn').click()
         check(page.locator('#cartCount').inner_text() == '(0)' and page.locator('#undoClearCartBtn').is_visible(),
               'Clear cart offers an immediate Undo without losing the order')
         page.locator('#undoClearCartBtn').click()
         check(page.locator('#cartCount').inner_text() == '(2)', 'Undo restores both cart items')
+        check(page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
+              'Clear-cart Undo restores cooking instructions too')
+        page.locator('#cartModalLines [data-cart-dec="' + item_id + '"]').click()
+        page.locator('#cartModalLines [data-cart-dec="' + item_id + '"]').click()
+        check(page.locator('#cartCount').inner_text() == '(0)' and page.locator('#undoClearCartBtn').is_visible(),
+              'Removing the final dish unit offers Undo')
+        page.locator('#undoClearCartBtn').click()
+        check(page.locator('#cartCount').inner_text() == '(1)' and page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
+              'Single-dish Undo restores its cooking request')
         page.keyboard.press('Escape')
         check(not page.locator('#cartModal.show').is_visible(), 'Escape closes the cart without clearing it')
         page.locator('#floatingViewCart').click()
