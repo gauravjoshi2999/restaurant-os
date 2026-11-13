@@ -377,14 +377,11 @@ body[data-role="owner"] #mainApp .nav button[data-page="audit"],
 body[data-role="owner"] #mainApp .nav button[data-page="support"],
 body[data-role="owner"] #mainApp .nav button[data-page="moderation"]{display:none!important}
 
-/* Keep the Live Order sound control visible on the Owner Overview screen. */
+/* Professional daily dashboard: order actions, not diagnostic buttons.
+   Notification preferences are accessible only inside Restaurant settings. */
 body[data-role="owner"] .od-priority-title>div{display:grid;gap:3px}
-body[data-role="owner"] .od-priority-title #orderSoundToggle{min-height:42px;border-radius:12px;white-space:normal;font-weight:700}
-@media(max-width:540px){body[data-role="owner"] .od-priority-title #orderSoundToggle{width:100%;text-align:center;margin-top:4px}}
-
-body[data-role="owner"] .od-alert-controls{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
-body[data-role="owner"] .od-alert-controls .od-test-alert{font-size:12px;min-height:42px}
-@media(max-width:540px){body[data-role="owner"] .od-alert-controls{width:100%}body[data-role="owner"] .od-alert-controls #orderSoundToggle{flex:1}body[data-role="owner"] .od-alert-controls .od-test-alert{flex:0 0 auto}}
+body[data-role="owner"] .od-priority-empty{padding:14px 10px;line-height:1.5}
+body[data-role="owner"] #ownerAlertPreferences .owner-alert-settings-actions .btn{flex:1 1 190px}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}/* Platform restaurant manager */
@@ -645,7 +642,7 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
  <button type="button" class="btn" id="ownerQuickPosBtn" onclick="showPage('pos')" style="min-height:44px">＋ New POS Bill</button>
 </div>
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
-<section class="od-owner-priority" aria-label="Priority live orders"><div class="od-priority-title"><div><strong>Live Orders · Abhi action lein</strong><span>Naya order aate hi yahan dekhein</span></div><div class="od-alert-controls"><button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false">🔕 Sound alerts: Off</button><button type="button" class="btn secondary od-test-alert" onclick="testOwnerOrderAlert()" aria-label="Test order sound">Test alert</button><button type="button" class="btn secondary od-test-alert" id="ownerLockScreenPushTest" onclick="testOwnerLockScreenPush()" aria-label="Test lock screen push notification">Test lock-screen push</button><button type="button" class="btn secondary od-test-alert" id="ownerNotificationSoundSettings" onclick="openOwnerNotificationSoundSettings()" aria-label="Android new order notification sound settings">🔊 Notification sound settings</button></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
+<section class="od-owner-priority" aria-label="Live restaurant orders"><div class="od-priority-title"><div><strong>Live Orders</strong><span>Naye orders aur unka status yahan dikhega</span></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
 <article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>AAJ KI PAID SALES</small><strong id="ownerTodaySales">₹0</strong><span>Confirmed payments</span></article>
 <article class="od-metric"><small>AAJ KE ORDERS</small><strong id="ownerTodayOrders">0</strong><span>Received today</span></article>
@@ -1037,6 +1034,14 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 </section>
 <section class="page" id="settings">
 <div class="welcome"><div><h1>Restaurant settings</h1><div class="muted">Apne outlet ki customer-facing details aur order preferences update karein.</div></div></div>
+<details class="card" id="ownerAlertPreferences" style="margin:0 0 16px;padding:14px 16px;border:1px solid #e4e8ef;border-radius:14px">
+ <summary style="cursor:pointer;font-weight:750;font-size:15px;list-style:auto">🔔 Order notification preferences</summary>
+ <p class="muted" style="font-size:13px;margin:12px 0">Naye paid orders ki phone notifications automatically aati rahengi. Browser sound aur phone sound setting yahan manage karein.</p>
+ <div class="owner-alert-settings-actions" style="display:flex;gap:9px;flex-wrap:wrap">
+  <button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false" style="min-height:42px">🔔 Sound alerts</button>
+  <button type="button" class="btn secondary" id="ownerNotificationSoundSettings" onclick="openOwnerNotificationSoundSettings()" aria-label="Open Android notification sound settings" style="min-height:42px">Phone notification settings</button>
+ </div>
+</details>
 <div class="card owner-profile-settings">
 <div class="section-head"><div><h2>Outlet profile</h2><p class="muted">Yahan ki updates customer website par restaurant details mein dikh sakti hain.</p></div><span class="tag">Your restaurant</span></div>
 <section id="ownerRestaurantCoverSection" aria-label="Restaurant cover branding" style="border:1px solid #e5e7eb;border-radius:15px;padding:16px;margin:0 0 20px;background:#fcfcfd">
