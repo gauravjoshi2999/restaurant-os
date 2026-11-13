@@ -128,3 +128,39 @@ test('POS inline picker stays ready for next item after Add to bill',()=>{
  assert.doesNotMatch(section,/togglePosItemEntry\(/);
  assert.equal((html.match(/<button[^>]+onclick="confirmPosItemInline\(\)"/g)||[]).length,1);
 });
+
+test('POS menu search filters available restaurant items and supports mobile selection',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const search=html.slice(html.indexOf('function normalizePosSearch('),html.indexOf('async function openOrder(){'));
+ assert.match(html,/id="posPickerItemName"[^>]*role="combobox"[^>]*aria-controls="posMenuSuggestions"/);
+ assert.match(html,/id="posMenuSuggestions"[^>]*role="listbox"/);
+ assert.doesNotMatch(html,/id="posPickerMenuList"/);
+ assert.match(search,/terms\.every\(term=>name\.includes\(term\)\)/);
+ assert.match(search,/\.sort\(\(a,b\)=>a\.rank-b\.rank/);
+ assert.match(search,/\.slice\(0,8\)/);
+ assert.match(search,/function selectPosMenuItem\(index\)/);
+ assert.match(search,/price\.dataset\.menuItemId=item\.id/);
+ assert.match(search,/function handlePosMenuSearchKeydown\(event\)/);
+ assert.match(search,/event\.key==='ArrowDown'/);
+ assert.match(search,/event\.key==='Enter'/);
+ assert.match(search,/Custom item ka naam aur price manually bhar sakte hain/);
+ assert.match(html,/id="bite-pos-quick-billing"/);
+ assert.match(html,/\.pos-search-results\[hidden\]\{display:none!important\}/);
+});
+
+test('POS bill quantity steppers keep hidden order rows and payment totals in sync',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const section=html.slice(html.indexOf('function addOrderItemRow('),html.indexOf('function updateOrderTotal(){'));
+ assert.match(section,/function changePosItemQuantity\(index,delta\)/);
+ assert.match(section,/\.item-quantity/);
+ assert.match(section,/renderPosItemSummary\(\);updateOrderTotal\(\)/);
+ assert.match(section,/class="pos-qty-stepper"/);
+ assert.match(section,/aria-label="Increase /);
+ assert.match(section,/aria-label="Decrease /);
+ assert.match(section,/q<=1\?' disabled title="Remove item with X"'/);
+ assert.match(section,/function removePosItem\(index\)/);
+ assert.match(section,/const existing=\[/);
+ assert.match(section,/sameItem&&Number\(row\.querySelector\('\.item-price'\)\.value\)===Number\(item\.price\)/);
+ assert.match(html,/#orderModal \.pos-item-chip\{display:grid!important/);
+ assert.match(html,/#orderModal \.pos-qty-stepper button\{/);
+});
