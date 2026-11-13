@@ -63,7 +63,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 <script src="assets/customer-discovery.js?v=20261110"></script>
-<script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
+<script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="assets/bite-direct-order.js?v=20261113"></script>
 <style id="bite-direct-only-style">
 html.bite-direct-order #homeView,
@@ -158,6 +158,49 @@ window.BiteCheckoutUX={
 };
 
 function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Keep cover photos and source labels consistent across listing, menu hero,
+ // saved restaurants, and the Owner-published image. Never persist broken images.
+function setCustomerCoverImage(img,label,cover){
+ if(!img||!cover)return;
+ const suggested=cover.fallback||'assets/food/meal-1100.jpg';
+ img.onerror=()=>{
+  img.onerror=null;
+  img.src=suggested;
+  if(label)label.textContent='Bite suggested photo';
+ };
+ img.alt=cover.alt;
+ if(label)label.textContent=cover.source==='owner'?'Restaurant photo':cover.source==='menu'?'Menu photo':'Bite suggested photo';
+ img.src=cover.src;
+}
+// Restaurant photos may be updated while a customer keeps Bite open.
+// Refresh only these public fields, preserving the cart and live checkout state.
+let coverRefreshPending=null,coverRefreshLastAt=0;
+async function refreshCustomerCoverPhotos(force=false){
+ if(!restaurants.length)return [];
+ if(coverRefreshPending)return coverRefreshPending;
+ if(!force&&Date.now()-coverRefreshLastAt<30000)return [];
+ coverRefreshLastAt=Date.now();
+ const run=(async()=>{
+  const {data,error}=await sb.rpc('bite_storefront',{p_postal_code:BITE_DIRECT_MODE?null:(currentDiscoveryPin||null)});
+  if(error)throw error;
+  const published=data?.restaurants;
+  if(!Array.isArray(published))throw new Error('Public restaurant cover feed unavailable');
+  const changed=BiteRestaurantCovers.syncPublishedCovers(restaurants,published);
+  if(changed.length){
+   if(document.body.dataset.view==='home')renderRestaurants();
+   if(activeRestaurant&&changed.includes(activeRestaurant.id)){
+    const cover=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
+    setCustomerCoverImage($('biteRestaurantHeroImage'),$('biteRestaurantCoverLabel'),cover);
+   }
+  }
+  return changed;
+ })().catch(error=>{
+  console.warn('Restaurant photo refresh unavailable; existing images stay visible',error);
+  return [];
+ }).finally(()=>{if(coverRefreshPending===run)coverRefreshPending=null;});
+ coverRefreshPending=run;
+ return run;
+}
 function restaurantPhoto(tags=[],i=0,name=''){const t=(tags.join(' ')+' '+name).toLowerCase();const key=t.includes('south')?'dosa':t.includes('chinese')?'noodles':t.includes('pizza')?'pizza':t.includes('fast')||t.includes('burger')?'burger':t.includes('dessert')||t.includes('sweet')?'dessert':t.includes('curry')||t.includes('spice')?'curry':'meal';return 'assets/food/'+key+'-800.jpg'}
 let cartPricingSignature='',currentDiscoveryPin='',storefrontCategories=[],favouriteRestaurantIds=new Set(),appliedCheckoutCoupon=null,checkoutRequestKey=null,checkoutQuotedTotal=null;
 try{currentDiscoveryPin=localStorage.getItem('bite_discovery_pin')||'';}catch{}
@@ -189,6 +232,7 @@ async function loadRestaurants(){const grid=$('restaurantGrid');try{
  if(BITE_DIRECT_MODE)searchQuery=searchQuery.eq('restaurant_id',BITE_DIRECT_RESTAURANT_ID);
  const {data:items,error:itemError}=await searchQuery.limit(1000);if(itemError)throw itemError;
  publicMenuSearch=items||[];restaurants.forEach(r=>{const menu=publicMenuSearch.filter(m=>m.restaurant_id===r.id);r.has_veg=menu.some(m=>m.is_vegetarian===true);r.has_nonveg=menu.some(m=>m.is_vegetarian===false);if(r.price_from==null&&menu.length)r.price_from=Math.min(...menu.map(m=>Number(m.price)));});renderRestaurants();window.BiteCustomerExtras?.renderCategories();
+ coverRefreshLastAt=Date.now();
  if(BITE_DIRECT_MODE){document.title=restaurants[0].name+' | Order Online · Bite';await openRestaurant(BITE_DIRECT_RESTAURANT_ID);}
 }catch(e){grid.innerHTML='<div class="food-empty"><h3>Restaurants load nahi ho paaye.</h3><p>Connection check karke dobara try karein.</p><button class="secondary" type="button" onclick="loadRestaurants()">Try again</button></div>';$('resultCount').textContent='Unable to load';console.error(e)}}
 function customerDistanceKm(r){if(!customerGeo||r.latitude==null||r.longitude==null)return null;const rad=x=>x*Math.PI/180,dLat=rad(Number(r.latitude)-customerGeo.latitude),dLon=rad(Number(r.longitude)-customerGeo.longitude),a=Math.sin(dLat/2)**2+Math.cos(rad(customerGeo.latitude))*Math.cos(rad(Number(r.latitude)))*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
@@ -202,9 +246,16 @@ function renderRestaurants(){
   const closed=BiteDiscovery.isClosed(r),closureLabel=r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until)>new Date())?'Temporarily closed':'Closed now',delivery=r.accepts_delivery&&!r.delivery_paused;
   const rating=Number(r.average_rating)>0?Number(r.average_rating).toFixed(1)+' ★':'New';
   const cover=BiteRestaurantCovers.choose(r,publicMenuSearch,SUPABASE_URL),photo=cover.src;
-  return '<button type="button" class="restaurant" data-id="'+safe(r.id)+'" aria-label="View menu of '+safe(r.name)+'"><div class="cover"><img loading="lazy" decoding="async" src="'+safe(photo)+'" alt="'+safe(cover.alt)+'" onerror="this.onerror=null;this.src=&quot;assets/food/meal-1100.jpg&quot;"><span class="bite-cover-origin">'+safe(cover.source==='owner'?'Restaurant photo':'Bite suggested photo')+'</span><span class="covertag">'+(closed?closureLabel:'Explore menu <span aria-hidden="true">↗</span>')+'</span></div><div class="rbody">'+(r.featured?'<span class="bite-featured">Featured</span>':'')+'<div class="restaurant-title-row"><h3 class="rname">'+safe(r.name)+'</h3><span class="rating">'+rating+'</span></div><div class="desc">'+safe((r.cuisine_tags||[]).join(' · ')||r.public_description||'Freshly prepared, locally served')+'</div>'+(dishes.length?'<div class="dish-match">Found: '+dishes.map(d=>safe(d.name)).join(', ')+'</div>':'')+'<div class="meta"><span>◷ '+Number(r.estimated_prep_minutes||30)+' min prep</span><span>Min. '+money(r.minimum_order_amount)+'</span><span>Delivery '+money(r.zone_delivery_fee??r.default_delivery_fee)+'</span></div><div class="restaurant-service"><span>'+safe(r.city||'Local restaurant')+'</span><span>'+(closed?'Closed':delivery&&r.accepts_pickup?'Delivery · Pickup':delivery?'Delivery':r.accepts_pickup?'Pickup':'Currently unavailable')+'</span></div>'+(customerGeo&&customerDistanceKm(r)!==null?'<div class="distance-label">'+customerDistanceKm(r).toFixed(1)+' km away</div>':'')+'</div></button>';
+  return '<button type="button" class="restaurant" data-id="'+safe(r.id)+'" aria-label="View menu of '+safe(r.name)+'"><div class="cover"><img loading="lazy" decoding="async" src="'+safe(photo)+'" alt="'+safe(cover.alt)+'"><span class="bite-cover-origin">'+safe(cover.source==='owner'?'Restaurant photo':cover.source==='menu'?'Menu photo':'Bite suggested photo')+'</span><span class="covertag">'+(closed?closureLabel:'Explore menu <span aria-hidden="true">↗</span>')+'</span></div><div class="rbody">'+(r.featured?'<span class="bite-featured">Featured</span>':'')+'<div class="restaurant-title-row"><h3 class="rname">'+safe(r.name)+'</h3><span class="rating">'+rating+'</span></div><div class="desc">'+safe((r.cuisine_tags||[]).join(' · ')||r.public_description||'Freshly prepared, locally served')+'</div>'+(dishes.length?'<div class="dish-match">Found: '+dishes.map(d=>safe(d.name)).join(', ')+'</div>':'')+'<div class="meta"><span>◷ '+Number(r.estimated_prep_minutes||30)+' min prep</span><span>Min. '+money(r.minimum_order_amount)+'</span><span>Delivery '+money(r.zone_delivery_fee??r.default_delivery_fee)+'</span></div><div class="restaurant-service"><span>'+safe(r.city||'Local restaurant')+'</span><span>'+(closed?'Closed':delivery&&r.accepts_pickup?'Delivery · Pickup':delivery?'Delivery':r.accepts_pickup?'Pickup':'Currently unavailable')+'</span></div>'+(customerGeo&&customerDistanceKm(r)!==null?'<div class="distance-label">'+customerDistanceKm(r).toFixed(1)+' km away</div>':'')+'</div></button>';
  }).join(''):'<div class="food-empty"><span aria-hidden="true">⌕</span><h3>Kuch aur try karein?</h3><p>Is search ya filter mein restaurant nahi mila. Search badlein ya filters reset karein.</p><button class="secondary" type="button" onclick="resetDiscovery()">Show all restaurants</button></div>';
- document.querySelectorAll('.restaurant[data-id]').forEach(el=>el.addEventListener('click',()=>openRestaurant(el.dataset.id)));
+ document.querySelectorAll('.restaurant[data-id]').forEach(el=>{
+  const restaurant=restaurants.find(r=>r.id===el.dataset.id);
+  if(restaurant){
+   const cover=BiteRestaurantCovers.choose(restaurant,publicMenuSearch,SUPABASE_URL);
+   setCustomerCoverImage(el.querySelector('.cover img'),el.querySelector('.bite-cover-origin'),cover);
+  }
+  el.addEventListener('click',()=>openRestaurant(el.dataset.id));
+ });
 }
 function resetDiscovery(){activeFilter='all';window.restaurantServiceFilter='all';window.restaurantSortFast=false;$('homeSearchInput').value='';$('searchInput').value='';document.querySelectorAll('[data-home-filter]').forEach(b=>{const active=b.dataset.homeFilter==='all';b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('[data-service-filter]').forEach(b=>{const active=b.dataset.serviceFilter==='all';b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});$('sortFastBtn').classList.remove('active');$('sortFastBtn').setAttribute('aria-pressed','false');$('sortFastBtn').textContent='Fastest prep ↕';renderRestaurants();}
 $('clearDiscoveryBtn').addEventListener('click',resetDiscovery);
@@ -215,8 +266,10 @@ function clearCustomerCart(){cart={};try{localStorage.removeItem(CUSTOMER_CART_S
 async function openRestaurant(id){if(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURANT_ID)return;const nextRestaurant=restaurants.find(r=>r.id===id);if(!nextRestaurant)return;if(activeRestaurant&&activeRestaurant.id!==id&&cartEntries().length){if(!confirm('Aapke cart mein '+activeRestaurant.name+' ke items hain. Naye restaurant par jaane se cart clear ho jayega. Kya aage badhein?'))return;clearCustomerCart();}const openSequence=++biteRestaurantOpenSequence;activeRestaurant=nextRestaurant;const savedCart=readSavedCustomerCart();cart=savedCart?.restaurantId===id&&savedCart.items&&typeof savedCart.items==='object'?savedCart.items:{};menuItems=[];showCustomerView('menu');$('menuSearchInput').value='';$('menuVegToggle').checked=false;activeMenuCategory='all';$('restaurantName').textContent=activeRestaurant.name;$('restaurantCuisine').textContent=(activeRestaurant.cuisine_tags||[]).join(' • ')||'Restaurant';$('restaurantInfo').textContent=(activeRestaurant.city||'')+' • '+Number(activeRestaurant.estimated_prep_minutes||30)+' min • '+(activeRestaurant.accepts_delivery&&!activeRestaurant.delivery_paused?'Delivery':'')+(activeRestaurant.accepts_pickup?' • Pickup':'')+(BiteDiscovery.isClosed(activeRestaurant)?' • Closed now':'');$('restaurantDescription').textContent=activeRestaurant.public_description||'';
  const hero=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
  $('biteRestaurantHero').style.removeProperty('display');
- const heroImg=$('biteRestaurantHeroImage');heroImg.src=hero.src;heroImg.alt=hero.alt;
- $('biteRestaurantCoverLabel').textContent=hero.source==='owner'?'Restaurant photo':'Bite suggested photo';
+ setCustomerCoverImage($('biteRestaurantHeroImage'),$('biteRestaurantCoverLabel'),hero);
+ // Non-blocking refresh: the latest Owner-uploaded cover appears when opening
+ // an already loaded restaurant, without resetting menu/cart/payment details.
+ void refreshCustomerCoverPhotos();
  window.BiteCustomerExtras?.renderFavouriteButton();appliedCheckoutCoupon=null;checkoutRequestKey=null;$('menuItems').innerHTML='<div class="empty">Menu load ho raha hai...</div>';try{const [cats,items,reviews]=await Promise.all([sb.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',id).eq('is_active',true).order('sort_order'),sb.from('menu_items').select('id,category_id,name,description,price,is_vegetarian,image_url').eq('restaurant_id',id).eq('is_available',true).order('sort_order'),sb.from('restaurant_reviews').select('id,rating,review,response,created_at').eq('restaurant_id',id).eq('status','Published').order('created_at',{ascending:false}).limit(30)]);if(cats.error)throw cats.error;if(items.error)throw items.error;if(reviews.error)throw reviews.error;if(openSequence!==biteRestaurantOpenSequence)return;menuItems=items.data||[];renderRestaurantReviews(reviews.data||[]);cart=Object.fromEntries(Object.entries(cart).filter(([itemId,q])=>menuItems.some(i=>i.id===itemId)&&Number.isInteger(Number(q))&&Number(q)>0).map(([itemId,q])=>[itemId,Math.min(99,Number(q))]));renderCart();renderMenu(cats.data||[])}catch(e){if(openSequence!==biteRestaurantOpenSequence)return;cart={};renderCart();$('menuItems').innerHTML='<div class="empty">Menu load nahi ho paaya. Restaurant ka published menu check karein.</div>';console.error(e)}if(openSequence===biteRestaurantOpenSequence)window.scrollTo({top:0,behavior:'smooth'})}
 function renderRestaurantReviews(reviews){
  const box=$('restaurantReviews');if(!box)return;
@@ -944,6 +997,10 @@ window.addEventListener('focus',()=>{if(bitePageWasHidden){bitePageWasHidden=fal
 $('checkPendingPaymentBtn').addEventListener('click',checkPendingCustomerPayment);
 
 loadRestaurants();
+window.addEventListener('focus',()=>{if(!document.hidden)void refreshCustomerCoverPhotos();});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible')void refreshCustomerCoverPhotos();
+});
 
 // App-style in-page modal replacing browser prompt/confirm for customer order actions.
 function ensureOrderActionDialog(){let root=$('orderActionDialog');if(root)return root;root=document.createElement('div');root.id='orderActionDialog';root.className='order-action-overlay';root.innerHTML='<section class="order-action-sheet" role="dialog" aria-modal="true" aria-labelledby="orderActionTitle"><div class="order-action-grip"></div><div class="order-action-head"><div><div class="order-action-eyebrow">BITE • MY ORDERS</div><h2 id="orderActionTitle"></h2><p id="orderActionSubtitle"></p></div><button type="button" class="order-action-close" id="orderActionClose" aria-label="Close">×</button></div><form id="orderActionForm"><div id="orderActionFields"></div><div class="order-action-error" id="orderActionError" role="alert"></div><div class="order-action-buttons" id="orderActionButtons"></div></form></section>';document.body.appendChild(root);root.addEventListener('click',e=>{if(e.target===root)closeOrderActionDialog(null)});$('orderActionClose').addEventListener('click',()=>closeOrderActionDialog(null));return root;}
