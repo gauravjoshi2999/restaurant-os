@@ -34,6 +34,31 @@ try:
   customer.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html',wait_until='domcontentloaded')
   customer.locator('#restaurantGrid .restaurant').wait_for(state='visible')
   check('QA FIXTURE' in customer.locator('body').inner_text(),'Preview is explicitly synthetic and cannot charge or sign in real users')
+  # Direct Restaurant Ordering: WhatsApp source link must open only one restaurant,
+  # with no discovery or escape into another restaurant catalogue.
+  direct=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(direct)
+  direct.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',wait_until='domcontentloaded')
+  direct.locator('#menuItems [data-menu-item-id]').first.wait_for(state='visible')
+  check(direct.locator('#restaurantName').inner_text()=='QA Rajsamand Kitchen','Restaurant link opens only the linked restaurant menu')
+  check(direct.evaluate("""() => {
+    return BITE_DIRECT_MODE===true
+      && restaurants.length===1
+      && activeRestaurant?.id==='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+      && publicMenuSearch.every(item=>item.restaurant_id===activeRestaurant.id);
+  }"""),'Direct mode scopes discovery and menu search to exactly one restaurant')
+  check(direct.evaluate("""() => ['homeView','backBtn','homeBottomNav'].every(id=>{
+    const el=document.getElementById(id);return !el || getComputedStyle(el).display==='none';
+  })"""),'Restaurant link hides other restaurants and marketplace navigation')
+  direct.evaluate("showCustomerView('home')")
+  check(direct.locator('#menuView').is_visible(),'Direct restaurant view refuses to navigate back to marketplace')
+  direct.close()
+  invalid=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(invalid)
+  invalid.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=cccccccc-cccc-4ccc-8ccc-cccccccccccc',wait_until='domcontentloaded')
+  invalid.wait_for_function("document.getElementById('restaurantName').textContent==='Restaurant unavailable'")
+  check(invalid.locator('#homeView').is_hidden() and invalid.locator('#restaurantGrid .restaurant').count()==0,
+        'Unknown or unpublished direct link cannot fall back to other restaurant listings')
+  invalid.close()
+
   # Category selection must navigate to the actual refreshed restaurant results,
   # not merely toggle the active chip while leaving the hero on screen.
   customer.locator('[data-home-filter="all"]').click()
