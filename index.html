@@ -760,10 +760,6 @@ body.bite-session-check #biteSessionSplash{
 <section class="page" id="pos">
  <div class="welcome"><div><h1>POS &amp; Billing</h1><div class="muted">Counter sale banayein, payment note karein aur customer ki permission se WhatsApp bill share karein.</div></div><button class="btn" type="button" id="posNewSaleBtn" onclick="openOrder()">＋ New POS Bill</button></div>
  <div class="notice">New POS Bill mein items, customer mobile, received payment aur remaining balance add karein. WhatsApp share optional hai aur customer ki permission ke baad hi bhejein. Orders restaurant-wise alag hain.</div>
- <div class="card"><div class="form-row" style="align-items:end;margin:0">
-  <div class="field"><label>Restaurant</label><select id="posRestaurantFilter"></select></div>
-  <div class="field"><label>Sale entry</label><div class="small" style="padding:12px 0">One simple sale workflow</div></div>
- </div></div>
  <div class="card section" id="posDraftWorkspace"><div class="section-head"><h2>Saved POS Drafts</h2><button type="button" class="btn secondary" onclick="BitePOS.refreshDrafts()">Refresh Drafts</button></div><div class="small" style="margin:6px 0 12px">Mobile par bill adhura reh jaye to dobara type nahi karna padega. Draft ko resume ya delete kar sakte hain; draft sales mein count nahi hota.</div><div id="posDraftCards" class="pos-draft-cards" aria-live="polite">Loading drafts...</div></div>
  <div class="grid section">
   <div class="card"><div class="metric-label">POS orders</div><div class="metric" id="posOrderCount">0</div></div>
@@ -1613,7 +1609,6 @@ async function closeCashbookDay(){
   if(error)throw error;await loadCashbook();document.getElementById('cashbookCloseMessage').textContent='Day successfully closed';
  }catch(e){document.getElementById('cashbookCloseMessage').textContent='Day close nahi hua: '+e.message;console.error(e)}finally{btn.disabled=!!cashbookClosing}
 }
-document.getElementById('posRestaurantFilter').addEventListener('change',renderPOSWorkspace);
 document.getElementById('cashbookRestaurant').addEventListener('change',loadCashbook);
 document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 document.getElementById('cashbookOpeningCash').addEventListener('input',()=>{if(!cashbookClosing)renderCashbook()});
@@ -2506,7 +2501,7 @@ async function loadPosMenuItems(restaurantId){
  posMenuItems=data||[];
  if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
 }
-async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const memberships=(access.memberships||[]).filter(m=>m.role==='owner'&&m.restaurant_id===access.restaurantId);const allowedIds=memberships.map(m=>m.restaurant_id);const selectedPosRestaurant=document.getElementById('posRestaurantFilter')?.value||'';const restaurantId=selectedPosRestaurant&&allowedIds.includes(selectedPosRestaurant)?selectedPosRestaurant:(memberships[0]?.restaurant_id||(access.isPlatformAdmin?state.restaurants[0]?.id:''));if(!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show');window.BitePOS?.newBill()}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
+async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const restaurantId=access.restaurantId;const linkedOwner=(access.memberships||[]).some(m=>m.role==='owner'&&m.restaurant_id===restaurantId);if(!linkedOwner||!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show');window.BitePOS?.newBill()}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
 function syncPosPickerMenuPrice(){
  const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
  const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
@@ -2917,16 +2912,14 @@ document.getElementById('tableForm').addEventListener('submit',async e=>{
  try{let result;if(id)result=await sb.from('restaurant_tables').update(payload).eq('id',id);else{payload.created_by=currentUser.id;result=await sb.from('restaurant_tables').insert(payload)}if(result.error)throw result.error;closeModal('tableModal');await loadCloudData();renderTablesWorkspace()}catch(err){alert('Table save nahi hua: '+err.message)}finally{btn.disabled=false}
 });
 function refreshOrderTableOptions(){}
- function loadPOSWorkspace(){
- const sel=document.getElementById('posRestaurantFilter'),previous=sel.value;
- const ids=access.memberships.filter(m=>['owner','manager','staff'].includes(m.role)).map(m=>m.restaurant_id);
- const eligible=state.restaurants.filter(r=>ids.includes(r.id));
- sel.innerHTML='<option value="">All accessible restaurants</option>'+eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- sel.value=eligible.some(r=>r.id===previous)?previous:'';renderPOSWorkspace();void window.BitePOS?.refreshDrafts();
+function loadPOSWorkspace(){
+ renderPOSWorkspace();
+ void window.BitePOS?.refreshDrafts();
 }
 function renderPOSWorkspace(){
- const rid=document.getElementById('posRestaurantFilter')?.value||'';
- const orders=state.orders.filter(o=>o.channel.startsWith('POS - ')&&(!rid||o.restaurant===rid));
+ // The owner has exactly one linked restaurant. Never expose another tenant's POS data.
+ const rid=access.role==='owner'?access.restaurantId:null;
+ const orders=rid?state.orders.filter(o=>o.channel.startsWith('POS - ')&&o.restaurant===rid):[];
  const active=orders.filter(o=>!['Cancelled','Rejected'].includes(o.status));
  const sum=key=>active.reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
  document.getElementById('posOrderCount').textContent=String(active.length);
