@@ -35,7 +35,7 @@ test('Owner Size required and Extras optional selections obey database limits',(
 
 test('Multiple options are capped and names unique, case-insensitively',()=>{
  assert.equal(options.validateDraftChoices([{name:'Half',price_delta:0},{name:'Full',price_delta:40}]).length,2);
- assert.throws(()=>options.validateDraftChoices([{name:'Full',price_delta:0},{name:'full',price_delta:40}]),/same naam/);
+ assert.throws(()=>options.validateDraftChoices([{name:'Full',price_delta:0},{name:'full',price_delta:40}]),/ek hi naam/);
  assert.throws(()=>options.validateDraftChoices([]));
  assert.throws(()=>options.validateDraftChoices(Array.from({length:31},(_,n)=>({name:'Choice '+n,price_delta:0}))));
 });
