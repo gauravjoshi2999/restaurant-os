@@ -55,7 +55,11 @@ try:
     const img=document.querySelector('#restaurantGrid .restaurant .cover img');
     return {src:img?.src,currentSrc:img?.currentSrc,complete:img?.complete,width:img?.naturalWidth,
      label:document.querySelector('#restaurantGrid .restaurant .bite-cover-origin')?.textContent,
-     savedCover:restaurants[0]?.cover_image_path,origin:SUPABASE_URL};
+     savedCover:restaurants[0]?.cover_image_path,origin:SUPABASE_URL,
+     chosen:BiteRestaurantCovers.choose(restaurants[0],publicMenuSearch,SUPABASE_URL),
+     validated:BiteRestaurantCovers.ownCoverPath(restaurants[0]),
+     selected:BiteDiscovery.selectRestaurants(restaurants,publicMenuSearch,{}).map(x=>({id:x.restaurant.id,cover:x.restaurant.cover_image_path}))
+    };
   }""")
   print('QA COVER IMAGE DEBUG:',cover_info)
   check(bool(cover_info['src'] and '/storage/v1/object/public/bite-menu/' in cover_info['src'] and cover_info['width']>0),
