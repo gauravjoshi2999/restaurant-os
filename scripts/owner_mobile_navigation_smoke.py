@@ -112,8 +112,8 @@ with sync_playwright() as p:
             assert page.locator("#biteOwnerMoreScreen").is_visible(), "Child section Back must return to More"
             assert page.locator("#pageTitle").inner_text()=="More"
             page.locator(".bite-owner-back").click()
-            page.wait_for_function("document.querySelector('#overview').classList.contains('active')")
-            assert page.locator("#biteOwnerMoreScreen").is_hidden(), "Second Back returns to originating tab"
+            page.wait_for_function("document.querySelector('#pos').classList.contains('active')")
+            assert page.locator("#biteOwnerMoreScreen").is_hidden(), "Second Back returns to originating POS tab"
             page.locator('[data-bite-page="more"]').click()
             assert page.locator('#biteOwnerMoreScreen').is_visible()
             page.locator('.bite-owner-back').click()
