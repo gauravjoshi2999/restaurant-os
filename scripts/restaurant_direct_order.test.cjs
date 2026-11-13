@@ -119,7 +119,8 @@ test('Branded marketing caption welcomes customer and has only the original rest
 test('Direct restaurant page has prominent inline Menu CTA wired to scroll to dishes',()=>{
  assert.match(customer,/id="biteMenuInlineCTA" class="bite-menu-inline-cta" type="button"/);
  assert.match(customer,/html\.bite-direct-order \.bite-menu-inline-cta\{/);
- assert.match(customer,/browse\.scrollIntoView\(\{behavior:/);
- assert.match(customer,/\$\('biteMenuInlineCTA'\)\?\.addEventListener\('click',goToRestaurantMenu\)/);
+ assert.match(customer,/browse\.scrollIntoView\(\{/);
+ assert.match(customer,/\$\('biteMenuInlineCTA'\)\?\.addEventListener\('click',\(\)=>\{/);
+ assert.doesNotMatch(customer,/id="biteMenuQuickNav"|#biteMenuQuickNav/);
  assert.match(customer,/aria-controls="biteMenuBrowseStart"/);
 });
