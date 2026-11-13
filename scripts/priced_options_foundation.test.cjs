@@ -91,3 +91,10 @@ test('existing v1 checkout contract stays unchanged and paid options are not adv
  assert.match(customer,/bite_prepare_checkout_v2/);
  assert.doesNotMatch(customer,/src="assets\/customer-option-cart\.js/);
 });
+
+test('customer can see that the estimated total is verified before money is collected',()=>{
+ const css=fs.readFileSync('assets/customer-transactions.css','utf8');
+ assert.match(customer,/Final payable amount is verified securely before payment/);
+ assert.match(customer,/customer-transactions\.css\?v=20261113-priced-foundation1/);
+ assert.match(css,/\.checkout-secure-price-note\{/);
+});
