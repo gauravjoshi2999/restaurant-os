@@ -338,6 +338,26 @@ try:
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(owner.evaluate("""() => document.querySelector('#pos.page')?.classList.contains('active') && document.getElementById('pageTitle')?.textContent==='POS & Billing'"""),
         'Direct POS URL opens authenticated Owner POS & Billing without navigating the sidebar')
+  nav(owner,'orders')
+  owner.locator('#biteOwnerOrderStages').wait_for(state='visible')
+  stage_names=owner.locator('#biteOwnerOrderStages [data-bite-stage]').evaluate_all(
+    "(nodes)=>nodes.map(node=>node.dataset.biteStage)")
+  check(stage_names==['new','preparing','ready','delivery','completed','cancelled','all'],
+        'Owner Orders has one grouped stage bar backed by real status values')
+  check(owner.locator('#orders .order-inbox').is_hidden()
+        and owner.locator('#orders #orderStatusTabs').is_hidden(),
+        'Owner Orders does not repeat actionable orders in inbox and old bar')
+  check(owner.locator('#orders .bite-owner-order-disclosure').count()==2,
+        'Secondary request/review and payment-verification panels remain accessible')
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="new"]').get_attribute('aria-pressed')=='true',
+        'Owner Orders defaults to New with no mixed completed orders')
+  owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').click()
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').get_attribute('aria-pressed')=='true',
+        'Accepted and Preparing orders share a canonical Preparing stage')
+  owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').click()
+  owner.screenshot(path=str(OUT/'ui-owner-orders.png'),full_page=False)
+  check(owner.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),
+        'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
   owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
   check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
