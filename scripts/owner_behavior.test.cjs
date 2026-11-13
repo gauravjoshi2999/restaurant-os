@@ -87,3 +87,18 @@ test('CSV formulas are neutralized while Excel exports contain literal strings',
   assert.equal(new DataView(bytes.buffer).getUint32(0,true),0x04034b50);
   fs.writeFileSync('/tmp/bite-owner-export-test.xlsx',bytes);
 });
+
+test('POS item editor uses a distinct but accessible visual hierarchy without changing billing fields',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const style=html.match(/<style id="bite-pos-item-visual-contrast">([\s\S]*?)<\/style>/)?.[1]||'';
+ assert.match(style,/#orderModal #posItemEntry\{/);
+ assert.match(style,/background:linear-gradient\(135deg,#f0f8fd/);
+ assert.match(style,/border-left:4px solid #3989ad/);
+ assert.match(style,/button\[onclick="confirmPosItemInline\(\)"\]/);
+ assert.match(style,/background:#d92d3a!important/);
+ assert.match(style,/button\[onclick="togglePosItemEntry\(false\)"\]/);
+ assert.match(html,/id="posPickerItemName"/);
+ assert.match(html,/id="posPickerQuantity"/);
+ assert.match(html,/id="posPickerPrice"/);
+ assert.match(html,/id="posPaymentSection"/);
+});
