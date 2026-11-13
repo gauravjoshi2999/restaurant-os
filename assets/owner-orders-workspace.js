@@ -22,7 +22,81 @@
   const counts=orders=>Object.fromEntries(stages.map(stage=>[
     stage.key,stage.key==='all'?orders.length:orders.filter(order=>matches(stage.key,order.status)).length
   ]));
+  // The date is the restaurant's local calendar day, not the browser's UTC day.
+  function dayKey(value){
+    if(!value)return '';
+    const date=new Date(value);
+    if(!Number.isFinite(date.getTime()))return '';
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+      timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(date).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+    return parts.year+'-'+parts.month+'-'+parts.day;
+  }
+  const countByDay=orders=>(orders||[]).reduce((acc,order)=>{
+    const key=dayKey(order.createdAt);
+    if(key)acc[key]=(acc[key]||0)+1;
+    return acc;
+  },{});
+  const dateFilter=orders=>selectedDay?(orders||[]).filter(o=>dayKey(o.createdAt)===selectedDay):(orders||[]);
+  function formatDay(day){
+    return new Intl.DateTimeFormat('en-IN',{day:'numeric',month:'short',year:'numeric',
+      timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));
+  }
   const moved=[];
+  let calendar=null,calendarMonth=dayKey(new Date()).slice(0,7),selectedDay=null,calendarOpened=false;
+  let latestOrders=[];
+  function notifyDateChange(doc){
+    if(typeof doc?.dispatchEvent==='function')doc.dispatchEvent(new CustomEvent('bite-owner-order-date-change'));
+  }
+  function drawCalendar(doc){
+    if(!calendar||calendar.hidden)return;
+    const counts=countByDay(latestOrders);
+    const total=latestOrders.length;
+    const month=new Date(calendarMonth+'-01T12:00:00Z');
+    const year=month.getUTCFullYear(),monthNum=month.getUTCMonth();
+    const monthLabel=new Intl.DateTimeFormat('en-IN',{timeZone:'UTC',month:'long',year:'numeric'}).format(month);
+    const start=(new Date(Date.UTC(year,monthNum,1)).getUTCDay()+6)%7;
+    const last=new Date(Date.UTC(year,monthNum+1,0)).getUTCDate();
+    const today=dayKey(new Date());
+    const selection=selectedDay?(formatDay(selectedDay)+' · '+(counts[selectedDay]||0)+' orders'):'Sabhi dates · '+total+' orders';
+    const header='<div class="bite-orders-date-head"><strong>Orders date-wise</strong><span aria-live="polite">'+selection+'</span></div>';
+    const toolbar='<div class="bite-orders-date-tools"><button type="button" data-date-calendar-toggle aria-expanded="'+String(calendarOpened)+'">'+(calendarOpened?'Calendar band karein':'Calendar kholein')+'</button><button type="button" data-date-select="all"'+(!selectedDay?' class="active"':'')+'>All dates</button><button type="button" data-date-select="'+today+'">Today'+(counts[today]?' · '+counts[today]:'')+'</button></div>';
+    const dow=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>'<span class="bite-date-weekday">'+d+'</span>').join('');
+    let days='';
+    for(let cell=0;cell<start+last;cell++){
+      const n=cell-start+1;
+      if(n<=0){days+='<span class="bite-date-blank"></span>';continue;}
+      const day=calendarMonth+'-'+String(n).padStart(2,'0');
+      const count=counts[day]||0;
+      days+='<button type="button" class="bite-date-cell'+(count?' has-orders':'')+(selectedDay===day?' selected':'')+(today===day?' today':'')+'" data-date-select="'+day+'" aria-label="'+formatDay(day)+' '+count+' orders" aria-pressed="'+(selectedDay===day)+'"><strong>'+n+'</strong>'+(count?'<small>'+count+' orders</small>':'<small aria-hidden="true">·</small>')+'</button>';
+    }
+    const body=calendarOpened?'<div class="bite-orders-calendar-body"><div class="bite-date-month-nav"><button type="button" data-date-month="-1" aria-label="Previous month">‹</button><strong>'+monthLabel+'</strong><button type="button" data-date-month="1" aria-label="Next month">›</button></div><div class="bite-date-grid">'+dow+days+'</div><p>Sirf load hue Bite website orders count hote hain. Kisi date par tap karke us din ke orders dekhein.</p></div>':'';
+    calendar.innerHTML=header+toolbar+body;
+  }
+  function prepareCalendar(doc,anchor){
+    if(calendar)return;
+    calendar=doc.createElement('section');
+    calendar.id='biteOwnerOrderCalendar';
+    calendar.className='bite-owner-order-calendar';
+    calendar.setAttribute('aria-label','Choose order date and view daily counts');
+    anchor.insertAdjacentElement('afterend',calendar);
+    calendar.addEventListener('click',event=>{
+      const target=event.target.closest?.('button');
+      if(!target||!calendar.contains(target))return;
+      if(target.hasAttribute('data-date-calendar-toggle'))calendarOpened=!calendarOpened;
+      else if(target.hasAttribute('data-date-month')){
+        const [y,m]=calendarMonth.split('-').map(Number);
+        const date=new Date(Date.UTC(y,m-1+Number(target.dataset.dateMonth),1));
+        calendarMonth=date.toISOString().slice(0,7);
+      }else if(target.hasAttribute('data-date-select')){
+        const value=target.dataset.dateSelect;
+        selectedDay=value==='all'?null:value;
+        if(selectedDay)calendarMonth=selectedDay.slice(0,7);
+        notifyDateChange(doc);
+      }
+      drawCalendar(doc);
+    });
+  }
   let ownerStarted=false;
   let stageBar=null;
   let disclosures=[];
@@ -34,6 +108,8 @@
     for(const wrap of disclosures){wrap.remove()}
     disclosures=[];
     if(stageBar)stageBar.hidden=true;
+    if(calendar)calendar.hidden=true;
+    selectedDay=null;
     ownerStarted=false;
   }
   function createDisclosure(doc,anchor,title,ids){
@@ -80,6 +156,8 @@
       }
       base.insertAdjacentElement('afterend',stageBar);
     }
+    prepareCalendar(doc,stageBar);
+    if(calendar)calendar.hidden=false;
     stageBar.hidden=false;
     if(!ownerStarted){
       const layout=doc.querySelector('#orders .orders-page-layout');
@@ -98,6 +176,8 @@
   }
   function update(doc,orders,filter){
     if(!stageBar||stageBar.hidden)return;
+    latestOrders=orders||[];
+    drawCalendar(doc);
     const tally=counts(orders);
     for(const button of stageBar.querySelectorAll('[data-bite-stage]')){
       const key=button.dataset.biteStage;
@@ -184,5 +264,5 @@
       select.focus();
     });
   }
-  return {stages,isFilter,groupForStatus,matches,counts,prepare,update,requestReason};
+  return {stages,isFilter,groupForStatus,matches,counts,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
 });
