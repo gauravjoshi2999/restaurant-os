@@ -2,7 +2,7 @@
    Drafts are NOT orders, payments or sales. Posted orders have separate guarded workflows. */
 (function(){
 'use strict';
-let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false;
+let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
 const deletedThisSession=new Set();
 const $=id=>document.getElementById(id);
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -48,14 +48,20 @@ async function removeCloudDraft(ident,id){
  markDeletionDone(ident,id);
 }
 async function cleanupDeletions(){
- const ident=identity();if(!ident||deleteBusy)return;
+ const ident=identity();if(!ident)return;
+ // If connectivity comes back during an earlier delete pass, run one more
+ // pass rather than silently dropping the reconnect signal.
+ if(deleteBusy){deleteAgain=true;return}
  deleteBusy=true;
  try{
   for(const rec of deletionList(ident).filter(x=>x.pending)){
    try{await removeCloudDraft(ident,rec.id)}
    catch(err){console.warn('POS deleted draft cloud cleanup pending:',err.message)}
   }
- }finally{deleteBusy=false}
+ }finally{
+  deleteBusy=false;
+  if(deleteAgain){deleteAgain=false;void cleanupDeletions()}
+ }
 }
 function readCache(ident){
  try{const data=JSON.parse(localStorage.getItem(cacheKey(ident))||'[]');return Array.isArray(data)?data.filter(x=>x&&x.id&&x.restaurant_id===ident.restaurantId&&x.created_by===ident.uid&&!deletionExists(ident,x.id)).slice(0,40):[]}
