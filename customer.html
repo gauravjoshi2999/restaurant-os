@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
-<link rel="icon" type="image/svg+xml" href="assets/bite-app-icon.svg"><link rel="apple-touch-icon" href="assets/bite-app-icon.svg"><link rel="stylesheet" href="assets/customer-transactions.css?v=20261113-presets1">
+<link rel="icon" type="image/svg+xml" href="assets/bite-app-icon.svg"><link rel="apple-touch-icon" href="assets/bite-app-icon.svg"><link rel="stylesheet" href="assets/customer-transactions.css?v=20261113-priced-foundation1">
 <link rel="stylesheet" href="assets/customer-storefront.css?v=20261113-cart-access-undo2">
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
@@ -739,25 +739,38 @@ function onCustomerInstructionsEdited(){
  renderCheckoutDishInstructions();
 }
 function renderCartModal(){
+ // Live-hours refresh may re-render the cart while someone edits a dish request.
+ // Preserve expanded editors and the current textarea cursor across that update.
+ const expandedNotes=new Set(Array.from($('cartModalLines').querySelectorAll('.cart-item-note-editor:not(.hidden)'))
+  .map(el=>el.id.replace('cart-note-editor-','')));
+ const focusedNoteId=document.activeElement?.dataset?.cartItemNote||null;
+ const previousSelection=focusedNoteId?{start:document.activeElement.selectionStart,end:document.activeElement.selectionEnd}:null;
  const entries=cartEntries();
  const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
  $('cartRestaurantName').textContent=activeRestaurant?.name||'';
  $('cartModalLines').innerHTML=entries.length?entries.map(([id,q])=>{
-  const i=menuItems.find(x=>x.id===id),photo=i.image_url||'assets/food-placeholder.svg',note=safe(itemNotes[id]||''),key=safe(id);
+  const i=menuItems.find(x=>x.id===id),photo=i.image_url||'assets/food-placeholder.svg',note=safe(itemNotes[id]||''),key=safe(id),editorExpanded=expandedNotes.has(id);
   return '<div class="cart-product cart-product-with-note"><div class="cart-product-main">'+
    '<img src="'+safe(photo)+'" alt="'+safe(i.name)+'">'+
    '<div class="cart-product-info"><div class="cart-product-name">'+safe(i.name)+'</div><div class="cart-product-price">'+money(i.price)+'</div></div>'+
    '<div><div class="cart-qty"><button type="button" data-cart-dec="'+key+'" aria-label="Remove one '+safe(i.name)+'">−</button><span>'+q+'</span><button type="button" data-cart-inc="'+key+'" aria-label="Add one '+safe(i.name)+'" '+(q>=99?'disabled':'')+'>+</button></div>'+
    '<div style="font-size:12px;text-align:right;margin-top:5px;font-weight:800">'+money(Number(i.price)*q)+'</div></div></div>'+
-   '<div class="cart-item-note-panel"><button type="button" class="cart-item-note-toggle" data-cart-note-toggle="'+key+'" aria-controls="cart-note-editor-'+key+'" aria-expanded="false">'+(note?'Edit cooking request':'Add cooking request')+'</button>'+
+   '<div class="cart-item-note-panel"><button type="button" class="cart-item-note-toggle" data-cart-note-toggle="'+key+'" aria-controls="cart-note-editor-'+key+'" aria-expanded="'+String(editorExpanded)+'">'+(note?'Edit cooking request':'Add cooking request')+'</button>'+
    '<div class="cart-item-note-preview" '+(note?'':'hidden')+'>'+note+'</div>'+
-   '<div class="cart-item-note-editor hidden" id="cart-note-editor-'+key+'"><label for="cart-note-'+key+'">Instructions for all '+q+' of this dish</label>'+
+   '<div class="cart-item-note-editor'+(editorExpanded?'':' hidden')+'" id="cart-note-editor-'+key+'"><label for="cart-note-'+key+'">Instructions for all '+q+' of this dish</label>'+
    '<div class="cart-note-preset-list" role="group" aria-label="Quick cooking requests">'+BiteItemNotes.PRESETS.map(p=>
     '<button type="button" class="cart-note-preset" data-cart-note-preset="'+p.id+'" data-cart-note-id="'+key+'" aria-pressed="'+BiteItemNotes.hasPreset(itemNotes[id]||'',p.id)+'">'+safe(p.label)+'</button>'
    ).join('')+'</div>'+
    '<textarea id="cart-note-'+key+'" data-cart-item-note="'+key+'" maxlength="100" rows="2" placeholder="e.g. less spicy, no onion">'+note+'</textarea>'+
    '<small class="cart-note-preset-help" role="status">Tap a suggestion or write your own. Requests depend on the restaurant and do not change the price.</small></div></div></div>';
  }).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';
+ if(focusedNoteId&&expandedNotes.has(focusedNoteId)){
+  const editor=$('cart-note-'+focusedNoteId);
+  if(editor){
+   editor.focus({preventScroll:true});
+   try{editor.setSelectionRange(previousSelection.start,previousSelection.end);}catch{}
+  }
+ }
  const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
  const closedNotice=biteCartHoursError?biteCartHoursError:closed?cartRestaurantClosedMessage():'';
  $('cartModalTotal').innerHTML='<div style="display:flex;justify-content:space-between"><span>Item total</span><strong>'+money(total)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span>Delivery fee</span><strong>Shown at checkout</strong></div>'+(closedNotice?'<div id="cartClosedNotice" role="status" style="color:#8a3b22;background:#fff3e9;border:1px solid #efc3a6;border-radius:10px;margin-top:10px;padding:9px 11px;font-size:13px;line-height:1.45">'+safe(closedNotice)+'</div>':'');
@@ -790,7 +803,7 @@ function closeCartModal(){
  else if(!$('menuView').classList.contains('hidden'))$('menuSearchInput').focus({preventScroll:true});
 }
 function checkoutMode(){return document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';}
-function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='delivery',subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0),fee=delivery?Number(deliveryFee??activeRestaurant?.default_delivery_fee??0):0;checkoutQuotedTotal=subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0);$('checkoutSummary').innerHTML='<div style="display:flex;justify-content:space-between"><span>Food subtotal</span><strong>'+money(subtotal)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>'+(delivery?'Delivery fee':'Pickup')+'</span><strong>'+(delivery?money(fee):'Free')+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid #e9e2dc;padding-top:8px"><strong>Estimated total</strong><strong>'+money(subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0))+'</strong></div>'+(appliedCheckoutCoupon?'<div class="summaryrow"><span>Coupon '+safe(appliedCheckoutCoupon.code)+'</span><strong>−'+money(appliedCheckoutCoupon.discount_amount)+'</strong></div>':'');renderCheckoutDishInstructions();}
+function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='delivery',subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0),fee=delivery?Number(deliveryFee??activeRestaurant?.default_delivery_fee??0):0;checkoutQuotedTotal=subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0);$('checkoutSummary').innerHTML='<div style="display:flex;justify-content:space-between"><span>Food subtotal</span><strong>'+money(subtotal)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>'+(delivery?'Delivery fee':'Pickup')+'</span><strong>'+(delivery?money(fee):'Free')+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid #e9e2dc;padding-top:8px"><strong>Estimated total</strong><strong>'+money(subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0))+'</strong></div>'+(appliedCheckoutCoupon?'<div class="summaryrow"><span>Coupon '+safe(appliedCheckoutCoupon.code)+'</span><strong>−'+money(appliedCheckoutCoupon.discount_amount)+'</strong></div>':'');$('checkoutSummary').insertAdjacentHTML('beforeend','<p class="checkout-secure-price-note">Final payable amount is verified securely before payment. If it changes, you can review it first.</p>');renderCheckoutDishInstructions();}
 async function getCheckoutDeliveryZone(){if(checkoutMode()!=='delivery')return null;const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});if(error)throw error;const zone=Array.isArray(data)?data[0]:data;if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);if(subtotal<Number(zone.minimum_order_amount||0))throw new Error('Is delivery zone ka minimum food order '+money(zone.minimum_order_amount)+' hai.');return zone;}
 async function refreshCheckoutZoneEstimate(){if(checkoutMode()!=='delivery'){renderCheckoutSummary(0);$('checkoutError').textContent='';return;}const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal)){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';return;}try{const zone=await getCheckoutDeliveryZone();renderCheckoutSummary(zone.delivery_fee);$('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);}catch(e){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';}}
 function toggleCheckoutDelivery(){const delivery=checkoutMode()==='delivery';$('deliveryFields').classList.toggle('hidden',!delivery);renderCheckoutSummary(delivery?activeRestaurant?.default_delivery_fee||0:0);refreshCheckoutZoneEstimate();}

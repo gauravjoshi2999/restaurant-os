@@ -70,7 +70,7 @@ test('cart note UI is accessible and checkout blocks overlong requests before se
  assert.match(customer,/id="checkoutDishInstructions"/);
  assert.match(customer,/data-cart-note-toggle/);
  assert.match(customer,/aria-controls="cart-note-editor-/);
- assert.match(customer,/aria-expanded="false"/);
+ assert.match(customer,/aria-expanded="'\+String\(editorExpanded\)/);
  assert.match(customer,/data-cart-item-note/);
  assert.match(customer,/maxlength="100"/);
  assert.match(customer,/if\(instructions\.tooLong\)throw new Error/);
