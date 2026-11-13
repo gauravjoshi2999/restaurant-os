@@ -109,3 +109,12 @@ test('Customer refreshes cover photo on restaurant entry and tab return without 
  assert.match(html,/Bite suggested photo/);
  assert.match(html,/bite-restaurant-covers\.js\?v=20261113-cover-sync2/);
 });
+
+test('Customer page hides internal photo-source labels but retains cover images',()=>{
+ const html=fs.readFileSync('customer.html','utf8');
+ assert.match(html,/#menuView \.bite-cover-label,/);
+ assert.match(html,/#restaurantGrid \.bite-cover-origin\{display:none!important\}/);
+ assert.match(html,/id="biteRestaurantHeroImage"/);
+ assert.match(html,/class="bite-cover-origin" aria-hidden="true"/);
+ assert.match(html,/id="biteRestaurantCoverLabel" class="bite-cover-label" aria-hidden="true"/);
+});
