@@ -28,7 +28,7 @@
   const general=clean(generalNote);
   const note=[general,...(lines.length?['Dish requests (apply to every unit):',...lines]:[])].filter(Boolean).join('\n');
   return {note,tooLong:note.length>MAX_ORDER_NOTE,remaining:MAX_ORDER_NOTE-note.length,
-   itemCount:lines.length,hasDishNotes:lines.length>0};
+   itemCount:lines.length,hasDishNotes:lines.length>0,dishLines:lines};
  }
  return {MAX_ITEM_NOTE,MAX_ORDER_NOTE,clean,normalizeNotes,compose};
 });
