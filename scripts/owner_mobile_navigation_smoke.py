@@ -76,9 +76,6 @@ with sync_playwright() as p:
             assert page.locator('.sidebar-toggle').is_hidden(), "More is the only mobile drawer entry"
             assert page.locator('.main>.top').evaluate("(el)=>getComputedStyle(el).backgroundColor")=='rgb(53, 22, 110)'
             assert page.locator(".bite-owner-back").is_hidden()
-            page.evaluate("showPage('hr')")
-            assert page.locator('#hr .bite-hr-tabs').is_hidden(), "Desktop HR must retain existing layout"
-            assert page.locator('#hrEmployeePanel').is_visible() and page.locator('#hrAttendancePanel').is_visible(), "Both desktop HR forms remain available"
             buttons=page.locator(".bite-owner-tab")
             assert buttons.count()==5
             for rect in buttons.evaluate_all("(els)=>els.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))"):
@@ -149,6 +146,9 @@ with sync_playwright() as p:
             assert nav.is_hidden(),"Desktop must keep existing sidebar layout"
             assert page.locator('.side .nav button[data-page="menu"]').is_visible()
             assert page.locator(".bite-owner-back").is_hidden()
+            page.evaluate("showPage('hr')")
+            assert page.locator('#hr .bite-hr-tabs').is_hidden(), "Desktop HR must retain existing layout"
+            assert page.locator('#hrEmployeePanel').is_visible() and page.locator('#hrAttendancePanel').is_visible(), "Both desktop HR forms remain available"
         page.close()
         print(f"PASS: Owner mobile shell at {width}px")
     browser.close()
