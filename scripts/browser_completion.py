@@ -114,6 +114,15 @@ try:
       && !jump.hidden;
   }"""),'Mobile direct menu uses compact food hero, first dish above fold and visible Menu dekhein action')
   direct.locator('#biteMenuQuickNav').click()
+  direct.wait_for_timeout(650)
+  jump_debug=direct.evaluate("""() => {
+    const a=document.getElementById('biteMenuBrowseStart').getBoundingClientRect();
+    const b=document.getElementById('biteMenuQuickNav');
+    return {scrollY:scrollY,anchorTop:a.top,anchorBottom:a.bottom,
+      jumpHidden:b.hidden,view:document.body.dataset.view,
+      scrollHeight:document.documentElement.scrollHeight,screenHeight:innerHeight};
+  }""")
+  print('QA DIRECT MENU SCROLL:',jump_debug)
   direct.wait_for_function("""() => {
     const b=document.getElementById('biteMenuBrowseStart');
     return window.scrollY>0 && b.getBoundingClientRect().top>=35
