@@ -48,7 +48,7 @@
   return [
    '🙏 Namaste'+customer+'!',
    '*'+p.restaurantName+'* par aane ke liye shukriya! ❤️',
-   '🧾 Aapka '+(p.orderCode?'bill *'+p.orderCode+'*':'bill')+' '+money(p.total)+' ka hai. Item-wise bill saath share kiya hai.',
+   '🧾 Bill '+(p.orderCode?'*'+p.orderCode+'* ':'')+'• '+money(p.total)+' — neeche item-wise details hain.',
    '',
    '🍽️ *Agli baar restaurant aaye bina bhi apna favourite khana order karein!*',
    'Hamare menu se dishes chunein, aur available ho to delivery ya pickup select karein.',
@@ -56,7 +56,6 @@
    '👇 *'+p.restaurantName+' ka online menu:*',
    p.link,
    '',
-   '✅ Is link par *sirf '+p.restaurantName+'* ka menu khulega.',
    '💚 Phir milenge! — Team '+p.restaurantName
   ].join('\n');
  }
