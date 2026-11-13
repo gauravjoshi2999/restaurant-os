@@ -238,6 +238,19 @@ try:
   customer.locator('#menuItems [data-menu-dec]').first.click()
   check(customer.locator('#menuItems [data-add]').count()==1, 'Minus returns dish quantity to ADD inline')
   check(customer.evaluate("document.querySelector('#menuItems .menuphoto')===window.__biteQaDishImage"), 'Minus also preserves the loaded image node')
+  customer.locator('#menuSearchInput').fill('not-a-real-dish-987')
+  customer.wait_for_function("document.querySelector('#menuResultCount').textContent.startsWith('0 of ')")
+  check(customer.locator('#menuItems [data-reset-menu]').is_visible() and customer.locator('#menuResetFilters').is_visible(),
+    'Unmatched dish search offers an obvious Show all dishes recovery')
+  customer.locator('#menuItems [data-reset-menu]').click()
+  check(customer.locator('#menuSearchInput').input_value()=='' and customer.locator('#menuItems [data-add]').count()==1
+    and customer.locator('#menuResetFilters').is_hidden(),
+    'Show all dishes clears the search and restores menu items')
+  customer.locator('#menuVegToggle').check()
+  check(customer.locator('#menuResetFilters').is_visible(), 'Veg-only mode exposes Clear filters even with matching dishes')
+  customer.locator('#menuResetFilters').click()
+  check(not customer.locator('#menuVegToggle').is_checked() and customer.locator('#categoryBar [data-cat="all"]').get_attribute('aria-pressed')=='true',
+    'Clear filters resets veg and category controls to All items')
   customer.locator('#restaurantFavourite').click()
   customer.wait_for_function("document.querySelector('#restaurantFavourite').getAttribute('aria-pressed')==='true'")
   check('Saved' in customer.locator('#restaurantFavourite').inner_text(),'Favourite button persists through the Customer transport')
@@ -247,6 +260,15 @@ try:
   check(receipt.read_bytes().startswith(b'%PDF-1.4'),'Customer bill downloads as an actual PDF file')
   customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
   check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),'Reorder opens a reviewable cart with current available items')
+  check(customer.locator('#cartModalLines [data-cart-inc]').first.get_attribute('aria-label').startswith('Add one')
+    and customer.locator('#cartModalLines [data-cart-dec]').first.get_attribute('aria-label').startswith('Remove one'),
+    'Cart quantity controls have accessible dish-specific names')
+  customer.locator('#cartModalLines [data-cart-inc]').first.click()
+  check(customer.evaluate("document.activeElement?.hasAttribute('data-cart-inc')"),
+    'Cart plus keeps keyboard focus after quantity re-render')
+  customer.locator('#cartModalLines [data-cart-dec]').first.click()
+  check(customer.evaluate("document.activeElement?.hasAttribute('data-cart-dec')"),
+    'Cart minus restores focus and original quantity')
   # Simulate a very long order visually: the checkout footer must remain within the viewport.
   customer.evaluate("""() => {
     const lines=document.getElementById('cartModalLines');
