@@ -29,7 +29,7 @@
   body[data-role="owner"] #mainApp>.side .bite-owner-drawer-logout{
     display:block!important;width:100%;margin:16px 0 4px;padding:13px 16px;
     border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;
-    color:#3c4553;font:700 14px inherit;text-align:left;cursor:pointer;
+    color:#3c4553;font-family:inherit;font-size:14px;font-weight:700;text-align:left;cursor:pointer;
   }
   body[data-role="owner"] #mainApp>.side .bite-owner-drawer-logout[hidden]{display:none!important}
   body[data-role="owner"] #mainApp .bite-owner-bottom-nav{
