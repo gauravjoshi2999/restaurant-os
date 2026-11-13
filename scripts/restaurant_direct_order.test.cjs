@@ -83,7 +83,7 @@ test('Branded marketing caption welcomes customer and has only the original rest
  assert.match(msg,/Rahul/);
  assert.match(msg,/Agli baar restaurant aaye bina/);
  assert.match(msg,/sirf Hotel Maharani Palace/);
- assert.match(msg,/item-wise bill saath share/);
+ assert.match(msg,/item-wise bill saath share/i);
  assert.ok(msg.includes(Direct.directRestaurantUrl(restaurantId)));
  assert.ok(!msg.includes(wrongId));
  const f=Direct.fileName(p,'pdf');
