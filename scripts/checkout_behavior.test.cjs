@@ -24,7 +24,7 @@ function setup(options={}){
    throw Error('Unexpected API '+name);
   }}},
   Cashfree:({mode})=>({checkout:async args=>{calls.push({kind:'sdk',mode,args});if(options.sdkThrows)throw Error('Window closed');return{paymentDetails:{paymentStatus:'SUCCESS'}};}}),
-  checkoutMode:()=>options.delivery?'delivery':'pickup',cartEntries:()=>[['dish-1',1]],getCheckoutDeliveryZone:async()=>{if(options.outsideArea)throw Error('Outside delivery area');},
+  checkoutMode:()=>options.delivery?'delivery':'pickup',cartEntries:()=>[['dish-1',1]],cartInstructionSnapshot:()=>({note:values.customerNote||'',tooLong:!!options.overlongInstructions}),getCheckoutDeliveryZone:async()=>{if(options.outsideArea)throw Error('Outside delivery area');},
   activeRestaurant:{id:'restaurant-1'},checkoutAddresses:[],addressPin:null,cart:{'dish-1':1},renderCart(){},closeCheckoutAndReturnToMenu(){returnedToMenu++;},showCustomerView(){displayedOrders++;},loadMyOrders:async()=>{},
   localStorage:{setItem(){}},biteRefreshSandboxStatus(){},Date,console
  };
@@ -57,6 +57,12 @@ test('normal checkout unlocks only after authenticated production readiness',asy
 });
 test('provider unavailable blocks every profile, address, checkout and SDK write',async()=>{
  const t=setup({unavailable:true});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.filter(c=>c.kind==='rpc'||c.kind==='sdk').length,0);assert.equal(t.element('placeOrderBtn').disabled,true);
+});
+test('overlong dish instructions block checkout before any profile, order or payment write',async()=>{
+ const t=setup({overlongInstructions:true});await t.submit();
+ assert.equal(t.writes,0);
+ assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);
+ assert.match(t.element('checkoutError').textContent,/500 characters/);
 });
 test('outside delivery area cannot prepare a payment or write customer data',async()=>{
  const t=setup({delivery:true,outsideArea:true});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.some(c=>c.kind==='rpc'||c.kind==='sdk'),false);assert.match(t.element('checkoutError').textContent,/Outside delivery area/);
