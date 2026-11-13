@@ -63,18 +63,40 @@ test('Direct mode order history and email signup remain inside the restaurant ex
  assert.match(customer,/customerOrders=\(data\|\|\[\]\)\.filter\(order=>!BITE_DIRECT_MODE\|\|order\.restaurant_id===BITE_DIRECT_RESTAURANT_ID\)/);
  assert.match(customer,/emailRedirectTo:window\.location\.origin\+window\.location\.pathname\+\(BITE_DIRECT_MODE\?window\.location\.search:''\)/);
 });
-test('POS native share prepares photo/PDF before the owner taps; no silent WhatsApp send',()=>{
- assert.match(owner,/helper\.createBillImageFile\(payload\)/);
- assert.match(owner,/helper\.createBillPdfFile\(payload,window\.BiteInvoice\?\.pdfFromJpegs\)/);
- assert.match(owner,/helper\.canNativeShare\(imageFile,navigator\)/);
- assert.match(owner,/navigator\.share\(\{\s*files:\[file\]/);
- assert.match(owner,/text:caption/);
- assert.match(owner,/sendImage\.addEventListener\('click',\(\)=>sharePrepared\(imageFile\)\)/);
- assert.match(owner,/sendPdf\.addEventListener\('click',\(\)=>sharePrepared\(pdfFile\)\)/);
- assert.match(owner,/const fallback=style\(document\.createElement\('a'\)\)/);
- assert.match(owner,/fallback\.href=waUrl/);
- assert.doesNotMatch(owner,/fetch\(['"]https:\/\/wa\.me/);
+test('Single POS WhatsApp action targets the saved customer number and includes full itemized bill',()=>{
+ const start=owner.indexOf('function showPosWhatsAppBillDialog(payload){');
+ const end=owner.indexOf('function sharePosBillForOrder(id){',start);
+ const logic=owner.slice(start,end);
+ assert.match(logic,/helper\.whatsAppUrl\(payload\.phone,message\)/);
+ assert.match(logic,/helper\.normalizeIndianMobile\(payload\.phone\)/);
+ assert.match(logic,/new URL\(waUrl\)\.pathname!==\('\/'\+target\)/);
+ assert.match(logic,/send\.href=waUrl/);
+ assert.match(logic,/send\.textContent='WhatsApp Bill \+ Order Link bhejein'/);
+ assert.match(logic,/send\.target='_self'/);
+ assert.match(logic,/preview\.textContent=message/);
+ assert.match(logic,/panel\.append\(header,details,preview,send,note\)/);
+ assert.doesNotMatch(logic,/navigator\.share|createBillPdfFile|createBillImageFile|download\.click|sendImage|sendPdf/);
+ assert.doesNotMatch(logic,/Is link par \*sirf/);
  assert.match(owner,/if\(!confirm\('Kya customer ne WhatsApp bill/);
+});
+test('Direct menu includes optional Explore food in your city link to full Bite marketplace',()=>{
+ assert.match(customer,/id="biteExploreCityLink" href="customer\.html\?source=restaurant-direct-explore"/);
+ assert.match(customer,/Explore food in your city/);
+ assert.match(customer,/html\.bite-direct-order \.bite-direct-explore\{display:flex/);
+ assert.match(customer,/\.bite-direct-explore\{display:none\}/);
+ const u=new URL('customer.html?source=restaurant-direct-explore',Direct.directRestaurantUrl(restaurantId));
+ assert.equal(u.searchParams.has('direct'),false);
+ assert.equal(u.searchParams.has('restaurant'),false);
+ assert.equal(u.pathname,'/restaurant-os/customer.html');
+});
+test('Owner/Admin login form is visually gated until a session check resolves',()=>{
+ assert.match(owner,/<body data-bite-app="workspace" class="bite-session-check">/);
+ assert.match(owner,/body\.bite-session-check #authScreen\{visibility:hidden!important/);
+ assert.match(owner,/id="biteSessionSplash"/);
+ assert.match(owner,/async function activateSession\(user\).*?document\.body\.classList\.remove\('bite-session-check'\)/s);
+ assert.match(owner,/else \{setAuthMode\(false\);document\.body\.classList\.remove\('bite-session-check'\)\}/);
+ assert.match(owner,/function showRecoveryPanel\(\)\{document\.body\.classList\.remove\('bite-session-check'\)/);
+ assert.match(owner,/function showAuthError\(msg\)\{document\.body\.classList\.remove\('bite-session-check'\)/);
 });
 test('Branded marketing caption welcomes customer and has only the original restaurant ordering link',()=>{
  const p={restaurantId,restaurantName:'Hotel Maharani Palace',customerName:'Rahul',orderCode:'POS-123',
@@ -82,8 +104,8 @@ test('Branded marketing caption welcomes customer and has only the original rest
  const msg=Direct.marketingMessage(p);
  assert.match(msg,/Rahul/);
  assert.match(msg,/Agli baar restaurant aaye bina/);
- assert.match(msg,/sirf Hotel Maharani Palace/);
- assert.match(msg,/item-wise bill saath share/i);
+ assert.doesNotMatch(msg,/sirf Hotel Maharani Palace/);
+ assert.match(msg,/neeche item-wise details hain/i);
  assert.ok(msg.includes(Direct.directRestaurantUrl(restaurantId)));
  assert.ok(!msg.includes(wrongId));
  const f=Direct.fileName(p,'pdf');
