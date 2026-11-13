@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
-<link rel="icon" type="image/svg+xml" href="assets/bite-app-icon.svg"><link rel="apple-touch-icon" href="assets/bite-app-icon.svg"><link rel="stylesheet" href="assets/customer-transactions.css?v=20261112-sticky-cart">
+<link rel="icon" type="image/svg+xml" href="assets/bite-app-icon.svg"><link rel="apple-touch-icon" href="assets/bite-app-icon.svg"><link rel="stylesheet" href="assets/customer-transactions.css?v=20261113-presets1">
 <link rel="stylesheet" href="assets/customer-storefront.css?v=20261113-cart-access-undo2">
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
@@ -63,7 +63,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 <script src="assets/customer-discovery.js?v=20261110"></script>
-<script src="assets/customer-item-notes.js?v=20261113"></script>
+<script src="assets/customer-item-notes.js?v=20261113-presets1"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="assets/bite-direct-order.js?v=20261113"></script>
 <style id="bite-direct-only-style">
@@ -752,8 +752,11 @@ function renderCartModal(){
    '<div class="cart-item-note-panel"><button type="button" class="cart-item-note-toggle" data-cart-note-toggle="'+key+'" aria-controls="cart-note-editor-'+key+'" aria-expanded="false">'+(note?'Edit cooking request':'Add cooking request')+'</button>'+
    '<div class="cart-item-note-preview" '+(note?'':'hidden')+'>'+note+'</div>'+
    '<div class="cart-item-note-editor hidden" id="cart-note-editor-'+key+'"><label for="cart-note-'+key+'">Instructions for all '+q+' of this dish</label>'+
+   '<div class="cart-note-preset-list" role="group" aria-label="Quick cooking requests">'+BiteItemNotes.PRESETS.map(p=>
+    '<button type="button" class="cart-note-preset" data-cart-note-preset="'+p.id+'" data-cart-note-id="'+key+'" aria-pressed="'+BiteItemNotes.hasPreset(itemNotes[id]||'',p.id)+'">'+safe(p.label)+'</button>'
+   ).join('')+'</div>'+
    '<textarea id="cart-note-'+key+'" data-cart-item-note="'+key+'" maxlength="100" rows="2" placeholder="e.g. less spicy, no onion">'+note+'</textarea>'+
-   '<small>Requests depend on the restaurant. This does not change the item price.</small></div></div></div>';
+   '<small class="cart-note-preset-help" role="status">Tap a suggestion or write your own. Requests depend on the restaurant and do not change the price.</small></div></div></div>';
  }).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';
  const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
  const closedNotice=biteCartHoursError?biteCartHoursError:closed?cartRestaurantClosedMessage():'';
@@ -1156,6 +1159,23 @@ $('customerNote').addEventListener('input',()=>{
  onCustomerInstructionsEdited();
 });
 $('cartModalLines').addEventListener('click',event=>{
+ const presetButton=event.target.closest('[data-cart-note-preset]');
+ if(presetButton){
+  const id=presetButton.dataset.cartNoteId;
+  if(!cart[id])return;
+  const field=$('cart-note-'+id);
+  if(!field)return;
+  const result=BiteItemNotes.togglePreset(field.value,presetButton.dataset.cartNotePreset);
+  const help=presetButton.closest('.cart-item-note-editor')?.querySelector('.cart-note-preset-help');
+  if(result.tooLong){
+   if(help)help.textContent='100-character limit reached. Shorten your request before adding this suggestion.';
+   return;
+  }
+  if(help)help.textContent='Requests depend on the restaurant and do not change the price.';
+  field.value=result.note;
+  field.dispatchEvent(new Event('input',{bubbles:true}));
+  return;
+ }
  const button=event.target.closest('[data-cart-note-toggle]');
  if(!button)return;
  const editor=$('cart-note-editor-'+button.dataset.cartNoteToggle);
@@ -1176,6 +1196,9 @@ $('cartModalLines').addEventListener('input',event=>{
  if(preview){preview.textContent=note;preview.hidden=!note;}
  const toggle=product?.querySelector('[data-cart-note-toggle]');
  if(toggle)toggle.textContent=note?'Edit cooking request':'Add cooking request';
+ product?.querySelectorAll('[data-cart-note-preset]').forEach(button=>{
+  button.setAttribute('aria-pressed',String(BiteItemNotes.hasPreset(note,button.dataset.cartNotePreset)));
+ });
  onCustomerInstructionsEdited();
 });
 $('cartModal').addEventListener('click',e=>{if(e.target===$('cartModal'))closeCartModal();});

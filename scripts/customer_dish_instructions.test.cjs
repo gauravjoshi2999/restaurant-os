@@ -88,3 +88,26 @@ test('owner sees escaped cooking instructions in the order inbox and order board
  assert.match(owner,/\+extra\+'<\/div>'\+instructions\+/);
  assert.match(owner,/\.order-cooking-note>div\{white-space:pre-wrap\}/);
 });
+
+test('quick cooking-request presets toggle safely and never affect pricing',()=>{
+ assert.equal(Notes.PRESETS.length,4);
+ const first=Notes.togglePreset('No onion','less-spicy');
+ assert.equal(first.note,'No onion, Less spicy');
+ assert.equal(Notes.hasPreset(first.note,'less-spicy'),true);
+ const second=Notes.togglePreset(first.note,'less-spicy');
+ assert.equal(second.note,'No onion');
+ assert.equal(Notes.hasPreset(second.note,'less-spicy'),false);
+ assert.equal(Notes.togglePreset('Less spicy','extra-spicy').note,'Extra spicy');
+ assert.equal(Notes.togglePreset('Extra spicy','less-spicy').note,'Less spicy');
+ assert.equal(Notes.togglePreset('No onion','no-onion').note,'');
+ assert.equal(Notes.togglePreset('No onion','untrusted-option').changed,false);
+ const full=Notes.togglePreset('x'.repeat(99),'no-garlic');
+ assert.equal(full.tooLong,true);
+ assert.equal(full.note.length,99);
+ assert.match(customer,/data-cart-note-preset/);
+ assert.match(customer,/aria-pressed/);
+ assert.match(customer,/field\.dispatchEvent\(new Event\('input',\{bubbles:true\}\)\)/);
+ assert.match(css,/\.cart-note-preset\{min-height:44px/);
+ assert.match(customer,/p_customer_note:instructions\.note\|\|null,p_items:items/);
+ assert.doesNotMatch(customer,/p_addon_price|p_variant_price/);
+});

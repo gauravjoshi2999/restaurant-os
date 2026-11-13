@@ -170,3 +170,10 @@ body[data-bite-app="customer"] .checkout-dish-instructions{white-space:pre-wrap;
  body[data-bite-app="customer"] .cart-item-note-panel{padding-left:0}
  body[data-bite-app="customer"] .cart-product-info{overflow-wrap:anywhere}
 }
+
+/* Quick cooking request chips */
+body[data-bite-app="customer"] .cart-note-preset-list{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+body[data-bite-app="customer"] .cart-note-preset{min-height:44px;border:1px solid #d6c7bb;border-radius:999px;background:#fff;color:#5b4a3e;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+body[data-bite-app="customer"] .cart-note-preset[aria-pressed="true"]{border-color:#a42b3d;background:#fff0f2;color:#912337;box-shadow:inset 0 0 0 1px #a42b3d}
+body[data-bite-app="customer"] .cart-note-preset:focus-visible{outline:3px solid #a42b3d;outline-offset:2px}
+body[data-bite-app="customer"] .cart-note-preset-help{display:block;line-height:1.45}
