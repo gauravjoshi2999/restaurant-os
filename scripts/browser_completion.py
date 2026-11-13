@@ -251,17 +251,30 @@ try:
         'POS form has explicit WhatsApp bill consent before any customer share')
   check(owner.locator('#posPaidAmount').input_value()=='' and owner.locator('#posPaidAmount').get_attribute('placeholder')=='0.00',
         'Received Amount shows placeholder only and no pre-filled real zero')
-  owner.locator('#posAddItemTrigger').click()
+  check(owner.locator('#posAddItemTrigger').count()==0 and owner.locator('#posItemEntry').is_visible(),
+        'POS item form is always ready and there is no redundant Add item button')
   owner.locator('#posPickerItemName').fill('QA Veg Thali')
   owner.locator('#posPickerQuantity').fill('2')
   owner.locator('#posPickerPrice').fill('150')
   owner.get_by_role('button',name='＋ Add to bill').click()
   check('₹300' in owner.locator('#orderGrandTotal').inner_text(),
         'Mobile POS item picker totals two ₹150 dishes without saving a real bill')
-  check(owner.locator('#posPaidAmount').input_value()=='' and '₹300' in owner.locator('#posBalanceDue').input_value(),
+  check(owner.locator('#posItemEntry').is_visible()
+    and owner.locator('#posPickerItemName').input_value()==''
+    and owner.locator('#posPickerPrice').input_value()==''
+    and owner.locator('#posPickerQuantity').input_value()=='1',
+    'After Add to bill, the item form remains visible with clean inputs ready for the next dish')
+  owner.locator('#posPickerItemName').fill('QA Roti')
+  owner.locator('#posPickerQuantity').fill('2')
+  owner.locator('#posPickerPrice').fill('20')
+  owner.get_by_role('button',name='＋ Add to bill').click()
+  check(owner.locator('#posItemSummary .pos-item-chip').count()==2
+    and '₹340' in owner.locator('#orderGrandTotal').inner_text(),
+    'Two items can be added consecutively without clicking Add item again')
+  check(owner.locator('#posPaidAmount').input_value()=='' and '₹340' in owner.locator('#posBalanceDue').input_value(),
         'Adding items updates due amount but never auto-fills received payment')
   owner.locator('#posPaidAmount').fill('250')
-  check(owner.locator('#posPaidAmount').input_value()=='250' and '₹50' in owner.locator('#posBalanceDue').input_value(),
+  check(owner.locator('#posPaidAmount').input_value()=='250' and '₹90' in owner.locator('#posBalanceDue').input_value(),
         'Typing payment starts with the entered digits and recalculates balance')
   owner.locator('#orderModal button.close').click()
   owner.locator('#posNewSaleBtn').click()
