@@ -56,12 +56,13 @@ with sync_playwright() as p:
     page=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.route('http://bite-qa.local/pos-payment',lambda route:route.fulfill(status=200,content_type='text/html',body=HTML))
+    page.route('http://localhost:4177/pos-payment',lambda route:route.fulfill(status=200,content_type='text/html',body=HTML))
     def setup(mode):
         page.add_script_tag(path=str(ROOT/'assets/bite-pos-payment-safety.js'))
         page.add_script_tag(path=str(ROOT/'assets/bite-pos-payment-ui.js'))
         page.evaluate(INIT,mode)
-    page.goto('http://bite-qa.local/pos-payment',wait_until='domcontentloaded')
+    page.goto('http://localhost:4177/pos-payment',wait_until='domcontentloaded')
+    assert page.evaluate('window.isSecureContext && typeof crypto.randomUUID === "function"'), 'Test origin must support secure random UUIDs'
     setup('timeout-before')
     page.evaluate('BitePOSPaymentUI.open(__ctx)')
     page.locator('#paymentAmount').fill('120.25')
