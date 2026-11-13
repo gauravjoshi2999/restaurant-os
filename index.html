@@ -3009,6 +3009,7 @@ async function acceptAndStartOrder(id){
   const second=await sb.from('orders').update({status:'Preparing',status_note:null})
    .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status','Accepted').select('id').maybeSingle();
   if(second.error||!second.data)throw new Error('Order accepted hai, cooking start nahi hua: '+(second.error?.message||'Preparing dubara mark karein.'));
+  showOrderLiveToast('Order accepted · Cooking shuru ho gayi. Ready hone par Mark ready karein.');
  }catch(error){alert('Status check karein: '+(error.message||'Update failed'))}
  finally{
   try{await loadCloudData()}catch(error){console.warn('Order refresh issue',error)}
@@ -3579,7 +3580,7 @@ function renderOrderBoard(){
   return dateHeading+'<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
- if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
+ if(!orders.length)board.innerHTML='<div class="order-card-empty">'+(access.role==='owner'&&BiteOwnerCalendar.getSelected()?esc(BiteOwnerCalendar.labelForDay(BiteOwnerCalendar.getSelected()))+' ko is filter mein koi order nahi hai. Calendar mein doosra din chunein.':'Is filter mein abhi koi order nahi hai.')+'</div>';
  renderIncomingOrderInbox();
  updateOrderSoundButton();
 }
