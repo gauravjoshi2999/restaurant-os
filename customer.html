@@ -284,6 +284,18 @@ async function loadRestaurants(){const grid=$('restaurantGrid');try{
 }catch(e){grid.innerHTML='<div class="food-empty"><h3>Restaurants load nahi ho paaye.</h3><p>Connection check karke dobara try karein.</p><button class="secondary" type="button" onclick="loadRestaurants()">Try again</button></div>';$('resultCount').textContent='Unable to load';console.error(e)}}
 function customerDistanceKm(r){if(!customerGeo||r.latitude==null||r.longitude==null)return null;const rad=x=>x*Math.PI/180,dLat=rad(Number(r.latitude)-customerGeo.latitude),dLon=rad(Number(r.longitude)-customerGeo.longitude),a=Math.sin(dLat/2)**2+Math.cos(rad(customerGeo.latitude))*Math.cos(rad(Number(r.latitude)))*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 function enableCustomerLocation(){const btn=$('customerUseLocation');if(!navigator.geolocation){$('customerLocationLabel').textContent='Location support available nahi';return}btn.disabled=true;btn.textContent='Location mil rahi hai...';navigator.geolocation.getCurrentPosition(pos=>{customerGeo={latitude:pos.coords.latitude,longitude:pos.coords.longitude};btn.disabled=false;btn.textContent='✓ Near me active';$('customerLocationLabel').textContent='Aapki location ke aas-paas ke restaurants';renderRestaurants()},err=>{btn.disabled=false;btn.textContent='📍 Near me';$('customerLocationLabel').textContent=err.code===1?'Location permission allow karein':'Location nahi mil paayi'}, {enableHighAccuracy:true,timeout:12000,maximumAge:120000})}
+function discoveryEmptyMarkup(){
+ const pin=currentDiscoveryPin,service=window.restaurantServiceFilter||'all';
+ const hasDelivery=restaurants.some(r=>r.serviceable===true&&r.accepts_delivery===true&&!r.delivery_paused);
+ const hasPickup=restaurants.some(r=>r.accepts_pickup===true&&!BiteDiscovery.isClosed(r));
+ if(pin&&service!=='pickup'&&restaurants.length&&!hasDelivery){
+  return '<div class="food-empty"><span aria-hidden="true">⌖</span><h3>PIN '+safe(pin)+' par delivery available nahi hai</h3><p>Is PIN par listed restaurants abhi delivery nahi kar rahe. Pickup dekh sakte hain ya delivery PIN badal sakte hain.</p><div class="food-empty-actions">'+(hasPickup?'<button class="primary" type="button" data-discovery-pickup>See pickup restaurants</button>':'')+'<button class="secondary" type="button" data-discovery-pin>Change PIN</button></div></div>';
+ }
+ if(!restaurants.length){
+  return '<div class="food-empty"><span aria-hidden="true">⌕</span><h3>Abhi restaurants available nahi hain</h3><p>Is area mein abhi koi published restaurant nahi mila. Thodi der baad try karein'+(pin?' ya delivery PIN badlein':'')+'.</p>'+(pin?'<button class="secondary" type="button" data-discovery-pin>Change PIN</button>':'')+'</div>';
+ }
+ return '<div class="food-empty"><span aria-hidden="true">⌕</span><h3>Kuch aur try karein?</h3><p>Is search ya filter mein restaurant nahi mila. Search badlein ya filters reset karein.</p><button class="secondary" type="button" data-discovery-reset>Reset search &amp; filters</button></div>';
+}
 function renderRestaurants(){
  if(BITE_DIRECT_MODE){restaurants=restaurants.filter(r=>r.id===BITE_DIRECT_RESTAURANT_ID);publicMenuSearch=publicMenuSearch.filter(m=>m.restaurant_id===BITE_DIRECT_RESTAURANT_ID);}
  const q=$('homeSearchInput').value.trim();
@@ -294,7 +306,7 @@ function renderRestaurants(){
   const rating=Number(r.average_rating)>0?Number(r.average_rating).toFixed(1)+' ★':'New';
   const cover=BiteRestaurantCovers.choose(r,publicMenuSearch,SUPABASE_URL),photo=cover.src;
   return '<button type="button" class="restaurant" data-id="'+safe(r.id)+'" aria-label="View menu of '+safe(r.name)+'"><div class="cover"><img loading="lazy" decoding="async" src="'+safe(photo)+'" alt="'+safe(cover.alt)+'"><span class="bite-cover-origin" aria-hidden="true">'+safe(cover.source==='owner'?'Restaurant photo':cover.source==='menu'?'Menu photo':'Bite suggested photo')+'</span><span class="covertag">'+(closed?closureLabel:'Explore menu <span aria-hidden="true">↗</span>')+'</span></div><div class="rbody">'+(r.featured?'<span class="bite-featured">Featured</span>':'')+'<div class="restaurant-title-row"><h3 class="rname">'+safe(r.name)+'</h3><span class="rating">'+rating+'</span></div><div class="desc">'+safe((r.cuisine_tags||[]).join(' · ')||r.public_description||'Freshly prepared, locally served')+'</div>'+(dishes.length?'<div class="dish-match">Found: '+dishes.map(d=>safe(d.name)).join(', ')+'</div>':'')+'<div class="meta"><span>◷ '+Number(r.estimated_prep_minutes||30)+' min prep</span><span>Min. '+money(r.minimum_order_amount)+'</span><span>Delivery '+money(r.zone_delivery_fee??r.default_delivery_fee)+'</span></div><div class="restaurant-service"><span>'+safe(r.city||'Local restaurant')+'</span><span>'+(closed?'Closed':delivery&&r.accepts_pickup?'Delivery · Pickup':delivery?'Delivery':r.accepts_pickup?'Pickup':'Currently unavailable')+'</span></div>'+(customerGeo&&customerDistanceKm(r)!==null?'<div class="distance-label">'+customerDistanceKm(r).toFixed(1)+' km away</div>':'')+'</div></button>';
- }).join(''):'<div class="food-empty"><span aria-hidden="true">⌕</span><h3>Kuch aur try karein?</h3><p>Is search ya filter mein restaurant nahi mila. Search badlein ya filters reset karein.</p><button class="secondary" type="button" onclick="resetDiscovery()">Show all restaurants</button></div>';
+ }).join(''):discoveryEmptyMarkup();
  document.querySelectorAll('.restaurant[data-id]').forEach(el=>{
   const restaurant=restaurants.find(r=>r.id===el.dataset.id);
   if(restaurant){
@@ -304,8 +316,34 @@ function renderRestaurants(){
   el.addEventListener('click',()=>openRestaurant(el.dataset.id));
  });
 }
-function resetDiscovery(){activeFilter='all';window.restaurantServiceFilter='all';window.restaurantSortFast=false;$('homeSearchInput').value='';$('searchInput').value='';document.querySelectorAll('[data-home-filter]').forEach(b=>{const active=b.dataset.homeFilter==='all';b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});document.querySelectorAll('[data-service-filter]').forEach(b=>{const active=b.dataset.serviceFilter==='all';b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))});$('sortFastBtn').classList.remove('active');$('sortFastBtn').setAttribute('aria-pressed','false');$('sortFastBtn').textContent='Fastest prep ↕';renderRestaurants();}
-$('clearDiscoveryBtn').addEventListener('click',resetDiscovery);
+function resetDiscovery(service='all'){
+ activeFilter='all';window.restaurantServiceFilter=service;window.restaurantSortFast=false;
+ $('homeSearchInput').value='';$('searchInput').value='';
+ document.querySelectorAll('[data-home-filter],#filters [data-filter]').forEach(b=>{
+  const active=(b.dataset.homeFilter||b.dataset.filter)==='all';
+  b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+ });
+ document.querySelectorAll('[data-service-filter]').forEach(b=>{
+  const active=b.dataset.serviceFilter===service;
+  b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+ });
+ ['filterOpenNow','filterFavourites'].forEach(id=>{
+  $(id).setAttribute('aria-pressed','false');$(id).classList.remove('active');
+ });
+ $('discoveryDiet').value='all';$('discoveryRating').value='0';$('discoverySort').value='recommended';
+ $('sortFastBtn').classList.remove('active');$('sortFastBtn').setAttribute('aria-pressed','false');$('sortFastBtn').textContent='Fastest prep ↕';
+ // Preserve the customer's delivery PIN and saved location when clearing discovery filters.
+ renderRestaurants();
+}
+$('clearDiscoveryBtn').addEventListener('click',()=>resetDiscovery());
+$('restaurantGrid').addEventListener('click',e=>{
+ if(e.target.closest('[data-discovery-pickup]')){resetDiscovery('pickup');return;}
+ if(e.target.closest('[data-discovery-reset]')){resetDiscovery();return;}
+ if(e.target.closest('[data-discovery-pin]')){
+  $('discoveryPinInput').focus();
+  $('discoveryPinInput').scrollIntoView({behavior:'smooth',block:'center'});
+ }
+});
 $('homeSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){$('restaurantResults').scrollIntoView({behavior:'smooth',block:'start'});}});
 function readSavedCustomerCart(){try{const value=JSON.parse(localStorage.getItem(CUSTOMER_CART_STORAGE_KEY)||'null');return value&&typeof value==='object'?value:null;}catch(e){return null;}}
 function saveCustomerCart(){try{const items=Object.fromEntries(Object.entries(cart).filter(([,q])=>Number.isInteger(Number(q))&&Number(q)>0));if(!activeRestaurant||!Object.keys(items).length){localStorage.removeItem(CUSTOMER_CART_STORAGE_KEY);return;}localStorage.setItem(CUSTOMER_CART_STORAGE_KEY,JSON.stringify({restaurantId:activeRestaurant.id,items}));}catch(e){console.warn('Cart could not be saved on this device',e);}}
