@@ -1927,7 +1927,7 @@ function renderKhata(){
  renderKhataLedger();
 }
 function selectKhataCustomer(id){
- if(access.role!=='owner'||!khataCustomers.some(c=>c.id===id))return;
+ if(!['owner','manager','staff'].includes(access.role)||!khataCustomers.some(c=>c.id===id))return;
  selectedKhataCustomerId=id;
  renderKhataLedger();
  const choose=document.getElementById('khataEntryCustomer');
