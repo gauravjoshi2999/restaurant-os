@@ -78,8 +78,16 @@ try:
     window.__BITE_QA_SERVER_RESTAURANT.cover_image_updated_at='2026-11-13T12:42:00Z';
     await refreshCustomerCoverPhotos(true);
   }""")
-  check(customer.locator('#biteRestaurantCoverLabel').inner_text()=='Bite suggested photo',
-        'Removing Owner cover restores Bite suggested photo without losing the restaurant menu')
+  check(customer.evaluate("""() => {
+    const hero=document.getElementById('biteRestaurantHeroImage');
+    const chosen=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
+    const label=document.getElementById('biteRestaurantCoverLabel').textContent;
+    return chosen.source!=='owner'
+      && hero?.src===new URL(chosen.src,location.href).href
+      && hero?.complete && hero?.naturalWidth>0
+      && label===(chosen.source==='menu'?'Menu photo':'Bite suggested photo')
+      && document.querySelectorAll('#menuItems .menuitem').length>0;
+  }"""),'Removing Owner cover selects same-restaurant menu image or curated Bite fallback without losing menu')
   customer.evaluate("showCustomerView('home')")
   # Direct Restaurant Ordering: WhatsApp source link must open only one restaurant,
   # with no discovery or escape into another restaurant catalogue.
