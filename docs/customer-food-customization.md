@@ -43,6 +43,8 @@ This foundation is not a production paid-checkout launch. The existing `bite_pre
 
 **Production verification:** after deploying these schema changes, existing order line snapshot fields remain at legacy defaults. 168 historical order lines were checked; no prior item was rewritten. V3 has EXECUTE for authenticated only and does not use SECURITY DEFINER. Transactional SQL tests verified rejection of forged unit prices, duplicate cart lines and paid choices; changes were rolled back. Customer checkout still calls V2 and is unaffected.
 
+- `20261113142518_bite_v3_option_snapshot_immutable_guard.sql`: enforces priced order line arithmetic (base + options = unit price) and prevents changing an existing paid-option line's quantity, price, selected options and cooking request. Legacy V2/POS lines with no option snapshot are unaffected. A transactional QA insert/update was rolled back after confirming an illegal update is blocked.
+
 **Not yet implemented:** the actual V3 paid-option payment flow, finalizer propagation of immutable snapshots, option-aware owner display and refunds. Snapshot columns are storage slots only until that work is complete. No restaurant can charge for these options now.
 
 ## Step 2: Real priced variants and add-ons (not yet enabled)
