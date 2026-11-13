@@ -182,9 +182,51 @@ try:
   customer.locator('#discoveryPinInput').fill('313399');customer.locator('#discoveryLocationForm button[type=submit]').click()
   customer.wait_for_function("document.querySelector('#resultCount').textContent.startsWith('0 ')")
   check(customer.locator('#restaurantGrid .restaurant').count()==0,'Out-of-area PIN removes delivery restaurants')
-  customer.locator('[data-service-filter="pickup"]').click()
-  check(customer.locator('#restaurantGrid .restaurant').count()==1,'Explicit pickup stays available outside delivery PIN')
-  customer.locator('#discoveryPinInput').fill('313324');customer.locator('#discoveryLocationForm button[type=submit]').click();customer.locator('[data-service-filter="delivery"]').click()
+  check('313399' in customer.locator('#restaurantGrid .food-empty').inner_text()
+    and customer.locator('#restaurantGrid [data-discovery-pickup]').count()==1,
+    'Out-of-area PIN explains unavailable delivery and offers a pickup action')
+  customer.locator('#restaurantGrid [data-discovery-pickup]').click()
+  check(customer.locator('#restaurantGrid .restaurant').count()==1
+    and customer.locator('[data-service-filter="pickup"]').get_attribute('aria-pressed')=='true'
+    and customer.evaluate("currentDiscoveryPin")=='313399',
+    'Pickup recovery shows restaurants without changing the saved delivery PIN')
+  customer.evaluate("""() => {
+    activeFilter='North Indian';
+    document.getElementById('homeSearchInput').value='impossible search';
+    document.getElementById('searchInput').value='impossible search';
+    document.getElementById('filterOpenNow').setAttribute('aria-pressed','true');
+    document.getElementById('filterOpenNow').classList.add('active');
+    document.getElementById('filterFavourites').setAttribute('aria-pressed','true');
+    document.getElementById('filterFavourites').classList.add('active');
+    document.getElementById('discoveryDiet').value='nonveg';
+    document.getElementById('discoveryRating').value='4.5';
+    document.getElementById('discoverySort').value='price';
+    window.restaurantSortFast=true;
+    document.getElementById('sortFastBtn').classList.add('active');
+    document.getElementById('sortFastBtn').setAttribute('aria-pressed','true');
+    renderRestaurants();
+  }""")
+  customer.locator('#clearDiscoveryBtn').click()
+  check(customer.evaluate("""() => {
+    const el=id=>document.getElementById(id);
+    return activeFilter==='all' && window.restaurantServiceFilter==='all'
+      && !window.restaurantSortFast && el('homeSearchInput').value===''
+      && el('searchInput').value==='' && el('discoveryDiet').value==='all'
+      && el('discoveryRating').value==='0' && el('discoverySort').value==='recommended'
+      && ['filterOpenNow','filterFavourites','sortFastBtn'].every(id=>el(id).getAttribute('aria-pressed')==='false'&&!el(id).classList.contains('active'))
+      && [...document.querySelectorAll('[data-home-filter]')].every(b=>(b.getAttribute('aria-pressed')==='true')===(b.dataset.homeFilter==='all'))
+      && [...document.querySelectorAll('[data-service-filter]')].every(b=>(b.getAttribute('aria-pressed')==='true')===(b.dataset.serviceFilter==='all'))
+      && currentDiscoveryPin==='313399' && el('discoveryPinInput').value==='313399';
+  }"""),'Reset filters clears every discovery control while retaining delivery PIN')
+  customer.locator('#discoveryPinInput').fill('313324');customer.locator('#discoveryLocationForm button[type=submit]').click()
+  customer.locator('#homeSearchInput').fill('dish that does not exist')
+  check(customer.locator('#restaurantGrid [data-discovery-reset]').count()==1,
+    'Unmatched food search provides a clear reset action')
+  customer.locator('#restaurantGrid [data-discovery-reset]').click()
+  check(customer.locator('#restaurantGrid .restaurant').count()==1
+    and customer.locator('#homeSearchInput').input_value()=='',
+    'Empty-search reset restores available restaurants')
+  customer.locator('[data-service-filter="delivery"]').click()
   customer.locator('#restaurantGrid .restaurant').click()
   customer.locator('#menuItems [data-menu-item-id]').wait_for(state='visible')
   customer.evaluate("window.__biteQaDishImage=document.querySelector('#menuItems .menuphoto')")
