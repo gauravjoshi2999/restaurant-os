@@ -332,8 +332,10 @@ try:
   owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
   check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
   owner.locator('#ownerQuickPosBtn').click()
-  owner.locator('#posNewSaleBtn').wait_for(state='visible')
-  check(owner.locator('#posNewSaleBtn').is_visible(),'Owner overview quick button navigates to real POS workspace')
+  owner.locator('#orderModal.show').wait_for(state='visible')
+  check(owner.locator('#posNewSaleBtn').is_visible() and owner.locator('#orderModal.show').is_visible(),
+        'Owner overview quick button opens the actual POS bill on the first tap')
+  owner.locator('#orderModal .modal-head .close').click()
   nav(owner,'pos')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(not owner.locator('.side').evaluate("(el) => el.classList.contains('sidebar-open')") and owner.locator('#posNewSaleBtn').is_visible(),
