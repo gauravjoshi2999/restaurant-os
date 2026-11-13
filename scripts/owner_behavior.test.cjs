@@ -109,7 +109,7 @@ test('POS received amount begins blank; zero is only a visual hint',()=>{
  const html=fs.readFileSync('index.html','utf8');
  assert.match(html,/id="posPaidAmount" type="number" min="0" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00"/);
  assert.doesNotMatch(html,/id="posPaidAmount"[^>]*value="0"/);
- assert.match(html,/form\.reset\(\);document\.getElementById\('posPaidAmount'\)\.value=''/);
+ assert.match(html,/form\.reset\(\);\s*document\.getElementById\('posPaidAmount'\)\.value=''/);
  const calc=html.slice(html.indexOf('function updateOrderTotal(){'),html.indexOf('function closeModal(',html.indexOf('function updateOrderTotal(){')));
  assert.match(calc,/received=Number\(receivedEl\?\.value\|\|0\)/);
  assert.doesNotMatch(calc,/receivedEl\.value\s*=/);
