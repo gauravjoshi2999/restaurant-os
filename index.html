@@ -764,6 +764,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="field"><label>Restaurant</label><select id="posRestaurantFilter"></select></div>
   <div class="field"><label>Sale entry</label><div class="small" style="padding:12px 0">One simple sale workflow</div></div>
  </div></div>
+ <div class="card section" id="posDraftWorkspace"><div class="section-head"><h2>Saved POS Drafts</h2><button type="button" class="btn secondary" onclick="BitePOS.refreshDrafts()">Refresh Drafts</button></div><div class="small" style="margin:6px 0 12px">Mobile par bill adhura reh jaye to dobara type nahi karna padega. Draft ko resume ya delete kar sakte hain; draft sales mein count nahi hota.</div><div id="posDraftCards" class="pos-draft-cards" aria-live="polite">Loading drafts...</div></div>
  <div class="grid section">
   <div class="card"><div class="metric-label">POS orders</div><div class="metric" id="posOrderCount">0</div></div>
   <div class="card"><div class="metric-label">POS sales</div><div class="metric" id="posSalesTotal">₹0.00</div></div>
@@ -1183,8 +1184,9 @@ body.bite-session-check #biteSessionSplash{
 <div class="modal" id="menuCategoryModal"><div class="modal-box"><div class="modal-head"><h2>Add menu category</h2><button class="close" type="button" onclick="closeModal('menuCategoryModal')">✕</button></div><form id="menuCategoryForm"><div class="field"><label>Category name *</label><input id="menuCategoryName" maxlength="80" placeholder="e.g. Main Course, Snacks, Drinks" required></div><button class="btn" id="menuCategorySaveBtn" type="submit" style="margin-top:14px">Add category</button><div class="small" id="menuCategoryError" style="color:#b42318;margin-top:9px" aria-live="polite"></div></form></div></div><div class="modal" id="menuItemModal"><div class="modal-box"><div class="modal-head"><h2 id="menuItemModalTitle">Add menu item</h2><button class="close" type="button" onclick="closeModal('menuItemModal')">✕</button></div><form id="menuItemForm"><input type="hidden" name="id"><div class="form-row"><div class="field"><label>Item name *</label><input name="name" required maxlength="120"></div><div class="field"><label>Category</label><select name="category_id" id="menuItemCategory"></select></div><div class="field"><label>Price (₹) *</label><input name="price" type="number" min="0" step=".01" required></div><div class="field"><label>Image URL (optional)</label><input name="image_url" type="url" placeholder="https://..."></div><div class="field"><label>Food type</label><select name="is_vegetarian"><option value="true">Veg</option><option value="false">Non-veg / Other</option></select></div><div class="field"><label>Availability</label><select name="is_available"><option value="true">Available</option><option value="false">Not available</option></select></div><div class="field" style="grid-column:1/-1"><label>Description</label><input name="description" maxlength="300"></div></div><button class="btn" id="menuItemSaveBtn">Save item</button><div class="small" id="menuItemError" style="margin-top:9px;color:#b42318"></div></form></div></div><div class="modal" id="restaurantModal"><div class="modal-box"><div class="modal-head"><h2 id="restaurantModalTitle">Add restaurant</h2><button class="close" onclick="closeModal('restaurantModal')">✕</button></div><form id="restaurantForm"><input type="hidden" name="id"><div class="form-row"><div class="field"><label>Restaurant name *</label><input name="name" required></div><div class="field"><label>Contact person</label><input name="contact_person"></div><div class="field"><label>Contact number</label><input name="phone" inputmode="tel" maxlength="10"></div><div class="field"><label>Email</label><input name="email" type="email"></div><div class="field"><label>City</label><input name="city" value="Rajsamand"></div><div class="field"><label>Onboarding status</label><select name="status"><option>Lead added</option><option>Contacted</option><option>Interested</option><option>Documents pending</option><option>Approved</option><option>Rejected</option><option>Active</option></select></div><div class="field"><label><input name="is_published" type="checkbox"> Publish on Customer Website</label><span class="small">Sirf Active restaurant aur menu taiyar hone par publish karein.</span></div><div class="field" style="grid-column:1/-1"><label>Address</label><input name="address"></div>
 <div class="field" style="grid-column:1/-1"><label>Restaurant Location (Customer Website par Nearby dikhane ke liye)</label><input type="hidden" name="latitude"><input type="hidden" name="longitude"><div class="restaurant-map-actions"><button class="btn secondary" type="button" id="restaurantPickMap">📍 Map par Restaurant Pin karein</button><button class="btn secondary" type="button" id="restaurantUseLocation">◎ Current Location</button></div><div id="restaurantLocationMap" style="display:none"></div><div class="small" id="restaurantLocationHint">Restaurant ki exact location map par pin karein. Pin ko drag bhi kar sakte hain.</div></div><div class="field" style="grid-column:1/-1"><label>Notes</label><input name="notes"></div></div><button class="btn" id="restaurantSaveBtn">Save restaurant</button></form></div></div>
 <div class="modal" id="ownerInviteModal"><div class="modal-box"><div class="modal-head"><h2 id="ownerInviteTitle">Create Owner Login</h2><button class="close" type="button" onclick="closeModal('ownerInviteModal')">✕</button></div><div class="notice">Email ya SMS ki zarurat nahi. Owner mobile number aur temporary password se login karega. Pehli baar login par password badalna zaroori hoga.</div><form id="ownerInviteForm"><input type="hidden" name="restaurant_id"><input type="hidden" name="replace_owner" value="no"><input type="hidden" name="expected_owner_user_id"><div class="notice" id="ownerInviteImpact" style="display:none;background:#fff4e9;border:1px solid #ecbf96;color:#79330d;margin-bottom:12px">Purane Owner ki access band hogi. Restaurant ke purane orders, customers, reports aur payment history delete nahi honge aur naye Owner ko dikh sakte hain. Alag business ke liye fresh restaurant banana zyada safe hai.</div><div class="field"><label>Restaurant</label><input id="ownerInviteRestaurantName" readonly></div><div class="field"><label>Owner full name *</label><input name="full_name" required maxlength="120" placeholder="Owner name"></div><div class="field"><label>Owner mobile number *</label><input name="phone" type="tel" inputmode="numeric" required maxlength="10" pattern="[6-9][0-9]{9}" placeholder="10-digit mobile number"></div><label id="ownerInviteHistoryWrap" class="small" style="display:none;padding:9px;border:1px solid #efc3a6;border-radius:9px;margin:8px 0"><input id="ownerInviteHistoryAccepted" type="checkbox" style="margin-right:7px">Main samajhta hoon ki existing orders aur payments naye owner ko visible ho sakte hain. Maine business ownership aur customer data access verify kiya hai.</label><button class="btn" id="ownerInviteSubmit" type="submit">Create Owner Login</button><div class="small" id="ownerInviteMessage" role="status" style="margin-top:10px;white-space:pre-wrap"></div></form><div id="ownerTempPasswordWrap" style="display:none;margin-top:12px"><label class="small" for="ownerTempPassword">Temporary password — copy and share privately</label><input id="ownerTempPassword" readonly style="width:100%;padding:12px;border:1px solid #ddd;border-radius:9px;font:700 15px monospace"><button class="btn secondary" type="button" style="margin-top:8px" onclick="navigator.clipboard.writeText(document.getElementById('ownerTempPassword').value).then(()=>alert('Password copied'))">Copy password</button><div class="small" style="margin-top:8px">Yeh password sirf ek baar dikhaya jayega. Isse privately share karein.</div></div></div></div><div class="modal" id="passwordSetupModal"><div class="modal-box"><div class="modal-head"><h2>Set your Bite password</h2></div><div class="notice">Aapka Owner account activate ho gaya hai. Apna personal password set karein; ise kisi ke saath share na karein.</div><form id="passwordSetupForm"><div class="field"><label>New password (minimum 8 characters)</label><input name="password" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label>Confirm password</label><input name="confirm_password" type="password" minlength="8" autocomplete="new-password" required></div><button class="btn" id="passwordSetupSubmit" type="submit">Save password</button><div class="small" id="passwordSetupMessage" role="status" style="margin-top:10px"></div></form></div></div>
-<div class="modal" id="orderModal"><div class="modal-box"><div class="modal-head"><h2>New Sale / Order</h2><button class="close" onclick="closeModal('orderModal')">✕</button></div><form id="orderForm">
-<input type="hidden" name="channel" id="orderChannel" value="POS - Counter"><input type="hidden" name="restaurant" id="orderRestaurant">
+<div class="modal" id="orderModal"><div class="modal-box"><div class="modal-head"><h2 id="orderModalTitle">New POS Bill</h2><button class="close" onclick="closeModal('orderModal')">✕</button></div><form id="orderForm">
+<div class="pos-draft-toolbar"><span id="posDraftStatus" role="status" aria-live="polite">Auto-save ready</span><div class="pos-draft-actions"><button type="button" class="btn secondary" onclick="BitePOS.saveNow()">Save Draft</button><button type="button" class="btn secondary" onclick="BitePOS.discardActive()">Delete Draft</button></div></div>
+<input type="hidden" id="posReplaceOrderId"><input type="hidden" name="channel" id="orderChannel" value="POS - Counter"><input type="hidden" name="restaurant" id="orderRestaurant">
 <div class="form-row"><div class="field"><label for="orderCustomerName">Customer name</label><input id="orderCustomerName" type="text" name="customer_name" maxlength="120" placeholder="Yahan customer ka naam likhein" autocomplete="name" autocapitalize="words" spellcheck="false"></div><div class="field"><label for="orderCustomerPhone">Mobile number</label><input id="orderCustomerPhone" name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,18}" maxlength="18" placeholder="Customer mobile"></div></div>
 
 <div class="section-head" style="margin:18px 0 10px"><h3 style="margin:0">Items in this bill</h3></div>
@@ -1210,6 +1212,16 @@ body.bite-session-check #biteSessionSplash{
  <div class="form-row"><div class="field"><label>Amount received (₹) *</label><input id="paymentAmount" type="number" min="0.01" step="0.01"></div><div class="field"><label>Payment mode *</label><select id="paymentMethod"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div><div class="field"><label>Payment date *</label><input id="paymentDate" type="date"></div><div class="field"><label>Reference</label><input id="paymentReference" maxlength="100" placeholder="UPI ref / receipt no."></div><div class="field" style="grid-column:1/-1"><label>Note</label><input id="paymentNotes" maxlength="250" placeholder="Optional"></div></div>
  <div class="actions"><button class="btn" id="paymentSaveBtn" type="button" onclick="saveOrderPayment()">Save payment</button><span class="small" id="paymentMessage" role="status"></span></div>
 </div></div>
+<style>
+.pos-draft-toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 12px;margin:8px 0 16px;border:1px solid #d9e9df;background:#f4fbf7;border-radius:10px;flex-wrap:wrap}
+#posDraftStatus{font-size:12px;color:#166347;flex:1;min-width:130px}
+.pos-draft-cards{display:grid;gap:9px}
+.pos-draft-card{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid #e8e9ed;border-radius:12px;background:#fafbfc;flex-wrap:wrap}
+.pos-draft-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pos-draft-actions .btn{min-height:38px;padding:8px 11px}
+@media(max-width:650px){.pos-draft-toolbar,.pos-draft-card{align-items:stretch;flex-direction:column}.pos-draft-actions .btn{flex:1}}
+</style>
+<script src="./assets/bite-pos-drafts.js?v=20261113"></script>
 <script>
 window.addEventListener('error', function(e) {
   const box = document.getElementById('authError');
@@ -1239,6 +1251,7 @@ const SUPABASE_KEY='sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn';
 if(!window.supabase || typeof window.supabase.createClient!=='function'){showAuthError('Login library start nahi hui. Page ko refresh karein; agar error rahe to support ko screenshot bhejein.');throw new Error('Supabase UMD library did not expose createClient');}
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let currentUser=null, state={restaurants:[],orders:[],history:[],financials:[],settlements:[],orderPayments:[],paymentSummaries:[],restaurantTables:[],orderRefunds:[]}, isSignup=false, access={isPlatformAdmin:false,role:null,memberships:[]};
+window.BitePOS?.init({sb,getUser:()=>currentUser,getAccess:()=>access,getState:()=>state});
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showAuthError(msg){document.body.classList.remove('bite-session-check');const el=document.getElementById('authError');el.textContent=msg;el.style.display='block'}
@@ -2493,7 +2506,7 @@ async function loadPosMenuItems(restaurantId){
  posMenuItems=data||[];
  if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
 }
-async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const memberships=(access.memberships||[]).filter(m=>m.role==='owner'&&m.restaurant_id===access.restaurantId);const allowedIds=memberships.map(m=>m.restaurant_id);const selectedPosRestaurant=document.getElementById('posRestaurantFilter')?.value||'';const restaurantId=selectedPosRestaurant&&allowedIds.includes(selectedPosRestaurant)?selectedPosRestaurant:(memberships[0]?.restaurant_id||(access.isPlatformAdmin?state.restaurants[0]?.id:''));if(!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show')}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
+async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const memberships=(access.memberships||[]).filter(m=>m.role==='owner'&&m.restaurant_id===access.restaurantId);const allowedIds=memberships.map(m=>m.restaurant_id);const selectedPosRestaurant=document.getElementById('posRestaurantFilter')?.value||'';const restaurantId=selectedPosRestaurant&&allowedIds.includes(selectedPosRestaurant)?selectedPosRestaurant:(memberships[0]?.restaurant_id||(access.isPlatformAdmin?state.restaurants[0]?.id:''));if(!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show');window.BitePOS?.newBill()}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
 function syncPosPickerMenuPrice(){
  const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
  const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
@@ -2525,13 +2538,13 @@ function addOrderItemRow(item){
  if(existing){
   const qty=existing.querySelector('.item-quantity');
   qty.value=String(Math.round((Number(qty.value)+Number(item.quantity))*100)/100);
-  renderPosItemSummary();updateOrderTotal();return;
+  renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch();return;
  }
  const row=document.createElement('div');row.className='order-item-row';row.style.display='none';
  row.innerHTML='<input class="item-name"><input class="item-quantity" type="number"><input class="item-price" type="number">';
  row.querySelector('.item-name').value=item.name;row.querySelector('.item-quantity').value=String(item.quantity);row.querySelector('.item-price').value=String(item.price);
  if(item.menuItemId)row.querySelector('.item-price').dataset.menuItemId=item.menuItemId;
- wrap.appendChild(row);renderPosItemSummary();updateOrderTotal();
+ wrap.appendChild(row);renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch();
 }
 function renderPosItemSummary(){
  const box=document.getElementById('posItemSummary'),rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
@@ -2545,9 +2558,9 @@ function changePosItemQuantity(index,delta){
  const row=document.querySelectorAll('#orderItemRows .order-item-row')[index];if(!row||![1,-1].includes(delta))return;
  const field=row.querySelector('.item-quantity'),current=Number(field.value),next=Math.round((current+delta)*100)/100;
  if(!Number.isFinite(next)||next<=0||next>9999)return;
- field.value=String(next);renderPosItemSummary();updateOrderTotal();
+ field.value=String(next);renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch();
 }
-function removePosItem(index){const rows=document.querySelectorAll('#orderItemRows .order-item-row');if(rows[index])rows[index].remove();renderPosItemSummary();updateOrderTotal()}
+function removePosItem(index){const rows=document.querySelectorAll('#orderItemRows .order-item-row');if(rows[index])rows[index].remove();renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch()}
 function updateOrderTotal(){let total=0;document.querySelectorAll('#orderItemRows .order-item-row').forEach(row=>{const q=Number(row.querySelector('.item-quantity').value),p=Number(row.querySelector('.item-price').value);if(q>0&&p>=0)total+=Math.round(q*p*100)/100});document.getElementById('orderGrandTotal').textContent=money(total);const receivedEl=document.getElementById('posPaidAmount'),received=Number(receivedEl?.value||0),details=document.getElementById('posPaymentDetails');if(receivedEl){receivedEl.max=total.toFixed(2);if(received>total)receivedEl.setCustomValidity('Received amount bill total se zyada nahi ho sakta.');else receivedEl.setCustomValidity('')}if(details)details.style.display=received>0?'grid':'none';const remaining=Math.max(0,Math.round((total-(Number.isFinite(received)?received:0))*100)/100),due=document.getElementById('posBalanceDue'),actionFields=document.getElementById('posBalanceActionFields');if(due)due.value=money(remaining);if(actionFields)actionFields.style.display=remaining>0?'block':'none';}
 function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('show');if(id==='resetPasswordResultModal'){el.style.display='none';el.style.visibility='hidden';const input=document.getElementById('resetPasswordValue');if(input)input.value=''}if(id==='resetPasswordLoadingModal'){el.style.display='none';el.style.visibility='hidden'}}
 function setRestaurantPin(lat,lon){const f=document.getElementById('restaurantForm');f.elements.latitude.value=Number(lat).toFixed(7);f.elements.longitude.value=Number(lon).toFixed(7);const p=[Number(lat),Number(lon)];if(restaurantLocationMap){if(!restaurantLocationMarker)restaurantLocationMarker=L.marker(p,{draggable:true}).addTo(restaurantLocationMap).on('dragend',()=>{const q=restaurantLocationMarker.getLatLng();setRestaurantPin(q.lat,q.lng)});else restaurantLocationMarker.setLatLng(p);restaurantLocationMap.setView(p,16)}document.getElementById('restaurantLocationHint').textContent='Restaurant pin saved in form: '+Number(lat).toFixed(5)+', '+Number(lon).toFixed(5);}
@@ -2638,15 +2651,23 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
      total:billTotal,paid,due:balanceAction==='waive_off'?0:remaining,
      waived:balanceAction==='waive_off'?remaining:0};
    }
-   const orderCode='POS-'+Date.now();
-   const result=await sb.rpc('create_pos_order_with_balance_action',{
+   const orderCode=window.BitePOS?.currentOrderCode()||'POS-'+Date.now();
+   const replaceOrderId=document.getElementById('posReplaceOrderId')?.value||'';
+   const args={
     p_restaurant_id:f.get('restaurant'),p_order_code:orderCode,
     p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',
     p_items:items,p_paid_amount:paid,p_payment_method:paid>0?f.get('payment_method'):null,
     p_payment_date:f.get('payment_date')||localDateInput(),p_reference:f.get('payment_reference')||null,
     p_balance_action:balanceAction,p_writeoff_reason:null
-   });
+   };
+   if(replaceOrderId)args.p_original_order_id=replaceOrderId;
+   const result=await sb.rpc(replaceOrderId?'replace_unpaid_pos_order':'create_pos_order_with_balance_action',args);
    data=result.data;error=result.error;
+   // A network timeout after commit must not generate a duplicate bill.
+   if(error){
+    const check=await sb.from('orders').select('id').eq('restaurant_id',f.get('restaurant')).eq('order_code',orderCode).maybeSingle();
+    if(check.data?.id){data=check.data.id;error=null;}
+   }
    if(sharePayload)sharePayload.orderCode=orderCode;
   }else{
    const result=await sb.rpc('create_order_with_items',{
@@ -2658,13 +2679,14 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
   }
   if(error)throw error;
   if(!data)throw new Error('Order ID return nahi hua.');
+  try{await window.BitePOS?.finishOrder()}catch(cleanupErr){console.warn('Draft cleanup postponed',cleanupErr)}
   e.target.reset();closeModal('orderModal');
   // The sale has already committed. A refresh error must not ask the Owner
   // to create a second bill or accidentally charge/record it twice.
   try{await loadCloudData();}catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
   if(sharePayload)showPosWhatsAppBillDialog(sharePayload);
   else alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.');
- }catch(err){alert('Order save nahi hua: '+(err.message||String(err)));}
+ }catch(err){void window.BitePOS?.saveNow();alert('Order save nahi hua: '+(err.message||String(err))+'\nYour draft is preserved; correct and retry.');}
  finally{btn.disabled=false;}
 });
 async function openDeliveryWhatsAppShare(message,waUrl){
@@ -2900,17 +2922,30 @@ function refreshOrderTableOptions(){}
  const ids=access.memberships.filter(m=>['owner','manager','staff'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML='<option value="">All accessible restaurants</option>'+eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- sel.value=eligible.some(r=>r.id===previous)?previous:'';renderPOSWorkspace();
+ sel.value=eligible.some(r=>r.id===previous)?previous:'';renderPOSWorkspace();void window.BitePOS?.refreshDrafts();
 }
 function renderPOSWorkspace(){
  const rid=document.getElementById('posRestaurantFilter')?.value||'';
  const orders=state.orders.filter(o=>o.channel.startsWith('POS - ')&&(!rid||o.restaurant===rid));
- const sum=key=>orders.reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
- document.getElementById('posOrderCount').textContent=String(orders.length);
- document.getElementById('posSalesTotal').textContent=money(orders.reduce((n,o)=>n+o.amount,0));
+ const active=orders.filter(o=>!['Cancelled','Rejected'].includes(o.status));
+ const sum=key=>active.reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
+ document.getElementById('posOrderCount').textContent=String(active.length);
+ document.getElementById('posSalesTotal').textContent=money(active.reduce((n,o)=>n+o.amount,0));
  document.getElementById('posCollectedTotal').textContent=money(sum('paid_amount'));
  document.getElementById('posDueTotal').textContent=money(sum('balance_amount'));
- document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{const p=paymentSummaryFor(o.id);return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+'Sale'+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(p.balance_amount)+'</strong></td><td>'+(['Rejected','Cancelled'].includes(o.status)?'<span class="pill amber">Rejected</span>':Number(p.balance_amount)>0?'<button class="btn secondary" onclick="openPaymentModal(\''+esc(o.id)+'\')">Add payment</button>':'<span class="pill green">Paid</span>')+'</td><td><button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>'+(access.role==='owner'&&!o.isDemo&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?'<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+'</td></tr>'}).join('');
+ document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{
+  const p=paymentSummaryFor(o.id);
+  const canCorrect=access.role==='owner'&&!o.isDemo&&o.channel==='POS - Counter'&&o.status==='Received'&&o.waivedOffAmount===0
+   &&!state.orderPayments.some(x=>x.order_id===o.id)&&!state.orderRefunds.some(x=>x.order_id===o.id);
+  const isVoid=['Rejected','Cancelled'].includes(o.status);
+  const payment=isVoid?'<span class="pill amber">Voided</span>':Number(p.balance_amount)>0?
+    '<button class="btn secondary" onclick="openPaymentModal(&quot;'+esc(o.id)+'&quot;)">Add payment</button>':'<span class="pill green">Paid</span>';
+  const invoice='<button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
+  const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
+   '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
+  const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(p.balance_amount)+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+ }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
 }
 let activeOrderChannel='all';
