@@ -147,3 +147,26 @@ html{scroll-behavior:smooth;overflow-x:hidden}body{overflow-x:hidden;-webkit-tex
  #cartModal .cart-modal-actions button{font-size:14px!important;}
  #cartModal .cart-modal-footer .cart-modal-total{padding:9px 10px;}
 }
+
+/* Dish cooking requests: cart + checkout */
+body[data-bite-app="customer"] .cart-product-with-note{display:block;min-width:0}
+body[data-bite-app="customer"] .cart-product-main{display:flex;align-items:center;gap:12px;min-width:0}
+body[data-bite-app="customer"] .cart-product-main>img{flex:0 0 76px}
+body[data-bite-app="customer"] .cart-item-note-panel{margin-top:8px;padding-left:88px}
+body[data-bite-app="customer"] .cart-item-note-toggle{display:inline-flex;align-items:center;min-height:44px;border:0;background:transparent;color:#a82b3a;font-size:12px;font-weight:750;padding:7px 0;text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+body[data-bite-app="customer"] .cart-item-note-toggle:focus-visible{outline:3px solid #ad2840;outline-offset:2px;border-radius:5px}
+body[data-bite-app="customer"] .cart-item-note-preview{font-size:12px;color:#665a4c;overflow-wrap:anywhere;white-space:pre-wrap}
+body[data-bite-app="customer"] .cart-item-note-editor{margin-top:6px;max-width:100%}
+body[data-bite-app="customer"] .cart-item-note-editor label{display:block;font-size:12px;font-weight:750;margin-bottom:6px}
+body[data-bite-app="customer"] .cart-item-note-editor textarea{display:block;width:100%;min-height:74px;resize:vertical;border:1px solid #d8c8c8;border-radius:9px;padding:10px;font-size:16px;line-height:1.4}
+body[data-bite-app="customer"] .cart-item-note-editor textarea:focus-visible{outline:3px solid #ad2840;outline-offset:2px}
+body[data-bite-app="customer"] .cart-item-note-editor small{display:block;font-size:11px;color:#6f6670;margin-top:5px}
+body[data-bite-app="customer"] .cart-instructions-status{font-size:12px;color:#5d655c;margin-top:8px;line-height:1.45}
+body[data-bite-app="customer"] .cart-instructions-status.error{color:#a4262c;font-weight:750}
+body[data-bite-app="customer"] .checkout-dish-instructions{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #e9d4c9;background:#fff8f4;border-radius:10px;padding:11px;font-size:12px;line-height:1.55;margin:12px 0}
+@media(max-width:520px){
+ body[data-bite-app="customer"] .cart-product-main>img{width:60px;height:60px;flex-basis:60px}
+ body[data-bite-app="customer"] .cart-product-main{gap:8px}
+ body[data-bite-app="customer"] .cart-item-note-panel{padding-left:0}
+ body[data-bite-app="customer"] .cart-product-info{overflow-wrap:anywhere}
+}
