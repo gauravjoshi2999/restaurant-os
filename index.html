@@ -2992,6 +2992,31 @@ async function shareAndHandOverDelivery(id){
  await shareDeliveryHandoff(id,true);
 }
 const ownerOrderActionsPending=new Set();
+async function acceptAndStartOrder(id){
+ if(access.role!=='owner'||!access.restaurantId)return;
+ const order=state.orders.find(o=>o.id===id&&o.restaurant===access.restaurantId);
+ if(!order||order.status!=='Received'||ownerOrderActionsPending.has(id))return;
+ ownerOrderActionsPending.add(id);
+ const card=[...document.querySelectorAll('#orderBoard .order-card')].find(el=>el.dataset.orderId===id);
+ const buttons=[...(card?.querySelectorAll('button')||[])],previous=buttons.map(b=>b.disabled);
+ buttons.forEach(b=>b.disabled=true);
+ if(card)card.setAttribute('aria-busy','true');
+ try{
+  // Same role/RLS guards and status chain. Both transitions are checked in order.
+  const first=await sb.from('orders').update({status:'Accepted',status_note:null})
+   .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status','Received').select('id').maybeSingle();
+  if(first.error||!first.data)throw new Error(first.error?.message||'Order pehle hi update ho chuka hai; refresh karein.');
+  const second=await sb.from('orders').update({status:'Preparing',status_note:null})
+   .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status','Accepted').select('id').maybeSingle();
+  if(second.error||!second.data)throw new Error('Order accepted hai, cooking start nahi hua: '+(second.error?.message||'Preparing dubara mark karein.'));
+ }catch(error){alert('Status check karein: '+(error.message||'Update failed'))}
+ finally{
+  try{await loadCloudData()}catch(error){console.warn('Order refresh issue',error)}
+  ownerOrderActionsPending.delete(id);
+  buttons.forEach((b,i)=>{if(b.isConnected)b.disabled=previous[i]});
+  if(card?.isConnected)card.removeAttribute('aria-busy');
+ }
+}
 async function advanceOrder(id,next){
  if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}
  const o=state.orders.find(x=>x.id===id&&x.restaurant===access.restaurantId);
@@ -3522,7 +3547,20 @@ function renderOrderBoard(){
   const restaurant=state.restaurants.find(r=>r.id===o.restaurant);
   const history=state.history.filter(h=>h.order_id===o.id).slice().reverse();
   const statusActions=(actions[o.status]||[]).filter(a=>!(o.deliveryType==='delivery'&&((o.status==='Ready'&&a[0]==='Handed Over')||(o.status==='Handed Over'&&a[0]==='Completed'))));
-  const buttons=canManage?statusActions.map(a=>'<button class="'+a[2]+'" onclick="advanceOrder(\''+esc(o.id)+'\',\''+a[0]+'\')">'+a[1]+'</button>').join('')+(canManage&&['Accepted','Preparing','Ready'].includes(o.status)?'<button class="btn danger" onclick="advanceOrder(\''+esc(o.id)+'\',\'Cancelled\')">Cancel</button>':'')+(o.status==='Ready'&&o.deliveryType==='delivery'?'<button class="btn" onclick="shareAndHandOverDelivery(\''+esc(o.id)+'\')">Share link & hand over</button>':'')+(o.status==='Handed Over'&&o.deliveryType==='delivery'?'<button class="btn secondary" onclick="shareDeliveryHandoff(\''+esc(o.id)+'\')">New delivery link</button>':''):'<span class="small">Sirf Owner status update kar sakta hai</span>';
+  const escId=esc(o.id);
+  const quickReceived=o.status==='Received'
+    ?'<button class="btn bite-order-quick-action" onclick="acceptAndStartOrder(&quot;'+escId+'&quot;)">Accept &amp; start cooking</button>'
+     +'<details class="bite-order-secondary-action"><summary>Reject / options</summary><button class="btn danger" onclick="advanceOrder(&quot;'+escId+'&quot;,&quot;Rejected&quot;)">Reject order</button></details>'
+    :'';
+  const ordinaryButtons=o.status==='Received'?'':statusActions.map(a=>'<button class="'+a[2]+'" onclick="advanceOrder(&quot;'+escId+'&quot;,&quot;'+a[0]+'&quot;)">'+a[1]+'</button>').join('');
+  const cancelButton=['Accepted','Preparing','Ready'].includes(o.status)
+    ?'<details class="bite-order-secondary-action"><summary>Other actions</summary><button class="btn danger" onclick="advanceOrder(&quot;'+escId+'&quot;,&quot;Cancelled&quot;)">Cancel order</button></details>':'';
+  const deliveryButton=o.status==='Ready'&&o.deliveryType==='delivery'
+    ?'<button class="btn bite-order-quick-action" onclick="shareAndHandOverDelivery(&quot;'+escId+'&quot;)">Hand over &amp; share delivery</button>':'';
+  const shareAgain=o.status==='Handed Over'&&o.deliveryType==='delivery'
+    ?'<button class="btn secondary" onclick="shareDeliveryHandoff(&quot;'+escId+'&quot;)">Resend delivery link</button>':'';
+  const buttons=canManage?quickReceived+ordinaryButtons+cancelButton+deliveryButton+shareAgain
+    :'<span class="small">Sirf Owner status update kar sakta hai</span>';
   const historyHtml=history.length?history.map(h=>'<div class="history-row"><strong>'+esc(h.to_status)+'</strong><span>'+esc(new Date(h.changed_at).toLocaleString('en-IN'))+'</span>'+(h.note?'<p>'+esc(h.note)+'</p>':'')+'</div>').join(''):'<div class="small">History available nahi hai.</div>';
   const items=(state.orderItems||[]).filter(i=>i.order_id===o.id);
   const itemHtml=items.length?'<div class="order-item-detail order-item-photo-list">'+items.map(i=>{const menu=(state.orderMenuItems||[]).find(m=>m.restaurant_id===o.restaurant&&String(m.name||'').trim().toLowerCase()===String(i.item_name||'').trim().toLowerCase());const url=String(menu?.image_url||'').trim();const safeUrl=(url.startsWith('https://')||url.startsWith('http://'))?esc(url):'';const photo=safeUrl?'<img class="order-item-photo" src="'+safeUrl+'" alt="'+esc(i.item_name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">':'<span class="order-item-photo-fallback">🍽️</span>';return '<div class="order-item-photo-row">'+photo+(safeUrl?'<span class="order-item-photo-fallback" style="display:none">🍽️</span>':'')+'<span><strong>'+esc(i.item_name)+'</strong><small>'+esc(i.quantity)+' × '+money(i.unit_price)+' = '+money(i.line_total)+'</small></span></div>'}).join('')+'</div>':'';
