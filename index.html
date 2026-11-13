@@ -1209,7 +1209,7 @@ body.bite-session-check #biteSessionSplash{
 <div class="modal" id="paymentModal"><div class="modal-box"><div class="modal-head"><h2>Record order payment</h2><button class="close" type="button" onclick="closeModal('paymentModal')">✕</button></div>
  <div class="notice" id="paymentOrderLabel">Order</div><input type="hidden" id="paymentOrderId">
  <div class="form-row"><div class="field"><label>Amount received (₹) *</label><input id="paymentAmount" type="number" min="0.01" step="0.01"></div><div class="field"><label>Payment mode *</label><select id="paymentMethod"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div><div class="field"><label>Payment date *</label><input id="paymentDate" type="date"></div><div class="field"><label>Reference</label><input id="paymentReference" maxlength="100" placeholder="UPI ref / receipt no."></div><div class="field" style="grid-column:1/-1"><label>Note</label><input id="paymentNotes" maxlength="250" placeholder="Optional"></div></div>
- <div class="actions"><button class="btn" id="paymentSaveBtn" type="button" onclick="saveOrderPayment()">Save payment</button><span class="small" id="paymentMessage" role="status"></span></div>
+ <div class="actions"><button class="btn" id="paymentSaveBtn" type="button" onclick="saveOrderPayment()">Save payment</button><button class="btn secondary" id="paymentCheckBtn" type="button" style="display:none" onclick="checkPosPaymentAttempt()">Check status</button><span class="small" id="paymentMessage" role="status" aria-live="polite"></span></div>
 </div></div>
 <style>
 /* The one-tap POS action belongs inside the owner home header, not a floating card. */
@@ -1229,6 +1229,8 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 @media(max-width:650px){.pos-draft-toolbar,.pos-draft-card{align-items:stretch;flex-direction:column}.pos-draft-actions .btn{flex:1}}
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261113"></script>
+<script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
+<script src="./assets/bite-pos-payment-ui.js?v=20261113-1"></script>
 <script>
 window.addEventListener('error', function(e) {
   const box = document.getElementById('authError');
@@ -2830,26 +2832,19 @@ async function shareAndHandOverDelivery(id){
 async function advanceOrder(id,next){if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}const o=state.orders.find(x=>x.id===id);if(!o)return;const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],'Handed Over':['Completed']};if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}let note=null;if(['Rejected','Cancelled'].includes(next)){note=prompt(next==='Rejected'?'Order reject karne ka reason likhein:':'Order cancel karne ka reason likhein:');if(note===null)return;note=note.trim();if(!note){alert('Reason likhna zaroori hai.');return}}const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);if(error){alert('Status update nahi hua: '+error.message);return}await loadCloudData()}
 
 function paymentSummaryFor(orderId){const order=state.orders.find(o=>o.id===orderId),base=(state.paymentSummaries||[]).find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:(order?.amount||0),payment_status:'unpaid'},waived=Math.min(Number(order?.waivedOffAmount||0),Number(base.balance_amount||0)),balance=Math.max(0,Number(base.balance_amount||0)-waived);return {...base,balance_amount:balance,waived_off_amount:waived,payment_status:balance===0&&waived>0?'waived_off':base.payment_status}}
-function openPaymentModal(orderId){
- if(!['owner','manager','staff'].includes(access.role))return;
- const o=state.orders.find(x=>x.id===orderId);if(!o||!o.channel.startsWith('POS - ')||['Rejected','Cancelled'].includes(o.status)){alert('Payment sirf active POS orders ke liye record ho sakta hai.');return}const p=paymentSummaryFor(orderId);
- if(Number(p.balance_amount)<=0){alert('Is order ka balance zero hai.');return}
- document.getElementById('paymentOrderId').value=orderId;
- document.getElementById('paymentOrderLabel').textContent=(o.code||o.id.slice(0,8))+' · Total '+money(o.amount)+' · Paid '+money(p.paid_amount)+' · Due '+money(p.balance_amount);
- document.getElementById('paymentAmount').value=Number(p.balance_amount).toFixed(2);
- document.getElementById('paymentAmount').max=Number(p.balance_amount).toFixed(2);
- document.getElementById('paymentDate').value=localDateInput();
- document.getElementById('paymentReference').value='';document.getElementById('paymentNotes').value='';document.getElementById('paymentMessage').textContent='';
- document.getElementById('paymentModal').classList.add('show');
+function posPaymentContext(orderId){
+ const order=state.orders.find(x=>x.id===orderId);
+ return {sb,userId:currentUser?.id,restaurantId:access.restaurantId,role:access.role,orderId,order,
+  paymentSummaryFor,money,today:localDateInput,closeModal,loadCloudData};
 }
+function openPaymentModal(orderId){return window.BitePOSPaymentUI.open(posPaymentContext(orderId))}
 async function saveOrderPayment(){
- if(!['owner','manager','staff'].includes(access.role))return;
- const orderId=document.getElementById('paymentOrderId').value,o=state.orders.find(x=>x.id===orderId),p=paymentSummaryFor(orderId);if(!o||!o.channel.startsWith('POS - ')||['Rejected','Cancelled'].includes(o.status))return;
- const amount=Number(document.getElementById('paymentAmount').value),method=document.getElementById('paymentMethod').value,date=document.getElementById('paymentDate').value,reference=document.getElementById('paymentReference').value.trim(),notes=document.getElementById('paymentNotes').value.trim();
- if(!o||!date||!Number.isFinite(amount)||amount<=0||amount>Number(p.balance_amount)){document.getElementById('paymentMessage').textContent='Valid amount bharein; amount remaining due se zyada nahi ho sakta.';return}
- const btn=document.getElementById('paymentSaveBtn');btn.disabled=true;
- try{const {error}=await sb.from('restaurant_order_payments').insert({order_id:orderId,restaurant_id:o.restaurant,amount,payment_method:method,payment_date:date,reference:reference||null,notes:notes||null,created_by:currentUser.id});if(error)throw error;closeModal('paymentModal');await loadCloudData();}
- catch(e){document.getElementById('paymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}finally{btn.disabled=false}
+ const orderId=document.getElementById('paymentOrderId').value;
+ return window.BitePOSPaymentUI.save(posPaymentContext(orderId));
+}
+async function checkPosPaymentAttempt(){
+ const orderId=document.getElementById('paymentOrderId').value;
+ return window.BitePOSPaymentUI.check(posPaymentContext(orderId));
 }
 
 let activeRefundOrderId=null;
