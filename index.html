@@ -688,7 +688,7 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
   <div class="card"><div class="metric-label">Balance due</div><div class="metric" id="posDueTotal">₹0.00</div></div>
  </div>
  <div class="section"><div class="section-head"><h2>POS sales history</h2><span class="small">Latest 100 orders</span></div>
-  <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Entry</th><th>Total</th><th>Paid</th><th>Due</th><th>Payment</th></tr></thead><tbody id="posRows"></tbody></table><div class="empty" id="posEmpty">Abhi POS sale nahi hai.</div></div>
+  <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Entry</th><th>Total</th><th>Paid</th><th>Due</th><th>Payment</th><th>Bill</th></tr></thead><tbody id="posRows"></tbody></table><div class="empty" id="posEmpty">Abhi POS sale nahi hai.</div></div>
  </div>
 </section>
 <section class="page" id="tables">
@@ -2610,7 +2610,7 @@ function renderPOSWorkspace(){
  document.getElementById('posSalesTotal').textContent=money(orders.reduce((n,o)=>n+o.amount,0));
  document.getElementById('posCollectedTotal').textContent=money(sum('paid_amount'));
  document.getElementById('posDueTotal').textContent=money(sum('balance_amount'));
- document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{const p=paymentSummaryFor(o.id);return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+'Sale'+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(p.balance_amount)+'</strong></td><td>'+(['Rejected','Cancelled'].includes(o.status)?'<span class="pill amber">Rejected</span>':Number(p.balance_amount)>0?'<button class="btn secondary" onclick="openPaymentModal(\''+esc(o.id)+'\')">Add payment</button>':'<span class="pill green">Paid</span>')+'</td></tr>'}).join('');
+ document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{const p=paymentSummaryFor(o.id);return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+'Sale'+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(p.balance_amount)+'</strong></td><td>'+(['Rejected','Cancelled'].includes(o.status)?'<span class="pill amber">Rejected</span>':Number(p.balance_amount)>0?'<button class="btn secondary" onclick="openPaymentModal(\''+esc(o.id)+'\')">Add payment</button>':'<span class="pill green">Paid</span>')+'</td><td><button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>'+(access.role==='owner'&&!o.isDemo&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?'<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+'</td></tr>'}).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
 }
 let activeOrderChannel='all';
