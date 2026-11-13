@@ -58,9 +58,14 @@
       return 0;
     });
   }
+  // Keep Hindi vowel marks and normalize punctuation/spacing before token matching.
+  // Every query token can match anywhere in the dish name or description.
+  const menuText=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('en-IN')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
   function selectMenu(items,options={}){
-    const q=text(options.query),category=options.category||'all';
-    return items.filter(i=>(category==='all'||i.category_id===category)&&(!options.vegOnly||i.is_vegetarian===true)&&(!q||text(i.name+' '+(i.description||'')).includes(q)));
+    const tokens=menuText(options.query).split(' ').filter(Boolean),category=options.category||'all';
+    return items.filter(i=>(category==='all'||i.category_id===category)&&(!options.vegOnly||i.is_vegetarian===true)
+      &&(!tokens.length||tokens.every(token=>menuText(i.name+' '+(i.description||'')).includes(token))));
   }
   const api={isClosed,safeImage,distance,selectRestaurants,selectMenu};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BiteDiscovery=api;
