@@ -1131,7 +1131,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-exports.js"></script>
-<script src="assets/bite-direct-order.js?v=20261113"></script>
+<script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -2276,32 +2276,101 @@ function showPosWhatsAppBillDialog(payload){
  if(!['owner','manager'].includes(access.role)||payload.restaurantId!==access.restaurantId)return;
  const helper=window.BiteDirectOrder;
  if(!helper){alert('WhatsApp bill helper load nahi hua. Page refresh karein.');return;}
- let msg,waUrl;
+ let caption,waUrl;
  try{
-  msg=helper.billMessage(payload);
-  waUrl=helper.whatsAppUrl(payload.phone,msg);
+  helper.validatedBill(payload);
+  caption=helper.marketingMessage(payload);
+  // Fallback still has the entire itemized bill (not only an advertisement).
+  waUrl=helper.whatsAppUrl(payload.phone,helper.billMessage(payload));
  }catch(error){alert('WhatsApp bill available nahi hai: '+(error.message||String(error)));return;}
  document.getElementById('bitePosWhatsAppDialog')?.remove();
  const shade=document.createElement('div');
- shade.id='bitePosWhatsAppDialog';shade.setAttribute('role','dialog');shade.setAttribute('aria-modal','true');
- shade.setAttribute('aria-label','Share saved POS bill with customer');
+ shade.id='bitePosWhatsAppDialog';shade.setAttribute('role','dialog');
+ shade.setAttribute('aria-modal','true');
+ shade.setAttribute('aria-label','Share saved restaurant bill and order again link');
  shade.style.cssText='position:fixed;inset:0;background:rgba(9,20,38,.78);display:flex;align-items:center;justify-content:center;padding:15px;z-index:2147483645';
- const panel=document.createElement('section');panel.style.cssText='max-width:450px;width:100%;background:#fff;color:#142238;border-radius:17px;padding:23px;box-shadow:0 18px 70px #09142666;max-height:90vh;overflow:auto';
- const title=document.createElement('h2');title.textContent='✓ POS bill save ho gaya';title.style.cssText='font-size:21px;margin:0 0 9px';
- const details=document.createElement('p');details.style.cssText='margin:0 0 14px;line-height:1.55';
- details.textContent='Customer '+payload.phone+' ke liye bill aur '+payload.restaurantName+' ka direct ordering link taiyar hai. WhatsApp mein Send dabana zaroori hai.';
- const preview=document.createElement('pre');preview.textContent=msg;preview.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 system-ui,sans-serif;background:#f7f8fb;border:1px solid #e5e8ef;padding:11px;border-radius:10px;max-height:195px;overflow:auto';
- const actions=document.createElement('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:14px';
- const style=(b,primary=false)=>{b.style.cssText='padding:11px 13px;border-radius:9px;cursor:pointer;font:700 13px system-ui,sans-serif;text-decoration:none;border:0;background:'+(primary?'#12844d':'#edf0f5')+';color:'+(primary?'white':'#142238');return b;};
- const send=style(document.createElement('a'),true);send.textContent='WhatsApp par bhejein';send.href=waUrl;send.target='_self';send.setAttribute('aria-label','Open WhatsApp chat for customer bill');
- const copy=style(document.createElement('button'));copy.type='button';copy.textContent='Copy bill + link';
- copy.addEventListener('click',async()=>{
-  try{await navigator.clipboard.writeText(msg);copy.textContent='Copied ✓';}
-  catch(error){window.prompt('Bill aur order link copy karein:',msg);}
+ const panel=document.createElement('section');
+ panel.style.cssText='max-width:450px;width:100%;background:#fff;color:#142238;border-radius:17px;padding:20px;box-shadow:0 18px 70px #09142666;max-height:90vh;overflow:auto';
+ const title=document.createElement('h2');
+ title.textContent='✓ Bill ready • WhatsApp par share karein';
+ title.style.cssText='font-size:20px;margin:0 0 8px';
+ const details=document.createElement('p');details.style.cssText='margin:0 0 12px;line-height:1.5;font-size:14px';
+ details.textContent='Customer '+payload.phone+' ke liye asli item-wise bill photo/PDF aur '+payload.restaurantName+' ka online order link. Copy karne ki jarurat nahi; WhatsApp aur customer ki chat select karke Send dabayein.';
+ const preview=document.createElement('pre');
+ preview.textContent=caption;
+ preview.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 system-ui,sans-serif;background:#f2f8f4;border:1px solid #d7e8df;padding:12px;border-radius:10px;max-height:200px;overflow:auto';
+ const status=document.createElement('p');status.id='bitePosShareStatus';
+ status.style.cssText='font-size:12px;color:#486174;line-height:1.5;margin:8px 0 12px';
+ status.textContent='Bill image aur PDF taiyar ho rahe hain…';
+ const actions=document.createElement('div');
+ actions.style.cssText='display:flex;flex-direction:column;gap:9px;margin-top:12px';
+ const style=(el,primary=false)=>{
+  el.style.cssText='display:block;box-sizing:border-box;text-align:center;width:100%;padding:12px 13px;border-radius:10px;cursor:pointer;font:700 14px system-ui,sans-serif;text-decoration:none;border:0;background:'+(primary?'#12844d':'#edf0f5')+';color:'+(primary?'#fff':'#142238');
+  return el;
+ };
+ const sendImage=style(document.createElement('button'),true);
+ sendImage.type='button';sendImage.textContent='📲 WhatsApp par bill photo + link bhejein';sendImage.disabled=true;
+ const sendPdf=style(document.createElement('button'));
+ sendPdf.type='button';sendPdf.textContent='📄 PDF bill + link share karein';sendPdf.disabled=true;
+ const download=style(document.createElement('button'));
+ download.type='button';download.textContent='⬇ PDF bill download';download.disabled=true;
+ const fallback=style(document.createElement('a'));
+ fallback.href=waUrl;fallback.target='_self';
+ fallback.textContent='WhatsApp chat (text bill only)';
+ const bottom=document.createElement('button');style(bottom);bottom.type='button';bottom.textContent='Close';
+ bottom.addEventListener('click',()=>shade.remove());
+ let imageFile=null,pdfFile=null,closed=false;
+ const isUnsupported=()=>typeof navigator.share!=='function'||typeof navigator.canShare!=='function';
+ const setBusy=(button,busy)=>{button.disabled=busy;button.style.opacity=busy?'.54':'1'};
+ function sharePrepared(file){
+  if(!file||!helper.canNativeShare(file,navigator)){
+   status.textContent='Is phone/browser mein file sharing available nahi hai. Neeche WhatsApp chat (text bill only) option use karein; ya PDF download karein.';
+   return;
+  }
+  // Important: navigator.share is invoked directly from the user's tap,
+  // not after an awaited PDF render (transient user activation would expire).
+  try{
+   const promise=navigator.share({
+    files:[file],title:payload.restaurantName+' · Bill '+payload.orderCode,
+    text:caption
+   });
+   status.textContent='Share options mein WhatsApp aur customer select karein. WhatsApp me Send dabayein. Kuch versions attachment ke saath caption ignore kar sakte hain; aisa ho to neeche text bill option use karein.';
+   Promise.resolve(promise).catch(error=>{
+    if(error?.name==='AbortError'){status.textContent='Share cancel ho gaya. Customer ko koi message confirm nahi hua.';return;}
+    status.textContent='File share nahi ho saka. Neeche WhatsApp chat (text bill only) try karein. '+(error?.message||'');
+   });
+  }catch(error){status.textContent='File share nahi ho saka. Text bill option use karein. '+(error?.message||'');}
+ }
+ sendImage.addEventListener('click',()=>sharePrepared(imageFile));
+ sendPdf.addEventListener('click',()=>sharePrepared(pdfFile));
+ download.addEventListener('click',()=>{
+  if(!pdfFile)return;
+  const url=URL.createObjectURL(pdfFile),link=document.createElement('a');
+  link.href=url;link.download=pdfFile.name;document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
  });
- const close=style(document.createElement('button'));close.type='button';close.textContent='Close';
- close.addEventListener('click',()=>shade.remove());
- actions.append(send,copy,close);panel.append(title,details,preview,actions);shade.append(panel);document.body.append(shade);send.focus();
+ actions.append(sendImage,sendPdf,download,fallback,bottom);
+ panel.append(title,details,preview,status,actions);
+ shade.append(panel);document.body.append(shade);
+ // Prepare the files while owner reads preview. Sharing must itself
+ // happen synchronously from a later button click.
+ (async()=>{
+  try{
+   const img=await helper.createBillImageFile(payload);
+   const pdf=await helper.createBillPdfFile(payload,window.BiteInvoice?.pdfFromJpegs);
+   if(!shade.isConnected)return;
+   imageFile=img;pdfFile=pdf;
+   setBusy(download,false);
+   if(helper.canNativeShare(imageFile,navigator))setBusy(sendImage,false);
+   if(helper.canNativeShare(pdfFile,navigator))setBusy(sendPdf,false);
+   status.textContent=isUnsupported()||(!helper.canNativeShare(imageFile,navigator)&&!helper.canNativeShare(pdfFile,navigator))
+    ?'Is browser mein direct attachment share nahi ho raha. PDF download ya WhatsApp text bill use karein.'
+    :'Asli bill photo aur PDF ready! Green button se WhatsApp choose karein; message alag se copy nahi karna.';
+  }catch(error){
+   console.warn('POS bill attachment generation failed',error);
+   status.textContent='Bill file taiyar nahi ho saka. WhatsApp text bill link use karein. '+(error?.message||'');
+  }
+ })();
 }
 function sharePosBillForOrder(id){
  if(!['owner','manager'].includes(access.role))return;
@@ -2315,6 +2384,7 @@ function sharePosBillForOrder(id){
  if(!entries.length){alert('Is order ka item-wise bill nahi mila.');return;}
  const p=paymentSummaryFor(id);
  showPosWhatsAppBillDialog({restaurantId:o.restaurant,restaurantName:restaurant?.name||'Restaurant',
+  restaurantAddress:restaurant?.address||'',restaurantPhone:restaurant?.phone||'',date:o.createdAt,
   customerName:o.customerName||'',phone:o.customerPhone,orderCode:o.code,items:entries,
   total:Number(o.amount||0),paid:Number(p.paid_amount||0),due:Number(p.balance_amount||0),waived:Number(p.waived_off_amount||0)});
 }
@@ -2341,6 +2411,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
    if(wantsWhatsApp){
     const restaurant=state.restaurants.find(r=>r.id===access.restaurantId);
     sharePayload={restaurantId:access.restaurantId,restaurantName:restaurant?.name||'Restaurant',
+     restaurantAddress:restaurant?.address||'',restaurantPhone:restaurant?.phone||'',date:new Date().toISOString(),
      customerName:f.get('customer_name')||'',phone:f.get('customer_phone')||'',items,
      total:billTotal,paid,due:balanceAction==='waive_off'?0:remaining,
      waived:balanceAction==='waive_off'?remaining:0};
