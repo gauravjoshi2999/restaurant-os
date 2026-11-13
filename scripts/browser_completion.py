@@ -377,6 +377,16 @@ try:
         'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
   owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
+  check(owner.locator('#overview .od-owner-priority').is_visible()
+    and owner.locator('#overview .od-owner-priority .od-stages').count()==1
+    and owner.locator('#overview .od-live').is_hidden(),
+    'Mobile Home shows exactly one Live Orders panel with stage shortcuts inside')
+  check(owner.locator('.bite-language-row').is_hidden()
+    and owner.locator('.side').is_hidden()
+    and owner.locator('#mainApp>.main>.top').evaluate(
+       "(el)=>getComputedStyle(el).backgroundColor==='rgb(53, 22, 110)' && el.getBoundingClientRect().height<=60"),
+    'Owner mobile header is compact, readable purple; no language strip or sidebar')
+  owner.screenshot(path=str(OUT/'ui-owner-home.png'),full_page=False)
   check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
   owner.locator('#ownerQuickPosBtn').click()
   owner.locator('#orderModal.show').wait_for(state='visible')
