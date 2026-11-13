@@ -13,7 +13,7 @@ function element(id, page = false) {
     setAttribute:(k,v)=>attributes[k]=v,removeAttribute:k=>delete attributes[k] };
 }
 function workspace(role = 'owner') {
-  const ids = ['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings','restaurants','financials','audit','support','moderation','pos','refunds'];
+  const ids = ['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings','restaurants','financials','audit','support','moderation','refunds'];
   const pages = ids.map(id=>element(id,true)), buttons=ids.map(id=>element(id));
   const title={textContent:''}, calls=[], errors=[];
   const doc={querySelectorAll(selector){
@@ -33,7 +33,7 @@ function workspace(role = 'owner') {
 }
 test('all thirteen Owner pages can open, including guarded POS and legacy inline-hidden pages',async()=>{
   const w=workspace();
-  for(const id of ['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']){
+  for(const id of ['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']){
     await w.context.showPage(id);
     const active=w.pages.filter(p=>!p.hidden);
     assert.deepEqual(active.map(p=>p.id),[id]);
