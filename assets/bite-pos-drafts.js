@@ -2,7 +2,8 @@
    Drafts are NOT orders, payments or sales. Posted orders have separate guarded workflows. */
 (function(){
 'use strict';
-let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false;
+let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
+const deletedThisSession=new Set();
 const $=id=>document.getElementById(id);
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function identity(){
@@ -10,8 +11,60 @@ function identity(){
  return u&&a?.role==='owner'&&a.restaurantId?{uid:u.id,restaurantId:a.restaurantId}:null;
 }
 function cacheKey(ident){return 'bite_pos_drafts_v2:'+ident.uid+':'+ident.restaurantId}
+function deletionKey(ident){return 'bite_pos_draft_deletions_v1:'+ident.uid+':'+ident.restaurantId}
+function deletedId(ident,id){return deletionKey(ident)+':'+id}
+function deletionList(ident){
+ try{
+  const rows=JSON.parse(localStorage.getItem(deletionKey(ident))||'[]');
+  const cutoff=Date.now()-90*24*60*60*1000;
+  return Array.isArray(rows)?rows.filter(x=>x&&/^[0-9a-f-]{36}$/i.test(String(x.id||''))&&
+   Number.isFinite(Date.parse(x.at))&&Date.parse(x.at)>cutoff).slice(-4500):[];
+ }catch{return []}
+}
+function deletionExists(ident,id){
+ return deletedThisSession.has(deletedId(ident,id))||deletionList(ident).some(x=>x.id===id);
+}
+function pendingDeletion(ident,id){return deletionList(ident).some(x=>x.id===id&&x.pending)}
+function persistDeletions(ident,rows){
+ try{localStorage.setItem(deletionKey(ident),JSON.stringify(rows.slice(-4500)));return true}
+ catch{return false}
+}
+function queueDeletion(ident,id){
+ const rows=deletionList(ident).filter(x=>x.id!==id);
+ rows.push({id,at:new Date().toISOString(),pending:true});
+ const recorded=persistDeletions(ident,rows);
+ if(recorded)deletedThisSession.add(deletedId(ident,id));
+ return recorded;
+}
+function markDeletionDone(ident,id){
+ const rows=deletionList(ident),rec=rows.find(x=>x.id===id);
+ if(!rec)return;
+ rec.pending=false;persistDeletions(ident,rows);
+}
+async function removeCloudDraft(ident,id){
+ const {error}=await ctx.sb.from('restaurant_pos_drafts').delete()
+  .eq('id',id).eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid);
+ if(error)throw error;
+ markDeletionDone(ident,id);
+}
+async function cleanupDeletions(){
+ const ident=identity();if(!ident)return;
+ // If connectivity comes back during an earlier delete pass, run one more
+ // pass rather than silently dropping the reconnect signal.
+ if(deleteBusy){deleteAgain=true;return}
+ deleteBusy=true;
+ try{
+  for(const rec of deletionList(ident).filter(x=>x.pending)){
+   try{await removeCloudDraft(ident,rec.id)}
+   catch(err){console.warn('POS deleted draft cloud cleanup pending:',err.message)}
+  }
+ }finally{
+  deleteBusy=false;
+  if(deleteAgain){deleteAgain=false;void cleanupDeletions()}
+ }
+}
 function readCache(ident){
- try{const data=JSON.parse(localStorage.getItem(cacheKey(ident))||'[]');return Array.isArray(data)?data.filter(x=>x&&x.id&&x.restaurant_id===ident.restaurantId).slice(0,40):[]}
+ try{const data=JSON.parse(localStorage.getItem(cacheKey(ident))||'[]');return Array.isArray(data)?data.filter(x=>x&&x.id&&x.restaurant_id===ident.restaurantId&&x.created_by===ident.uid&&!deletionExists(ident,x.id)).slice(0,40):[]}
  catch{return []}
 }
 function writeCache(ident,rows){try{localStorage.setItem(cacheKey(ident),JSON.stringify(rows.slice(0,40)));return true}catch{return false}}
@@ -39,7 +92,7 @@ function fields(){
 }
 function hasContent(p){return !!(p.customerName||p.customerPhone||p.items.length||p.pickerName||p.paidAmount||p.paymentReference||p.replaceOrderId)}
 function remember(id,payload){
- const ident=identity();if(!ident||!id)return null;
+ const ident=identity();if(!ident||!id||deletionExists(ident,id))return null;
  const list=readCache(ident).filter(d=>d.id!==id);
  const rec={id,restaurant_id:ident.restaurantId,created_by:ident.uid,payload,updated_at:new Date().toISOString(),dirty:true};
  list.unshift(rec);writeCache(ident,list);renderDrafts();return rec;
@@ -52,18 +105,25 @@ function markClean(ident,id,version){
 }
 async function syncOne(rec){
  const ident=identity();
- if(!ident||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid)return;
+ if(!ident||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,rec.id))return;
  const {error}=await ctx.sb.from('restaurant_pos_drafts').upsert({
   id:rec.id,restaurant_id:ident.restaurantId,created_by:ident.uid,payload:rec.payload
  },{onConflict:'id'});
  if(error)throw error;
+ // A sale/void may have completed while this upsert was in flight.
+ // The durable tombstone blocks stale drafts from reappearing after late writes.
+ if(deletionExists(ident,rec.id)){
+  try{await removeCloudDraft(ident,rec.id)}
+  catch(err){console.warn('Late POS draft upsert cleanup queued:',err.message)}
+  return;
+ }
  markClean(ident,rec.id,rec.updated_at);
 }
 async function syncPending(){
  if(cloudBusy||!identity())return;
  cloudBusy=true;
  try{
-  const list=readCache(identity()).filter(d=>d.dirty);
+  const list=readCache(identity()).filter(d=>d.dirty&&!deletionExists(identity(),d.id));
   for(const rec of list){
    try{await syncOne(rec);if(activeId===rec.id)setStatus('Draft saved securely ✓')}
    catch(err){if(activeId===rec.id)setStatus('Draft saved on this device; cloud pending');console.warn('POS draft cloud sync failed:',err.message)}
@@ -118,8 +178,8 @@ function fill(data){
 async function openDraft(id){
  const ident=identity();if(!ident)return;
  let rec=readCache(ident).find(x=>x.id===id);
- if(!rec){const r=await ctx.sb.from('restaurant_pos_drafts').select('*').eq('id',id).eq('restaurant_id',ident.restaurantId).maybeSingle();if(r.error)throw r.error;rec=r.data}
- if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid){alert('Draft not found for your restaurant.');return}
+ if(!rec&&!deletionExists(ident,id)){const r=await ctx.sb.from('restaurant_pos_drafts').select('*').eq('id',id).eq('restaurant_id',ident.restaurantId).maybeSingle();if(r.error)throw r.error;rec=r.data}
+ if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,id)){alert('Draft already deleted or not found for your restaurant.');return}
  await window.openOrder();
  activeId=rec.id;fill(rec.payload||{});
  setStatus(rec.dirty?'Draft restored · cloud sync pending':'Draft restored ✓');
@@ -127,21 +187,32 @@ async function openDraft(id){
 async function discardDraft(id){
  const ident=identity();if(!ident)return;
  if(!confirm('Ye draft permanently delete karein? Saved POS bill par iska asar nahi hoga.'))return;
- const {error}=await ctx.sb.from('restaurant_pos_drafts').delete().eq('id',id).eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid);
- if(error){alert('Cloud se draft delete nahi hua: '+error.message+' · internet check karein.');return}
+ if(!queueDeletion(ident,id)){
+  alert('Device storage full hai. Draft offline delete nahi ho sakta; storage free karke retry karein.');return;
+ }
  writeCache(ident,readCache(ident).filter(d=>d.id!==id));
- if(activeId===id){activeId=null;window.closeModal('orderModal')}
- renderDrafts();setStatus('Draft deleted');
+ if(activeId===id){clearTimeout(saveTimer);activeId=null;window.closeModal('orderModal')}
+ renderDrafts();
+ setStatus('Draft removed · cloud deletion syncing');
+ // Show the owner the local result immediately; retry cloud deletion on reload/online.
+ void cleanupDeletions();
 }
 async function discardActive(){if(activeId)await discardDraft(activeId);else window.closeModal('orderModal')}
 async function finishOrder(){
  clearTimeout(saveTimer);
  const id=activeId,ident=identity();activeId=null;
  if(!id||!ident)return;
+ // Sale has committed. Never let cloud draft deletion block or undo the sale.
+ // Persist a deletion fence before removing local data so an in-flight upsert
+ // cannot resurrect a completed bill on the next dashboard refresh.
+ if(!queueDeletion(ident,id)){
+  deletedThisSession.add(deletedId(ident,id));
+  console.warn('POS draft deletion marker could not persist; immediate cloud cleanup will be attempted.');
+  void removeCloudDraft(ident,id).catch(err=>console.warn('Completed draft cloud deletion failed:',err.message));
+ }
  writeCache(ident,readCache(ident).filter(x=>x.id!==id));
  renderDrafts();
- const {error}=await ctx.sb.from('restaurant_pos_drafts').delete().eq('id',id).eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid);
- if(error)console.warn('Completed POS draft cleanup pending:',error.message);
+ void cleanupDeletions();
 }
 function currentOrderCode(){return activeId?'POS-'+activeId.replace(/-/g,'').slice(0,24).toUpperCase():null}
 async function refreshDrafts(){
@@ -149,15 +220,16 @@ async function refreshDrafts(){
  let local=readCache(ident),list=local.slice();
  const r=await ctx.sb.from('restaurant_pos_drafts').select('id,restaurant_id,created_by,payload,updated_at')
   .eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).order('updated_at',{ascending:false}).limit(40);
- if(r.error){console.warn('Draft list unavailable:',r.error.message);renderDrafts();return}
+ if(r.error){console.warn('Draft list unavailable:',r.error.message);renderDrafts();void cleanupDeletions();return}
  for(const remote of r.data||[]){
+  if(remote.created_by!==ident.uid||deletionExists(ident,remote.id))continue;
   const idx=list.findIndex(x=>x.id===remote.id);
   if(idx<0)list.push({...remote,dirty:false});
   else if(!list[idx].dirty&&new Date(remote.updated_at)>new Date(list[idx].updated_at))list[idx]={...remote,dirty:false};
  }
  list.sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at));
  writeCache(ident,list);
- renderDrafts();void syncPending();
+ renderDrafts();void syncPending();void cleanupDeletions();
 }
 function renderDrafts(){
  const box=$('posDraftCards'),ident=identity();if(!box)return;
@@ -196,7 +268,7 @@ function init(settings){
   if(open)void openDraft(open.dataset.posDraftOpen).catch(err=>alert('Draft open nahi hua: '+err.message));
   if(del)void discardDraft(del.dataset.posDraftDelete);
  });
- window.addEventListener('online',()=>void syncPending());
+ window.addEventListener('online',()=>{void syncPending();void cleanupDeletions()});
 }
 window.BitePOS={init,newBill,touch,saveNow,openDraft,discardDraft,discardActive,finishOrder,currentOrderCode,refreshDrafts,renderDrafts,editSavedPos,voidSavedPos};
 })();
