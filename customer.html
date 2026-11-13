@@ -187,7 +187,9 @@ async function refreshCustomerCoverPhotos(force=false){
   if(!Array.isArray(published))throw new Error('Public restaurant cover feed unavailable');
   const changed=BiteRestaurantCovers.syncPublishedCovers(restaurants,published);
   if(changed.length){
-   if(document.body.dataset.view==='home')renderRestaurants();
+   // Repaint the listing even when the current view has not set body.dataset.view
+   // (or the customer is on a menu): a cached card must never retain an old photo.
+   renderRestaurants();
    if(activeRestaurant&&changed.includes(activeRestaurant.id)){
     const cover=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
     setCustomerCoverImage($('biteRestaurantHeroImage'),$('biteRestaurantCoverLabel'),cover);
