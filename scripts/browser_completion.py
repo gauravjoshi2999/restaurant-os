@@ -183,6 +183,51 @@ try:
   check('₹300' in owner.locator('#orderGrandTotal').inner_text(),
         'Mobile POS item picker totals two ₹150 dishes without saving a real bill')
   owner.locator('#orderModal button.close').click()
+  # Real POS share UI, synthetic order only: render itemized photo and PDF in
+  # Chromium, and intercept the native OS share target (never contact WhatsApp).
+  owner.evaluate("""() => {
+    window.__qaBillShares=[];
+    Object.defineProperty(navigator,'canShare',{configurable:true,value:data=>Boolean(data?.files?.length)});
+    Object.defineProperty(navigator,'share',{configurable:true,value:data=>{
+      window.__qaBillShares.push(data);return Promise.resolve();
+    }});
+    showPosWhatsAppBillDialog({
+      restaurantId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      restaurantName:'QA Rajsamand Kitchen',restaurantAddress:'QA fixture address',
+      customerName:'QA Customer',phone:'9468456669',orderCode:'POS-QA-123',
+      date:new Date().toISOString(),
+      items:[{name:'QA Veg Thali',quantity:2,unit_price:150}],
+      total:300,paid:300,due:0,waived:0
+    });
+  }""")
+  owner.wait_for_function("""() => [...document.querySelectorAll('#bitePosWhatsAppDialog button')]
+    .some(b=>b.textContent.includes('WhatsApp par bill photo')&&!b.disabled)""",timeout=12000)
+  check('Agli baar restaurant aaye bina' in owner.locator('#bitePosWhatsAppDialog pre').inner_text(),
+        'POS WhatsApp caption invites customers to order again from the same restaurant')
+  check(owner.evaluate("""() => document.querySelector('#bitePosWhatsAppDialog pre').textContent.includes(
+    'direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')"""),
+        'POS promotional caption contains only the originating restaurant direct link')
+  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='WhatsApp par bill photo').click()
+  img=owner.evaluate("""async () => {
+    const data=window.__qaBillShares[0],f=data?.files?.[0];
+    if(!f)return null;
+    const a=new Uint8Array(await f.arrayBuffer());
+    return {type:f.type,startsJpeg:a[0]===255&&a[1]===216,
+      correctRestaurant:data.text.includes('QA Rajsamand Kitchen'),
+      correctLink:data.text.includes('direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')};
+  }""")
+  check(bool(img and img['type']=='image/jpeg' and img['startsJpeg'] and img['correctRestaurant'] and img['correctLink']),
+        'POS itemized JPG bill and restaurant-only marketing caption are shared in one user action')
+  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='PDF bill + link').click()
+  pdf=owner.evaluate("""async () => {
+    const data=window.__qaBillShares[1],f=data?.files?.[0];
+    if(!f)return null;
+    const a=new Uint8Array(await f.arrayBuffer());
+    return {type:f.type,pdfMagic:new TextDecoder().decode(a.slice(0,8)),size:a.length};
+  }""")
+  check(bool(pdf and pdf['type']=='application/pdf' and pdf['pdfMagic'].startswith('%PDF-1.4') and pdf['size']>1000),
+        'POS receipt PDF is a real, shareable PDF attachment without copy/paste')
+  owner.locator('#bitePosWhatsAppDialog button').filter(has_text='Close').click()
   nav(owner,'menu');owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
   owner.locator('#biteCouponForm [name=code]').fill('QATEST10');owner.locator('#biteCouponForm [name=title]').fill('QA ten percent');owner.locator('#biteCouponForm [name=discount_value]').fill('10');owner.locator('#biteCouponForm button[type=submit]').click()
   check('QATEST10' in owner.locator('#biteCouponList').inner_text(),'Owner coupon form creates a scoped offer')
