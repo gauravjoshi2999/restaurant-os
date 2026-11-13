@@ -50,4 +50,21 @@ test('Canonical Owner mobile tabs preserve the POS workspace and More section',(
   }
   assert.match(css,/#35166e/);
   assert.match(css,/safe-area-inset-bottom/);
+  assert.equal(nav.navigationState('owner','overview',true).active,'more');
+  assert.equal(nav.navigationState('owner','overview',true).showBack,true);
+});
+
+test('More is an owner-only full content screen, not a sidebar drawer',()=>{
+  const source=fs.readFileSync('assets/owner-mobile-navigation.js','utf8');
+  const styles=fs.readFileSync('assets/owner-mobile-polish.css','utf8');
+  const owner=fs.readFileSync('index.html','utf8');
+  assert.equal(nav.sections.flatMap(group=>group.items.map(item=>item[0])).join(','),
+    'expenses,cashbook,khata,purchases,tables,inventory,hr,reports,settings');
+  assert.doesNotMatch(source,/root\.toggleSidebar\(true\)/);
+  assert.match(source,/content\.append\(moreScreen\)/);
+  assert.match(source,/currentSection\(\)\?\.setAttribute\('aria-hidden','true'\)/);
+  assert.match(styles,/#mainApp\[data-bite-more-open="true"\]/);
+  assert.match(styles,/\.bite-language-row\{display:none!important\}/);
+  assert.match(owner,/assets\/owner-mobile-polish\.css\?v=/);
+  assert.doesNotMatch(owner,/priority\.after\(live\)/);
 });
