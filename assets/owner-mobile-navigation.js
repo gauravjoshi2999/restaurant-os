@@ -38,6 +38,9 @@
     const currentPage=()=>app.querySelector('.page.active:not([hidden])')?.id||'overview';
     const currentSection=()=>app.querySelector('.page.active:not([hidden])');
     let moreOpen=false,previousTitle='Overview';
+    // Remember the parent tab when More opens, so the child page Back always
+    // returns to More, and the next Back returns to the original tab.
+    let moreEntryPage=null,moreChildPage=null,moreRestored=false;
 
     const back=doc.createElement('button');
     back.type='button';back.className='bite-owner-back';
@@ -72,6 +75,7 @@
         button.append(glyph,copy,arrow);
         button.addEventListener('click',()=>{
           if(doc.body.dataset.role!=='owner'||!mobile())return;
+          moreChildPage=page;
           closeMore();
           if(typeof root.showPage==='function')void root.showPage(page);
         });
@@ -115,10 +119,12 @@
       }
       if(!ownerMobile&&moreOpen)closeMore();
     }
-    function openMore(){
+    function openMore(restoring=false){
       if(doc.body.dataset.role!=='owner'||!mobile())return;
       if(typeof root.toggleSidebar==='function')root.toggleSidebar(false);
       if(moreOpen)return;
+      if(!restoring){moreEntryPage=currentPage();moreChildPage=null;}
+      moreRestored=restoring;
       previousTitle=pageTitle.textContent;
       moreOpen=true;moreScreen.hidden=false;app.dataset.biteMoreOpen='true';
       currentSection()?.setAttribute('aria-hidden','true');
@@ -149,6 +155,7 @@
         if(doc.body.dataset.role!=='owner')return;
         if(tab.page==='more'){openMore();return}
         closeMore();
+        moreChildPage=null;moreRestored=false;moreEntryPage=null;
         // POS is a canonical workspace. Opening a new bill remains the explicit
         // action inside POS; existing Home one-tap billing remains available.
         if(typeof root.showPage==='function')void root.showPage(tab.page);
@@ -168,6 +175,7 @@
     function sync(){
       const page=currentPage();
       if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
+      if(doc.body.dataset.role!=='owner'){moreChildPage=null;moreEntryPage=null;moreRestored=false;}
       const state=navigationState(doc.body.dataset.role,page,moreOpen);
       nav.hidden=!state.visible;
       drawerLogout.hidden=!state.visible;
@@ -189,7 +197,21 @@
     }
     back.addEventListener('click',()=>{
       if(doc.body.dataset.role!=='owner')return;
-      if(moreOpen){closeMore();return}
+      if(moreOpen){
+        const restore=moreRestored;
+        closeMore();
+        if(restore){
+          moreRestored=false;moreChildPage=null;
+          const target=moreEntryPage||'overview';moreEntryPage=null;
+          history.length=0;pendingBack=true;
+          if(typeof root.showPage==='function')void root.showPage(target);
+        }
+        return;
+      }
+      if(mobile()&&moreChildPage===currentPage()){
+        openMore(true);
+        return;
+      }
       const target=history.pop()||'overview';
       pendingBack=true;
       if(typeof root.showPage==='function')void root.showPage(target);
