@@ -77,3 +77,35 @@ test('Migration preserves existing tenant RLS and limits assigned cover path to 
  assert.match(sql,/'cover_image_path',\(select cr\.cover_image_path/);
  assert.doesNotMatch(sql,/drop policy|disable row level security/i);
 });
+
+test('Live Owner cover changes update the same restaurant without touching other restaurants or carts',()=>{
+ const uploaded=B+'/covers/08e9049f-3dd6-41a5-add5-b615104e2904.webp';
+ const current=[{...pure,cover_image_path:null},{...spicy,cover_image_path:null}];
+ const result=Covers.syncPublishedCovers(current,[
+  {id:A,cover_image_path:null,cover_image_updated_at:null},
+  {id:B,cover_image_path:uploaded,cover_image_updated_at:'2026-11-13T07:02:57.607Z'}
+ ]);
+ assert.deepEqual(result,[B]);
+ assert.equal(Covers.choose(current[1]).source,'owner');
+ assert.equal(Covers.choose(current[0]).source,'bite');
+ assert.equal(Covers.syncPublishedCovers(current,[{id:B,cover_image_path:uploaded,cover_image_updated_at:'2026-11-13T07:02:57.607Z'}]).length,0);
+ const cleared=Covers.syncPublishedCovers(current,[{id:B,cover_image_path:null,cover_image_updated_at:'2026-11-13T07:08:00Z'}]);
+ assert.deepEqual(cleared,[B]);
+ assert.equal(Covers.choose(current[1]).source,'bite');
+ const denied=Covers.syncPublishedCovers(current,[{id:B,cover_image_path:A+'/covers/08e9049f-3dd6-41a5-add5-b615104e2904.webp'}]);
+ assert.deepEqual(denied,[]);
+ assert.equal(current[0].cover_image_path,null);
+ assert.equal(current[1].cover_image_path,null);
+});
+test('Customer refreshes cover photo on restaurant entry and tab return without changing checkout',()=>{
+ const html=fs.readFileSync('customer.html','utf8');
+ assert.match(html,/async function refreshCustomerCoverPhotos\(force=false\)/);
+ assert.match(html,/BiteRestaurantCovers\.syncPublishedCovers\(restaurants,published\)/);
+ assert.match(html,/setCustomerCoverImage\(\$\('biteRestaurantHeroImage'\),\$\('biteRestaurantCoverLabel'\),cover\)/);
+ assert.match(html,/void refreshCustomerCoverPhotos\(\)/);
+ assert.match(html,/window\.addEventListener\('focus'/);
+ assert.match(html,/document\.addEventListener\('visibilitychange'/);
+ assert.match(html,/img\.onerror=\(\)=>\{/);
+ assert.match(html,/Bite suggested photo/);
+ assert.match(html,/bite-restaurant-covers\.js\?v=20261113-cover-sync2/);
+});
