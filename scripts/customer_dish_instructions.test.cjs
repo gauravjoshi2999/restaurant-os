@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const Notes=require('../assets/customer-item-notes.js');
 const customer=fs.readFileSync('customer.html','utf8');
+const owner=fs.readFileSync('index.html','utf8');
 const css=fs.readFileSync('assets/customer-transactions.css','utf8');
 const menuItems=[
  {id:'paneer',name:'Paneer Butter Masala',price:180},
@@ -77,4 +78,13 @@ test('cart note UI is accessible and checkout blocks overlong requests before se
  assert.match(css,/\.cart-item-note-editor textarea\{display:block;width:100%/);
  assert.match(customer,/id="biteMenuInlineCTA"/);
  assert.doesNotMatch(customer,/biteMenuQuickNav/);
+});
+
+test('owner sees escaped cooking instructions in the order inbox and order board',()=>{
+ assert.match(owner,/const instructions=o\.customerNote\?'<div class="order-cooking-note/);
+ assert.match(owner,/const instructionsHtml=o\.customerNote\?'<div class="order-cooking-note/);
+ assert.match(owner,/esc\(o\.customerNote\)/);
+ assert.match(owner,/\+itemHtml\+instructionsHtml\+/);
+ assert.match(owner,/\+extra\+'<\/div>'\+instructions\+/);
+ assert.match(owner,/\.order-cooking-note>div\{white-space:pre-wrap\}/);
 });
