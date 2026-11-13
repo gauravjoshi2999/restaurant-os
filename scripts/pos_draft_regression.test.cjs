@@ -48,7 +48,7 @@ test('draft local persistence keeps customer fields while cloud is unreachable',
   payment_reference:{value:''},balance_action:{value:'udhar'}
  };
  const saved={};const localStorage={getItem:k=>saved[k]??null,setItem:(k,v)=>{saved[k]=v}};
- const sandbox={window:{},document:{getElementById:el,querySelectorAll:()=>[]},
+ const sandbox={window:{addEventListener:()=>{}},document:{getElementById:el,querySelectorAll:()=>[]},
   localStorage,crypto:{randomUUID:()=> '01234567-89ab-4def-8abc-0123456789ab'},
   console,setTimeout:()=>1,clearTimeout:()=>{},confirm:()=>true,alert:()=>{}};
  vm.runInNewContext(source,sandbox);
