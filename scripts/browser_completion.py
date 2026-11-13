@@ -22,9 +22,19 @@ def observe(page):
  page.route('**/api.cashfree.com/**',lambda route:route.abort())
  page.on('dialog',lambda dialog:dialog.accept())
 def nav(page,target):
+ # Use the five primary owner tabs; secondary owner screens open through More.
+ # Super Admin keeps the original desktop/mobile sidebar navigation.
+ bottom=page.locator('#biteOwnerBottomNav [data-bite-page="'+target+'"]')
+ if bottom.count() and bottom.is_visible():
+  bottom.click()
+  return
  button=page.locator('.nav [data-page="'+target+'"]')
+ more=page.locator('#biteOwnerBottomNav [data-bite-page="more"]')
  toggle=page.locator('.sidebar-toggle')
- if toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':toggle.click()
+ if more.count() and more.is_visible():
+  more.click()
+ elif toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':
+  toggle.click()
  button.click()
 server=ThreadingHTTPServer(('127.0.0.1',4174),SimpleHTTPRequestHandler);Thread(target=server.serve_forever,daemon=True).start()
 try:
@@ -339,7 +349,7 @@ try:
   nav(owner,'pos')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(not owner.locator('.side').evaluate("(el) => el.classList.contains('sidebar-open')") and owner.locator('#posNewSaleBtn').is_visible(),
-        'POS & Billing is reachable from mobile sidebar and the drawer closes on selection')
+        'POS & Billing is reachable from canonical mobile POS tab and the drawer stays closed')
   owner.locator('#posNewSaleBtn').click()
   owner.locator('#orderModal.show').wait_for(state='visible')
   check(owner.locator('#posPaymentSection').is_visible() and owner.locator('#orderRestaurant').input_value()=='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
