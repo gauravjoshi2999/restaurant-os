@@ -64,7 +64,7 @@ try:
   print('QA COVER IMAGE DEBUG:',cover_info)
   check(bool(cover_info['src'] and '/storage/v1/object/public/bite-menu/' in cover_info['src'] and cover_info['width']>0),
     'Browser loads exact saved Owner restaurant cover image from scoped storage URL')
-  check(customer.locator('#restaurantGrid .restaurant .bite-cover-origin').inner_text()=='Restaurant photo',
+  check(customer.locator('#restaurantGrid .restaurant .bite-cover-origin').text_content()=='Restaurant photo',
         'Restaurant listing shows Owner photo and correct photo-source label')
   customer.locator('#restaurantGrid .restaurant').first.click()
   customer.locator('#biteRestaurantHeroImage').wait_for(state='visible')
@@ -112,7 +112,7 @@ try:
     const hero=document.getElementById('biteRestaurantHeroImage');
     return hero?.complete && hero.naturalWidth>0 && hero.src.includes('/storage/v1/object/public/bite-menu/');
   }""")
-  check(direct.locator('#biteRestaurantCoverLabel').inner_text()=='Restaurant photo',
+  check(direct.locator('#biteRestaurantCoverLabel').text_content()=='Restaurant photo',
         'Restaurant-only direct ordering page updates to same newly published Owner cover')
   check(direct.evaluate("""() => {
     return BITE_DIRECT_MODE===true
