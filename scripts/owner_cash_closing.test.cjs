@@ -79,6 +79,7 @@ function workspace({rows=[entry('p1','50.00')],rpcMode='success'}={}){
 test('blank counted cash cannot close; review then confirm commits once',async()=>{
  const w=workspace();
  await w.context.loadCashbook();
+ w.el('cashbookOpeningCash').value='100';
  assert.equal(w.el('cashbookCountedCash').value,'');
  await w.context.reviewCashbookDay();
  assert.match(w.el('cashbookCloseMessage').textContent,/Counted cash/);
@@ -98,6 +99,7 @@ test('blank counted cash cannot close; review then confirm commits once',async()
 test('cash difference requires a reason; edits invalidate confirmation',async()=>{
  const w=workspace();
  await w.context.loadCashbook();
+ w.el('cashbookOpeningCash').value='100';
  w.el('cashbookCountedCash').value='145';
  await w.context.reviewCashbookDay();
  assert.match(w.el('cashbookCloseMessage').textContent,/reason/);
@@ -113,6 +115,7 @@ test('cash difference requires a reason; edits invalidate confirmation',async()=
 test('new ledger transaction invalidates old review before RPC',async()=>{
  const w=workspace();
  await w.context.loadCashbook();
+ w.el('cashbookOpeningCash').value='100';
  w.el('cashbookCountedCash').value='150';
  await w.context.reviewCashbookDay();
  w.setRows([entry('p1','50.00'),entry('p2','10.00')]);
@@ -124,6 +127,7 @@ test('new ledger transaction invalidates old review before RPC',async()=>{
 test('lost RPC response is verified against the closed row without retrying',async()=>{
  const w=workspace({rpcMode:'timeout-after-commit'});
  await w.context.loadCashbook();
+ w.el('cashbookOpeningCash').value='100';
  w.el('cashbookCountedCash').value='150';
  await w.context.reviewCashbookDay();
  await w.context.closeCashbookDay();
@@ -134,6 +138,7 @@ test('lost RPC response is verified against the closed row without retrying',asy
 test('failed RPC with no closing row never retries silently',async()=>{
  const w=workspace({rpcMode:'timeout-no-commit'});
  await w.context.loadCashbook();
+ w.el('cashbookOpeningCash').value='100';
  w.el('cashbookCountedCash').value='150';
  await w.context.reviewCashbookDay();
  await w.context.closeCashbookDay();
