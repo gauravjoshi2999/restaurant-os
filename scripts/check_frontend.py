@@ -156,7 +156,18 @@ check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owne
       "Owner order model carries delivery type for delivery handoff actions")
 check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("openDeliveryWhatsAppShare(message,waUrl)") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share and "window.open('about:blank'" not in handover_share and "BiteDeliveryShare" in owner,
       "Delivery orders require link sharing and physical handover confirmation")
-check("o.status==='Handed Over'&&a[0]==='Completed'" in owner and "o.status==='Ready'&&a[0]==='Handed Over'" in owner,
+owner_order_step = Path("assets/owner-orders-workspace.js").read_text(encoding="utf-8")
+old_order_guard = ("o.status==='Handed Over'&&a[0]==='Completed'" in owner and "o.status==='Ready'&&a[0]==='Handed Over'" in owner)
+new_order_guard = (
+    "BiteOwnerOrders.nextStep(o)" in owner
+    and "case 'Ready':return order.deliveryType==='delivery'" in owner_order_step
+    and "case 'Handed Over':return order.deliveryType==='delivery'" in owner_order_step
+    and "?null:{key:'Completed',label:'Complete pickup'}" in owner_order_step
+    and "next.key==='share_handover'" in owner
+    and "shareAndHandOverDelivery(" in owner
+    and "confirm_delivery_handoff" in delivery
+)
+check(old_order_guard or new_order_guard,
       "Delivery orders cannot bypass OTP completion or handoff-link creation")
 check("orderChannelKey(order.channel)==='website'" in owner and "['website','zomato','swiggy']" not in owner,
       "Owner new-order alerts are limited to BITE website orders")

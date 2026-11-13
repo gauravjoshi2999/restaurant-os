@@ -348,6 +348,15 @@ try:
     "(nodes)=>nodes.map(node=>node.dataset.biteStage)")
   check(stage_names==['new','preparing','ready','delivery','completed','cancelled','all'],
         'Owner Orders has one grouped stage bar backed by real status values')
+  owner.locator('#biteOwnerOrderCalendar').wait_for(state='visible')
+  owner.locator('#biteOwnerOrderCalendar [data-date-calendar-toggle]').click()
+  check(owner.locator('#biteOwnerOrderCalendar .bite-date-grid button[data-date-select]').count()>=28,
+    'Owner date calendar offers individual days and day-wise order count badges')
+  check(owner.locator('#biteOwnerOrderCalendar [data-date-select="all"]').is_visible(),
+    'Order calendar has an obvious All dates reset without losing old bills')
+  owner.locator('#biteOwnerOrderCalendar [data-date-select="all"]').click()
+  check(owner.evaluate('BiteOwnerOrders.selectedDay()===null'),
+    'All dates reset restores full order history, regardless of status filter')
   check(owner.locator('#orders .order-inbox').is_hidden()
         and owner.locator('#orders #orderStatusTabs').is_hidden(),
         'Owner Orders does not repeat actionable orders in inbox and old bar')
@@ -597,6 +606,21 @@ try:
     'Staff tabs preserve unsaved employee input')
   check(owner.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),
     'Staff layout does not overflow the phone')
+  nav(owner,'khata')
+  owner.locator('#khataCustomerRows').wait_for(state='attached')
+  owner.evaluate("""() => {
+    const rid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const cid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    khataCustomers=[{id:cid,restaurant_id:rid,full_name:'QA Sample Customer',phone:'9999999999',status:'Active'}];
+    khataBalances=[{customer_id:cid,restaurant_id:rid,balance:0}];
+    khataEntries=[];selectedKhataCustomerId=cid;renderKhata();
+  }""")
+  owner.locator('#khataCustomerRows button').first.click()
+  check(owner.evaluate("document.activeElement?.id==='khataLedgerSection'")
+     and owner.locator('#khataCustomerRows tr.is-selected').count()==1,
+     'Khata Open focuses and highlights the selected customer ledger on mobile')
+  check(owner.locator('#khataLedgerEmpty').inner_text()=='Is customer ke Khata mein abhi koi entry nahi hai.',
+     'Empty customer ledger explains why no entries appear')
   nav(owner,'overview')
   check(owner.locator('#overview .od-accounts').is_hidden()
      and owner.locator('#overview .od-recent').is_hidden(),
