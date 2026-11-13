@@ -31,6 +31,10 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch()
   customer=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(customer)
+  # Mock owner-uploaded photo bytes; no production data, Supabase, or external photos used.
+  cover_bytes=(ROOT/'assets/food/meal-1100.jpg').read_bytes()
+  customer.route('**/storage/v1/object/public/bite-menu/**',
+    lambda route:route.fulfill(status=200,content_type='image/jpeg',body=cover_bytes))
   customer.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html',wait_until='domcontentloaded')
   customer.locator('#restaurantGrid .restaurant').wait_for(state='visible')
   check(customer.evaluate("""() => {
@@ -38,14 +42,57 @@ try:
     return photos.length>0 && photos.every(img=>img.getAttribute('src') && img.getAttribute('alt'));
   }"""),'Every restaurant card includes an accessible automatically suggested or Owner cover photo')
   check('QA FIXTURE' in customer.locator('body').inner_text(),'Preview is explicitly synthetic and cannot charge or sign in real users')
+  updated=customer.evaluate("""async () => {
+    const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_path=id+'/covers/12345678-1234-4234-8234-123456789012.webp';
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_updated_at='2026-11-13T12:40:00Z';
+    return await refreshCustomerCoverPhotos(true);
+  }""")
+  check(updated==['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
+        'Customer listing fetches the newly published Owner cover without a page reload')
+  customer.wait_for_function("""() => {
+    const img=document.querySelector('#restaurantGrid .restaurant .cover img');
+    return img?.complete && img.naturalWidth>0 && img.currentSrc.includes('/storage/v1/object/public/bite-menu/');
+  }""")
+  check(customer.locator('#restaurantGrid .restaurant .bite-cover-origin').inner_text()=='Restaurant photo',
+        'Restaurant listing shows Owner photo and correct photo-source label')
+  customer.locator('#restaurantGrid .restaurant').first.click()
+  customer.locator('#biteRestaurantHeroImage').wait_for(state='visible')
+  check(customer.evaluate("""() => {
+    const hero=document.getElementById('biteRestaurantHeroImage');
+    const card=document.querySelector('#restaurantGrid .restaurant .cover img');
+    return hero.src===card.src && document.getElementById('biteRestaurantCoverLabel').textContent==='Restaurant photo';
+  }"""),'Customer restaurant hero shows exactly the same Owner photo as listing card')
+  customer.evaluate("""async () => {
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_path=null;
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_updated_at='2026-11-13T12:42:00Z';
+    await refreshCustomerCoverPhotos(true);
+  }""")
+  check(customer.locator('#biteRestaurantCoverLabel').inner_text()=='Bite suggested photo',
+        'Removing Owner cover restores Bite suggested photo without losing the restaurant menu')
+  customer.evaluate("showCustomerView('home')")
   # Direct Restaurant Ordering: WhatsApp source link must open only one restaurant,
   # with no discovery or escape into another restaurant catalogue.
   direct=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(direct)
+  direct.route('**/storage/v1/object/public/bite-menu/**',
+    lambda route:route.fulfill(status=200,content_type='image/jpeg',body=cover_bytes))
   direct.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?direct=1&restaurant=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',wait_until='domcontentloaded')
   direct.locator('#menuItems [data-menu-item-id]').first.wait_for(state='visible')
   check(direct.locator('#restaurantName').inner_text()=='QA Rajsamand Kitchen','Restaurant link opens only the linked restaurant menu')
   check(direct.locator('#biteRestaurantHeroImage').is_visible() and bool(direct.locator('#biteRestaurantHeroImage').get_attribute('src')),
         'Direct restaurant page displays a full-width food hero image')
+  direct.evaluate("""async () => {
+    const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_path=id+'/covers/12345678-1234-4234-8234-123456789012.webp';
+    window.__BITE_QA_SERVER_RESTAURANT.cover_image_updated_at='2026-11-13T12:45:00Z';
+    await refreshCustomerCoverPhotos(true);
+  }""")
+  direct.wait_for_function("""() => {
+    const hero=document.getElementById('biteRestaurantHeroImage');
+    return hero?.complete && hero.naturalWidth>0 && hero.src.includes('/storage/v1/object/public/bite-menu/');
+  }""")
+  check(direct.locator('#biteRestaurantCoverLabel').inner_text()=='Restaurant photo',
+        'Restaurant-only direct ordering page updates to same newly published Owner cover')
   check(direct.evaluate("""() => {
     return BITE_DIRECT_MODE===true
       && restaurants.length===1
