@@ -923,7 +923,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="metric-label">Expected cash in hand</div><div class="metric" id="cashbookExpectedCash">₹0.00</div></div>
  </div>
  <div class="card section" id="cashbookManualCard">
-  <div class="section-head"><h2>Manual cashbook entry</h2><span class="small">Owner only</span></div>
+  <div class="section-head"><h2>Manual cashbook entry</h2><span class="small">Owner only · POS payments aur recorded kharcha dobara mat likhein</span></div>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Entry type *</label><select id="cashbookDirection"><option value="in">Income / Aaya</option><option value="out">Expense / Gaya</option></select></div>
    <div class="field"><label>Category *</label><input id="cashbookCategory" maxlength="80" placeholder="Customer collection, other income..."></div>
@@ -936,7 +936,7 @@ body.bite-session-check #biteSessionSplash{
  <div class="section"><div class="section-head"><h2>Payment mode summary</h2><span class="small" id="cashbookEntryCount">0 entries</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Payment mode</th><th>Income</th><th>Outflow</th><th>Net</th></tr></thead><tbody id="cashbookModeRows"></tbody></table></div>
  </div>
- <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small">Expenses, purchases and manual entries</span></div>
+ <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small">POS receipts, expenses, purchases, staff, khata and refunds</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
  </div>
  <div class="card section" id="cashbookClosingCard">
@@ -944,10 +944,11 @@ body.bite-session-check #biteSessionSplash{
   <div id="cashbookClosingSummary" class="notice">Day abhi close nahi hua hai.</div>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Opening cash (₹)</label><input id="cashbookOpeningCash" type="number" min="0" step="0.01" value="0"></div>
-   <div class="field"><label>Counted cash (₹) *</label><input id="cashbookCountedCash" type="number" min="0" step="0.01" placeholder="Cash ginke bharein"></div>
-   <div class="field" style="grid-column:1/-1"><label>Closing note</label><input id="cashbookClosingNote" maxlength="300" placeholder="Cash difference ya special note"></div>
+   <div class="field"><label>Counted cash (₹) *</label><input id="cashbookCountedCash" type="number" min="0" step="0.01" required placeholder="Cash ginke bharein; zero ho to 0 likhein"></div>
+   <div class="field" style="grid-column:1/-1"><label>Closing note (difference ho to zaroori)</label><input id="cashbookClosingNote" maxlength="300" placeholder="Difference ka reason, minimum 8 characters"></div>
   </div>
-  <div class="actions"><button class="btn" id="cashbookCloseBtn" type="button" onclick="closeCashbookDay()">Close this day</button><span class="small" id="cashbookCloseMessage" role="status"></span></div>
+  <div class="notice" id="cashbookClosingReview" role="status" style="display:none"></div>
+  <div class="actions"><button class="btn secondary" id="cashbookReviewBtn" type="button" onclick="reviewCashbookDay()">Review closing</button><button class="btn" id="cashbookCloseBtn" type="button" onclick="closeCashbookDay()" style="display:none">Confirm &amp; close day</button><span class="small" id="cashbookCloseMessage" role="status" aria-live="polite"></span></div>
  </div>
 </section>
 
@@ -1247,6 +1248,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
 <script src="assets/owner-core.js"></script>
+<script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-exports.js"></script>
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
@@ -1545,33 +1547,58 @@ async function saveStockMovement(){
 document.getElementById('inventoryRestaurant').addEventListener('change',loadInventory);
 
 let cashbookEntries=[],cashbookClosing=null,cashbookLastLoadedKey=null;
+let cashbookDataReadyKey=null,cashbookLoadSequence=0,cashbookClosingBusy=false,cashbookReview=null;
 function cashbookRestaurantId(){return document.getElementById('cashbookRestaurant').value||''}
 function cashbookDateValue(){return document.getElementById('cashbookDate').value}
+function cashbookKey(){return cashbookRestaurantId()+'|'+cashbookDateValue()}
 async function loadCashbookWorkspace(){
  const select=document.getElementById('cashbookRestaurant'),previous=select.value;
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  select.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('cashbookEmpty').textContent='Is login ke saath Owner/Manager restaurant linked nahi hai.';return}
- select.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
+ select.value=eligible.some(r=>r.id===previous)?previous:(eligible.find(r=>r.id===access.restaurantId)||eligible[0]).id;
  document.getElementById('cashbookDate').value=localDateInput();
  document.getElementById('cashbookManualCard').style.display=access.role==='owner'?'block':'none';
- document.getElementById('cashbookCloseBtn').style.display=access.role==='owner'?'inline-flex':'none';
  await loadCashbook();
+}
+async function fetchCashbookSnapshot(rid,date){
+ const [entries,closing]=await Promise.all([
+  sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
+  sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle()
+ ]);
+ if(entries.error)throw entries.error;if(closing.error)throw closing.error;
+ return {entries:entries.data||[],closing:closing.data||null};
 }
 async function loadCashbook(){
  const rid=cashbookRestaurantId(),date=cashbookDateValue();if(!rid||!date)return;
+ const key=rid+'|'+date,sequence=++cashbookLoadSequence;
+ cashbookDataReadyKey=null;cashbookReview=null;
  const empty=document.getElementById('cashbookEmpty');empty.textContent='Cashbook load ho raha hai…';empty.style.display='block';
+ if(key!==cashbookLastLoadedKey){cashbookEntries=[];cashbookClosing=null}
+ renderCashbook();
  try{
-  const [entries,closing]=await Promise.all([
-   sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
-   sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle()
-  ]);
-  if(entries.error)throw entries.error;if(closing.error)throw closing.error;
-  cashbookEntries=entries.data||[];cashbookClosing=closing.data||null;
-  const key=rid+'|'+date;if(key!==cashbookLastLoadedKey&&!cashbookClosing)document.getElementById('cashbookOpeningCash').value='0';cashbookLastLoadedKey=key;
-  document.getElementById('cashbookEntryMessage').textContent='';document.getElementById('cashbookCloseMessage').textContent='';renderCashbook();
- }catch(e){empty.textContent='Cashbook load nahi hua: '+e.message;document.getElementById('cashbookStatus').textContent='Error';console.error(e)}
+  const snapshot=await fetchCashbookSnapshot(rid,date);
+  if(sequence!==cashbookLoadSequence||key!==cashbookKey())return;
+  cashbookEntries=snapshot.entries;cashbookClosing=snapshot.closing;
+  if(key!==cashbookLastLoadedKey){
+   document.getElementById('cashbookOpeningCash').value='0';
+   document.getElementById('cashbookCountedCash').value='';
+   document.getElementById('cashbookClosingNote').value='';
+  }
+  cashbookLastLoadedKey=key;cashbookDataReadyKey=key;
+  document.getElementById('cashbookEntryMessage').textContent='';
+  document.getElementById('cashbookCloseMessage').textContent='';
+  empty.textContent='No transactions for this date.';
+  renderCashbook();
+ }catch(e){
+  if(sequence!==cashbookLoadSequence||key!==cashbookKey())return;
+  cashbookEntries=[];cashbookClosing=null;cashbookReview=null;
+  empty.textContent='Cashbook load nahi hua: '+e.message;
+  document.getElementById('cashbookStatus').textContent='Error';
+  renderCashbook();document.getElementById('cashbookStatus').textContent='Error';
+  console.error(e);
+ }
 }
 function renderCashbook(){
  const total=(dir,method)=>cashbookEntries.filter(x=>x.direction===dir&&(!method||x.payment_method===method)).reduce((sum,x)=>sum+Number(x.amount),0);
@@ -1583,47 +1610,112 @@ function renderCashbook(){
  document.getElementById('cashbookEntryCount').textContent=cashbookEntries.length+' entries';
  const modes=['Cash','UPI','Card','Bank Transfer','Other'];
  document.getElementById('cashbookModeRows').innerHTML=modes.map(m=>'<tr><td><strong>'+m+'</strong></td><td>'+money(total('in',m))+'</td><td>'+money(total('out',m))+'</td><td>'+money(total('in',m)-total('out',m))+'</td></tr>').join('');
- const labels={expense:'Expense ledger',purchase:'Purchase payment',manual:'Manual entry'};
+ const labels={expense:'Expense ledger',purchase:'Purchase payment',manual:'Manual entry',order_payment:'POS payment',employee_payment:'Staff payment',customer_ledger_payment:'Khata collection',order_refund:'Customer refund'};
  document.getElementById('cashbookRows').innerHTML=cashbookEntries.map(x=>'<tr><td><span class="pill '+(x.direction==='in'?'green':'amber')+'">'+(x.direction==='in'?'Income':'Outflow')+'</span></td><td>'+esc(x.category)+'</td><td>'+esc(x.description||'—')+'</td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(labels[x.source_type]||x.source_type)+'</td></tr>').join('');
  document.getElementById('cashbookEmpty').style.display=cashbookEntries.length?'none':'block';
- const status=document.getElementById('cashbookStatus');status.textContent=cashbookClosing?'Closed':'Open';status.className='tag '+(cashbookClosing?'success':'');
- const closed=!!cashbookClosing,owner=access.role==='owner';
- document.getElementById('cashbookSaveBtn').disabled=!owner||closed;document.getElementById('cashbookCloseBtn').disabled=!owner||closed;
- ['cashbookDirection','cashbookCategory','cashbookAmount','cashbookPayment','cashbookDescription','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>document.getElementById(id).disabled=closed||!owner);
+ const status=document.getElementById('cashbookStatus');status.textContent=cashbookClosing?'Closed':cashbookDataReadyKey===cashbookKey()?'Open':'Loading…';status.className='tag '+(cashbookClosing?'success':'');
+ const closed=!!cashbookClosing,owner=access.role==='owner',ready=cashbookDataReadyKey===cashbookKey();
+ document.getElementById('cashbookSaveBtn').disabled=!owner||closed||!ready||cashbookClosingBusy;
+ document.getElementById('cashbookReviewBtn').disabled=!owner||closed||!ready||cashbookClosingBusy;
+ document.getElementById('cashbookReviewBtn').style.display=owner&&!closed?'inline-flex':'none';
+ document.getElementById('cashbookCloseBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||!cashbookReview;
+ document.getElementById('cashbookCloseBtn').style.display=owner&&!closed&&cashbookReview?'inline-flex':'none';
+ document.getElementById('cashbookClosingReview').style.display=cashbookReview&&!closed?'block':'none';
+ ['cashbookDirection','cashbookCategory','cashbookAmount','cashbookPayment','cashbookDescription','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>document.getElementById(id).disabled=closed||!owner||cashbookClosingBusy);
+ document.getElementById('cashbookRestaurant').disabled=cashbookClosingBusy;
+ document.getElementById('cashbookDate').disabled=cashbookClosingBusy;
  if(cashbookClosing){
-  document.getElementById('cashbookOpeningCash').value=cashbookClosing.opening_cash;document.getElementById('cashbookCountedCash').value=cashbookClosing.counted_cash;document.getElementById('cashbookClosingNote').value=cashbookClosing.notes||'';
+  document.getElementById('cashbookOpeningCash').value=cashbookClosing.opening_cash;
+  document.getElementById('cashbookCountedCash').value=cashbookClosing.counted_cash;
+  document.getElementById('cashbookClosingNote').value=cashbookClosing.notes||'';
   document.getElementById('cashbookClosingSummary').textContent='Day closed · Expected cash '+money(cashbookClosing.expected_cash)+' · Counted '+money(cashbookClosing.counted_cash)+' · Difference '+money(cashbookClosing.difference)+' · Cash income '+money(cashbookClosing.cash_in)+' · Cash outflow '+money(cashbookClosing.cash_out);
  }else{
-  document.getElementById('cashbookClosingSummary').textContent=owner?'Close karne se pehle opening cash aur drawer me maujood counted cash bharein.':'Day abhi close nahi hua hai. Closing sirf Owner kar sakta hai.';
-  document.getElementById('cashbookCountedCash').value='';document.getElementById('cashbookClosingNote').value='';
+  document.getElementById('cashbookClosingSummary').textContent=owner?'Pehle drawer ka cash ginke bharein, phir Review closing dekhein. Difference ho to reason likhein. Close ke baad day lock ho jayega.':'Day abhi close nahi hua hai. Closing sirf Owner kar sakta hai.';
  }
 }
+function invalidateCashbookReview(){
+ cashbookReview=null;
+ document.getElementById('cashbookCloseMessage').textContent='';
+ renderCashbook();
+}
+function cashbookClosingForm(){
+ return {opening:document.getElementById('cashbookOpeningCash').value,
+  counted:document.getElementById('cashbookCountedCash').value,
+  notes:document.getElementById('cashbookClosingNote').value.trim()};
+}
+async function reviewCashbookDay(){
+ if(access.role!=='owner'||cashbookClosingBusy||cashbookClosing||cashbookDataReadyKey!==cashbookKey())return;
+ const rid=cashbookRestaurantId(),date=cashbookDateValue(),key=cashbookKey();
+ const message=document.getElementById('cashbookCloseMessage');
+ cashbookReview=null;message.textContent='';
+ cashbookClosingBusy=true;renderCashbook();
+ try{
+  BiteCashClosing.validateDate(date,localDateInput());
+  const form=cashbookClosingForm();
+  const snapshot=await fetchCashbookSnapshot(rid,date);
+  if(key!==cashbookKey())throw new Error('Restaurant/date badal gaya. Dobara review karein.');
+  if(snapshot.closing){await loadCashbook();message.textContent='Ye day pehle hi closed hai.';return}
+  const summary=BiteCashClosing.preview(snapshot.entries,form.opening,form.counted,form.notes);
+  cashbookEntries=snapshot.entries;cashbookClosing=null;cashbookDataReadyKey=key;
+  cashbookReview={rid,date,summary,fingerprint:BiteCashClosing.fingerprint(snapshot.entries)};
+  document.getElementById('cashbookClosingReview').textContent=
+   'REVIEW · Opening '+money(summary.opening_cash)+' + Cash in '+money(summary.cash_in)+
+   ' − Cash out '+money(summary.cash_out)+' = Expected '+money(summary.expected_cash)+
+   ' · Counted '+money(summary.counted_cash)+' · Difference '+money(summary.difference)+
+   (summary.difference?' · Reason: '+summary.notes:' · Cash matched')+
+   '. Confirm karne par day lock hoga. Online settlement is cash mein include nahi hai.';
+  message.textContent='Amounts check karein. Sahi ho tabhi Confirm & close day dabayein.';
+ }catch(e){cashbookReview=null;message.textContent='Review nahi hua: '+e.message;console.error(e)}
+ finally{cashbookClosingBusy=false;renderCashbook()}
+}
 async function saveCashbookEntry(){
- if(access.role!=='owner')return;
+ if(access.role!=='owner'||cashbookClosingBusy||cashbookDataReadyKey!==cashbookKey())return;
  const rid=cashbookRestaurantId(),date=cashbookDateValue(),direction=document.getElementById('cashbookDirection').value,category=document.getElementById('cashbookCategory').value.trim(),amount=Number(document.getElementById('cashbookAmount').value),method=document.getElementById('cashbookPayment').value,description=document.getElementById('cashbookDescription').value.trim();
  if(!rid||!date||!category||!Number.isFinite(amount)||amount<=0){document.getElementById('cashbookEntryMessage').textContent='Category aur valid amount bharna zaroori hai.';return}
- const btn=document.getElementById('cashbookSaveBtn');btn.disabled=true;
+ const btn=document.getElementById('cashbookSaveBtn');btn.disabled=true;cashbookReview=null;
  try{
   const {error}=await sb.from('restaurant_cashbook_manual_entries').insert({restaurant_id:rid,entry_date:date,direction,category,amount,payment_method:method,description:description||null,created_by:currentUser.id});
   if(error)throw error;
   document.getElementById('cashbookCategory').value='';document.getElementById('cashbookAmount').value='';document.getElementById('cashbookDescription').value='';
   await loadCashbook();document.getElementById('cashbookEntryMessage').textContent='Cashbook entry saved';
- }catch(e){document.getElementById('cashbookEntryMessage').textContent='Save nahi hua: '+e.message;console.error(e)}finally{btn.disabled=!!cashbookClosing}
+ }catch(e){document.getElementById('cashbookEntryMessage').textContent='Save nahi hua: '+e.message;console.error(e)}finally{renderCashbook()}
 }
 async function closeCashbookDay(){
- if(access.role!=='owner')return;
- const rid=cashbookRestaurantId(),date=cashbookDateValue(),opening=Number(document.getElementById('cashbookOpeningCash').value),counted=Number(document.getElementById('cashbookCountedCash').value),notes=document.getElementById('cashbookClosingNote').value.trim();
- if(!rid||!date||!Number.isFinite(opening)||opening<0||!Number.isFinite(counted)||counted<0){document.getElementById('cashbookCloseMessage').textContent='Opening aur counted cash sahi bharein.';return}
- const btn=document.getElementById('cashbookCloseBtn');btn.disabled=true;
+ if(access.role!=='owner'||cashbookClosingBusy||!cashbookReview)return;
+ const review=cashbookReview,rid=cashbookRestaurantId(),date=cashbookDateValue(),key=cashbookKey();
+ const message=document.getElementById('cashbookCloseMessage');
+ if(review.rid!==rid||review.date!==date){invalidateCashbookReview();message.textContent='Restaurant/date badal gaya. Review dobara karein.';return}
+ cashbookClosingBusy=true;renderCashbook();
  try{
-  const {error}=await sb.rpc('close_restaurant_cashbook_day',{p_restaurant_id:rid,p_close_date:date,p_opening_cash:opening,p_counted_cash:counted,p_notes:notes||null});
-  if(error)throw error;await loadCashbook();document.getElementById('cashbookCloseMessage').textContent='Day successfully closed';
- }catch(e){document.getElementById('cashbookCloseMessage').textContent='Day close nahi hua: '+e.message;console.error(e)}finally{btn.disabled=!!cashbookClosing}
+  const form=cashbookClosingForm();
+  const summary=BiteCashClosing.preview(cashbookEntries,form.opening,form.counted,form.notes);
+  if(summary.opening_cash!==review.summary.opening_cash||summary.counted_cash!==review.summary.counted_cash||summary.notes!==review.summary.notes)
+   throw new Error('Cash amounts ya note badla hai. Review dobara karein.');
+  const snapshot=await fetchCashbookSnapshot(rid,date);
+  if(key!==cashbookKey())throw new Error('Restaurant/date badal gaya. Review dobara karein.');
+  if(snapshot.closing){await loadCashbook();message.textContent='Ye day pehle hi closed hai.';return}
+  if(BiteCashClosing.fingerprint(snapshot.entries)!==review.fingerprint)
+   {await loadCashbook();message.textContent='Nayi transaction aayi hai. Fresh totals ke saath Review dobara karein.';return}
+  const {error}=await sb.rpc('close_restaurant_cashbook_day',{p_restaurant_id:rid,p_close_date:date,
+   p_opening_cash:review.summary.opening_cash,p_counted_cash:review.summary.counted_cash,p_notes:review.summary.notes||null});
+  if(error)throw error;
+  await loadCashbook();
+  message.textContent=cashbookClosing?'Day successfully closed. Difference '+money(cashbookClosing.difference)+'.':'Request bheji gayi, lekin status verify nahi hua. Refresh karke check karein; dobara close mat karein.';
+ }catch(e){
+  // An RPC may commit even when the network response is lost. Check before showing failure.
+  try{
+   const {data,error}=await sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle();
+   if(error)throw error;
+   if(data){await loadCashbook();message.textContent='Day already closed / saved. Difference '+money(data.difference)+'.';}
+   else message.textContent='Day close nahi hua: '+e.message+' Review dobara karein.';
+  }catch(checkError){message.textContent='Closing status verify nahi hua. Internet par Refresh karke check karein; dobara close mat karein.';console.error(checkError)}
+  console.error(e);
+ }finally{cashbookReview=null;cashbookClosingBusy=false;renderCashbook()}
 }
 document.getElementById('cashbookRestaurant').addEventListener('change',loadCashbook);
 document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
-document.getElementById('cashbookOpeningCash').addEventListener('input',()=>{if(!cashbookClosing)renderCashbook()});
-
+['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
+ document.getElementById(id).addEventListener('input',invalidateCashbookReview));
 let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
