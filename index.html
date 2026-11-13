@@ -1085,6 +1085,9 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 <button type="button" class="btn secondary pos-add-item-trigger" id="posAddItemTrigger" onclick="togglePosItemEntry(true)">＋ Add item</button><div class="pos-item-entry" id="posItemEntry" style="display:none"><div class="field"><label for="posPickerItemName">Item name *</label><input id="posPickerItemName" list="posPickerMenuList" maxlength="120" placeholder="Item ka naam type karein" autocomplete="off"><datalist id="posPickerMenuList"></datalist><span class="small">Menu se item chunne par price automatic bhar jayega.</span></div><div class="field"><label for="posPickerQuantity">Quantity *</label><input id="posPickerQuantity" type="number" min="0.01" step="0.01" value="1"></div><div class="field"><label for="posPickerPrice">Price (₹) *</label><input id="posPickerPrice" type="number" min="0" step="0.01" placeholder="Price"></div><button type="button" class="btn secondary" onclick="confirmPosItemInline()">＋ Add to bill</button><button type="button" class="btn secondary" onclick="togglePosItemEntry(false)">Cancel</button></div>
 <div id="posItemSummary" class="pos-item-summary"><div class="small">Abhi koi item add nahi hua hai.</div></div><div id="orderItemRows" style="display:none"></div><div class="order-total-bar"><span>Grand Total</span><strong id="orderGrandTotal">₹0</strong></div>
 <div id="posPaymentSection" style="display:none;margin-top:22px"><div class="section-head"><h3 style="margin:0">Payment & balance</h3><span class="small">Bill total ke baad payment bharein</span></div><div class="form-row" id="posPaymentFields"><div class="field"><label>Received amount (₹)</label><input name="paid_amount" id="posPaidAmount" type="number" min="0" step="0.01" value="0" placeholder="0.00"><span class="small">Jitna paisa mila hai, sirf utna hi likhein.</span></div><div class="field"><label>Remaining amount (₹)</label><input id="posBalanceDue" type="text" value="₹0" readonly></div></div><div class="form-row" id="posPaymentDetails" style="display:none"><div class="field"><label>Payment mode</label><select name="payment_method"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div><div class="field"><label>Payment date</label><input name="payment_date" id="posPaymentDate" type="date"></div><div class="field"><label>Reference (optional)</label><input name="payment_reference" maxlength="100" placeholder="UPI ref / receipt no."></div></div><div id="posBalanceActionFields" style="display:none;margin-top:12px"><div class="field"><label>Remaining amount ka kya karein?</label><select name="balance_action" id="posBalanceAction"><option value="udhar">Udhar — customer ke Khata mein jodein</option><option value="waive_off">Waive-off — baki amount maaf karein</option></select><span class="small" id="posBalanceActionHint">Udhar ke liye Khata mein registered customer ka mobile number dena zaroori hai.</span></div></div></div>
+<label class="small" style="display:flex;align-items:flex-start;gap:9px;padding:12px;background:#f0f7f2;border:1px solid #b9d9c5;border-radius:12px;margin-top:14px">
+<input type="checkbox" id="posWhatsAppConsent" name="whatsapp_bill_consent" style="margin-top:3px">
+<span>Customer ne WhatsApp par bill aur isi restaurant ka online ordering link paane ki permission di hai. Bill save hone ke baad WhatsApp chat kholein; message bhejne ke liye Send dabana hoga. (Optional)</span></label>
 <div class="pos-create-action"><button class="btn" id="createOrderBtn" type="submit">Create POS Sale</button></div></form></div></div>
 
 <div class="modal" id="tableModal"><div class="modal-box"><div class="modal-head"><h2 id="tableModalTitle">Add table</h2><button type="button" class="close" onclick="closeModal('tableModal')">✕</button></div><form id="tableForm"><input type="hidden" name="id"><div class="field"><label>Restaurant *</label><select name="restaurant_id" id="tableRestaurant" required></select></div><div class="form-row"><div class="field"><label>Table name / number *</label><input name="table_name" maxlength="40" placeholder="e.g. Table 1" required></div><div class="field"><label>Area</label><input name="area" maxlength="60" value="Main" placeholder="Main / Garden / AC"></div></div><div class="form-row"><div class="field"><label>Seating capacity *</label><input name="seats" type="number" min="1" max="50" value="2" required></div><div class="field"><label>Notes (optional)</label><input name="notes" maxlength="200"></div></div><button class="btn" id="tableSaveBtn">Save table</button></form></div></div>
@@ -1121,6 +1124,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-exports.js"></script>
+<script src="assets/bite-direct-order.js?v=20261113"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -2261,7 +2265,108 @@ document.getElementById('restaurantPickMap').addEventListener('click',openRestau
 document.getElementById('restaurantUseLocation').addEventListener('click',()=>{if(!navigator.geolocation){alert('Location support nahi hai. Map par pin karein.');return}navigator.geolocation.getCurrentPosition(p=>{openRestaurantLocationMap();setTimeout(()=>setRestaurantPin(p.coords.latitude,p.coords.longitude),180)},()=>alert('Location permission allow karein ya map par manually pin karein.'),{enableHighAccuracy:true,timeout:12000});});
 document.getElementById('restaurantForm').addEventListener('submit',async e=>{e.preventDefault();if(!access.isPlatformAdmin){alert('Only Super Admin can save onboarding records.');return}const f=new FormData(e.target),btn=e.submitter,id=f.get('id');btn.disabled=true;try{const publish=f.get('is_published')==='on',status=String(f.get('status')||'');if(publish&&status!=='Active')throw new Error('Customer Website par publish karne se pehle onboarding status Active karein.');if(publish&&id){const {count,error:menuCheckError}=await sb.from('menu_items').select('id',{count:'exact',head:true}).eq('restaurant_id',id).eq('is_available',true);if(menuCheckError)throw menuCheckError;if(!count)throw new Error('Publish karne se pehle kam se kam ek available menu item add karein.');}else if(publish&&!id){throw new Error('Pehle restaurant save karein, phir menu item add karke publish karein.');}const payload={name:String(f.get('name')||'').trim(),contact_person:String(f.get('contact_person')||'').trim()||null,phone:String(f.get('phone')||'').trim()||null,email:String(f.get('email')||'').trim()||null,city:String(f.get('city')||'Rajsamand').trim()||'Rajsamand',status,address:String(f.get('address')||'').trim()||null,latitude:f.get('latitude')?Number(f.get('latitude')):null,longitude:f.get('longitude')?Number(f.get('longitude')):null,notes:String(f.get('notes')||'').trim()||null,is_published:publish,updated_at:new Date().toISOString()};let result;if(id){/* Admin may publish and edit onboarding, but operational fields are owner-only. */delete payload.city;delete payload.latitude;delete payload.longitude;result=await sb.from('restaurants').update(payload).eq('id',id)}else{payload.created_by=currentUser.id;result=await sb.from('restaurants').insert(payload)}if(result.error)throw result.error;e.target.reset();closeModal('restaurantModal');await loadCloudData()}catch(err){alert('Restaurant save nahi hua: '+err.message)}finally{btn.disabled=false}});
 document.getElementById('orderChannel').addEventListener('change',()=>{togglePosPaymentFields();refreshOrderTableOptions()});document.getElementById('posPaidAmount').addEventListener('input',updateOrderTotal);document.getElementById('posBalanceAction').addEventListener('change',updateOrderTotal);document.getElementById('posPickerItemName').addEventListener('input',syncPosPickerMenuPrice);document.getElementById('posPickerItemName').addEventListener('change',syncPosPickerMenuPrice);
-document.getElementById('orderForm').addEventListener('submit',async e=>{e.preventDefault();if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));if(!items.length||items.some(x=>!x.name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_price)||x.unit_price<0)){alert('Har item ka naam, sahi quantity aur price bharein.');return}btn.disabled=true;try{let data,error;if(channel.startsWith('POS - ')){const paid=Number(f.get('paid_amount')||0),billTotal=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0),remaining=Math.max(0,Math.round((billTotal-paid)*100)/100),balanceAction=remaining>0?String(f.get('balance_action')||''): 'none';if(!Number.isFinite(paid)||paid<0||paid>billTotal)throw new Error('Received amount 0 se lekar bill total tak hi ho sakta hai.');if(remaining>0&&!['udhar','waive_off'].includes(balanceAction))throw new Error('Remaining amount ke liye Udhar ya Waive-off chunein.');const result=await sb.rpc('create_pos_order_with_balance_action',{p_restaurant_id:f.get('restaurant'),p_order_code:'POS-'+Date.now(),p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',p_items:items,p_paid_amount:paid,p_payment_method:paid>0?f.get('payment_method'):null,p_payment_date:f.get('payment_date')||localDateInput(),p_reference:f.get('payment_reference')||null,p_balance_action:balanceAction,p_writeoff_reason:null});data=result.data;error=result.error}else{const result=await sb.rpc('create_order_with_items',{p_restaurant_id:f.get('restaurant'),p_order_code:'ROS-'+Date.now().toString().slice(-8),p_channel:channel,p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',p_items:items});data=result.data;error=result.error}if(error)throw error;if(!data)throw new Error('Order ID return nahi hua.');e.target.reset();closeModal('orderModal');await loadCloudData();alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.')}catch(err){alert('Order save nahi hua: '+(err.message||String(err)))}finally{btn.disabled=false}});
+function showPosWhatsAppBillDialog(payload){
+ if(!['owner','manager'].includes(access.role)||payload.restaurantId!==access.restaurantId)return;
+ const helper=window.BiteDirectOrder;
+ if(!helper){alert('WhatsApp bill helper load nahi hua. Page refresh karein.');return;}
+ let msg,waUrl;
+ try{
+  msg=helper.billMessage(payload);
+  waUrl=helper.whatsAppUrl(payload.phone,msg);
+ }catch(error){alert('WhatsApp bill available nahi hai: '+(error.message||String(error)));return;}
+ document.getElementById('bitePosWhatsAppDialog')?.remove();
+ const shade=document.createElement('div');
+ shade.id='bitePosWhatsAppDialog';shade.setAttribute('role','dialog');shade.setAttribute('aria-modal','true');
+ shade.setAttribute('aria-label','Share saved POS bill with customer');
+ shade.style.cssText='position:fixed;inset:0;background:rgba(9,20,38,.78);display:flex;align-items:center;justify-content:center;padding:15px;z-index:2147483645';
+ const panel=document.createElement('section');panel.style.cssText='max-width:450px;width:100%;background:#fff;color:#142238;border-radius:17px;padding:23px;box-shadow:0 18px 70px #09142666;max-height:90vh;overflow:auto';
+ const title=document.createElement('h2');title.textContent='✓ POS bill save ho gaya';title.style.cssText='font-size:21px;margin:0 0 9px';
+ const details=document.createElement('p');details.style.cssText='margin:0 0 14px;line-height:1.55';
+ details.textContent='Customer '+payload.phone+' ke liye bill aur '+payload.restaurantName+' ka direct ordering link taiyar hai. WhatsApp mein Send dabana zaroori hai.';
+ const preview=document.createElement('pre');preview.textContent=msg;preview.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 system-ui,sans-serif;background:#f7f8fb;border:1px solid #e5e8ef;padding:11px;border-radius:10px;max-height:195px;overflow:auto';
+ const actions=document.createElement('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:14px';
+ const style=(b,primary=false)=>{b.style.cssText='padding:11px 13px;border-radius:9px;cursor:pointer;font:700 13px system-ui,sans-serif;text-decoration:none;border:0;background:'+(primary?'#12844d':'#edf0f5')+';color:'+(primary?'white':'#142238');return b;};
+ const send=style(document.createElement('a'),true);send.textContent='WhatsApp par bhejein';send.href=waUrl;send.target='_self';send.setAttribute('aria-label','Open WhatsApp chat for customer bill');
+ const copy=style(document.createElement('button'));copy.type='button';copy.textContent='Copy bill + link';
+ copy.addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(msg);copy.textContent='Copied ✓';}
+  catch(error){window.prompt('Bill aur order link copy karein:',msg);}
+ });
+ const close=style(document.createElement('button'));close.type='button';close.textContent='Close';
+ close.addEventListener('click',()=>shade.remove());
+ actions.append(send,copy,close);panel.append(title,details,preview,actions);shade.append(panel);document.body.append(shade);send.focus();
+}
+function sharePosBillForOrder(id){
+ if(!['owner','manager'].includes(access.role))return;
+ const o=state.orders.find(row=>row.id===id&&row.restaurant===access.restaurantId&&String(row.channel||'').startsWith('POS - '));
+ if(!o){alert('Owner ka POS order nahi mila.');return;}
+ if(o.isDemo){alert('Demo order ka bill real customer ko nahi bhejna chahiye.');return;}
+ if(!window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)){alert('Order ke liye valid customer mobile number nahi mila.');return;}
+ if(!confirm('Kya customer ne WhatsApp bill aur restaurant ordering link paane ki permission di hai?'))return;
+ const restaurant=state.restaurants.find(r=>r.id===o.restaurant);
+ const entries=(state.orderItems||[]).filter(item=>item.order_id===id).map(item=>({name:item.item_name,quantity:Number(item.quantity),unit_price:Number(item.unit_price)}));
+ if(!entries.length){alert('Is order ka item-wise bill nahi mila.');return;}
+ const p=paymentSummaryFor(id);
+ showPosWhatsAppBillDialog({restaurantId:o.restaurant,restaurantName:restaurant?.name||'Restaurant',
+  customerName:o.customerName||'',phone:o.customerPhone,orderCode:o.code,items:entries,
+  total:Number(o.amount||0),paid:Number(p.paid_amount||0),due:Number(p.balance_amount||0),waived:Number(p.waived_off_amount||0)});
+}
+document.getElementById('orderForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}
+ if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}
+ const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');
+ const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
+ const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));
+ if(!items.length||items.some(x=>!x.name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_price)||x.unit_price<0)){alert('Har item ka naam, sahi quantity aur price bharein.');return;}
+ btn.disabled=true;
+ try{
+  let data,error,sharePayload=null;
+  if(channel.startsWith('POS - ')){
+   const paid=Number(f.get('paid_amount')||0),
+    billTotal=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0),
+    remaining=Math.max(0,Math.round((billTotal-paid)*100)/100),
+    balanceAction=remaining>0?String(f.get('balance_action')||''):'none',
+    wantsWhatsApp=f.get('whatsapp_bill_consent')==='on';
+   if(!Number.isFinite(paid)||paid<0||paid>billTotal)throw new Error('Received amount 0 se lekar bill total tak hi ho sakta hai.');
+   if(remaining>0&&!['udhar','waive_off'].includes(balanceAction))throw new Error('Remaining amount ke liye Udhar ya Waive-off chunein.');
+   if(wantsWhatsApp&&!window.BiteDirectOrder?.normalizeIndianMobile(f.get('customer_phone')))throw new Error('WhatsApp bill ke liye 10 digit valid customer mobile number zaroori hai.');
+   if(wantsWhatsApp){
+    const restaurant=state.restaurants.find(r=>r.id===access.restaurantId);
+    sharePayload={restaurantId:access.restaurantId,restaurantName:restaurant?.name||'Restaurant',
+     customerName:f.get('customer_name')||'',phone:f.get('customer_phone')||'',items,
+     total:billTotal,paid,due:balanceAction==='waive_off'?0:remaining,
+     waived:balanceAction==='waive_off'?remaining:0};
+   }
+   const orderCode='POS-'+Date.now();
+   const result=await sb.rpc('create_pos_order_with_balance_action',{
+    p_restaurant_id:f.get('restaurant'),p_order_code:orderCode,
+    p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',
+    p_items:items,p_paid_amount:paid,p_payment_method:paid>0?f.get('payment_method'):null,
+    p_payment_date:f.get('payment_date')||localDateInput(),p_reference:f.get('payment_reference')||null,
+    p_balance_action:balanceAction,p_writeoff_reason:null
+   });
+   data=result.data;error=result.error;
+   if(sharePayload)sharePayload.orderCode=orderCode;
+  }else{
+   const result=await sb.rpc('create_order_with_items',{
+    p_restaurant_id:f.get('restaurant'),p_order_code:'ROS-'+Date.now().toString().slice(-8),
+    p_channel:channel,p_customer_name:f.get('customer_name')||'',
+    p_customer_phone:f.get('customer_phone')||'',p_items:items
+   });
+   data=result.data;error=result.error;
+  }
+  if(error)throw error;
+  if(!data)throw new Error('Order ID return nahi hua.');
+  e.target.reset();closeModal('orderModal');
+  // The sale has already committed. A refresh error must not ask the Owner
+  // to create a second bill or accidentally charge/record it twice.
+  try{await loadCloudData();}catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
+  if(sharePayload)showPosWhatsAppBillDialog(sharePayload);
+  else alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.');
+ }catch(err){alert('Order save nahi hua: '+(err.message||String(err)));}
+ finally{btn.disabled=false;}
+});
 async function openDeliveryWhatsAppShare(message,waUrl){
  // The new Bite Partner APK can launch Android WhatsApp from an asynchronous
  // checkout/handover callback without relying on WebView user activation.
@@ -2845,7 +2950,7 @@ function renderOrderBoard(){
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
  if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
