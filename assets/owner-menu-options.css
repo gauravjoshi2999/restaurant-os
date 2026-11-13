@@ -1,0 +1,40 @@
+/* Owner menu Size/Add-on setup. Only on the Menu & Prices workspace. */
+#menuOptionsModal .modal-box{max-width:850px;width:min(96vw,850px);max-height:calc(100dvh - 20px);overflow:auto;overscroll-behavior:contain;padding:20px}
+#menuOptionsModal .bite-options-title{font-size:17px;color:#1f2937;font-weight:800;overflow-wrap:anywhere}
+#menuOptionsModal .bite-options-subtitle{font-size:13px;color:#5d6470;line-height:1.55;margin:3px 0 14px}
+#menuOptionsModal .bite-options-security-note{font-size:13px;line-height:1.55;background:#fff8ed;border:1px solid #ead3af;color:#6d4d1c;border-radius:12px;padding:13px;margin:10px 0 14px}
+#menuOptionsModal .bite-options-feedback{font-size:13px;line-height:1.5;color:#176b4c;min-height:26px;margin:9px 0;overflow-wrap:anywhere}
+#menuOptionsModal .bite-options-feedback.error{color:#af2838;font-weight:700}
+#menuOptionsModal .bite-option-group-card{border:1px solid #e0e3eb;background:#fff;border-radius:14px;padding:14px;margin:12px 0;box-shadow:0 1px 5px #11111108}
+#menuOptionsModal .bite-option-group-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+#menuOptionsModal .bite-option-group-card>header strong{font-size:15px;overflow-wrap:anywhere}
+#menuOptionsModal .bite-option-choice-row,#menuOptionsModal .bite-option-new-choice,#menuOptionsModal .bite-option-group-settings form,#menuOptionsModal .bite-option-draft-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(96px,.75fr) auto auto;gap:9px;align-items:end;margin:10px 0}
+#menuOptionsModal .bite-option-group-settings form{grid-template-columns:minmax(0,1.3fr) 85px 85px auto}
+#menuOptionsModal .bite-option-draft-row{grid-template-columns:minmax(0,1.3fr) minmax(110px,.75fr) auto}
+#menuOptionsModal .bite-option-new-choice{grid-template-columns:minmax(0,1.3fr) minmax(110px,.75fr) auto;background:#f6f8fa;border-radius:10px;padding:11px}
+#menuOptionsModal .bite-option-group-settings{margin:11px 0}
+#menuOptionsModal .bite-option-group-settings summary{font-size:13px;color:#22597e;cursor:pointer;font-weight:750;min-height:40px;padding:9px 0}
+#menuOptionsModal .bite-option-group-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+#menuOptionsModal label{font-size:12px;line-height:1.4;color:#39465b;font-weight:730;display:grid;gap:6px;min-width:0}
+#menuOptionsModal input,#menuOptionsModal select{display:block;width:100%;min-width:0;min-height:44px;border:1px solid #ced4df;border-radius:9px;background:#fff;color:#1f2937;padding:9px 10px;font:inherit;font-size:15px}
+#menuOptionsModal button{min-height:44px;white-space:normal}
+#menuOptionsModal input:focus-visible,#menuOptionsModal button:focus-visible,#menuOptionsModal summary:focus-visible{outline:3px solid #3199be;outline-offset:2px}
+#menuOptionsModal #menuOptionsGroupForm{background:#f9fafc;border:1px solid #e0e3ec;border-radius:14px;padding:15px;margin-top:16px}
+#menuOptionsModal #menuOptionsGroupForm>.bite-options-group-fields{display:grid;grid-template-columns:minmax(0,2fr) 90px 90px;gap:10px}
+#menuOptionsModal .bite-options-intro{color:#606c7e;font-size:12px;line-height:1.55;margin:8px 0 12px}
+#menuOptionsModal .bite-options-add-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+#menuOptionsModal .bite-options-advanced-hint{font-size:12px;color:#56627c;margin:10px 0;line-height:1.5}
+#menuOptionsModal [aria-busy="true"]{cursor:progress}
+#menuOptionsModal .bite-option-choice-row+.bite-option-choice-row{border-top:1px solid #e9edf2;padding-top:9px}
+#menuOptionsModal #menuOptionsGroupCount{font-size:12px}
+@media(max-width:700px){
+ #menuOptionsModal .modal-box{max-height:calc(100dvh - 10px);padding:13px;border-radius:15px}
+ #menuOptionsModal .bite-option-choice-row,#menuOptionsModal .bite-option-new-choice,#menuOptionsModal .bite-option-group-settings form,#menuOptionsModal .bite-option-draft-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ #menuOptionsModal .bite-option-choice-row label:first-child,#menuOptionsModal .bite-option-new-choice label:first-child,#menuOptionsModal .bite-option-draft-row label:first-child{grid-column:1}
+ #menuOptionsModal .bite-option-group-settings form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ #menuOptionsModal .bite-option-group-settings form label:first-child{grid-column:1/-1}
+ #menuOptionsModal .bite-option-group-settings form button{grid-column:1/-1}
+ #menuOptionsModal #menuOptionsGroupForm>.bite-options-group-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ #menuOptionsModal #menuOptionsGroupForm>.bite-options-group-fields label:first-child{grid-column:1/-1}
+ #menuOptionsModal .bite-option-group-card{padding:12px}
+}
