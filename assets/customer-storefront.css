@@ -165,3 +165,20 @@ body[data-bite-app="customer"] #cartModal .cart-qty button:disabled{opacity:.45;
 body[data-bite-app="customer"] #cartModal button:focus-visible{outline:3px solid #b72330;outline-offset:2px}
 body[data-bite-app="customer"] #cartModal .cart-undo-notice{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#eef9f1;border:1px solid #a3d5b1;border-radius:10px;color:#185d32;padding:8px 12px;font-size:13px;font-weight:700}
 body[data-bite-app="customer"] #cartModal .cart-undo-notice button{min-height:42px;border:1px solid #7ab68d;background:#fff;color:#185d32;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer}
+
+/* Mobile menu/cart ergonomics v1: clear search, visible categories, reachable controls. */
+body[data-bite-app="customer"] .menu-search:focus-within{border-color:#bd5962;box-shadow:0 0 0 2px #bd596222}
+body[data-bite-app="customer"] .menu-search-clear{display:grid;place-items:center;flex:0 0 44px;min-height:44px;padding:0;border:0;background:transparent;color:#8f4251;font-size:22px;cursor:pointer}
+body[data-bite-app="customer"] .menu-search-clear[hidden]{display:none!important}
+body[data-bite-app="customer"] .menu-search-clear:focus-visible{outline:3px solid #bd5962;outline-offset:-3px;border-radius:8px}
+body[data-bite-app="customer"] .menu-reset-empty+.menu-reset-empty{margin-left:8px}
+@media(max-width:760px){
+ body[data-bite-app="customer"] .categorybar .chip{min-height:44px;padding:10px 14px;font-size:12px}
+ body[data-bite-app="customer"] .menu-search input{font-size:16px;min-height:44px}
+ body[data-bite-app="customer"] #menuItems .menu-add-control .add{min-height:44px!important}
+ body[data-bite-app="customer"] #menuItems .item-quantity{gap:0}
+ body[data-bite-app="customer"] #menuItems .item-quantity button{min-height:44px!important;min-width:40px!important;padding:2px 4px}
+ body[data-bite-app="customer"] #cartModal .cart-qty button{min-width:44px;min-height:44px;width:44px;height:44px}
+ body[data-bite-app="customer"] .cart-floating button{min-height:44px}
+ body[data-bite-app="customer"] .menu-reset{min-height:44px}
+}
