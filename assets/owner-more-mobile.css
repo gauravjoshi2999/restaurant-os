@@ -35,7 +35,7 @@
   }
   body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .card{
     min-width:0!important;max-width:100%!important;
-    padding:14px!important;border-radius:14px!important;
+    padding:14px!important;border-radius:14px!important;box-sizing:border-box!important;
   }
   body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .form-row{
     display:grid!important;grid-template-columns:minmax(0,1fr)!important;
@@ -91,7 +91,7 @@
   /* Keep all columns of financial/audit tables, inside their own scroll area. */
   body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .table-wrap{
     display:block!important;width:100%!important;max-width:100%!important;
-    min-width:0!important;overflow-x:auto!important;overflow-y:visible;
+    min-width:0!important;box-sizing:border-box!important;overflow-x:auto!important;overflow-y:visible;
     overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
   }
   body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .table-wrap table{
