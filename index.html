@@ -626,7 +626,46 @@ body[data-role="owner"] .od-priority-order small{color:#b91c2b}
 body[data-role="owner"] .od-priority-empty{padding:20px 10px;text-align:center;color:#64748b;background:#f8fafc;border-radius:10px}
 body[data-role="owner"] .od-metrics{margin-top:14px}
 @media(max-width:700px){body[data-role="owner"] .od-owner-priority{padding:12px;margin:8px 0}body[data-role="owner"] .od-priority-order{padding:12px}}
-</style></head>
+</style>
+<style id="bite-pos-item-visual-contrast">
+/* POS item entry: calm blue work area, distinct from payment and totals. */
+#orderModal #posItemEntry{
+ background:linear-gradient(135deg,#f0f8fd 0%,#eaf4fa 100%)!important;
+ border:1px solid #bcd9e8!important;
+ border-left:4px solid #3989ad!important;
+ border-radius:16px!important;
+ padding:16px!important;
+ box-shadow:0 5px 18px rgba(30,91,128,.06)!important;
+}
+#orderModal #posItemEntry .field label{color:#275c76!important;font-weight:750!important}
+#orderModal #posItemEntry .field input{
+ background:#fff!important;
+ border:1px solid #bfd6e2!important;
+ color:#213446!important;
+}
+#orderModal #posItemEntry .field input:focus{
+ border-color:#3989ad!important;
+ outline:2px solid rgba(57,137,173,.20)!important;
+ outline-offset:0;
+}
+#orderModal #posItemEntry button[onclick="confirmPosItemInline()"]{
+ background:#d92d3a!important;border-color:#d92d3a!important;
+ color:#fff!important;font-weight:780!important;
+}
+#orderModal #posItemEntry button[onclick="togglePosItemEntry(false)"]{
+ background:#fff!important;border:1px solid #c5d7e0!important;
+ color:#405a6a!important;
+}
+#orderModal #posAddItemTrigger{
+ background:#edf6fc!important;border:1px solid #b6d5e6!important;
+ color:#195c7c!important;
+}
+@media(max-width:760px){
+ #orderModal #posItemEntry{padding:14px!important;border-radius:14px!important}
+ #orderModal #posItemEntry button{min-height:46px!important}
+}
+</style>
+</head>
 <body data-bite-app="workspace">
 <div class="auth-screen" id="authScreen"><div class="auth-card"><div class="auth-brand">Bite</div><div class="small">Eat. Repeat.</div><h1 id="authTitle">Login to your account</h1><div class="small" id="authSubtitle">Sign in to access your cloud data.</div><form method="post" id="authForm"><div class="field" id="fullNameField" style="display:none"><label>Your name</label><input id="authName" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Mobile number / Email</label><input id="authEmail" type="text" autocomplete="username" required placeholder="10-digit mobile number or email"></div><div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="At least 6 characters"></div><button class="btn" id="authSubmit" type="button">Login</button><button type="button" id="forgotPasswordBtn" style="border:0;background:none;color:#c64f35;cursor:pointer;padding:12px 0;font-weight:700;text-align:left">Forgot password?</button></form><div id="recoveryRequestPanel" style="display:none;margin-top:20px"><label for="recoveryEmail" style="display:block;font-weight:700;margin-bottom:9px">Registered Email Address</label><input id="recoveryEmail" type="email" autocomplete="email" placeholder="you@example.com" style="width:100%;padding:15px;border:1px solid #d1d5db;border-radius:10px;font:inherit"><button class="btn" type="button" id="sendRecoveryBtn" style="width:100%;margin-top:18px">Send reset link</button><button type="button" id="backToLoginBtn" style="display:block;margin:16px auto;border:0;background:transparent;color:#c64f35;font-weight:700;cursor:pointer">Back to login</button></div><div id="recoveryPanel" style="display:none;padding:15px;border:1px solid #e5e7eb;border-radius:12px;margin-top:12px"><h3 style="margin:0 0 10px">Set new password</h3><label for="recoveryPassword">New password (minimum 8 characters)</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #d1d5db;border-radius:8px"><button class="btn" type="button" id="saveRecoveryPassword">Save new password</button><p id="recoveryStatus" role="status" style="font-size:13px"></p></div><div class="auth-error" id="authError"></div><button id="authSessionRetry" type="button" class="btn secondary" style="margin-top:10px" hidden onclick="retrySavedOwnerSession()">Reconnect saved login</button><div class="auth-actions"><span class="small" id="authSwitchLabel">New to Bite?</span><button type="button" id="authSwitch">Create account</button></div><div class="auth-help">Apne restaurant ka menu, orders aur roz ka hisaab ek jagah sambhalein. Owner login ke liye registered mobile number aur password use karein.</div></div></div><div class="app" id="mainApp" style="display:none">
 <aside class="side"><div class="brand bite-dashboard-brand"><img src="assets/bite-logo-on-dark.svg" alt="Bite — Eat. Repeat." style="width:160px;max-width:100%;height:auto;display:block"></div><div class="sub">FOR YOUR EVERYDAY BUSINESS</div><div class="od-sidebar-outlet" data-owner-only><span class="od-outlet-icon">B</span><div><strong id="ownerSidebarRestaurant">Your restaurant</strong><small>Owner workspace</small></div></div>
