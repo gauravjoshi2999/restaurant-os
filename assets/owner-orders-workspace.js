@@ -18,6 +18,7 @@
   ]);
   const matches=(filter,status)=>filter==='all'||!!stages.find(s=>s.key===filter)?.statuses.includes(status);
   const isFilter=filter=>stages.some(s=>s.key===filter);
+  const groupForStatus=status=>stages.find(s=>s.key!=='all'&&s.statuses.includes(status))?.key||'all';
   const counts=orders=>Object.fromEntries(stages.map(stage=>[
     stage.key,stage.key==='all'?orders.length:orders.filter(order=>matches(stage.key,order.status)).length
   ]));
@@ -111,5 +112,5 @@
     const title=doc.getElementById('orderStatusTitle');
     if(title)title.textContent=(stages.find(x=>x.key===filter)?.label||'New')+' Orders';
   }
-  return {stages,isFilter,matches,counts,prepare,update};
+  return {stages,isFilter,groupForStatus,matches,counts,prepare,update};
 });
