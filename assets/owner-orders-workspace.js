@@ -19,6 +19,20 @@
   const matches=(filter,status)=>filter==='all'||!!stages.find(s=>s.key===filter)?.statuses.includes(status);
   const isFilter=filter=>stages.some(s=>s.key===filter);
   const groupForStatus=status=>stages.find(s=>s.key!=='all'&&s.statuses.includes(status))?.key||'all';
+  function nextStep(order){
+    if(!order)return null;
+    switch(order.status){
+      case 'Received':return {key:'accept_and_prepare',label:'Accept & start cooking'};
+      case 'Accepted':return {key:'Preparing',label:'Start cooking'};
+      case 'Preparing':return {key:'Ready',label:'Food ready'};
+      case 'Ready':return order.deliveryType==='delivery'
+        ?{key:'share_handover',label:'Confirm handover & share link'}
+        :{key:'Handed Over',label:'Hand over to customer'};
+      case 'Handed Over':return order.deliveryType==='delivery'
+        ?null:{key:'Completed',label:'Complete pickup'};
+      default:return null;
+    }
+  }
   const counts=orders=>Object.fromEntries(stages.map(stage=>[
     stage.key,stage.key==='all'?orders.length:orders.filter(order=>matches(stage.key,order.status)).length
   ]));
@@ -264,5 +278,5 @@
       select.focus();
     });
   }
-  return {stages,isFilter,groupForStatus,matches,counts,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
+  return {stages,isFilter,groupForStatus,matches,counts,nextStep,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
 });
