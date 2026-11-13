@@ -17,7 +17,8 @@ alter table public.restaurant_customer_ledger_entries add column customer_id uui
  add column entry_type text;
 alter table public.restaurant_order_refunds add column order_id uuid,
  add column refund_amount numeric(14,2) default 0;
-grant select on public.orders,public.restaurant_employees,public.restaurant_customers to authenticated;
+-- Fixture creates linked records under the authenticated test role.
+grant select,insert on public.orders,public.restaurant_employees,public.restaurant_customers to authenticated;
 
 -- Match the real seven-source cashbook's key JOINs/FILTERs and invoker mode.
 -- Only the five columns consumed by the closing function are projected here.
