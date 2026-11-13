@@ -78,3 +78,29 @@ body[data-role="owner"] #orders .bite-owner-order-disclosure>.card{
   body[data-role="owner"] #orders .bite-owner-order-disclosure{padding:0 10px}
 }
 @media(prefers-reduced-motion:reduce){body[data-role="owner"] #orders .bite-owner-order-stage{transition:none!important}}
+
+/* Reject / Cancel confirmation: reason is saved through existing order handler. */
+body[data-role="owner"] .bite-order-reason-overlay{
+  position:fixed;inset:0;z-index:501;display:grid;place-items:center;
+  background:#1713299a;padding:20px;
+}
+body[data-role="owner"] .bite-order-reason-modal{
+  background:#fff;color:#241b34;border-radius:17px;border:1px solid #d9d2e6;
+  padding:20px;width:min(100%,420px);max-height:calc(100dvh - 40px);overflow:auto;
+  box-shadow:0 20px 65px #12102336;
+}
+body[data-role="owner"] .bite-order-reason-modal h2{font-size:21px;margin:0 0 8px;color:#35166e}
+body[data-role="owner"] .bite-order-reason-modal p{font-size:13px;line-height:1.5}
+body[data-role="owner"] .bite-order-reason-modal label{
+  display:block;font-size:14px;font-weight:700;margin-top:16px;color:#302b3a
+}
+body[data-role="owner"] .bite-order-reason-modal select,
+body[data-role="owner"] .bite-order-reason-modal textarea{
+  display:block;width:100%;min-height:48px;margin-top:7px;padding:12px;border:1px solid #9d93b1;
+  border-radius:10px;color:#221e2c;background:#fff;font:inherit;font-size:16px
+}
+body[data-role="owner"] .bite-order-reason-modal .bite-order-reason-error{color:#ab202a;font-weight:700;min-height:18px}
+body[data-role="owner"] .bite-order-reason-modal .bite-order-reason-actions{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px
+}
+body[data-role="owner"] .bite-order-reason-actions button{min-height:48px}
