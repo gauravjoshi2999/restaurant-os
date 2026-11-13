@@ -6,6 +6,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 SHELL="""<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
+*,*::before,*::after{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;color:#222;background:#f6f7f9}
 #mainApp{min-height:100vh}.main>.top{height:60px;display:flex;align-items:center;padding:0 16px;gap:12px;background:#fff}
 .sidebar-toggle{min-width:44px;min-height:44px}.main>.top>div{margin-left:auto}
