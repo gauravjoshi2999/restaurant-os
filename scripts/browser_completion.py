@@ -572,6 +572,35 @@ try:
   owner.locator('#biteDocumentForm').wait_for(state='visible')
   check(owner.locator('#biteDocumentForm input[type=file]').count()==1,'Owner private-document upload form is present')
   check(owner.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),'Owner has no horizontal overflow at 390px')
+  # Verify the real Owner HTML with a phone viewport, without real server writes.
+  nav(owner,'reports')
+  owner.locator('#reports .grid.section').first.wait_for(state='visible')
+  check(owner.locator('#reports .grid.section').nth(1).evaluate(
+    "(el)=>getComputedStyle(el).gridTemplateColumns.split(' ').length===1"),
+    'Owner Reports stacks channel and payment-mode cards, not two squeezed columns')
+  check(owner.locator('#reports .grid.section').nth(1).locator('.card').first.evaluate(
+    "(el)=>el.getBoundingClientRect().width>=innerWidth-70"),
+    'Reports cards use nearly the entire phone width')
+  nav(owner,'hr')
+  owner.locator('#hr .bite-hr-tabs').wait_for(state='visible')
+  check(owner.locator('#hrEmployeePanel').is_visible() and owner.locator('#hrAttendancePanel').is_hidden(),
+    'Mobile Staff opens the Employee form alone, not split with Attendance')
+  owner.locator('#hrEmployeeName').fill('QA unsaved employee')
+  owner.locator('#hr [data-hr-tab="attendance"]').click()
+  check(owner.locator('#hrAttendancePanel').is_visible() and owner.locator('#hrEmployeePanel').is_hidden(),
+    'Owner can switch to the full-width Attendance form')
+  check(owner.locator('#hrAttendancePanel .form-row').evaluate(
+    "(el)=>getComputedStyle(el).gridTemplateColumns.split(' ').length===1"),
+    'Attendance fields stack one per row on mobile')
+  owner.locator('#hr [data-hr-tab="employee"]').click()
+  check(owner.locator('#hrEmployeeName').input_value()=='QA unsaved employee',
+    'Staff tabs preserve unsaved employee input')
+  check(owner.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),
+    'Staff layout does not overflow the phone')
+  nav(owner,'overview')
+  check(owner.locator('#overview .od-accounts').is_hidden()
+     and owner.locator('#overview .od-recent').is_hidden(),
+     'Mobile Home no longer repeats account/order shortcuts already in More/Orders')
   owner.screenshot(path=str(OUT/'ui-owner.png'),full_page=False)
   admin=browser.new_page(viewport={'width':1365,'height':900});observe(admin)
   admin.goto('http://127.0.0.1:4174/dist/qa/admin-flow.html',wait_until='domcontentloaded');admin.locator('#mainApp').wait_for(state='visible');nav(admin,'customers');admin.locator('#biteCustomerRows .bite-record').wait_for(state='visible')

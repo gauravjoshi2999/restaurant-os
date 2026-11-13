@@ -715,6 +715,8 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
+<link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
+<script src="assets/owner-hr-mobile-tabs.js?v=20261114-onecol1" defer></script>
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -742,7 +744,7 @@ body.bite-session-check #biteSessionSplash{
  <div class="od-pos-breakdown-copy"><small>POS · AAJ KE BILLS</small><strong id="ownerTodayPosBilled">₹0</strong><span><b id="ownerTodayPosBills">0</b> non-void POS bills · billed value, not payment received</span></div>
  <button type="button" class="od-text-button" onclick="showPage('pos')">POS &amp; Payments dekhein →</button>
 </section>
-<p class="od-finance-boundary">Online net paid sales aur POS billed value alag figures hain. Inhe cash, profit ya settlement samajhkar jodein nahi. Actual cash/UPI movement ke liye <button type="button" onclick="showPage('cashbook')">Daily Cashbook</button> kholein. Kharcha mein sirf recorded expense entries hain.</p>
+<p class="od-finance-boundary">POS billed aur online paid alag hain; inhe total cash ya profit na samjhein. Actual transactions ke liye <button type="button" onclick="showPage('cashbook')">Daily Cashbook</button><span class="bite-mobile-cashbook-hint">More → Cashbook dekhein.</span></p>
 <div class="od-dashboard-grid">
 <section class="od-panel od-live"><div class="od-panel-head"><div><span class="od-eyebrow">LIVE ORDERS</span><h2>Abhi kya karna hai?</h2></div><button class="od-text-button" type="button" onclick="showPage('orders')">Sab dekhein →</button></div><div class="od-stages">
 <button class="od-stage od-stage-new" type="button" onclick="showPage('orders');setOrderStatus('Received')"><span class="od-stage-dot"></span><span>Naye orders</span><strong id="ownerNewOrders">0</strong><small>Accept / reject <b>→</b></small></button>
@@ -978,8 +980,14 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="metric-label">Pending leaves</div><div class="metric" id="hrPendingLeaves">0</div></div>
   <div class="card"><div class="metric-label">Paid this month</div><div class="metric" id="hrPaidMonth">₹0.00</div></div>
  </div>
- <div class="grid section">
-  <div class="card">
+ <nav class="bite-hr-tabs" aria-label="Staff ka kaam chunein" role="tablist">
+ <button type="button" class="bite-hr-tab" data-hr-tab="employee" role="tab" aria-selected="true" aria-controls="hrEmployeePanel">Employees</button>
+ <button type="button" class="bite-hr-tab" data-hr-tab="attendance" role="tab" aria-selected="false" aria-controls="hrAttendancePanel">Attendance</button>
+ <button type="button" class="bite-hr-tab" data-hr-tab="leave" role="tab" aria-selected="false" aria-controls="hrLeavePanel">Leave</button>
+ <button type="button" class="bite-hr-tab" data-hr-tab="payment" role="tab" aria-selected="false" aria-controls="hrPaymentCard">Payments</button>
+</nav>
+<div class="grid section bite-hr-editor-grid">
+  <div class="card" id="hrEmployeePanel" data-hr-panel="employee" data-hr-selected="true">
    <div class="section-head"><h2>Employee profile</h2><span class="small">Owner / Manager</span></div>
    <input type="hidden" id="hrEmployeeId">
    <div class="form-row">
@@ -995,7 +1003,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Notes</label><input id="hrEmployeeNotes" maxlength="300" placeholder="Optional details"></div>
    <div class="actions"><button class="btn" id="hrEmployeeSaveBtn" type="button" onclick="saveHREmployee()">Save employee</button><button class="btn secondary" type="button" onclick="resetHREmployeeForm()">Clear</button><span class="small" id="hrEmployeeMessage" role="status"></span></div>
   </div>
-  <div class="card">
+  <div class="card" id="hrAttendancePanel" data-hr-panel="attendance">
    <div class="section-head"><h2>Mark attendance</h2><span class="small">Owner / Manager</span></div>
    <div class="form-row">
     <div class="field"><label>Employee *</label><select id="hrAttendanceEmployee"></select></div>
@@ -1006,7 +1014,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Attendance note</label><input id="hrAttendanceNotes" maxlength="250" placeholder="Optional"></div>
    <div class="actions"><button class="btn" id="hrAttendanceSaveBtn" type="button" onclick="saveHRAttendance()">Save attendance</button><span class="small" id="hrAttendanceMessage" role="status"></span></div>
   </div>
-  <div class="card">
+  <div class="card" id="hrLeavePanel" data-hr-panel="leave">
    <div class="section-head"><h2>Leave record</h2><span class="small">Owner / Manager</span></div>
    <div class="form-row">
     <div class="field"><label>Employee *</label><select id="hrLeaveEmployee"></select></div>
@@ -1017,7 +1025,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Reason</label><input id="hrLeaveReason" maxlength="250" placeholder="Optional reason"></div>
    <div class="actions"><button class="btn" id="hrLeaveSaveBtn" type="button" onclick="saveHRLeave()">Add leave</button><span class="small" id="hrLeaveMessage" role="status"></span></div>
   </div>
-  <div class="card" id="hrPaymentCard">
+  <div class="card" id="hrPaymentCard" data-hr-panel="payment">
    <div class="section-head"><h2>Record salary / payment</h2><span class="small">Owner only</span></div>
    <div class="form-row">
     <div class="field"><label>Employee *</label><select id="hrPaymentEmployee"></select></div>
