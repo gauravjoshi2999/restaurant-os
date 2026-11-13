@@ -150,3 +150,10 @@ body[data-bite-app="customer"] #menuItems .menu-add-control{position:relative!im
 body[data-bite-app="customer"] #menuItems .menu-add-control .add{display:block!important;width:100%!important;min-height:42px!important;background:#fff!important;border:1.5px solid #d62b3c!important;color:#c51d31!important;font-size:14px!important;font-weight:800!important;border-radius:9px!important;box-shadow:0 2px 8px #00000012!important}
 body[data-bite-app="customer"] #menuItems .item-quantity{display:flex!important;width:100%!important;justify-content:space-between!important;background:#fff!important}
 @media(max-width:380px){body[data-bite-app="customer"] #menuItems .menuitem{grid-template-columns:minmax(0,1fr) 104px!important;gap:9px!important}body[data-bite-app="customer"] #menuItems .menu-item-end{width:104px!important;min-width:104px!important;max-width:104px!important}body[data-bite-app="customer"] #menuItems .menuphoto{width:104px!important;height:92px!important}}
+
+/* Mobile menu filter recovery: a single tap restores every dish. */
+.menu-results-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.menu-results-summary .menu-result-count{font-size:11px}
+.menu-reset{border:1px solid #e8c5cc;border-radius:9px;background:#fff7f8;color:#ac243a;font-size:12px;font-weight:750;min-height:42px;padding:8px 12px;cursor:pointer}
+.menu-reset:focus-visible{outline:3px solid #ad2840;outline-offset:2px}
+.menu-reset-empty{margin-top:14px}
