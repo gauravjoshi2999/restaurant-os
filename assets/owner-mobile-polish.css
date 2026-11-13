@@ -1,5 +1,5 @@
 /* Bite Owner mobile Home + More: 2026-11-14. Owner-only; admin/desktop unchanged. */
-.bite-owner-more-screen{display:none}
+.bite-owner-more-screen,.bite-owner-view-orders{display:none}
 @media(max-width:760px){
   body[data-role="owner"] #mainApp>.side,
   body[data-role="owner"] #mainApp .sidebar-overlay{display:none!important}
