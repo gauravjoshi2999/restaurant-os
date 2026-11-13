@@ -609,6 +609,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <link rel="stylesheet" href="assets/owner-layout.css?v=20261113-pos-enabled">
 <link rel="stylesheet" href="assets/owner-menu-options.css?v=20261113-size1">
 <link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-canonical1">
+<link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
 <script src="assets/owner-mobile-navigation.js?v=20261114-canonical1" defer></script>
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261109-market">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><style id="bite-owner-orders-first">
@@ -1282,6 +1283,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
+<script src="assets/owner-orders-workspace.js?v=20261114-p2"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -2401,7 +2403,7 @@ async function showPage(id){
  const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',pos:'POS & Billing',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',customers:'Customers',storefront:'Website & offers'};
  document.getElementById('pageTitle').textContent=access.role==='owner'?({overview:'Aaj ka overview',orders:'Orders',pos:'POS & Billing',menu:'Menu & prices',tables:'Tables',khata:'Customer khata',cashbook:'Cashbook / day closing',expenses:'Kharcha',purchases:'Kharid & suppliers',inventory:'Stock',hr:'Staff & attendance',reports:'Reports',settings:'Restaurant settings'}[id]||'Bite'):(titles[id]||'Bite');
  window.scrollTo({top:0,behavior:'instant'});
- const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{if(access.role==='owner'&&activeOrderStatus==='all')activeOrderStatus='new';setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
  const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
  try{if(loaders[id])await loaders[id]();await window.BiteWorkspaceExtras?.loadPage(id);document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
  catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
@@ -3407,13 +3409,14 @@ function selectPlatformRestaurant(id){
 }
 
 function setOrderChannel(channel){channel='website';activeOrderChannel=channel;const title=document.getElementById('activeChannelTitle');if(title)title.textContent='BITE Website Orders';renderOrderBoard()}
-function setOrderStatus(status){activeOrderStatus=status;document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus===status));renderOrderBoard()}
+function setOrderStatus(status){if(access.role==='owner')status=BiteOwnerOrders.isFilter(status)?status:BiteOwnerOrders.groupForStatus(status);activeOrderStatus=status;document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus===status));renderOrderBoard()}
 function renderChannelCounts(){const visibleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const counts={all:visibleOrders.length,website:0,zomato:0,swiggy:0,pos:0};visibleOrders.forEach(o=>{const k=orderChannelKey(o.channel);if(counts[k]!==undefined)counts[k]++});Object.keys(counts).forEach(k=>{const el=document.getElementById('channelCount'+k[0].toUpperCase()+k.slice(1));if(el)el.textContent=counts[k]})}
 function renderIncomingOrderInbox(){
  const incoming=state.orders.filter(o=>o.status==='Received'&&(access.role==='super_admin'?orderChannelKey(o.channel)==='website'&&o.restaurant===selectedPlatformRestaurantId:orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const count=document.getElementById('orderInboxCount'),list=document.getElementById('orderInboxList');
  if(count)count.textContent=String(incoming.length);
  if(!list)return;
+ if(access.role==='owner'){list.replaceChildren();return;} // Owner actions live ONLY in #orderBoard.
  if(access.role==='super_admin'){list.innerHTML=incoming.length?incoming.map(o=>'<article class="order-inbox-card"><div class="order-inbox-card-top"><span class="order-inbox-source source-website">Website</span><time>'+esc(o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'New')+'</time></div><strong class="order-inbox-order">#'+esc(o.code||o.id.slice(0,8))+' · '+money(o.amount)+'</strong><div class="order-inbox-customer">'+esc(o.customerName||'Customer')+'</div><small class="small">Order status: '+esc(o.status)+' · Restaurant handles acceptance</small></article>').join(''):'<div class="order-inbox-empty">Is restaurant ke naye orders nahi hain.</div>';return}
  list.innerHTML=incoming.length?incoming.map(o=>{
   const items=(state.orderItems||[]).filter(i=>i.order_id===o.id);
@@ -3428,12 +3431,14 @@ function renderIncomingOrderInbox(){
 }
 function renderOrderBoard(){
  renderChannelCounts();
+ BiteOwnerOrders.prepare(document,access.role,setOrderStatus);
  if(access.role==='super_admin'){renderPlatformRestaurantDirectory();if(!selectedPlatformRestaurantId){const board=document.getElementById('orderBoard');if(board)board.innerHTML='<div class="order-card-empty">Upar list se ek restaurant select karein. Uske website orders yahan alag dikhenge.</div>';const empty=document.getElementById('orderEmpty');if(empty)empty.style.display='none';const count=document.getElementById('orderInboxCount');if(count)count.textContent='0';const inbox=document.getElementById('orderInboxList');if(inbox)inbox.innerHTML='<div class="order-inbox-empty">Restaurant select karne par uske naye orders yahan dikhenge.</div>';return}}
  const roleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===selectedPlatformRestaurantId):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const channelOrders=activeOrderChannel==='all'?roleOrders:roleOrders.filter(o=>o.isDemo||orderChannelKey(o.channel)===activeOrderChannel);
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
- const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
+ const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
  const board=document.getElementById('orderBoard');if(!board)return;
