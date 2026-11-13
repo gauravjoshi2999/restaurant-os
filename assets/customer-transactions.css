@@ -177,3 +177,6 @@ body[data-bite-app="customer"] .cart-note-preset{min-height:44px;border:1px soli
 body[data-bite-app="customer"] .cart-note-preset[aria-pressed="true"]{border-color:#a42b3d;background:#fff0f2;color:#912337;box-shadow:inset 0 0 0 1px #a42b3d}
 body[data-bite-app="customer"] .cart-note-preset:focus-visible{outline:3px solid #a42b3d;outline-offset:2px}
 body[data-bite-app="customer"] .cart-note-preset-help{display:block;line-height:1.45}
+
+/* Checkout is never charged using a client-estimated menu subtotal. */
+body[data-bite-app="customer"] .checkout-secure-price-note{margin:12px 0 2px;padding:9px 11px;background:#f5f8f5;border:1px solid #dce9de;border-radius:9px;color:#3a5a42;font-size:12px;line-height:1.55}
