@@ -50,7 +50,26 @@
   }
   return {src:suggested,fallback:'assets/food/meal-1100.jpg',source:'bite',label:'Bite suggested photo',alt:'Bite food serving suggestion'};
  }
- const api=Object.freeze({defaults,isPureVeg,suggestedKey,ownCoverPath,coverUrl,choose});
+ // Only mutate cover metadata for the same public restaurant ID; keep carts,
+ // menus and the full restaurant object untouched when images are updated.
+ function syncPublishedCovers(current=[],published=[]){
+  if(!Array.isArray(current)||!Array.isArray(published))return [];
+  const byId=new Map(published.filter(r=>uuid.test(String(r?.id||''))).map(r=>[r.id,r]));
+  const changed=[];
+  for(const restaurant of current){
+   const live=byId.get(restaurant?.id);
+   if(!live||!Object.prototype.hasOwnProperty.call(live,'cover_image_path'))continue;
+   const path=ownCoverPath(live);
+   const version=path?(live.cover_image_updated_at||null):null;
+   if((restaurant.cover_image_path||null)!==path||(restaurant.cover_image_updated_at||null)!==version){
+    restaurant.cover_image_path=path;
+    restaurant.cover_image_updated_at=version;
+    changed.push(restaurant.id);
+   }
+  }
+  return changed;
+ }
+ const api=Object.freeze({defaults,isPureVeg,suggestedKey,ownCoverPath,coverUrl,choose,syncPublishedCovers});
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.BiteRestaurantCovers=api;
 })(typeof window!=='undefined'?window:globalThis);
