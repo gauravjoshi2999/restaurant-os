@@ -155,7 +155,26 @@ try:
   check(customer.locator('#editProfilePhone').input_value()=='9999999999','Hindi navigation does not rewrite user-entered values')
   customer.locator('[data-bite-language="en"]').click()
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
-  owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');nav(owner,'menu');owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
+  owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
+  nav(owner,'pos')
+  owner.locator('#posNewSaleBtn').wait_for(state='visible')
+  check(owner.locator('.nav [data-page="pos"]').is_visible() is False and owner.locator('#posNewSaleBtn').is_visible(),
+        'POS & Billing is reachable from mobile sidebar and the drawer closes on selection')
+  owner.locator('#posNewSaleBtn').click()
+  owner.locator('#orderModal.show').wait_for(state='visible')
+  check(owner.locator('#posPaymentSection').is_visible() and owner.locator('#orderRestaurant').input_value()=='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        'New POS Bill opens the real restaurant-scoped payment form')
+  check(owner.locator('#posWhatsAppConsent').count()==1,
+        'POS form has explicit WhatsApp bill consent before any customer share')
+  owner.locator('#posAddItemTrigger').click()
+  owner.locator('#posPickerItemName').fill('QA Veg Thali')
+  owner.locator('#posPickerQuantity').fill('2')
+  owner.locator('#posPickerPrice').fill('150')
+  owner.get_by_role('button',name='＋ Add to bill').click()
+  check('₹300' in owner.locator('#orderGrandTotal').inner_text(),
+        'Mobile POS item picker totals two ₹150 dishes without saving a real bill')
+  owner.locator('#orderModal button.close').click()
+  nav(owner,'menu');owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
   owner.locator('#biteCouponForm [name=code]').fill('QATEST10');owner.locator('#biteCouponForm [name=title]').fill('QA ten percent');owner.locator('#biteCouponForm [name=discount_value]').fill('10');owner.locator('#biteCouponForm button[type=submit]').click()
   check('QATEST10' in owner.locator('#biteCouponList').inner_text(),'Owner coupon form creates a scoped offer')
   owner.locator('#biteCouponList [data-coupon-toggle]').click()
