@@ -2538,8 +2538,10 @@ async function openPosFromOverview(button){
  if(button?.disabled)return;
  if(button)button.disabled=true;
  try{
-  await showPage('pos');
+  // showPage activates the POS view synchronously; avoid waiting for optional page data.
+  const pageLoad=showPage('pos');
   await openOrder();
+  void pageLoad.catch(err=>console.warn('POS workspace refresh delayed:',err));
  }catch(err){
   console.error('POS quick billing open failed:',err);
   alert('POS bill nahi khul paya: '+(err.message||'Dobara try karein.'));
