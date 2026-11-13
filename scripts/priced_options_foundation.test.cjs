@@ -98,3 +98,11 @@ test('customer can see that the estimated total is verified before money is coll
  assert.match(customer,/customer-transactions\.css\?v=20261113-priced-foundation1/);
  assert.match(css,/\.checkout-secure-price-note\{/);
 });
+
+test('cart re-render retains an expanded dish-request editor during live hours refresh',()=>{
+ assert.match(customer,/const expandedNotes=new Set/);
+ assert.match(customer,/editorExpanded=expandedNotes\.has\(id\)/);
+ assert.match(customer,/aria-expanded="'\+String\(editorExpanded\)/);
+ assert.match(customer,/editor\.focus\(\{preventScroll:true\}\)/);
+ assert.match(customer,/editor\.setSelectionRange\(previousSelection\.start,previousSelection\.end\)/);
+});
