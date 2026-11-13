@@ -6,6 +6,7 @@ const snapshot=fs.readFileSync('supabase/migrations/20261113142110_bite_option_s
 const gate=fs.readFileSync('supabase/migrations/20261113142133_bite_prepare_checkout_v3_legacy_safe_gate.sql','utf8');
 const customer=fs.readFileSync('customer.html','utf8');
 const previous=fs.readFileSync('supabase/migrations/20261113135618_bite_quote_anon_role_guard.sql','utf8');
+const freeze=fs.readFileSync('supabase/migrations/20261113142518_bite_v3_option_snapshot_immutable_guard.sql','utf8');
 
 test('order lines have optional immutable selection snapshot slots with legacy defaults',()=>{
  for(const name of ['option_choices_snapshot','base_unit_price_snapshot','option_unit_total_snapshot','cart_line_key_snapshot','cooking_request_snapshot'])
@@ -53,4 +54,14 @@ test('option-free V3 preserves coupon, delivery and idempotency through V2',()=>
  assert.ok(customer.includes('bite_prepare_checkout_v2'));
  assert.ok(!customer.includes('bite_prepare_checkout_v3'));
  assert.ok(previous.includes("'authorizes_payment',false"));
+});
+
+test('future paid-order lines enforce consistent server-snapshot totals and immutability',()=>{
+ assert.ok(freeze.includes('order_items_v3_priced_snapshot_consistent'));
+ assert.ok(freeze.includes('unit_price = round(base_unit_price_snapshot + option_unit_total_snapshot,2)'));
+ assert.ok(freeze.includes('old.option_choices_snapshot'));
+ assert.ok(freeze.includes('new.option_choices_snapshot'));
+ assert.ok(freeze.includes('before update on public.order_items'));
+ assert.ok(freeze.includes('Priced V3 order item snapshots cannot be changed after creation'));
+ assert.ok(!freeze.includes('delete from public.order_items'));
 });
