@@ -1,0 +1,21 @@
+/* Owner-only Home financial boundaries: never imply POS billing equals received cash. */
+body[data-role="owner"] #overview .od-pos-breakdown{
+ display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;
+ padding:17px 19px;margin:12px 0 10px;background:#fff;border:1px solid #ded6ed;
+ border-radius:15px;box-shadow:0 3px 12px #3016530b
+}
+body[data-role="owner"] #overview .od-pos-breakdown-copy{display:grid;gap:4px;min-width:0}
+body[data-role="owner"] #overview .od-pos-breakdown-copy small{font-size:11px;letter-spacing:.08em;font-weight:800;color:#6c588a}
+body[data-role="owner"] #overview .od-pos-breakdown-copy strong{font-size:26px;font-variant-numeric:tabular-nums;color:#301653}
+body[data-role="owner"] #overview .od-pos-breakdown-copy span{font-size:11px;color:#666078;line-height:1.5}
+body[data-role="owner"] #overview .od-pos-breakdown .od-text-button{min-height:44px}
+body[data-role="owner"] #overview .od-finance-boundary{font-size:11px;color:#625c6d;line-height:1.6;margin:0 0 17px;padding:0 3px}
+body[data-role="owner"] #overview .od-finance-boundary button{border:0;background:transparent;padding:0 2px;color:#35166e;font:inherit;text-decoration:underline;cursor:pointer}
+body[data-role="owner"] #overview .od-finance-boundary button:focus-visible,
+body[data-role="owner"] #overview .od-pos-breakdown button:focus-visible{outline:3px solid #8768d3;outline-offset:2px}
+@media(max-width:760px){
+ body[data-role="owner"] #overview .od-pos-breakdown{align-items:stretch;padding:14px;gap:9px}
+ body[data-role="owner"] #overview .od-pos-breakdown-copy{width:100%}
+ body[data-role="owner"] #overview .od-pos-breakdown-copy strong{font-size:24px}
+ body[data-role="owner"] #overview .od-pos-breakdown .od-text-button{width:100%;text-align:left}
+}

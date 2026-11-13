@@ -1,0 +1,39 @@
+/* Bite Owner Phase 3 — POS & Menu visual organization only.
+   Owner-scoped, reversible, no billing handlers, order totals, or payment rules changed. */
+body[data-role="owner"] #pos,
+body[data-role="owner"] #menu{max-width:1100px;margin-inline:auto}
+body[data-role="owner"] #pos>.welcome,
+body[data-role="owner"] #menu>.welcome{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+body[data-role="owner"] #pos>.welcome h1,
+body[data-role="owner"] #menu>.welcome h1{font-size:clamp(22px,3vw,29px);line-height:1.2;color:#301653}
+body[data-role="owner"] #pos #posNewSaleBtn,
+body[data-role="owner"] #menu #addMenuItemBtn{min-height:48px;padding:12px 20px;background:#35166e;color:white;border-radius:12px;font-weight:750}
+body[data-role="owner"] #pos #posDraftWorkspace{border:1px solid #e3d9ef;border-radius:15px;box-shadow:0 3px 14px #2b164010}
+body[data-role="owner"] #pos>.grid.section{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+body[data-role="owner"] #pos>.grid.section>.card{min-width:0;border:1px solid #e8e1ee;border-radius:13px;padding:15px}
+body[data-role="owner"] #pos>.grid.section .metric{font-size:clamp(20px,2.7vw,27px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+body[data-role="owner"] #menu>.card{border:1px solid #e3d9ef;border-radius:15px}
+body[data-role="owner"] #menu #menuSearchInput,
+body[data-role="owner"] #menu #menuCategoryFilter{min-height:48px;width:100%;font-size:16px}
+body[data-role="owner"] #menu #menuCategoryChips{display:flex;gap:8px;flex-wrap:wrap;max-width:100%;overflow:visible}
+body[data-role="owner"] #menu #menuCategoryChips button{min-height:44px}
+body[data-role="owner"] #menu .table-wrap,
+body[data-role="owner"] #pos .table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+body[data-role="owner"] #menu .table-wrap table,
+body[data-role="owner"] #pos .table-wrap table{min-width:670px}
+body[data-role="owner"] #pos #posNewSaleBtn:focus-visible,
+body[data-role="owner"] #menu #addMenuItemBtn:focus-visible,
+body[data-role="owner"] #menu #menuCategoryChips button:focus-visible{outline:3px solid #8f70d8;outline-offset:2px}
+@media(max-width:760px){
+ body[data-role="owner"] #pos>.welcome,
+ body[data-role="owner"] #menu>.welcome{align-items:stretch;flex-direction:column}
+ body[data-role="owner"] #pos #posNewSaleBtn,
+ body[data-role="owner"] #menu #addMenuItemBtn{width:100%;font-size:15px}
+ body[data-role="owner"] #pos>.grid.section{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ body[data-role="owner"] #pos>.grid.section>.card{padding:12px}
+ body[data-role="owner"] #pos #posDraftWorkspace{padding:12px}
+ body[data-role="owner"] #menu .form-row{grid-template-columns:minmax(0,1fr)!important}
+ body[data-role="owner"] #menu .form-row>.field{grid-column:auto!important;min-width:0}
+ body[data-role="owner"] #menu #menuSearchInput{width:100%}
+}
+@media(max-width:360px){body[data-role="owner"] #pos>.grid.section .metric{font-size:19px}}

@@ -608,8 +608,9 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/owner-layout.css?v=20261113-pos-enabled">
 <link rel="stylesheet" href="assets/owner-menu-options.css?v=20261113-size1">
-<link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261113-1">
-<script src="assets/owner-mobile-navigation.js?v=20261113-1" defer></script>
+<link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-canonical1">
+<link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
+<script src="assets/owner-mobile-navigation.js?v=20261114-canonical1" defer></script>
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261109-market">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><style id="bite-owner-orders-first">
 body[data-role="owner"] .od-welcome{padding:4px 0 8px;margin-bottom:8px}
@@ -711,6 +712,8 @@ body.bite-session-check #biteSessionSplash{
 .order-cooking-note>div{white-space:pre-wrap}
 .order-cooking-note-inbox{margin:10px 0 4px}
 </style>
+<link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
+<link rel="stylesheet" href="assets/owner-home-finance.css">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -729,11 +732,16 @@ body.bite-session-check #biteSessionSplash{
 <div id="biteDemoBanner" class="od-demo" style="display:none"><span><strong>Sample data</strong> · <span id="biteDemoCount">0 sample orders</span> testing ke liye hain. Aaj ke hisaab mein include nahi hain.</span></div>
 <section class="od-owner-priority" aria-label="Live restaurant orders"><div class="od-priority-title"><div><strong>Live Orders</strong><span>Naye orders aur unka status yahan dikhega</span></div></div><div id="ownerPriorityOrders" role="status">Orders loading...</div></section>
 <section class="od-metrics" aria-label="Aaj ka business">
-<article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>AAJ KI PAID SALES</small><strong id="ownerTodaySales">₹0</strong><span>Confirmed payments</span></article>
+<article class="od-metric od-metric-primary"><span class="od-metric-icon">₹</span><small>BITE ONLINE · PAID (NET)</small><strong id="ownerTodaySales">₹0</strong><span>Verified website payments · refunds minus</span></article>
 <article class="od-metric"><small>AAJ KE ORDERS</small><strong id="ownerTodayOrders">0</strong><span>Received today</span></article>
 <article class="od-metric"><small>ABHI KA KAAM</small><strong id="ownerPendingOrders">0</strong><span>Active orders · all dates</span></article>
 <article class="od-metric"><small>AAJ KA KHARCHA</small><strong id="ownerTodayExpenses">₹0</strong><span>Business expenses</span></article>
 </section>
+<section class="od-pos-breakdown" aria-label="Separate POS billed sales">
+ <div class="od-pos-breakdown-copy"><small>POS · AAJ KE BILLS</small><strong id="ownerTodayPosBilled">₹0</strong><span><b id="ownerTodayPosBills">0</b> non-void POS bills · billed value, not payment received</span></div>
+ <button type="button" class="od-text-button" onclick="showPage('pos')">POS &amp; Payments dekhein →</button>
+</section>
+<p class="od-finance-boundary">Online net paid sales aur POS billed value alag figures hain. Inhe cash, profit ya settlement samajhkar jodein nahi. Actual cash/UPI movement ke liye <button type="button" onclick="showPage('cashbook')">Daily Cashbook</button> kholein. Kharcha mein sirf recorded expense entries hain.</p>
 <div class="od-dashboard-grid">
 <section class="od-panel od-live"><div class="od-panel-head"><div><span class="od-eyebrow">LIVE ORDERS</span><h2>Abhi kya karna hai?</h2></div><button class="od-text-button" type="button" onclick="showPage('orders')">Sab dekhein →</button></div><div class="od-stages">
 <button class="od-stage od-stage-new" type="button" onclick="showPage('orders');setOrderStatus('Received')"><span class="od-stage-dot"></span><span>Naye orders</span><strong id="ownerNewOrders">0</strong><small>Accept / reject <b>→</b></small></button>
@@ -1282,6 +1290,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
+<script src="assets/owner-orders-workspace.js?v=20261114-p2"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -2401,7 +2410,7 @@ async function showPage(id){
  const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',pos:'POS & Billing',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',customers:'Customers',storefront:'Website & offers'};
  document.getElementById('pageTitle').textContent=access.role==='owner'?({overview:'Aaj ka overview',orders:'Orders',pos:'POS & Billing',menu:'Menu & prices',tables:'Tables',khata:'Customer khata',cashbook:'Cashbook / day closing',expenses:'Kharcha',purchases:'Kharid & suppliers',inventory:'Stock',hr:'Staff & attendance',reports:'Reports',settings:'Restaurant settings'}[id]||'Bite'):(titles[id]||'Bite');
  window.scrollTo({top:0,behavior:'instant'});
- const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{if(access.role==='owner'&&typeof activeOrderStatus!=='undefined'&&activeOrderStatus==='all')activeOrderStatus='new';setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
  const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
  try{if(loaders[id])await loaders[id]();await window.BiteWorkspaceExtras?.loadPage(id);document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
  catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
@@ -2955,7 +2964,41 @@ async function shareAndHandOverDelivery(id){
  if(!confirm('Kya order vaastav mein delivery person ko hand over kar diya hai?'))return;
  await shareDeliveryHandoff(id,true);
 }
-async function advanceOrder(id,next){if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}const o=state.orders.find(x=>x.id===id);if(!o)return;const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],'Handed Over':['Completed']};if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}let note=null;if(['Rejected','Cancelled'].includes(next)){note=prompt(next==='Rejected'?'Order reject karne ka reason likhein:':'Order cancel karne ka reason likhein:');if(note===null)return;note=note.trim();if(!note){alert('Reason likhna zaroori hai.');return}}const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);if(error){alert('Status update nahi hua: '+error.message);return}await loadCloudData()}
+const ownerOrderActionsPending=new Set();
+async function advanceOrder(id,next){
+ if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}
+ const o=state.orders.find(x=>x.id===id&&x.restaurant===access.restaurantId);
+ if(!o)return;
+ const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],
+   Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],
+   'Handed Over':['Completed']};
+ if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}
+ if(ownerOrderActionsPending.has(id))return; // repeated fast taps never duplicate a submission
+ ownerOrderActionsPending.add(id);
+ const card=[...document.querySelectorAll('#orderBoard .order-card')]
+   .find(el=>el.dataset.orderId===id);
+ const buttons=[...(card?.querySelectorAll('button')||[])];
+ const previous=buttons.map(button=>button.disabled);
+ buttons.forEach(button=>{button.disabled=true});
+ if(card)card.setAttribute('aria-busy','true');
+ try{
+   let note=null;
+   if(['Rejected','Cancelled'].includes(next)){
+     note=await BiteOwnerOrders.requestReason(document,next);
+     if(note===null)return;
+     note=note.trim();
+     if(!note){alert('Reason likhna zaroori hai.');return}
+   }
+   // Same existing backend mutation and authentication/tenant RLS; no new RPC.
+   const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);
+   if(error){alert('Status update nahi hua: '+error.message);return}
+   await loadCloudData();
+ }finally{
+   ownerOrderActionsPending.delete(id);
+   buttons.forEach((button,i)=>{if(button.isConnected)button.disabled=previous[i]});
+   if(card?.isConnected)card.removeAttribute('aria-busy');
+ }
+}
 
 function paymentSummaryFor(orderId){const order=state.orders.find(o=>o.id===orderId),base=(state.paymentSummaries||[]).find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:(order?.amount||0),payment_status:'unpaid'},waived=Math.min(Number(order?.waivedOffAmount||0),Number(base.balance_amount||0)),balance=Math.max(0,Number(base.balance_amount||0)-waived);return {...base,balance_amount:balance,waived_off_amount:waived,payment_status:balance===0&&waived>0?'waived_off':base.payment_status}}
 function posPaymentContext(orderId){
@@ -3407,13 +3450,14 @@ function selectPlatformRestaurant(id){
 }
 
 function setOrderChannel(channel){channel='website';activeOrderChannel=channel;const title=document.getElementById('activeChannelTitle');if(title)title.textContent='BITE Website Orders';renderOrderBoard()}
-function setOrderStatus(status){activeOrderStatus=status;document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus===status));renderOrderBoard()}
+function setOrderStatus(status){if(access.role==='owner')status=BiteOwnerOrders.isFilter(status)?status:BiteOwnerOrders.groupForStatus(status);activeOrderStatus=status;document.querySelectorAll('[data-order-status]').forEach(b=>b.classList.toggle('active',b.dataset.orderStatus===status));renderOrderBoard()}
 function renderChannelCounts(){const visibleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const counts={all:visibleOrders.length,website:0,zomato:0,swiggy:0,pos:0};visibleOrders.forEach(o=>{const k=orderChannelKey(o.channel);if(counts[k]!==undefined)counts[k]++});Object.keys(counts).forEach(k=>{const el=document.getElementById('channelCount'+k[0].toUpperCase()+k.slice(1));if(el)el.textContent=counts[k]})}
 function renderIncomingOrderInbox(){
  const incoming=state.orders.filter(o=>o.status==='Received'&&(access.role==='super_admin'?orderChannelKey(o.channel)==='website'&&o.restaurant===selectedPlatformRestaurantId:orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const count=document.getElementById('orderInboxCount'),list=document.getElementById('orderInboxList');
  if(count)count.textContent=String(incoming.length);
  if(!list)return;
+ if(access.role==='owner'){list.replaceChildren();return;} // Owner actions live ONLY in #orderBoard.
  if(access.role==='super_admin'){list.innerHTML=incoming.length?incoming.map(o=>'<article class="order-inbox-card"><div class="order-inbox-card-top"><span class="order-inbox-source source-website">Website</span><time>'+esc(o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'New')+'</time></div><strong class="order-inbox-order">#'+esc(o.code||o.id.slice(0,8))+' · '+money(o.amount)+'</strong><div class="order-inbox-customer">'+esc(o.customerName||'Customer')+'</div><small class="small">Order status: '+esc(o.status)+' · Restaurant handles acceptance</small></article>').join(''):'<div class="order-inbox-empty">Is restaurant ke naye orders nahi hain.</div>';return}
  list.innerHTML=incoming.length?incoming.map(o=>{
   const items=(state.orderItems||[]).filter(i=>i.order_id===o.id);
@@ -3428,12 +3472,14 @@ function renderIncomingOrderInbox(){
 }
 function renderOrderBoard(){
  renderChannelCounts();
+ BiteOwnerOrders.prepare(document,access.role,setOrderStatus);
  if(access.role==='super_admin'){renderPlatformRestaurantDirectory();if(!selectedPlatformRestaurantId){const board=document.getElementById('orderBoard');if(board)board.innerHTML='<div class="order-card-empty">Upar list se ek restaurant select karein. Uske website orders yahan alag dikhenge.</div>';const empty=document.getElementById('orderEmpty');if(empty)empty.style.display='none';const count=document.getElementById('orderInboxCount');if(count)count.textContent='0';const inbox=document.getElementById('orderInboxList');if(inbox)inbox.innerHTML='<div class="order-inbox-empty">Restaurant select karne par uske naye orders yahan dikhenge.</div>';return}}
  const roleOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===selectedPlatformRestaurantId):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const channelOrders=activeOrderChannel==='all'?roleOrders:roleOrders.filter(o=>o.isDemo||orderChannelKey(o.channel)===activeOrderChannel);
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
- const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
+ const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
  const board=document.getElementById('orderBoard');if(!board)return;
@@ -3454,7 +3500,7 @@ function renderOrderBoard(){
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return '<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
  if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';

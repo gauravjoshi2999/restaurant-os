@@ -4,12 +4,12 @@
   body[data-role="owner"] #mainApp>.main>.top{
     display:flex!important;align-items:center!important;gap:8px!important;
     padding:0 12px!important;min-height:58px!important;
-    background:#fff!important;border-bottom:1px solid #e7e8ed!important;
+    background:#35166e!important;border-bottom:1px solid #2b1059!important;color:#fff!important;
   }
   body[data-role="owner"] #mainApp>.main>.top .bite-owner-back{
-    display:grid!important;place-items:center;order:0;flex:0 0 44px;
-    width:44px;height:44px;padding:0;border:1px solid #e6e8ed;border-radius:12px;
-    color:#303846;background:#f8f9fb;cursor:pointer;
+    display:grid!important;place-items:center;order:0;flex:0 0 48px;
+    width:48px;height:48px;padding:0;border:1px solid #b4a4d8;border-radius:12px;
+    color:#fff;background:#452580;cursor:pointer;
   }
   body[data-role="owner"] #mainApp>.main>.top .bite-owner-back[hidden]{display:none!important}
   body[data-role="owner"] #mainApp>.main>.top .bite-owner-back svg{
@@ -18,12 +18,10 @@
   }
   body[data-role="owner"] #mainApp>.main>.top #pageTitle{
     order:1;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;
-    white-space:nowrap;font-size:15px!important;font-weight:750!important;color:#222937!important;
+    white-space:nowrap;font-size:16px!important;font-weight:750!important;color:#fff!important;
   }
-  body[data-role="owner"] #mainApp>.main>.top .sidebar-toggle{
-    order:2;flex:0 0 44px;margin:0!important;width:44px!important;height:44px!important;
-    border-radius:12px!important;background:#f8f9fb!important;color:#303846!important;
-  }
+  /* Only More opens the drawer on small screens; no duplicate hamburger. */
+  body[data-role="owner"] #mainApp>.main>.top .sidebar-toggle{display:none!important}
   /* Logout is in the drawer, so the mobile heading stays usable at 320px. */
   body[data-role="owner"] #mainApp>.main>.top>div{display:none!important}
   body[data-role="owner"] #mainApp>.side .bite-owner-drawer-logout{
@@ -40,10 +38,16 @@
     box-shadow:0 -5px 22px #17253b0c!important;z-index:85!important;
   }
   body[data-role="owner"] #mainApp .bite-owner-bottom-nav[hidden]{display:none!important}
+  /* Primary routes live in the five tabs, not again in mobile More.
+     Sidebar route elements and backend handlers remain untouched. */
+  body[data-role="owner"] #mainApp>.side .nav button[data-page="overview"],
+  body[data-role="owner"] #mainApp>.side .nav button[data-page="orders"],
+  body[data-role="owner"] #mainApp>.side .nav button[data-page="pos"],
+  body[data-role="owner"] #mainApp>.side .nav button[data-page="menu"]{display:none!important}
   body[data-role="owner"] #mainApp .bite-owner-tab{
     min-width:0;min-height:57px;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:3px;padding:3px 0;border:0;border-radius:10px;
-    background:transparent;color:#687385;cursor:pointer;touch-action:manipulation;
+    background:transparent;color:#5a5470;cursor:pointer;touch-action:manipulation;
     font-family:inherit;
   }
   body[data-role="owner"] #mainApp .bite-owner-tab-icon{
@@ -53,29 +57,23 @@
     display:block;width:21px;height:21px;
   }
   body[data-role="owner"] #mainApp .bite-owner-tab-label{
-    display:block;max-width:100%;font-size:10px;font-weight:650;
+    display:block;max-width:100%;font-size:11px;font-weight:700;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  body[data-role="owner"] #mainApp .bite-owner-tab.active:not(.bite-owner-tab-bill){
-    color:#b91c2b;background:#fff3f4;
+  body[data-role="owner"] #mainApp .bite-owner-tab.active{
+    color:#35166e;background:#f0eafd;
   }
-  body[data-role="owner"] #mainApp .bite-owner-tab-bill{color:#b91c2b;font-weight:800}
-  body[data-role="owner"] #mainApp .bite-owner-tab-bill .bite-owner-tab-icon{
-    width:43px;height:36px;border-radius:12px;background:#d92737;color:#fff;
-    box-shadow:0 4px 10px #d927372e;
-  }
-  body[data-role="owner"] #mainApp .bite-owner-tab-bill.active{background:#fff3f4}
   body[data-role="owner"] #mainApp .bite-owner-tab:focus-visible,
   body[data-role="owner"] #mainApp .bite-owner-back:focus-visible,
   body[data-role="owner"] #mainApp .bite-owner-drawer-logout:focus-visible{
-    outline:3px solid #e87985;outline-offset:2px;
+    outline:3px solid #6e4fc1;outline-offset:2px;
   }
   body[data-role="owner"] #mainApp .content{
     padding-bottom:calc(116px + env(safe-area-inset-bottom))!important;
   }
 }
 @media(max-width:350px){
-  body[data-role="owner"] #mainApp .bite-owner-tab-label{font-size:9px}
+  body[data-role="owner"] #mainApp .bite-owner-tab-label{font-size:10.5px}
 }
 @media(prefers-reduced-motion:reduce){
   body[data-role="owner"] #mainApp .bite-owner-tab{transition:none!important}

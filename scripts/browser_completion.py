@@ -22,9 +22,19 @@ def observe(page):
  page.route('**/api.cashfree.com/**',lambda route:route.abort())
  page.on('dialog',lambda dialog:dialog.accept())
 def nav(page,target):
+ # Use the five primary owner tabs; secondary owner screens open through More.
+ # Super Admin keeps the original desktop/mobile sidebar navigation.
+ bottom=page.locator('#biteOwnerBottomNav [data-bite-page="'+target+'"]')
+ if bottom.count() and bottom.is_visible():
+  bottom.click()
+  return
  button=page.locator('.nav [data-page="'+target+'"]')
+ more=page.locator('#biteOwnerBottomNav [data-bite-page="more"]')
  toggle=page.locator('.sidebar-toggle')
- if toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':toggle.click()
+ if more.count() and more.is_visible():
+  more.click()
+ elif toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':
+  toggle.click()
  button.click()
 server=ThreadingHTTPServer(('127.0.0.1',4174),SimpleHTTPRequestHandler);Thread(target=server.serve_forever,daemon=True).start()
 try:
@@ -328,6 +338,39 @@ try:
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(owner.evaluate("""() => document.querySelector('#pos.page')?.classList.contains('active') && document.getElementById('pageTitle')?.textContent==='POS & Billing'"""),
         'Direct POS URL opens authenticated Owner POS & Billing without navigating the sidebar')
+  nav(owner,'orders')
+  owner.locator('#biteOwnerOrderStages').wait_for(state='visible')
+  stage_names=owner.locator('#biteOwnerOrderStages [data-bite-stage]').evaluate_all(
+    "(nodes)=>nodes.map(node=>node.dataset.biteStage)")
+  check(stage_names==['new','preparing','ready','delivery','completed','cancelled','all'],
+        'Owner Orders has one grouped stage bar backed by real status values')
+  check(owner.locator('#orders .order-inbox').is_hidden()
+        and owner.locator('#orders #orderStatusTabs').is_hidden(),
+        'Owner Orders does not repeat actionable orders in inbox and old bar')
+  check(owner.locator('#orders .bite-owner-order-disclosure').count()==2,
+        'Secondary request/review and payment-verification panels remain accessible')
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="new"]').get_attribute('aria-pressed')=='true',
+        'Owner Orders defaults to New with no mixed completed orders')
+  owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').click()
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').get_attribute('aria-pressed')=='true',
+        'Accepted and Preparing orders share a canonical Preparing stage')
+  owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').click()
+  owner.evaluate("""() => { window.__qaReason='pending';
+     BiteOwnerOrders.requestReason(document,'Rejected').then(value=>window.__qaReason=value); }""")
+  owner.locator('.bite-order-reason-modal select').select_option('Out of stock')
+  owner.locator('.bite-order-reason-modal button[type=submit]').click()
+  owner.wait_for_function("window.__qaReason==='Out of stock'")
+  check(not owner.locator('.bite-order-reason-overlay').count(),
+        'Owner Reject requires a reason and closes confirmation cleanly')
+  owner.evaluate("""() => { window.__qaCancel='pending';
+     BiteOwnerOrders.requestReason(document,'Cancelled').then(value=>window.__qaCancel=value); }""")
+  owner.keyboard.press('Escape')
+  owner.wait_for_function("window.__qaCancel===null")
+  check(not owner.locator('.bite-order-reason-overlay').count(),
+        'Owner Cancel modal supports Escape without sending an order update')
+  owner.screenshot(path=str(OUT/'ui-owner-orders.png'),full_page=False)
+  check(owner.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),
+        'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
   owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
   check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
@@ -339,7 +382,7 @@ try:
   nav(owner,'pos')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(not owner.locator('.side').evaluate("(el) => el.classList.contains('sidebar-open')") and owner.locator('#posNewSaleBtn').is_visible(),
-        'POS & Billing is reachable from mobile sidebar and the drawer closes on selection')
+        'POS & Billing is reachable from canonical mobile POS tab and the drawer stays closed')
   owner.locator('#posNewSaleBtn').click()
   owner.locator('#orderModal.show').wait_for(state='visible')
   check(owner.locator('#posPaymentSection').is_visible() and owner.locator('#orderRestaurant').input_value()=='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
