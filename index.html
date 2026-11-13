@@ -655,6 +655,35 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
  #orderModal #posItemEntry button{min-height:46px!important}
 }
 </style>
+<style id="bite-pos-quick-billing">
+/* Owner counter billing: filtered menu lookup and one-tap quantity changes. */
+#orderModal #posItemEntry{position:relative;overflow:visible}
+#orderModal #posItemEntry .field:first-child{position:relative;z-index:5}
+#orderModal .pos-search-wrap{position:relative;width:100%}
+#orderModal .pos-search-results[hidden]{display:none!important}
+#orderModal .pos-search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;max-height:min(264px,38dvh);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #b9cbd6;border-radius:13px;box-shadow:0 14px 30px rgba(25,44,64,.20);padding:5px}
+#orderModal .pos-search-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:51px;padding:10px 12px;border:0;border-radius:9px;background:#fff;color:#223044;text-align:left;font:inherit;cursor:pointer}
+#orderModal .pos-search-option+.pos-search-option{border-top:1px solid #eef1f4}
+#orderModal .pos-search-option:hover,#orderModal .pos-search-option.is-active{background:#e9f4fa}
+#orderModal .pos-search-name{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+#orderModal .pos-search-price{font-size:13px;font-weight:800;color:#275c76;white-space:nowrap}
+#orderModal .pos-search-empty{padding:14px 12px;color:#566579;font-size:13px;line-height:1.45}
+#orderModal .pos-item-chip{display:grid!important;grid-template-columns:minmax(0,1fr);gap:9px!important;padding:12px 13px!important;background:#f8fafc!important;border:1px solid #e1e7ed!important;border-radius:12px!important}
+#orderModal .pos-item-main{min-width:0!important}
+#orderModal .pos-item-name{font-size:14px;line-height:1.4}
+#orderModal .pos-item-meta{font-size:12px;margin-top:3px}
+#orderModal .pos-item-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+#orderModal .pos-qty-stepper{display:inline-flex;align-items:center;flex-shrink:0;gap:0;border:1px solid #c8d4de;border-radius:11px;background:#fff;overflow:hidden}
+#orderModal .pos-qty-stepper button{display:grid;place-items:center;width:42px;min-width:42px;min-height:40px!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;color:#225c78!important;font-size:23px!important;font-weight:750!important;line-height:1;cursor:pointer}
+#orderModal .pos-qty-stepper button:disabled{color:#aeb9c4!important;background:#f4f6f8!important;cursor:not-allowed}
+#orderModal .pos-qty-stepper button:not(:disabled):active{background:#d9edf7!important}
+#orderModal .pos-qty-value{display:inline-flex;justify-content:center;align-items:center;min-width:37px;padding:0 5px;font-size:15px;font-weight:800;color:#1f2937;font-variant-numeric:tabular-nums}
+#orderModal .pos-item-total{margin-left:auto;font-size:15px;font-weight:850;white-space:nowrap}
+#orderModal .pos-item-remove{display:grid;place-items:center;flex:0 0 38px;width:38px;min-height:40px!important;padding:0!important;border:1px solid #d8dee6!important;border-radius:10px!important;background:#fff!important;color:#687486!important;font-size:21px!important}
+#orderModal .order-total-bar{gap:12px!important;flex-wrap:wrap}
+#orderModal .order-total-bar strong{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:380px){#orderModal .pos-item-actions{gap:6px}#orderModal .pos-qty-stepper button{width:38px;min-width:38px}#orderModal .pos-item-total{font-size:14px}#orderModal .pos-item-chip{padding:10px!important}}
+</style>
 <style id="bite-auth-boot-guard">
 /* On every Owner/Admin visit, don't show the login form before Supabase has
    actually checked the existing persistent session. No session data is faked. */
@@ -1159,7 +1188,7 @@ body.bite-session-check #biteSessionSplash{
 <div class="form-row"><div class="field"><label for="orderCustomerName">Customer name</label><input id="orderCustomerName" type="text" name="customer_name" maxlength="120" placeholder="Yahan customer ka naam likhein" autocomplete="name" autocapitalize="words" spellcheck="false"></div><div class="field"><label for="orderCustomerPhone">Mobile number</label><input id="orderCustomerPhone" name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,18}" maxlength="18" placeholder="Customer mobile"></div></div>
 
 <div class="section-head" style="margin:18px 0 10px"><h3 style="margin:0">Items in this bill</h3></div>
-<div class="pos-item-entry" id="posItemEntry"><div class="field"><label for="posPickerItemName">Item name *</label><input id="posPickerItemName" list="posPickerMenuList" maxlength="120" placeholder="Item ka naam type karein" autocomplete="off"><datalist id="posPickerMenuList"></datalist><span class="small">Menu se item chunne par price automatic bhar jayega.</span></div><div class="field"><label for="posPickerQuantity">Quantity *</label><input id="posPickerQuantity" type="number" min="0.01" step="0.01" value="1"></div><div class="field"><label for="posPickerPrice">Price (₹) *</label><input id="posPickerPrice" type="number" min="0" step="0.01" placeholder="Price"></div><button type="button" class="btn secondary" onclick="confirmPosItemInline()">＋ Add to bill</button></div>
+<div class="pos-item-entry" id="posItemEntry"><div class="field"><label for="posPickerItemName">Item name *</label><div class="pos-search-wrap" id="posSearchWrap"><input id="posPickerItemName" maxlength="120" placeholder="Menu item search karein (jaise Roti)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="posMenuSuggestions" aria-haspopup="listbox"><div id="posMenuSuggestions" class="pos-search-results" role="listbox" aria-label="Matching menu items" hidden></div></div><span class="small">Naam type karein aur item chunein — price automatic bharega. Custom item bhi add kar sakte hain.</span></div><div class="field"><label for="posPickerQuantity">Quantity *</label><input id="posPickerQuantity" type="number" min="0.01" step="0.01" value="1"></div><div class="field"><label for="posPickerPrice">Price (₹) *</label><input id="posPickerPrice" type="number" min="0" step="0.01" placeholder="Price"></div><button type="button" class="btn secondary" onclick="confirmPosItemInline()">＋ Add to bill</button></div>
 <div id="posItemSummary" class="pos-item-summary"><div class="small">Abhi koi item add nahi hua hai.</div></div><div id="orderItemRows" style="display:none"></div><div class="order-total-bar"><span>Grand Total</span><strong id="orderGrandTotal">₹0</strong></div>
 <div id="posPaymentSection" style="display:none;margin-top:22px"><div class="section-head"><h3 style="margin:0">Payment & balance</h3><span class="small">Bill total ke baad payment bharein</span></div><div class="form-row" id="posPaymentFields"><div class="field"><label>Received amount (₹)</label><input name="paid_amount" id="posPaidAmount" type="number" min="0" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00"><span class="small">Jitna paisa mila hai, sirf utna hi likhein.</span></div><div class="field"><label>Remaining amount (₹)</label><input id="posBalanceDue" type="text" value="₹0" readonly></div></div><div class="form-row" id="posPaymentDetails" style="display:none"><div class="field"><label>Payment mode</label><select name="payment_method"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div><div class="field"><label>Payment date</label><input name="payment_date" id="posPaymentDate" type="date"></div><div class="field"><label>Reference (optional)</label><input name="payment_reference" maxlength="100" placeholder="UPI ref / receipt no."></div></div><div id="posBalanceActionFields" style="display:none;margin-top:12px"><div class="field"><label>Remaining amount ka kya karein?</label><select name="balance_action" id="posBalanceAction"><option value="udhar">Udhar — customer ke Khata mein jodein</option><option value="waive_off">Waive-off — baki amount maaf karein</option></select><span class="small" id="posBalanceActionHint">Udhar ke liye Khata mein registered customer ka mobile number dena zaroori hai.</span></div></div></div>
 <label class="small" style="display:flex;align-items:flex-start;gap:9px;padding:12px;background:#f0f7f2;border:1px solid #b9d9c5;border-radius:12px;margin-top:14px">
@@ -2411,14 +2440,113 @@ async function deleteRestaurant(id){if(!access.isPlatformAdmin){alert('Only Supe
 
 function togglePosPaymentFields(){const isPos=(document.getElementById('orderChannel')?.value||'').startsWith('POS - ');document.getElementById('posPaymentFields').style.display=isPos?'grid':'none';if(isPos&&!document.getElementById('posPaymentDate').value)document.getElementById('posPaymentDate').value=localDateInput();updateOrderTotal()}
 let posMenuItems=[];let posMenuRestaurantId='';
- async function loadPosMenuItems(restaurantId){posMenuItems=[];posMenuRestaurantId=restaurantId;const list=document.getElementById('posPickerMenuList');if(list)list.innerHTML='';const {data,error}=await sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');if(error){console.warn('POS menu lookup failed:',error.message);return}if(posMenuRestaurantId===restaurantId)posMenuItems=data||[];if(list)list.innerHTML=posMenuItems.map(item=>'<option value="'+esc(item.name)+'" label="₹'+Number(item.price||0).toFixed(2)+'"></option>').join('');document.querySelectorAll('#orderItemRows .order-item-row').forEach(row=>refreshPosItemSuggestions(row))}
- function refreshPosItemSuggestions(row){const list=row.querySelector('datalist');if(!list)return;list.innerHTML=posMenuItems.map(item=>'<option value="'+esc(item.name)+'" label="₹'+Number(item.price||0).toFixed(2)+'"></option>').join('')}
- async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const memberships=(access.memberships||[]).filter(m=>m.role==='owner'&&m.restaurant_id===access.restaurantId);const allowedIds=memberships.map(m=>m.restaurant_id);const selectedPosRestaurant=document.getElementById('posRestaurantFilter')?.value||'';const restaurantId=selectedPosRestaurant&&allowedIds.includes(selectedPosRestaurant)?selectedPosRestaurant:(memberships[0]?.restaurant_id||(access.isPlatformAdmin?state.restaurants[0]?.id:''));if(!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show')}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
-function syncPosPickerMenuPrice(){const name=document.getElementById('posPickerItemName').value.trim().toLocaleLowerCase(),match=posMenuItems.find(item=>item.name.trim().toLocaleLowerCase()===name);if(match){document.getElementById('posPickerPrice').value=Number(match.price||0).toFixed(2);document.getElementById('posPickerPrice').dataset.menuItemId=match.id}else{document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId}}
-function confirmPosItemInline(){const name=document.getElementById('posPickerItemName').value.trim(),quantity=Number(document.getElementById('posPickerQuantity').value),price=Number(document.getElementById('posPickerPrice').value);if(!name||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<0){alert('Item ka naam, quantity aur sahi price bharein.');return}const match=posMenuItems.find(item=>item.name.trim().toLocaleLowerCase()===name.toLocaleLowerCase());addOrderItemRow({name,quantity,price,menuItemId:match?.id||null});document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;document.getElementById('posPickerItemName').focus()}
+let posSearchMatches=[];let posSearchActiveIndex=-1;
+function normalizePosSearch(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function hidePosMenuSuggestions(){const list=document.getElementById('posMenuSuggestions'),input=document.getElementById('posPickerItemName');if(list){list.hidden=true;list.innerHTML=''}if(input){input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant')}posSearchMatches=[];posSearchActiveIndex=-1}
+function renderPosMenuSuggestions(){
+ const input=document.getElementById('posPickerItemName'),list=document.getElementById('posMenuSuggestions'),query=normalizePosSearch(input.value);
+ if(!query){hidePosMenuSuggestions();return}
+ const terms=query.split(/\s+/);
+ posSearchMatches=posMenuItems.map((item,index)=>{
+  const name=normalizePosSearch(item.name);
+  if(!terms.every(term=>name.includes(term)))return null;
+  const words=name.split(/\s+/);
+  const rank=name===query?0:name.startsWith(query)?1:words.some(word=>word.startsWith(query))?2:terms.every(term=>words.some(word=>word.startsWith(term)))?3:4;
+  return {item,index,rank};
+ }).filter(Boolean).sort((a,b)=>a.rank-b.rank||a.item.name.localeCompare(b.item.name)).slice(0,8);
+ posSearchActiveIndex=-1;
+ list.innerHTML=posSearchMatches.length?posSearchMatches.map(({item,index},position)=>'<button type="button" class="pos-search-option" role="option" id="posMenuOption-'+position+'" aria-selected="false" onclick="selectPosMenuItem('+index+')"><span class="pos-search-name">'+esc(item.name)+'</span><span class="pos-search-price">'+money(item.price)+'</span></button>').join(''):'<div class="pos-search-empty">Menu mein matching item nahi mila. Custom item ka naam aur price manually bhar sakte hain.</div>';
+ list.hidden=false;input.setAttribute('aria-expanded','true');input.removeAttribute('aria-activedescendant');
+}
+function setPosSearchActive(position){
+ const list=document.getElementById('posMenuSuggestions'),input=document.getElementById('posPickerItemName');
+ if(position<0||position>=posSearchMatches.length)return;
+ posSearchActiveIndex=position;
+ list.querySelectorAll('.pos-search-option').forEach((option,index)=>{const active=index===position;option.classList.toggle('is-active',active);option.setAttribute('aria-selected',String(active))});
+ input.setAttribute('aria-activedescendant','posMenuOption-'+position);
+ list.querySelectorAll('.pos-search-option')[position]?.scrollIntoView({block:'nearest'});
+}
+function handlePosMenuSearchKeydown(event){
+ if(event.key==='Escape'){hidePosMenuSuggestions();return}
+ if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+  if(document.getElementById('posMenuSuggestions').hidden||!posSearchMatches.length)return;
+  event.preventDefault();setPosSearchActive((posSearchActiveIndex+(event.key==='ArrowDown'?1:-1)+posSearchMatches.length)%posSearchMatches.length);return;
+ }
+ if(event.key==='Enter'){
+  event.preventDefault();
+  if(!document.getElementById('posMenuSuggestions').hidden&&posSearchMatches.length){
+   selectPosMenuItem(posSearchMatches[posSearchActiveIndex<0?0:posSearchActiveIndex].index);
+  }
+ }
+}
+function selectPosMenuItem(index){
+ const item=posMenuItems[index];if(!item)return;
+ document.getElementById('posPickerItemName').value=item.name;
+ const price=document.getElementById('posPickerPrice');price.value=Number(item.price||0).toFixed(2);price.dataset.menuItemId=item.id;
+ hidePosMenuSuggestions();document.getElementById('posPickerQuantity').focus();
+}
+async function loadPosMenuItems(restaurantId){
+ posMenuItems=[];posMenuRestaurantId=restaurantId;hidePosMenuSuggestions();
+ const {data,error}=await sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');
+ if(posMenuRestaurantId!==restaurantId)return;
+ if(error){console.warn('POS menu lookup failed:',error.message);return}
+ posMenuItems=data||[];
+ if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
+}
+async function openOrder(){if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}const memberships=(access.memberships||[]).filter(m=>m.role==='owner'&&m.restaurant_id===access.restaurantId);const allowedIds=memberships.map(m=>m.restaurant_id);const selectedPosRestaurant=document.getElementById('posRestaurantFilter')?.value||'';const restaurantId=selectedPosRestaurant&&allowedIds.includes(selectedPosRestaurant)?selectedPosRestaurant:(memberships[0]?.restaurant_id||(access.isPlatformAdmin?state.restaurants[0]?.id:''));if(!restaurantId||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return}const form=document.getElementById('orderForm');form.reset();document.getElementById('posPaidAmount').value='';document.getElementById('orderChannel').value='POS - Counter';document.getElementById('orderRestaurant').value=restaurantId;document.getElementById('posPaymentSection').style.display='block';togglePosPaymentFields();refreshOrderTableOptions();document.getElementById('orderItemRows').innerHTML='';document.getElementById('posPickerItemName').value='';document.getElementById('posPickerQuantity').value='1';document.getElementById('posPickerPrice').value='';delete document.getElementById('posPickerPrice').dataset.menuItemId;hidePosMenuSuggestions();document.getElementById('posItemEntry').style.display='grid';renderPosItemSummary();await loadPosMenuItems(restaurantId);updateOrderTotal();document.getElementById('orderModal').classList.add('show')}function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
+function syncPosPickerMenuPrice(){
+ const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
+ const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
+ const price=document.getElementById('posPickerPrice');
+ if(match){price.value=Number(match.price||0).toFixed(2);price.dataset.menuItemId=match.id}
+ else{price.value='';delete price.dataset.menuItemId}
+ renderPosMenuSuggestions();
+}
+function confirmPosItemInline(){
+ const name=document.getElementById('posPickerItemName').value.trim(),quantity=Number(document.getElementById('posPickerQuantity').value),price=Number(document.getElementById('posPickerPrice').value);
+ if(!name||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<0||document.getElementById('posPickerPrice').value===''){alert('Item ka naam, quantity aur sahi price bharein.');return}
+ const match=posMenuItems.find(item=>normalizePosSearch(item.name)===normalizePosSearch(name));
+ addOrderItemRow({name,quantity,price,menuItemId:match?.id||null});
+ document.getElementById('posPickerItemName').value='';
+ document.getElementById('posPickerQuantity').value='1';
+ document.getElementById('posPickerPrice').value='';
+ delete document.getElementById('posPickerPrice').dataset.menuItemId;
+ hidePosMenuSuggestions();
+ document.getElementById('posPickerItemName').focus();
+}
 function confirmPosItem(event){event?.preventDefault();confirmPosItemInline()}
-function addOrderItemRow(item){const wrap=document.getElementById('orderItemRows'),row=document.createElement('div');row.className='order-item-row';row.style.display='none';row.innerHTML='<input class="item-name"><input class="item-quantity" type="number"><input class="item-price" type="number">';row.querySelector('.item-name').value=item.name;row.querySelector('.item-quantity').value=String(item.quantity);row.querySelector('.item-price').value=String(item.price);if(item.menuItemId)row.querySelector('.item-price').dataset.menuItemId=item.menuItemId;wrap.appendChild(row);renderPosItemSummary();updateOrderTotal()}
-function renderPosItemSummary(){const box=document.getElementById('posItemSummary'),rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];if(!rows.length){box.innerHTML='<div class="small">Abhi koi item nahi hai. Upar item chun kar ＋ Add to bill dabayein.</div>';return}box.innerHTML=rows.map((row,index)=>{const name=row.querySelector('.item-name').value,q=Number(row.querySelector('.item-quantity').value),price=Number(row.querySelector('.item-price').value),total=Math.round(q*price*100)/100;return '<div class="pos-item-chip"><div class="pos-item-main"><div class="pos-item-name">'+esc(name)+'</div><div class="pos-item-meta">'+q+' × '+money(price)+'</div></div><div class="pos-item-total">'+money(total)+'</div><button type="button" class="btn secondary" onclick="removePosItem('+index+')">✕</button></div>'}).join('')}
+function addOrderItemRow(item){
+ const wrap=document.getElementById('orderItemRows');
+ const existing=[...wrap.querySelectorAll('.order-item-row')].find(row=>{
+  const currentId=row.querySelector('.item-price').dataset.menuItemId||null;
+  const sameItem=item.menuItemId?currentId===item.menuItemId:!currentId&&normalizePosSearch(row.querySelector('.item-name').value)===normalizePosSearch(item.name);
+  return sameItem&&Number(row.querySelector('.item-price').value)===Number(item.price);
+ });
+ if(existing){
+  const qty=existing.querySelector('.item-quantity');
+  qty.value=String(Math.round((Number(qty.value)+Number(item.quantity))*100)/100);
+  renderPosItemSummary();updateOrderTotal();return;
+ }
+ const row=document.createElement('div');row.className='order-item-row';row.style.display='none';
+ row.innerHTML='<input class="item-name"><input class="item-quantity" type="number"><input class="item-price" type="number">';
+ row.querySelector('.item-name').value=item.name;row.querySelector('.item-quantity').value=String(item.quantity);row.querySelector('.item-price').value=String(item.price);
+ if(item.menuItemId)row.querySelector('.item-price').dataset.menuItemId=item.menuItemId;
+ wrap.appendChild(row);renderPosItemSummary();updateOrderTotal();
+}
+function renderPosItemSummary(){
+ const box=document.getElementById('posItemSummary'),rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
+ if(!rows.length){box.innerHTML='<div class="small">Abhi koi item nahi hai. Upar item chun kar ＋ Add to bill dabayein.</div>';return}
+ box.innerHTML=rows.map((row,index)=>{
+  const name=row.querySelector('.item-name').value,q=Number(row.querySelector('.item-quantity').value),price=Number(row.querySelector('.item-price').value),total=Math.round(q*price*100)/100;
+  return '<div class="pos-item-chip"><div class="pos-item-main"><div class="pos-item-name">'+esc(name)+'</div><div class="pos-item-meta">'+money(price)+' / item</div></div><div class="pos-item-actions"><div class="pos-qty-stepper" role="group" aria-label="'+esc(name)+' quantity"><button type="button" class="pos-qty-minus" aria-label="Decrease '+esc(name)+' quantity" onclick="changePosItemQuantity('+index+',-1)"'+(q<=1?' disabled title="Remove item with X"':'')+'>−</button><span class="pos-qty-value" aria-live="polite">'+q+'</span><button type="button" class="pos-qty-plus" aria-label="Increase '+esc(name)+' quantity" onclick="changePosItemQuantity('+index+',1)">+</button></div><strong class="pos-item-total">'+money(total)+'</strong><button type="button" class="pos-item-remove" aria-label="Remove '+esc(name)+' from bill" onclick="removePosItem('+index+')">×</button></div></div>';
+ }).join('');
+}
+function changePosItemQuantity(index,delta){
+ const row=document.querySelectorAll('#orderItemRows .order-item-row')[index];if(!row||![1,-1].includes(delta))return;
+ const field=row.querySelector('.item-quantity'),current=Number(field.value),next=Math.round((current+delta)*100)/100;
+ if(!Number.isFinite(next)||next<=0||next>9999)return;
+ field.value=String(next);renderPosItemSummary();updateOrderTotal();
+}
 function removePosItem(index){const rows=document.querySelectorAll('#orderItemRows .order-item-row');if(rows[index])rows[index].remove();renderPosItemSummary();updateOrderTotal()}
 function updateOrderTotal(){let total=0;document.querySelectorAll('#orderItemRows .order-item-row').forEach(row=>{const q=Number(row.querySelector('.item-quantity').value),p=Number(row.querySelector('.item-price').value);if(q>0&&p>=0)total+=Math.round(q*p*100)/100});document.getElementById('orderGrandTotal').textContent=money(total);const receivedEl=document.getElementById('posPaidAmount'),received=Number(receivedEl?.value||0),details=document.getElementById('posPaymentDetails');if(receivedEl){receivedEl.max=total.toFixed(2);if(received>total)receivedEl.setCustomValidity('Received amount bill total se zyada nahi ho sakta.');else receivedEl.setCustomValidity('')}if(details)details.style.display=received>0?'grid':'none';const remaining=Math.max(0,Math.round((total-(Number.isFinite(received)?received:0))*100)/100),due=document.getElementById('posBalanceDue'),actionFields=document.getElementById('posBalanceActionFields');if(due)due.value=money(remaining);if(actionFields)actionFields.style.display=remaining>0?'block':'none';}
 function closeModal(id){const el=document.getElementById(id);if(!el)return;el.classList.remove('show');if(id==='resetPasswordResultModal'){el.style.display='none';el.style.visibility='hidden';const input=document.getElementById('resetPasswordValue');if(input)input.value=''}if(id==='resetPasswordLoadingModal'){el.style.display='none';el.style.visibility='hidden'}}
@@ -2427,7 +2555,7 @@ function openRestaurantLocationMap(){const box=document.getElementById('restaura
 document.getElementById('restaurantPickMap').addEventListener('click',openRestaurantLocationMap);
 document.getElementById('restaurantUseLocation').addEventListener('click',()=>{if(!navigator.geolocation){alert('Location support nahi hai. Map par pin karein.');return}navigator.geolocation.getCurrentPosition(p=>{openRestaurantLocationMap();setTimeout(()=>setRestaurantPin(p.coords.latitude,p.coords.longitude),180)},()=>alert('Location permission allow karein ya map par manually pin karein.'),{enableHighAccuracy:true,timeout:12000});});
 document.getElementById('restaurantForm').addEventListener('submit',async e=>{e.preventDefault();if(!access.isPlatformAdmin){alert('Only Super Admin can save onboarding records.');return}const f=new FormData(e.target),btn=e.submitter,id=f.get('id');btn.disabled=true;try{const publish=f.get('is_published')==='on',status=String(f.get('status')||'');if(publish&&status!=='Active')throw new Error('Customer Website par publish karne se pehle onboarding status Active karein.');if(publish&&id){const {count,error:menuCheckError}=await sb.from('menu_items').select('id',{count:'exact',head:true}).eq('restaurant_id',id).eq('is_available',true);if(menuCheckError)throw menuCheckError;if(!count)throw new Error('Publish karne se pehle kam se kam ek available menu item add karein.');}else if(publish&&!id){throw new Error('Pehle restaurant save karein, phir menu item add karke publish karein.');}const payload={name:String(f.get('name')||'').trim(),contact_person:String(f.get('contact_person')||'').trim()||null,phone:String(f.get('phone')||'').trim()||null,email:String(f.get('email')||'').trim()||null,city:String(f.get('city')||'Rajsamand').trim()||'Rajsamand',status,address:String(f.get('address')||'').trim()||null,latitude:f.get('latitude')?Number(f.get('latitude')):null,longitude:f.get('longitude')?Number(f.get('longitude')):null,notes:String(f.get('notes')||'').trim()||null,is_published:publish,updated_at:new Date().toISOString()};let result;if(id){/* Admin may publish and edit onboarding, but operational fields are owner-only. */delete payload.city;delete payload.latitude;delete payload.longitude;result=await sb.from('restaurants').update(payload).eq('id',id)}else{payload.created_by=currentUser.id;result=await sb.from('restaurants').insert(payload)}if(result.error)throw result.error;e.target.reset();closeModal('restaurantModal');await loadCloudData()}catch(err){alert('Restaurant save nahi hua: '+err.message)}finally{btn.disabled=false}});
-document.getElementById('orderChannel').addEventListener('change',()=>{togglePosPaymentFields();refreshOrderTableOptions()});document.getElementById('posPaidAmount').addEventListener('input',updateOrderTotal);document.getElementById('posBalanceAction').addEventListener('change',updateOrderTotal);document.getElementById('posPickerItemName').addEventListener('input',syncPosPickerMenuPrice);document.getElementById('posPickerItemName').addEventListener('change',syncPosPickerMenuPrice);
+document.getElementById('orderChannel').addEventListener('change',()=>{togglePosPaymentFields();refreshOrderTableOptions()});document.getElementById('posPaidAmount').addEventListener('input',updateOrderTotal);document.getElementById('posBalanceAction').addEventListener('change',updateOrderTotal);document.getElementById('posPickerItemName').addEventListener('input',syncPosPickerMenuPrice);document.getElementById('posPickerItemName').addEventListener('change',syncPosPickerMenuPrice);document.getElementById('posPickerItemName').addEventListener('keydown',handlePosMenuSearchKeydown);document.getElementById('posSearchWrap').addEventListener('focusout',event=>{if(!event.currentTarget.contains(event.relatedTarget))hidePosMenuSuggestions()});document.addEventListener('pointerdown',event=>{if(!event.target.closest('#posSearchWrap'))hidePosMenuSuggestions()});
 function showPosWhatsAppBillDialog(payload){
  // A wa.me deep link is the only browser-supported one-tap way to address
  // exactly the saved customer's WhatsApp chat. WhatsApp does NOT accept
