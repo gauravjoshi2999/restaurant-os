@@ -708,13 +708,52 @@ async function refreshActiveRestaurantHoursForCart(){
  biteCartHoursRequest={restaurantId,promise:request};
  return request;
 }
-function cartEntries(){return Object.entries(cart).filter(([id,q])=>q>0&&menuItems.some(i=>i.id===id));}function renderCartModal(){const entries=cartEntries();const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);$('cartRestaurantName').textContent=activeRestaurant?.name||'';$('cartModalLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);const photo=i.image_url||'assets/food-placeholder.svg';return '<div class="cart-product"><img src="'+safe(photo)+'" alt="'+safe(i.name)+'"><div class="cart-product-info"><div class="cart-product-name">'+safe(i.name)+'</div><div class="cart-product-price">'+money(i.price)+'</div></div><div><div class="cart-qty"><button type="button" data-cart-dec="'+id+'" aria-label="Remove one '+safe(i.name)+'">−</button><span>'+q+'</span><button type="button" data-cart-inc="'+id+'" aria-label="Add one '+safe(i.name)+'" '+(q>=99?'disabled':'')+'>+</button></div><div style="font-size:12px;text-align:right;margin-top:5px;font-weight:800">'+money(Number(i.price)*q)+'</div></div></div>'}).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
+function cartEntries(){return Object.entries(cart).filter(([id,q])=>q>0&&menuItems.some(i=>i.id===id));}
+function cartInstructionSnapshot(){
+ return BiteItemNotes.compose({generalNote:$('customerNote')?.value||'',itemNotes,entries:cartEntries(),menuItems});
+}
+function updateCartInstructionsStatus(){
+ const instructions=cartInstructionSnapshot();
+ const status=$('cartInstructionsStatus');
+ status.textContent=instructions.tooLong
+  ?'Cooking requests are '+(-instructions.remaining)+' characters over the 500-character order limit. Shorten a request to continue.'
+  :instructions.itemCount+' dish request'+(instructions.itemCount===1?'':'s')+' · '+instructions.remaining+' characters left for the combined order note.';
+ status.classList.toggle('error',instructions.tooLong);
+ $('cartCheckoutBtn').disabled=!cartEntries().length||biteCartHoursBusy||instructions.tooLong;
+}
+function renderCheckoutDishInstructions(){
+ const panel=$('checkoutDishInstructions');
+ const instructions=cartInstructionSnapshot();
+ panel.classList.toggle('hidden',!instructions.hasDishNotes);
+ panel.textContent=instructions.hasDishNotes
+  ?'Cooking requests for your dishes (applies to all units):\n'+instructions.dishLines.join('\n')
+  :'';
+}
+function renderCartModal(){
+ const entries=cartEntries();
+ const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
+ $('cartRestaurantName').textContent=activeRestaurant?.name||'';
+ $('cartModalLines').innerHTML=entries.length?entries.map(([id,q])=>{
+  const i=menuItems.find(x=>x.id===id),photo=i.image_url||'assets/food-placeholder.svg',note=safe(itemNotes[id]||''),key=safe(id);
+  return '<div class="cart-product cart-product-with-note"><div class="cart-product-main">'+
+   '<img src="'+safe(photo)+'" alt="'+safe(i.name)+'">'+
+   '<div class="cart-product-info"><div class="cart-product-name">'+safe(i.name)+'</div><div class="cart-product-price">'+money(i.price)+'</div></div>'+
+   '<div><div class="cart-qty"><button type="button" data-cart-dec="'+key+'" aria-label="Remove one '+safe(i.name)+'">−</button><span>'+q+'</span><button type="button" data-cart-inc="'+key+'" aria-label="Add one '+safe(i.name)+'" '+(q>=99?'disabled':'')+'>+</button></div>'+
+   '<div style="font-size:12px;text-align:right;margin-top:5px;font-weight:800">'+money(Number(i.price)*q)+'</div></div></div>'+
+   '<div class="cart-item-note-panel"><button type="button" class="cart-item-note-toggle" data-cart-note-toggle="'+key+'" aria-controls="cart-note-editor-'+key+'" aria-expanded="false">'+(note?'Edit cooking request':'Add cooking request')+'</button>'+
+   '<div class="cart-item-note-preview" '+(note?'':'hidden')+'>'+note+'</div>'+
+   '<div class="cart-item-note-editor hidden" id="cart-note-editor-'+key+'"><label for="cart-note-'+key+'">Instructions for all '+q+' of this dish</label>'+
+   '<textarea id="cart-note-'+key+'" data-cart-item-note="'+key+'" maxlength="100" rows="2" placeholder="e.g. less spicy, no onion">'+note+'</textarea>'+
+   '<small>Requests depend on the restaurant. This does not change the item price.</small></div></div></div>';
+ }).join(''):'<div class="empty">Your cart is empty. Add dishes from the menu.</div>';
+ const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
  const closedNotice=biteCartHoursError?biteCartHoursError:closed?cartRestaurantClosedMessage():'';
  $('cartModalTotal').innerHTML='<div style="display:flex;justify-content:space-between"><span>Item total</span><strong>'+money(total)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span>Delivery fee</span><strong>Shown at checkout</strong></div>'+(closedNotice?'<div id="cartClosedNotice" role="status" style="color:#8a3b22;background:#fff3e9;border:1px solid #efc3a6;border-radius:10px;margin-top:10px;padding:9px 11px;font-size:13px;line-height:1.45">'+safe(closedNotice)+'</div>':'');
  $('cartCheckoutBtn').disabled=!entries.length||biteCartHoursBusy;
  $('cartCheckoutBtn').textContent=biteCartHoursBusy?'Checking restaurant hours…':biteCartHoursError?'Retry opening hours':closed?'Restaurant closed · View hours':'Proceed to checkout';
  $('cartCheckoutBtn').setAttribute('aria-label',biteCartHoursBusy?'Checking the latest restaurant opening hours':biteCartHoursError|| (closed?closedNotice:'Proceed to checkout'));
- $('emptyCartBtn').disabled=!entries.length;}
+ $('emptyCartBtn').disabled=!entries.length;
+ updateCartInstructionsStatus();}
 let biteCartReturnFocus=null,biteCartUndoSnapshot=null,biteCartUndoTimer=null;
 function hideCartUndo(){
  clearTimeout(biteCartUndoTimer);biteCartUndoTimer=null;biteCartUndoSnapshot=null;
