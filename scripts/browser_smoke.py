@@ -122,6 +122,13 @@ try:
               'Cart quantity update preserves focus on the increment button')
         # Per-dish cooking requests remain local until a real, authenticated order.
         page.locator('#cartModalLines [data-cart-note-toggle="' + item_id + '"]').click()
+        less_spicy = page.locator('#cartModalLines [data-cart-note-id="' + item_id + '"][data-cart-note-preset="less-spicy"]')
+        less_spicy.click()
+        check(less_spicy.get_attribute('aria-pressed') == 'true',
+              'Quick cooking request preset is selected and accessible')
+        less_spicy.click()
+        check(less_spicy.get_attribute('aria-pressed') == 'false',
+              'Quick cooking request preset toggles off')
         page.locator('#cartModalLines [data-cart-item-note="' + item_id + '"]').fill('Less spicy, no onion')
         check(page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
               'Dish cooking request previews without affecting the item price')
