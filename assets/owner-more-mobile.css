@@ -1,0 +1,139 @@
+/* Bite Owner — every More workflow uses usable full-width mobile controls.
+   Deliberately scoped: Customer and Super Admin remain untouched. */
+.bite-hr-tabs,.bite-mobile-cashbook-hint{display:none}
+@media (max-width:760px){
+  /* Home is a dashboard, not a second directory for More and Orders. */
+  body[data-role="owner"] #mainApp #overview .od-accounts,
+  body[data-role="owner"] #mainApp #overview .od-recent,
+  body[data-role="owner"] #mainApp #overview .od-tools-section,
+  body[data-role="owner"] #mainApp #overview .od-live,
+  body[data-role="owner"] #mainApp #overview .od-sales .od-text-button,
+  body[data-role="owner"] #mainApp #overview .od-outlet>.od-text-button,
+  body[data-role="owner"] #mainApp #overview .od-pos-breakdown>.od-text-button{
+    display:none!important;
+  }
+  body[data-role="owner"] #mainApp #overview .od-finance-boundary{
+    margin:0 0 15px!important;padding:1px 3px!important;
+    font-size:11px!important;line-height:1.5!important;
+  }
+  body[data-role="owner"] #mainApp #overview .od-finance-boundary>button{
+    display:none!important;
+  }
+  body[data-role="owner"] #mainApp #overview .bite-mobile-cashbook-hint{
+    display:inline!important;font-weight:750;color:#35166e;
+  }
+  /* Never squeeze two working sections together: one full-width panel at a time. */
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) > .grid.section,
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .grid.section,
+  body[data-role="owner"] #mainApp #tables #tableCards{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    gap:13px!important;min-width:0!important;width:100%!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .grid.section > .card{
+    grid-column:1/-1!important;width:100%!important;max-width:100%!important;
+    min-width:0!important;margin:0!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .card{
+    min-width:0!important;max-width:100%!important;
+    padding:14px!important;border-radius:14px!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .form-row{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    gap:12px!important;align-items:stretch!important;min-width:0!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .form-row>.field{
+    grid-column:1/-1!important;min-width:0!important;width:100%!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .field input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .field select,
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .field textarea{
+    display:block!important;box-sizing:border-box!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    min-height:48px!important;padding:11px 12px!important;
+    font-size:16px!important;line-height:1.4!important;
+    border-radius:11px!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .field label{
+    display:block;margin-bottom:6px!important;font-weight:700!important;
+    font-size:12px!important;line-height:1.4!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .section-head{
+    display:flex!important;align-items:start!important;gap:7px!important;
+    flex-wrap:wrap!important;margin-bottom:11px!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .section-head h2{
+    font-size:16px!important;line-height:1.4!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .actions{
+    display:flex!important;flex-direction:column!important;
+    align-items:stretch!important;gap:9px!important;width:100%!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .actions>.btn{
+    display:block!important;width:100%!important;min-height:48px!important;
+    padding:12px 14px!important;font-size:14px!important;
+    white-space:normal!important;text-align:center!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .welcome{
+    display:flex!important;align-items:stretch!important;
+    flex-direction:column!important;gap:10px!important;
+    margin:0 0 14px!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .welcome>.btn{
+    width:100%!important;min-height:48px!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .welcome h1{
+    font-size:22px!important;line-height:1.25!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .notice{
+    margin:10px 0!important;padding:11px!important;
+    font-size:11px!important;line-height:1.55!important;
+  }
+  /* Keep all columns of financial/audit tables, inside their own scroll area. */
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .table-wrap{
+    display:block!important;width:100%!important;max-width:100%!important;
+    min-width:0!important;overflow-x:auto!important;overflow-y:visible;
+    overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .table-wrap table{
+    width:100%;min-width:600px!important;table-layout:auto!important;
+    border-collapse:separate!important;
+  }
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .table-wrap :is(td,th){
+    white-space:nowrap!important;padding:10px!important;font-size:12px!important;
+  }
+  /* Four daily staff workflows: tap a tab; only one editing form is shown. */
+  body[data-role="owner"] #mainApp #hr .bite-hr-tabs{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;margin:16px 0 10px!important;width:100%!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-tab{
+    display:block!important;min-height:48px!important;min-width:0!important;
+    border:1px solid #e3dcf0!important;border-radius:11px!important;
+    background:#fff!important;color:#514667!important;padding:10px 7px!important;
+    font:700 13px/1.35 inherit!important;cursor:pointer!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-tab[aria-selected="true"]{
+    background:#35166e!important;color:#fff!important;border-color:#35166e!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-tab:focus-visible{
+    outline:3px solid #8e74d1!important;outline-offset:2px!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-editor-grid{
+    display:block!important;margin-top:8px!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-editor-grid>.card[data-hr-panel]:not([data-hr-selected="true"]){
+    display:none!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-editor-grid>.card[data-hr-selected="true"]{
+    display:block!important;width:100%!important;
+  }
+  body[data-role="owner"] #mainApp #hr .bite-hr-editor-grid .card>.actions{
+    margin-top:13px!important;
+  }
+  /* Hide empty duplicated phone headers; never change any stored data or actions. */
+}
+@media(max-width:360px){
+  body[data-role="owner"] #mainApp .page:is(#hr,#reports,#expenses,#cashbook,#khata,#purchases,#inventory,#tables,#settings) .card{
+    padding:12px!important;
+  }
+}
