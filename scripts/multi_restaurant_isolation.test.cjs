@@ -173,5 +173,5 @@ test('Owner order actions remain server authenticated and restaurant bound',()=>
  assert.match(block,/pending\.restaurant_id!==access\.restaurantId/);
  assert.match(block,/bite_owner_notification_order_action/);
  assert.match(block,/p_restaurant_id:access\.restaurantId/);
- assert.match(block,/order\.restaurant===access\.restaurantId/);
+ assert.match(block,/o\.restaurant===access\.restaurantId/);
 });
