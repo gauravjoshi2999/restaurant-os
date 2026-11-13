@@ -355,6 +355,19 @@ try:
   check(owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').get_attribute('aria-pressed')=='true',
         'Accepted and Preparing orders share a canonical Preparing stage')
   owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').click()
+  owner.evaluate("""() => { window.__qaReason='pending';
+     BiteOwnerOrders.requestReason(document,'Rejected').then(value=>window.__qaReason=value); }""")
+  owner.locator('.bite-order-reason-modal select').select_option('Out of stock')
+  owner.locator('.bite-order-reason-modal button[type=submit]').click()
+  owner.wait_for_function("window.__qaReason==='Out of stock'")
+  check(not owner.locator('.bite-order-reason-overlay').count(),
+        'Owner Reject requires a reason and closes confirmation cleanly')
+  owner.evaluate("""() => { window.__qaCancel='pending';
+     BiteOwnerOrders.requestReason(document,'Cancelled').then(value=>window.__qaCancel=value); }""")
+  owner.keyboard.press('Escape')
+  owner.wait_for_function("window.__qaCancel===null")
+  check(not owner.locator('.bite-order-reason-overlay').count(),
+        'Owner Cancel modal supports Escape without sending an order update')
   owner.screenshot(path=str(OUT/'ui-owner-orders.png'),full_page=False)
   check(owner.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),
         'Owner Orders has no horizontal overflow at 390px')
