@@ -1824,7 +1824,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.qu
 
 function renderOwnerRestaurantCover(){
  const r=state.restaurants.find(x=>x.id===access.restaurantId);
- const cover=window.BiteRestaurantCovers?.choose(r||{id:access.restaurantId},[],SUPABASE_URL);
+ const cover=window.BiteRestaurantCovers?.choose(r||{id:access.restaurantId},state.orderMenuItems||[],SUPABASE_URL);
  if(!cover)return;
  const photo=document.getElementById('ownerRestaurantCoverPreview'),label=document.getElementById('ownerRestaurantCoverSource');
  if(photo){photo.src=cover.src;photo.alt=cover.alt}
