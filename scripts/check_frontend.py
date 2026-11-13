@@ -145,8 +145,12 @@ blocked_pos_handler = "Manual POS / offline order entry Bite ke initial marketpl
 guarded_pos_handler = "if(!['owner','manager'].includes(access.role))" in owner and "if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId)" in owner
 check(blocked_pos_handler or guarded_pos_handler,
       "Legacy POS submit is disabled or restricted to the assigned restaurant Owner/Manager")
-check('id="pos">' in owner and "New Sale · Not enabled" in owner and "sirf pehle se maujood POS sales" in owner,
-      "Owner POS page clearly identifies read-only sales history and disables unsupported new-sale action")
+check('id="pos">' in owner and 'id="posNewSaleBtn"' in owner
+      and "onclick=\"openOrder()\"" in owner
+      and "async function openOrder(){if(access.role!=='owner'||!access.restaurantId)" in owner
+      and "create_pos_order_with_balance_action" in owner
+      and 'id="posWhatsAppConsent"' in owner,
+      "Owner POS page provides an enabled, role-guarded sales form with optional WhatsApp bill")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
 check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("openDeliveryWhatsAppShare(message,waUrl)") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share and "window.open('about:blank'" not in handover_share and "BiteDeliveryShare" in owner,
