@@ -29,7 +29,7 @@ test('Calendar changes months across year without adding imaginary counts',()=>{
 });
 test('Owner orders are grouped by date with all statuses selectable; admin unchanged',()=>{
   assert.match(ownerHtml,/BiteOwnerCalendar\.update\(document,channelOrders/);
-  assert.match(ownerHtml,/activeOrderStatus='all';\s*\/\/ choosing a date/);
+  assert.match(ownerHtml,/activeOrderStatus='all';/);
   assert.match(ownerHtml,/BiteOwnerCalendar\.getSelected\(\)/);
   assert.match(ownerHtml,/BiteOwnerCalendar\.labelForDay\(orderDay\)/);
   assert.match(ownerHtml,/return dateHeading\+'<article class="order-card"/);
@@ -48,7 +48,7 @@ test('One prominent explicit accept-and-cook action uses existing two guarded tr
   assert.match(ownerHtml,/shareAndHandOverDelivery\(/);
   assert.match(ownerHtml,/async function shareDeliveryHandoff\(id,commitHandover=false\)/);
   assert.match(ownerHtml,/create_delivery_handoff/);
-  assert.match(ownerHtml,/confirm_delivery_handoff/);
+  assert.match(fs.readFileSync('delivery.html','utf8'),/confirm_delivery_handoff/);
 });
 test('Khata Open scrolls to ledger, preserves payment data and clearly reports no entries',()=>{
   assert.match(ownerHtml,/function selectKhataCustomer\(id\)/);
