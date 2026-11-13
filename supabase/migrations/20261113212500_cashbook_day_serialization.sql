@@ -60,9 +60,9 @@ begin
 
  -- UPDATE can move a source between days/tenants. Lock BOTH in a stable order.
  if v_old_key is not null and v_new_key is not null then
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.least(v_old_key,v_new_key));
+  perform pg_catalog.pg_advisory_xact_lock(least(v_old_key,v_new_key));
   if v_old_key <> v_new_key then
-   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.greatest(v_old_key,v_new_key));
+   perform pg_catalog.pg_advisory_xact_lock(greatest(v_old_key,v_new_key));
   end if;
  elsif v_old_key is not null then
   perform pg_catalog.pg_advisory_xact_lock(v_old_key);
