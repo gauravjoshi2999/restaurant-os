@@ -59,12 +59,12 @@ test('Lock-screen push test is owner authenticated, rate-limited and contains no
  assert.match(pushTest,/test notification/);
  assert.doesNotMatch(pushTest,/orders"\)/);
 });
-test('Overview exposes separate native sound test and real lock-screen FCM push test',()=>{
+test('Owner Overview hides diagnostic push controls while backend push remains intact',()=>{
  const overview=html.split('<section class="page active" id="overview">')[1].split('<section class="page" id="orders">')[0];
- assert.match(overview,/id="ownerLockScreenPushTest"/);
- assert.match(overview,/onclick="testOwnerOrderAlert\(\)"/);
- assert.match(overview,/onclick="testOwnerLockScreenPush\(\)"/);
+ assert.match(overview,/id="ownerPriorityOrders"/);
+ assert.doesNotMatch(overview,/Test alert|Test lock-screen push|Notification sound settings|id="orderSoundToggle"/);
  assert.match(html,/sb\.functions\.invoke\('bite-owner-push-test'/);
+ assert.match(html,/function sendOwnerOrderNotification\(order,restaurant\)/);
 });
 
 test('Repeated push test shows cooldown rather than blaming Firebase or owner login',()=>{
