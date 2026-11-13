@@ -95,8 +95,14 @@ check("if(!confirm(" in handover_action and "shareDeliveryHandoff(id,true)" in h
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("await refreshCheckoutPaymentReadiness()" in customer and "data?.ready!==true" in customer and "checkoutPaymentReady=false" in customer,
       "Customer checkout checks server readiness and fails closed before payment preparation")
-check("const ownerPages=['overview','orders','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']" in owner and "'pos'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220] and "'refunds'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+220],
-      "Owner navigation exposes supported restaurant tools and excludes disabled POS and refunds")
+check("const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']" in owner
+      and "'refunds'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+240]
+      and 'data-page="pos"' in owner and 'id="posNewSaleBtn"' in owner
+      and "pos:loadPOSWorkspace" in owner and "onclick=\"openOrder()\"" in owner
+      and "if(access.role!=='owner'||!access.restaurantId)" in owner
+      and "create_pos_order_with_balance_action" in owner
+      and "id=\"posWhatsAppConsent\"" in owner,
+      "Owner navigation exposes guarded POS & Billing with WhatsApp bill while refunds remain excluded")
 check("This account is linked to more than one restaurant" in owner,
       "Ambiguous multi-restaurant Owner accounts are blocked")
 check("This restaurant has more than one Owner assignment" in owner,
