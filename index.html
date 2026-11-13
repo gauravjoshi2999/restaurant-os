@@ -1039,6 +1039,21 @@ body[data-role="owner"] .od-metrics{margin-top:14px}
 <div class="welcome"><div><h1>Restaurant settings</h1><div class="muted">Apne outlet ki customer-facing details aur order preferences update karein.</div></div></div>
 <div class="card owner-profile-settings">
 <div class="section-head"><div><h2>Outlet profile</h2><p class="muted">Yahan ki updates customer website par restaurant details mein dikh sakti hain.</p></div><span class="tag">Your restaurant</span></div>
+<section id="ownerRestaurantCoverSection" aria-label="Restaurant cover branding" style="border:1px solid #e5e7eb;border-radius:15px;padding:16px;margin:0 0 20px;background:#fcfcfd">
+ <div class="section-head" style="margin-bottom:12px"><div><h3>🍽️ Restaurant Cover Photo</h3><p class="muted">Bite automatic food photo dikhata hai. Aap apni asli restaurant photo se replace kar sakte hain.</p></div></div>
+ <div style="position:relative;overflow:hidden;border-radius:13px;aspect-ratio:16/9;background:#f1f1f1;max-width:660px">
+  <img id="ownerRestaurantCoverPreview" src="assets/food/meal-1100.jpg" alt="Restaurant cover preview" style="display:block;width:100%;height:100%;object-fit:cover" onerror="this.onerror=null;this.src='assets/food/meal-1100.jpg'">
+  <span id="ownerRestaurantCoverSource" style="position:absolute;bottom:11px;left:11px;border-radius:99px;background:#172336cd;padding:7px 10px;color:white;font-size:12px;font-weight:750">Bite suggested photo</span>
+ </div>
+ <p class="small" style="margin:10px 0">Photo JPG, PNG ya WebP · max 10 MB · auto cropped to 16:9 WebP · is restaurant ki listing aur direct-menu dono par dikhegi.</p>
+ <div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px">
+  <label class="btn secondary" for="ownerRestaurantCoverFile" style="cursor:pointer;min-height:43px;display:inline-flex;align-items:center">📷 Choose Photo</label>
+  <input type="file" id="ownerRestaurantCoverFile" accept="image/jpeg,image/png,image/webp" style="max-width:220px;font-size:12px">
+  <button type="button" class="btn" id="ownerRestaurantCoverUpload">Upload &amp; Publish Cover</button>
+  <button type="button" class="btn secondary" id="ownerRestaurantCoverReset">Use Bite Suggested Photo</button>
+ </div>
+ <p class="small" id="ownerRestaurantCoverMessage" aria-live="polite" role="status" style="margin:10px 0 0"></p>
+</section>
 <form id="ownerRestaurantSettingsForm">
 <div class="form-row">
 <div class="field"><label for="ownerSettingName">Restaurant name *</label><input id="ownerSettingName" maxlength="140" required readonly aria-describedby="ownerIdentityApprovalNote"></div>
@@ -1132,6 +1147,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-exports.js"></script>
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
+<script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -1805,9 +1821,94 @@ function toggleSidebar(force){
 window.addEventListener('resize',()=>toggleSidebar(false));
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.side.sidebar-open')){toggleSidebar(false);document.querySelector('.sidebar-toggle')?.focus()}});
 
+
+function renderOwnerRestaurantCover(){
+ const r=state.restaurants.find(x=>x.id===access.restaurantId);
+ const cover=window.BiteRestaurantCovers?.choose(r||{id:access.restaurantId},[],SUPABASE_URL);
+ if(!cover)return;
+ const photo=document.getElementById('ownerRestaurantCoverPreview'),label=document.getElementById('ownerRestaurantCoverSource');
+ if(photo){photo.src=cover.src;photo.alt=cover.alt}
+ if(label)label.textContent=cover.source==='owner'?'Your restaurant photo':'Bite suggested photo';
+ document.getElementById('ownerRestaurantCoverReset').disabled=cover.source!=='owner';
+}
+function setOwnerCoverMessage(text,isError=false){
+ const el=document.getElementById('ownerRestaurantCoverMessage');
+ if(el){el.textContent=text;el.style.color=isError?'#bc3030':'#147b56'}
+}
+async function compressOwnerCoverImage(file){
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Sirf JPG, PNG ya WebP photos upload karein.');
+ if(file.size>10*1024*1024)throw new Error('Photo 10 MB se chhoti honi chahiye.');
+ const url=URL.createObjectURL(file),img=new Image();
+ try{
+  await new Promise((resolve,reject)=>{
+   img.onload=resolve;img.onerror=()=>reject(new Error('Selected photo read nahi ho saki.'));
+   img.src=url;
+  });
+  if(img.naturalWidth<350||img.naturalHeight<220)throw new Error('Sahi cover ke liye kam se kam 350 × 220 photo chahiye.');
+  const canvas=document.createElement('canvas'),W=1440,H=810;
+  canvas.width=W;canvas.height=H;const g=canvas.getContext('2d');
+  if(!g)throw new Error('Photo processing unavailable');
+  const scale=Math.max(W/img.naturalWidth,H/img.naturalHeight),
+   w=img.naturalWidth*scale,h=img.naturalHeight*scale;
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);
+  g.drawImage(img,(W-w)/2,(H-h)/2,w,h);
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('WebP compression failed')),'image/webp',.83));
+  if(blob.type!=='image/webp'||blob.size>4*1024*1024)throw new Error('Photo WebP format mein compress nahi hui. Doosri photo try karein.');
+  return blob;
+ }finally{URL.revokeObjectURL(url)}
+}
+document.getElementById('ownerRestaurantCoverUpload')?.addEventListener('click',async()=>{
+ if(access.role!=='owner'||!access.restaurantId)return;
+ const rid=access.restaurantId,input=document.getElementById('ownerRestaurantCoverFile'),file=input.files?.[0],
+  btn=document.getElementById('ownerRestaurantCoverUpload');
+ if(!file){setOwnerCoverMessage('Pehle apni restaurant photo choose karein.',true);return}
+ if(!confirm('Is photo ko '+(state.restaurants.find(r=>r.id===rid)?.name||'restaurant')+' ka public cover bana dein?'))return;
+ btn.disabled=true;input.disabled=true;btn.textContent='Uploading…';setOwnerCoverMessage('Photo optimize ho rahi hai…');
+ let uploadedPath=null;
+ try{
+  const blob=await compressOwnerCoverImage(file),storage=sb.storage.from('bite-menu'),
+    path=rid+'/covers/'+crypto.randomUUID()+'.webp',previous=state.restaurants.find(r=>r.id===rid);
+  const {error:uploadError}=await storage.upload(path,blob,{contentType:'image/webp',cacheControl:'3600',upsert:false});
+  if(uploadError)throw uploadError;
+  uploadedPath=path;setOwnerCoverMessage('Photo upload ho gayi; restaurant cover publish ho raha hai…');
+  const {data,error}=await sb.from('restaurants').update({
+   cover_image_path:path,cover_image_updated_at:new Date().toISOString()
+  }).eq('id',rid).select('id,cover_image_path,cover_image_updated_at').single();
+  if(error||!data||data.cover_image_path!==path)throw error||new Error('Restaurant cover update confirm nahi hua.');
+  const old=window.BiteRestaurantCovers.ownCoverPath(previous);
+  if(previous)Object.assign(previous,data);
+  renderOwnerRestaurantCover();
+  input.value='';setOwnerCoverMessage('✓ Cover publish ho gaya. Customer listing aur direct restaurant page par dikhega.');
+  if(old&&old!==path){const removed=await storage.remove([old]);if(removed.error)console.warn('Old cover cleanup skipped',removed.error.message)}
+ }catch(error){
+  if(uploadedPath){try{await sb.storage.from('bite-menu').remove([uploadedPath])}catch{}}
+  setOwnerCoverMessage(error.message||'Cover upload nahi ho saka. Dobara try karein.',true);
+ }finally{btn.disabled=false;input.disabled=false;btn.textContent='Upload & Publish Cover'}
+});
+document.getElementById('ownerRestaurantCoverReset')?.addEventListener('click',async()=>{
+ if(access.role!=='owner'||!access.restaurantId)return;
+ const r=state.restaurants.find(x=>x.id===access.restaurantId),
+  old=window.BiteRestaurantCovers?.ownCoverPath(r);
+ if(!old)return;
+ if(!confirm('Aapki cover photo hatakar Bite suggested food photo dikhayein?'))return;
+ const btn=document.getElementById('ownerRestaurantCoverReset');
+ btn.disabled=true;setOwnerCoverMessage('Bite suggested photo restore ho rahi hai…');
+ try{
+  const {data,error}=await sb.from('restaurants').update({cover_image_path:null,cover_image_updated_at:new Date().toISOString()})
+    .eq('id',access.restaurantId).eq('cover_image_path',old).select('id,cover_image_path,cover_image_updated_at').single();
+  if(error||!data)throw error||new Error('Cover changed elsewhere. Refresh karke try karein.');
+  if(r)Object.assign(r,data);
+  renderOwnerRestaurantCover();
+  setOwnerCoverMessage('✓ Bite ki automatically selected photo ab live hai.');
+  const rm=await sb.storage.from('bite-menu').remove([old]);if(rm.error)console.warn('Cover cleanup skipped',rm.error.message);
+ }catch(error){setOwnerCoverMessage(error.message||'Cover remove nahi hui.',true)}
+ finally{btn.disabled=false}
+});
+
 async function loadOwnerSettings(){
  const id=access.restaurantId;if(!id)return;
  const r=state.restaurants.find(x=>x.id===id);if(!r)return;
+ renderOwnerRestaurantCover();
  const set=(key,value)=>{const el=document.getElementById(key);if(el)el.value=value??''};
  set('ownerSettingName',r.name);set('ownerSettingContact',r.contact_person);set('ownerSettingPhone',r.phone);set('ownerSettingEmail',r.email);set('ownerSettingCity',r.city);set('ownerSettingAddress',r.address);set('ownerSettingDescription',r.public_description);set('ownerSettingCuisines',(r.cuisine_tags||[]).join(', '));set('ownerSettingDeliveryFee',r.default_delivery_fee);set('ownerSettingMinimum',r.minimum_order_amount);set('ownerSettingPrep',r.estimated_prep_minutes);set('ownerSettingOpen',r.opening_time);set('ownerSettingClose',r.closing_time);const tempClosed=document.getElementById('ownerSettingTempClosed'),deliveryPaused=document.getElementById('ownerSettingDeliveryPaused');if(tempClosed)tempClosed.checked=!!r.is_temporarily_closed;if(deliveryPaused)deliveryPaused.checked=!!r.delivery_paused;const closureDate=r.temporary_closure_until?new Date(r.temporary_closure_until):null;set('ownerSettingClosureUntil',closureDate&&!Number.isNaN(closureDate.getTime())?new Date(closureDate.getTime()-closureDate.getTimezoneOffset()*60000).toISOString().slice(0,16):'');
  const delivery=document.getElementById('ownerSettingDelivery'),pickup=document.getElementById('ownerSettingPickup');if(delivery)delivery.checked=r.accepts_delivery!==false;if(pickup)pickup.checked=r.accepts_pickup!==false;
