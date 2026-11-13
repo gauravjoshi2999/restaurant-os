@@ -469,7 +469,37 @@ try:
         and not bill['hasNativeShare'],
         'Bill message preview and customer chat match without confusing technical marketing copy or extra actions')
   owner.locator('#bitePosWhatsAppDialog button[aria-label="Close bill preview"]').click()
-  nav(owner,'menu');owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
+  nav(owner,'menu')
+  owner.locator('#menuItemRows [data-menu-options]').first.wait_for(state='visible',timeout=12000)
+  owner.locator('#menuItemRows [data-menu-options]').first.click()
+  owner.locator('#menuOptionsModal.show').wait_for(state='visible')
+  check('QA Veg Thali' in owner.locator('#menuOptionsItemName').inner_text(),
+        'Sizes & Add-ons opens for the correct restaurant menu item')
+  owner.locator('#menuOptionsGroupForm [name="name"]').fill('Size')
+  owner.locator('#menuOptionsDraftChoices [name="option_name"]').first.fill('Half')
+  owner.locator('#menuOptionsDraftChoices [name="option_price"]').first.fill('0')
+  owner.locator('#menuOptionsAddDraftChoice').click()
+  owner.locator('#menuOptionsDraftChoices .bite-option-draft-row').nth(1).locator('[name="option_name"]').fill('Full')
+  owner.locator('#menuOptionsDraftChoices .bite-option-draft-row').nth(1).locator('[name="option_price"]').fill('40')
+  owner.locator('#menuOptionsGroupForm button[type="submit"]').click()
+  owner.locator('#menuOptionsGroupList .bite-option-group-card').first.wait_for(state='visible',timeout=10000)
+  check(owner.locator('#menuOptionsGroupList .bite-option-choice-row').nth(1).locator('[name="name"]').input_value()=='Full'
+        and 'Paused' in owner.locator('#menuOptionsGroupList .bite-option-group-card .pill').inner_text(),
+        'Owner saves two choices with different charges as a paused group')
+  owner.locator('#menuOptionsGroupList [data-options-action="link-toggle"]').click()
+  owner.wait_for_function("document.querySelector('#menuOptionsGroupList .bite-option-group-card .pill')?.textContent==='Configured'")
+  check('Configured' in owner.locator('#menuOptionsGroupList').inner_text(),
+        'Owner can enable a validated Size group for one menu item')
+  owner.locator('#menuOptionsGroupList .bite-option-choice-row').nth(1).locator('[name="price_delta"]').fill('50')
+  owner.locator('#menuOptionsGroupList .bite-option-choice-row').nth(1).locator('button[type="submit"]').click()
+  owner.wait_for_function("document.querySelectorAll('#menuOptionsGroupList .bite-option-choice-row [name=price_delta]')[1]?.value==='50.00'")
+  check('50.00'==owner.locator('#menuOptionsGroupList .bite-option-choice-row').nth(1).locator('[name="price_delta"]').input_value(),
+        'Owner can safely edit an extra charge without affecting POS bills')
+  owner.locator('#menuOptionsCloseBtn').click()
+  check(not owner.locator('#menuOptionsModal').is_visible()
+        and owner.locator('#menuItemRows [data-menu-options]').count()==1,
+        'Mobile option manager closes back to original Menu & Prices')
+  owner.locator('#biteCouponWorkspace summary').click();owner.locator('#biteCouponForm').wait_for(state='visible')
   owner.locator('#biteCouponForm [name=code]').fill('QATEST10');owner.locator('#biteCouponForm [name=title]').fill('QA ten percent');owner.locator('#biteCouponForm [name=discount_value]').fill('10');owner.locator('#biteCouponForm button[type=submit]').click()
   check('QATEST10' in owner.locator('#biteCouponList').inner_text(),'Owner coupon form creates a scoped offer')
   owner.locator('#biteCouponList [data-coupon-toggle]').click()
