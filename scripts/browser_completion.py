@@ -301,6 +301,27 @@ try:
   check(owner.locator('#posItemSummary .pos-item-chip').count()==2
     and '₹340' in owner.locator('#orderGrandTotal').inner_text(),
     'Two items can be added consecutively without clicking Add item again')
+  owner.get_by_role('button',name='Increase QA Roti quantity').click()
+  check(owner.locator('#posItemSummary .pos-item-chip').nth(1).locator('.pos-qty-value').inner_text()=='3'
+    and '₹360' in owner.locator('#orderGrandTotal').inner_text(),
+    'Bill item plus button increases existing Roti quantity and recalculates total')
+  owner.get_by_role('button',name='Decrease QA Roti quantity').click()
+  check(owner.locator('#posItemSummary .pos-item-chip').nth(1).locator('.pos-qty-value').inner_text()=='2'
+    and '₹340' in owner.locator('#orderGrandTotal').inner_text(),
+    'Bill item minus button reduces quantity and total without removing the row')
+  owner.locator('#posPickerItemName').fill('QA Roti')
+  owner.locator('#posPickerPrice').fill('20')
+  owner.get_by_role('button',name='＋ Add to bill').click()
+  check(owner.locator('#posItemSummary .pos-item-chip').count()==2
+    and owner.locator('#posItemSummary .pos-item-chip').nth(1).locator('.pos-qty-value').inner_text()=='3'
+    and '₹360' in owner.locator('#orderGrandTotal').inner_text(),
+    'Adding the same item again merges its quantity rather than duplicating the bill line')
+  owner.get_by_role('button',name='Decrease QA Roti quantity').click()
+  owner.get_by_role('button',name='Decrease QA Roti quantity').click()
+  check(owner.get_by_role('button',name='Decrease QA Roti quantity').is_disabled()
+    and '₹320' in owner.locator('#orderGrandTotal').inner_text(),
+    'Minus cannot silently delete the final item; separate remove action stays available')
+  owner.get_by_role('button',name='Increase QA Roti quantity').click()
   check(owner.locator('#posPaidAmount').input_value()=='' and '₹340' in owner.locator('#posBalanceDue').input_value(),
         'Adding items updates due amount but never auto-fills received payment')
   owner.locator('#posPaidAmount').fill('250')
@@ -311,6 +332,44 @@ try:
   owner.locator('#orderModal.show').wait_for(state='visible')
   check(owner.locator('#posPaidAmount').input_value()=='' and owner.locator('#posPaidAmount').get_attribute('placeholder')=='0.00',
         'Reopening a new POS bill clears previously entered received payment')
+  # Inject synthetic available menu items; never query or mutate production restaurant data.
+  owner.evaluate("""() => {posMenuItems=[
+    {id:'qa-water',name:'Water Bottle',price:20},
+    {id:'qa-paneer',name:'Paneer Peshawari',price:259},
+    {id:'qa-roti',name:'Tawa Plain Roti',price:15},
+    {id:'qa-butter',name:'Tawa Butter Roti',price:20}
+  ]}""")
+  owner.locator('#posPickerItemName').fill('water')
+  check(owner.locator('#posMenuSuggestions .pos-search-option').count()==1
+    and 'Water Bottle' in owner.locator('#posMenuSuggestions').inner_text()
+    and 'Paneer' not in owner.locator('#posMenuSuggestions').inner_text(),
+    'Typing Water filters menu to only relevant items instead of an unrelated native dropdown')
+  owner.locator('#posMenuSuggestions .pos-search-option').click()
+  check(owner.locator('#posPickerItemName').input_value()=='Water Bottle'
+    and owner.locator('#posPickerPrice').input_value()=='20.00'
+    and owner.locator('#posPickerItemName').get_attribute('aria-expanded')=='false',
+    'Selecting a menu search result fills exact item name and price and closes suggestions')
+  owner.get_by_role('button',name='＋ Add to bill').click()
+  check('₹20' in owner.locator('#orderGrandTotal').inner_text(),
+    'Search-selected item can be added to the bill at the menu price')
+  owner.locator('#posPickerItemName').fill('plain ro')
+  check(owner.locator('#posMenuSuggestions .pos-search-option').count()==1
+    and 'Tawa Plain Roti' in owner.locator('#posMenuSuggestions').inner_text(),
+    'Multiword partial search finds Tawa Plain Roti without needing the full name')
+  owner.locator('#posPickerItemName').press('ArrowDown')
+  owner.locator('#posPickerItemName').press('Enter')
+  check(owner.locator('#posPickerItemName').input_value()=='Tawa Plain Roti'
+    and owner.locator('#posPickerPrice').input_value()=='15.00',
+    'Keyboard arrow and Enter choose the matching menu item and its price')
+  owner.get_by_role('button',name='＋ Add to bill').click()
+  check(owner.locator('#posItemSummary .pos-item-chip').count()==2
+    and '₹35' in owner.locator('#orderGrandTotal').inner_text(),
+    'Search-picked menu items produce the correct two-item total')
+  owner.locator('#posPickerItemName').fill('zzzz no match')
+  check(owner.locator('#posMenuSuggestions .pos-search-empty').is_visible()
+    and owner.locator('#posMenuSuggestions .pos-search-option').count()==0
+    and owner.locator('#posPickerPrice').input_value()=='',
+    'No-match search explains manual item entry and clears stale menu pricing')
   owner.locator('#orderModal button.close').click()
   # Verify the exact customer's wa.me destination and full bill message.
   # Never actually contact WhatsApp or send any real message in synthetic QA.
