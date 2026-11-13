@@ -219,6 +219,7 @@ try:
       && currentDiscoveryPin==='313399' && el('discoveryPinInput').value==='313399';
   }"""),'Reset filters clears every discovery control while retaining delivery PIN')
   customer.locator('#discoveryPinInput').fill('313324');customer.locator('#discoveryLocationForm button[type=submit]').click()
+  customer.wait_for_function("document.querySelector('#resultCount').textContent.startsWith('1 ')")
   customer.locator('#homeSearchInput').fill('dish that does not exist')
   check(customer.locator('#restaurantGrid [data-discovery-reset]').count()==1,
     'Unmatched food search provides a clear reset action')
