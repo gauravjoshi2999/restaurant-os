@@ -35,6 +35,16 @@ This foundation is not a production paid-checkout launch. The existing `bite_pre
 4. Test provider amount, coupon, zone minimum, replay/idempotency, refunds, and versioned cart recovery.
 5. Only then expose the option picker behind an off-by-default restaurant capability flag, pilot on one restaurant and verify real payment and settlement accounting.
 
+## Step 2B — Order snapshot columns and V3 compatibility gate (implemented)
+
+**Applied live Supabase migrations** and committed copies:
+- `20261113142110_bite_option_snapshot_columns_v3_safe.sql`: adds optional `base_unit_price_snapshot`, `option_unit_total_snapshot`, `option_choices_snapshot` (JSON array), `cart_line_key_snapshot` and `cooking_request_snapshot` to `order_items`. Adds `pricing_version` (default 2) and optional `variant_priced_items` to checkout intents, with V3 requiring a snapshot.
+- `20261113142133_bite_prepare_checkout_v3_legacy_safe_gate.sql`: adds authenticated, invoker-scoped `bite_prepare_checkout_v3` RPC. This accepts a future variant-shaped cart but **rejects all non-empty paid-option selections** (SQLSTATE `0A000`) before any payment intent or order write. For an option-free cart only, it creates canonical V2 item pairs and calls the existing trusted `bite_prepare_checkout_v2` function so delivery-area validation, coupons and idempotency stay in one place.
+
+**Production verification:** after deploying these schema changes, existing order line snapshot fields remain at legacy defaults. 168 historical order lines were checked; no prior item was rewritten. V3 has EXECUTE for authenticated only and does not use SECURITY DEFINER. Transactional SQL tests verified rejection of forged unit prices, duplicate cart lines and paid choices; changes were rolled back. Customer checkout still calls V2 and is unaffected.
+
+**Not yet implemented:** the actual V3 paid-option payment flow, finalizer propagation of immutable snapshots, option-aware owner display and refunds. Snapshot columns are storage slots only until that work is complete. No restaurant can charge for these options now.
+
 ## Step 2: Real priced variants and add-ons (not yet enabled)
 
 Do not let the customer pick paid extras or sizes using a client-calculated price. The current server checkout pricing snapshots are derived from `menu_items.price` and `quantity`. A client-side "extra cheese +₹20" selector would be misleading and financially unsafe without server changes.
