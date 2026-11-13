@@ -63,10 +63,33 @@ test('Direct mode order history and email signup remain inside the restaurant ex
  assert.match(customer,/customerOrders=\(data\|\|\[\]\)\.filter\(order=>!BITE_DIRECT_MODE\|\|order\.restaurant_id===BITE_DIRECT_RESTAURANT_ID\)/);
  assert.match(customer,/emailRedirectTo:window\.location\.origin\+window\.location\.pathname\+\(BITE_DIRECT_MODE\?window\.location\.search:''\)/);
 });
-test('Optional share never happens for other channel and never sends automatically',()=>{
- assert.match(owner,/if\(channel\.startsWith\('POS - '\)\)/);
- assert.match(owner,/const send=style\(document\.createElement\('a'\),true\)/);
- assert.match(owner,/send\.href=waUrl/);
+test('POS native share prepares photo/PDF before the owner taps; no silent WhatsApp send',()=>{
+ assert.match(owner,/helper\.createBillImageFile\(payload\)/);
+ assert.match(owner,/helper\.createBillPdfFile\(payload,window\.BiteInvoice\?\.pdfFromJpegs\)/);
+ assert.match(owner,/helper\.canNativeShare\(imageFile,navigator\)/);
+ assert.match(owner,/navigator\.share\(\{\s*files:\[file\]/);
+ assert.match(owner,/text:caption/);
+ assert.match(owner,/sendImage\.addEventListener\('click',\(\)=>sharePrepared\(imageFile\)\)/);
+ assert.match(owner,/sendPdf\.addEventListener\('click',\(\)=>sharePrepared\(pdfFile\)\)/);
+ assert.match(owner,/const fallback=style\(document\.createElement\('a'\)\)/);
+ assert.match(owner,/fallback\.href=waUrl/);
  assert.doesNotMatch(owner,/fetch\(['"]https:\/\/wa\.me/);
  assert.match(owner,/if\(!confirm\('Kya customer ne WhatsApp bill/);
+});
+test('Branded marketing caption welcomes customer and has only the original restaurant ordering link',()=>{
+ const p={restaurantId,restaurantName:'Hotel Maharani Palace',customerName:'Rahul',orderCode:'POS-123',
+  items:[{name:'Veg Thali',quantity:2,unit_price:150}],total:300,paid:300,due:0,waived:0};
+ const msg=Direct.marketingMessage(p);
+ assert.match(msg,/Rahul/);
+ assert.match(msg,/Agli baar restaurant aaye bina/);
+ assert.match(msg,/sirf Hotel Maharani Palace/);
+ assert.match(msg,/item-wise bill saath share/);
+ assert.ok(msg.includes(Direct.directRestaurantUrl(restaurantId)));
+ assert.ok(!msg.includes(wrongId));
+ const f=Direct.fileName(p,'pdf');
+ assert.match(f,/Hotel-Maharani-Palace-POS-123\.pdf/);
+ assert.equal(Direct.canNativeShare({name:'bill.pdf'},{
+   canShare:x=>x.files.length===1,share:()=>Promise.resolve()
+ }),true);
+ assert.equal(Direct.canNativeShare({name:'bill.pdf'},{canShare:()=>true}),false);
 });
