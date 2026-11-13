@@ -11,6 +11,10 @@ The customer cart can capture a **free-text cooking request per dish**, e.g. "le
 - A request is **not a guarantee** the kitchen can fulfill it. The note does not alter menu prices, coupons, payment totals or restaurant inventory.
 - No database migration or Supabase production configuration change is required for this step.
 
+## Step 1b: One-tap cooking request suggestions (implemented)
+
+The customer can toggle **Less spicy, No onion, No garlic, Extra spicy** in the per-dish editor, or write custom text. Suggestions are plain cooking requests, not menu options. The UI keeps pressed states in sync with manual edits, prevents contradictory spicy presets and refuses additions beyond the existing 100-character cap without truncating the user's note. Suggestions never change the price or server order-item contract.
+
 ## Step 2: Real priced variants and add-ons (not yet enabled)
 
 Do not let the customer pick paid extras or sizes using a client-calculated price. The current server checkout pricing snapshots are derived from `menu_items.price` and `quantity`. A client-side "extra cheese +₹20" selector would be misleading and financially unsafe without server changes.
