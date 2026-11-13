@@ -1092,7 +1092,7 @@ body.bite-session-check #biteSessionSplash{
  <div class="section"><div class="section-head"><h2>Customer accounts</h2><span class="small" id="khataListCount">0 customers</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Balance</th><th>Khata</th></tr></thead><tbody id="khataCustomerRows"></tbody></table><div class="empty" id="khataCustomerEmpty">No customer accounts added.</div></div>
  </div>
- <div class="section"><div class="section-head"><h2 id="khataLedgerTitle">Customer ledger</h2><span class="small" id="khataLedgerBalance">Select a customer</span></div>
+ <div class="section" id="khataLedgerSection" tabindex="-1"><div class="section-head"><h2 id="khataLedgerTitle">Customer ledger</h2><span class="small" id="khataLedgerBalance">Select a customer</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Entry</th><th>Description</th><th>Payment mode</th><th>Amount</th><th>Balance after entry</th></tr></thead><tbody id="khataLedgerRows"></tbody></table><div class="empty" id="khataLedgerEmpty">Select a customer to view their Khata.</div></div>
  </div>
 </section>
@@ -1920,11 +1920,24 @@ function renderKhata(){
  const old=document.getElementById('khataEntryCustomer').value;
  document.getElementById('khataEntryCustomer').innerHTML='<option value="">Select customer</option>'+active.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name)+(c.phone?' · '+esc(c.phone):'')+'</option>').join('');
  if(active.some(c=>c.id===old))document.getElementById('khataEntryCustomer').value=old;
- document.getElementById('khataCustomerRows').innerHTML=khataCustomers.map(c=>{const b=khataBalances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0),label=bal>0?'Udhar':bal<0?'Advance':'Clear';return '<tr><td><strong>'+esc(c.full_name)+'</strong></td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.status)+'</td><td><strong>'+money(Math.abs(bal))+' '+label+'</strong></td><td><button class="btn secondary" onclick="selectKhataCustomer(\''+esc(c.id)+'\')">Open</button></td></tr>'}).join('');
+ document.getElementById('khataCustomerRows').innerHTML=khataCustomers.map(c=>{const b=khataBalances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0),label=bal>0?'Udhar':bal<0?'Advance':'Clear';return '<tr data-khata-customer-id="'+esc(c.id)+'"'+(selectedKhataCustomerId===c.id?' class="is-selected"':'')+'><td><strong>'+esc(c.full_name)+'</strong></td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.status)+'</td><td><strong>'+money(Math.abs(bal))+' '+label+'</strong></td><td><button class="btn secondary" onclick="selectKhataCustomer(\''+esc(c.id)+'\')">Open</button></td></tr>'}).join('');
  document.getElementById('khataCustomerEmpty').style.display=khataCustomers.length?'none':'block';
  renderKhataLedger();
 }
-function selectKhataCustomer(id){selectedKhataCustomerId=id;renderKhataLedger()}
+function selectKhataCustomer(id){
+ if(!khataCustomers.some(c=>c.id===id))return;
+ selectedKhataCustomerId=id;
+ renderKhataLedger();
+ document.querySelectorAll('#khataCustomerRows tr[data-khata-customer-id]').forEach(row=>{
+  row.classList.toggle('is-selected',row.dataset.khataCustomerId===id);
+ });
+ const ledger=document.getElementById('khataLedgerSection');
+ if(ledger){
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  ledger.scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+  ledger.focus({preventScroll:true});
+ }
+}
 function renderKhataLedger(){
  const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),b=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId);
  document.getElementById('khataLedgerTitle').textContent=c?'Khata · '+c.full_name:'Customer ledger';
@@ -1933,7 +1946,7 @@ function renderKhataLedger(){
  let running=bal;
  document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{const effect=x.entry_type==='debit'?Number(x.amount):-Number(x.amount),current=running;running-=effect;return '<tr><td>'+esc(x.entry_date)+'</td><td><span class="pill '+(x.entry_type==='debit'?'amber':'green')+'">'+(x.entry_type==='debit'?'Udhar':'Jama')+'</span></td><td>'+esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'')+'</td><td>'+esc(x.payment_method||'—')+'</td><td>'+money(x.amount)+'</td><td>'+money(current)+'</td></tr>'}).join('');
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
- if(!c)document.getElementById('khataLedgerEmpty').textContent='Select a customer to view their Khata.';
+ document.getElementById('khataLedgerEmpty').textContent=c?'Is customer ke Khata mein abhi koi entry nahi hai.':'Select a customer to view their Khata.';
 }
 function toggleKhataPaymentMode(){const credit=document.getElementById('khataEntryType').value==='credit';document.getElementById('khataPaymentModeField').style.display=credit?'block':'none'}
 async function saveKhataCustomer(){
@@ -3488,11 +3501,17 @@ function renderOrderBoard(){
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
  if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
- const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ const datedOrders=access.role==='owner'?BiteOwnerOrders.dateFilter(channelOrders):channelOrders;
+ const orders=(activeOrderStatus==='all'?datedOrders:datedOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
  const board=document.getElementById('orderBoard');if(!board)return;
+ let lastDate='';
+ const dailyCounts=access.role==='owner'?BiteOwnerOrders.countByDay(channelOrders):{};
  board.innerHTML=orders.map(o=>{
+  const day=access.role==='owner'?BiteOwnerOrders.dayKey(o.createdAt):'';
+  const dateHeading=day&&day!==lastDate?'<h3 class="bite-order-date-group">'+BiteOwnerOrders.formatDay(day)+' <span>'+Number(dailyCounts[day]||0)+' orders</span></h3>':'';
+  if(day)lastDate=day;
   const restaurant=state.restaurants.find(r=>r.id===o.restaurant);
   const history=state.history.filter(h=>h.order_id===o.id).slice().reverse();
   const statusActions=(actions[o.status]||[]).filter(a=>!(o.deliveryType==='delivery'&&((o.status==='Ready'&&a[0]==='Handed Over')||(o.status==='Handed Over'&&a[0]==='Completed'))));
@@ -3509,13 +3528,14 @@ function renderOrderBoard(){
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return dateHeading+'<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
- if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
+ if(!orders.length)board.innerHTML='<div class="order-card-empty">Is date aur status mein abhi koi order nahi hai. Calendar mein doosri date ya All dates chunein.</div>';
  renderIncomingOrderInbox();
  updateOrderSoundButton();
 }
+document.addEventListener('bite-owner-order-date-change',()=>{if(access.role==='owner')renderOrderBoard()});
 let deliveryZoneRows=[],deliveryZonePinRows=[];
 function deliveryZoneRestaurantId(){return access.role==='owner'?access.restaurantId:'';}
 async function loadDeliveryZonesWorkspace(){
