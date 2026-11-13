@@ -608,9 +608,9 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/owner-layout.css?v=20261113-pos-enabled">
 <link rel="stylesheet" href="assets/owner-menu-options.css?v=20261113-size1">
-<link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-canonical1">
+<link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
-<script src="assets/owner-mobile-navigation.js?v=20261114-canonical1" defer></script>
+<script src="assets/owner-mobile-navigation.js?v=20261114-inpage-more2" defer></script>
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261109-market">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><style id="bite-owner-orders-first">
 body[data-role="owner"] .od-welcome{padding:4px 0 8px;margin-bottom:8px}
@@ -714,6 +714,7 @@ body.bite-session-check #biteSessionSplash{
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
+<link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -3714,12 +3715,4 @@ document.addEventListener('DOMContentLoaded',function(){
 <script src="assets/workspace-completion.js?v=20261110"></script><script src="assets/bite-language.js?v=20261110"></script>
 <script src="./android-update-check.js" defer></script>
 <script src="./assets/bite-live-refresh.js" defer></script>
-<script id="bite-owner-priority-layout">
-document.addEventListener('DOMContentLoaded',function(){
-const home=document.querySelector('[data-owner-dashboard]');
-const priority=home?.querySelector('.od-owner-priority');
-const grid=home?.querySelector('.od-dashboard-grid');
-const live=grid?.querySelector('.od-live');
-if(home&&priority&&grid&&live){priority.after(live);}
-});
-</script></body></html>
+<!-- Live orders are consolidated by the Owner mobile shell; do not move a second panel above financial cards. --></body></html>

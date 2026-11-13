@@ -1,0 +1,181 @@
+/* Bite Owner mobile Home + More: 2026-11-14. Owner-only; admin/desktop unchanged. */
+.bite-owner-more-screen,.bite-owner-view-orders{display:none}
+@media(max-width:760px){
+  body[data-role="owner"] #mainApp>.side,
+  body[data-role="owner"] #mainApp .sidebar-overlay{display:none!important}
+  body[data-role="owner"] #mainApp>.main>.top{
+    display:flex!important;align-items:center!important;justify-content:flex-start!important;
+    position:sticky!important;top:0!important;z-index:36!important;
+    height:56px!important;min-height:56px!important;max-height:56px!important;
+    background:#35166e!important;color:#fff!important;border-bottom:0!important;
+    padding:0 15px!important;gap:9px!important;
+  }
+  body[data-role="owner"] #mainApp>.main>.top #pageTitle{
+    display:block!important;min-width:0;flex:1!important;font-size:16px!important;
+    color:#fff!important;font-weight:800!important;line-height:1.25!important;
+    margin:0!important;opacity:1!important;
+  }
+  body[data-role="owner"] #mainApp>.main>.top .sidebar-toggle,
+  body[data-role="owner"] #mainApp>.main>.top>div{display:none!important}
+  body[data-role="owner"] #mainApp>.main>.top .bite-owner-back{
+    width:40px!important;height:40px!important;flex-basis:40px!important;
+    background:#4d2a84!important;border:1px solid #8164aa!important;
+  }
+  body[data-role="owner"] .bite-language-row{display:none!important}
+  body[data-role="owner"] #mainApp .content{
+    padding:14px 12px calc(95px + env(safe-area-inset-bottom))!important;
+    max-width:100%!important;min-width:0!important;margin:0!important;
+  }
+  body[data-role="owner"] #overview .od-welcome{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    padding:0!important;margin:0 0 13px!important;gap:10px!important;
+  }
+  body[data-role="owner"] #overview .od-welcome h1{
+    font-size:23px!important;line-height:1.22!important;margin:0!important;
+    letter-spacing:-.6px!important;color:#252137!important;
+  }
+  body[data-role="owner"] #overview .od-welcome-actions{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    gap:9px!important;margin:0!important;width:100%!important;flex-wrap:nowrap!important;
+  }
+  body[data-role="owner"] #overview #biteTodayDate{
+    flex:0 0 auto!important;margin:0!important;border-radius:10px!important;
+    padding:10px 9px!important;background:#fff!important;color:#6b647b!important;
+    font-size:10px!important;
+  }
+  body[data-role="owner"] #overview #ownerQuickPosBtn{
+    min-width:0!important;flex:1 1 auto!important;min-height:44px!important;
+    width:auto!important;padding:9px 11px!important;border-radius:11px!important;
+    background:#35166e!important;border:0!important;color:#fff!important;
+    font-size:13px!important;font-weight:800!important;white-space:nowrap!important;
+  }
+  body[data-role="owner"] #overview .od-outlet{
+    display:flex!important;align-items:center!important;gap:8px!important;
+    margin:0 0 12px!important;padding:12px!important;border-radius:13px!important;
+    background:#fff!important;
+  }
+  body[data-role="owner"] #overview .od-outlet strong{font-size:13px!important;line-height:1.3!important}
+  body[data-role="owner"] #overview .od-outlet-state{
+    width:auto!important;padding-left:0!important;margin:0!important;font-size:10px!important
+  }
+  body[data-role="owner"] #overview .od-outlet>.od-text-button{font-size:10px!important;min-height:44px!important;padding:7px!important;white-space:normal!important;text-align:right!important}
+  /* The live order cards and stage shortcuts share ONE panel, no second title. */
+  body[data-role="owner"] #overview .od-live{display:none!important}
+  body[data-role="owner"] #overview .od-owner-priority{
+    display:block!important;background:#fff!important;border:1px solid #e8dfee!important;
+    border-radius:14px!important;padding:13px!important;margin:0 0 14px!important;
+    box-shadow:none!important;
+  }
+  body[data-role="owner"] #overview .od-priority-title{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    gap:8px!important;margin:0 0 11px!important;flex-wrap:nowrap!important;
+  }
+  body[data-role="owner"] #overview .od-priority-title strong{
+    font-size:17px!important;line-height:1.2!important;color:#35166e!important
+  }
+  body[data-role="owner"] #overview .od-priority-title span{font-size:10px!important;line-height:1.35!important}
+  body[data-role="owner"] #overview .bite-owner-view-orders{
+    border:0;background:#f2eef9;color:#35166e;border-radius:9px;padding:8px 10px;
+    white-space:nowrap;min-height:40px;font-size:11px;font-weight:800;cursor:pointer
+  }
+  body[data-role="owner"] #overview .od-owner-priority>.od-stages{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;margin:0 0 10px!important;
+  }
+  body[data-role="owner"] #overview .od-owner-priority .od-stage{
+    padding:10px 7px!important;min-height:82px!important;border-radius:11px!important;
+    background:#f8f7fc!important;border:1px solid #e9e2f0!important;
+    display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+    gap:2px!important;text-align:left!important;white-space:normal!important;
+  }
+  body[data-role="owner"] #overview .od-owner-priority .od-stage-dot{
+    display:none!important
+  }
+  body[data-role="owner"] #overview .od-owner-priority .od-stage>span:not(.od-stage-dot){
+    font-size:10px!important;white-space:normal!important;margin:0!important;
+    font-weight:700!important;line-height:1.3!important;
+  }
+  body[data-role="owner"] #overview .od-owner-priority .od-stage strong{
+    font-size:23px!important;line-height:1.15!important;color:#2f1c58!important;margin:1px 0!important;
+  }
+  body[data-role="owner"] #overview .od-owner-priority .od-stage small{
+    font-size:9px!important;line-height:1.2!important;color:#797084!important;margin:0!important;
+  }
+  body[data-role="owner"] #overview #ownerPriorityOrders{gap:7px!important}
+  body[data-role="owner"] #overview .od-priority-empty{
+    padding:14px 10px!important;font-size:12px!important;
+    line-height:1.5!important;background:#f7f6fa!important;border-radius:10px!important;
+  }
+  body[data-role="owner"] #overview .od-priority-order{padding:10px!important;min-height:48px!important}
+  body[data-role="owner"] #overview .od-metrics{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-bottom:11px!important}
+  body[data-role="owner"] #overview .od-metric{
+    min-width:0!important;padding:13px!important;border-radius:12px!important;
+    background:#fff!important
+  }
+  body[data-role="owner"] #overview .od-metric strong{
+    font-size:23px!important;letter-spacing:-.7px!important;line-height:1.25!important
+  }
+  body[data-role="owner"] #overview .od-metric>small{font-size:9px!important;line-height:1.35!important}
+  body[data-role="owner"] #overview .od-metric>span{font-size:10px!important;line-height:1.4!important}
+  body[data-role="owner"] #overview .od-dashboard-grid{
+    display:flex!important;flex-direction:column!important;gap:12px!important
+  }
+  body[data-role="owner"] #overview .od-dashboard-grid .od-panel{padding:14px!important}
+  body[data-role="owner"] #overview .od-tools-section{display:none!important}
+  /* More is a first-class scrolling screen, not an off-canvas drawer. */
+  body[data-role="owner"] #mainApp[data-bite-more-open="true"] .content>.page.active:not([hidden]){
+    display:none!important;visibility:hidden!important
+  }
+  body[data-role="owner"] #mainApp .bite-owner-more-screen:not([hidden]){
+    display:block!important;padding:0 0 12px!important;min-width:0!important
+  }
+  body[data-role="owner"] #mainApp .bite-owner-more-screen[hidden]{display:none!important}
+  body[data-role="owner"] #mainApp .bite-more-head{padding:6px 2px 12px}
+  body[data-role="owner"] #mainApp .bite-more-head h1{
+    font-size:23px!important;margin:0 0 3px!important;color:#2e2350!important
+  }
+  body[data-role="owner"] #mainApp .bite-more-head p{font-size:12px;color:#7a7285;margin:0}
+  body[data-role="owner"] #mainApp .bite-more-group{margin:10px 0 17px}
+  body[data-role="owner"] #mainApp .bite-more-group h2{
+    font-size:13px!important;color:#6e657c;margin:0 0 9px;padding:0 2px;font-weight:800!important
+  }
+  body[data-role="owner"] #mainApp .bite-more-grid{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px
+  }
+  body[data-role="owner"] #mainApp .bite-more-item{
+    min-height:100px;min-width:0;width:100%;display:flex;flex-direction:column;
+    align-items:flex-start;justify-content:center;gap:6px;position:relative;
+    padding:13px 11px;background:#fff;border:1px solid #e5dfec;border-radius:13px;
+    text-align:left;color:#302841;cursor:pointer;box-shadow:0 2px 8px #26134207
+  }
+  body[data-role="owner"] #mainApp .bite-more-item-icon{
+    display:grid;place-items:center;width:32px;height:32px;border-radius:9px;
+    background:#f1eafa;color:#35166e;font-size:18px;font-weight:800
+  }
+  body[data-role="owner"] #mainApp .bite-more-item-copy strong{display:block;font-size:13px;line-height:1.35}
+  body[data-role="owner"] #mainApp .bite-more-item-copy small{display:block;font-size:10px;line-height:1.35;color:#756b83;margin-top:3px}
+  body[data-role="owner"] #mainApp .bite-more-item-arrow{
+    position:absolute;right:10px;top:11px;font-size:22px;color:#9585af
+  }
+  body[data-role="owner"] #mainApp .bite-more-languages .bite-language-controls{
+    display:flex!important;gap:9px!important;width:100%
+  }
+  body[data-role="owner"] #mainApp .bite-more-languages .bite-language-controls button{
+    flex:1 1 0!important;min-height:44px!important;font-size:13px!important;
+    border-radius:10px!important
+  }
+  body[data-role="owner"] #mainApp .bite-more-logout{
+    width:100%;margin:12px 0 0;min-height:48px;border-radius:11px;
+    border:1px solid #efc6c6;background:#fff;color:#a72b37;font-size:13px;font-weight:800
+  }
+  body[data-role="owner"] #mainApp .bite-more-item:focus-visible,
+  body[data-role="owner"] #mainApp .bite-more-logout:focus-visible,
+  body[data-role="owner"] #overview .bite-owner-view-orders:focus-visible{
+    outline:3px solid #8262cf;outline-offset:2px
+  }
+}
+@media(max-width:360px){
+  body[data-role="owner"] #overview #biteTodayDate{font-size:9px!important}
+  body[data-role="owner"] #overview #ownerQuickPosBtn{font-size:12px!important;padding-inline:8px!important}
+  body[data-role="owner"] #mainApp .bite-more-item{min-height:94px;padding:10px 9px}
+}

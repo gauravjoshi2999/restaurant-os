@@ -22,18 +22,22 @@ def observe(page):
  page.route('**/api.cashfree.com/**',lambda route:route.abort())
  page.on('dialog',lambda dialog:dialog.accept())
 def nav(page,target):
- # Use the five primary owner tabs; secondary owner screens open through More.
- # Super Admin keeps the original desktop/mobile sidebar navigation.
+ # Owner mobile: primary bottom tabs and in-content More cards, never sidebar.
+ # Super Admin continues to use the existing sidebar navigation.
  bottom=page.locator('#biteOwnerBottomNav [data-bite-page="'+target+'"]')
  if bottom.count() and bottom.is_visible():
   bottom.click()
   return
- button=page.locator('.nav [data-page="'+target+'"]')
  more=page.locator('#biteOwnerBottomNav [data-bite-page="more"]')
- toggle=page.locator('.sidebar-toggle')
  if more.count() and more.is_visible():
   more.click()
- elif toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':
+  card=page.locator('#biteOwnerMoreScreen [data-owner-route="'+target+'"]')
+  card.wait_for(state='visible')
+  card.click()
+  return
+ button=page.locator('.nav [data-page="'+target+'"]')
+ toggle=page.locator('.sidebar-toggle')
+ if toggle.is_visible() and toggle.get_attribute('aria-expanded')!='true':
   toggle.click()
  button.click()
 server=ThreadingHTTPServer(('127.0.0.1',4174),SimpleHTTPRequestHandler);Thread(target=server.serve_forever,daemon=True).start()
@@ -373,6 +377,16 @@ try:
         'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
   owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
+  check(owner.locator('#overview .od-owner-priority').is_visible()
+    and owner.locator('#overview .od-owner-priority .od-stages').count()==1
+    and owner.locator('#overview .od-live').is_hidden(),
+    'Mobile Home shows exactly one Live Orders panel with stage shortcuts inside')
+  check(owner.locator('.bite-language-row').is_hidden()
+    and owner.locator('.side').is_hidden()
+    and owner.locator('#mainApp>.main>.top').evaluate(
+       "(el)=>getComputedStyle(el).backgroundColor==='rgb(53, 22, 110)' && el.getBoundingClientRect().height<=60"),
+    'Owner mobile header is compact, readable purple; no language strip or sidebar')
+  owner.screenshot(path=str(OUT/'ui-owner-home.png'),full_page=False)
   check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
   owner.locator('#ownerQuickPosBtn').click()
   owner.locator('#orderModal.show').wait_for(state='visible')

@@ -20,7 +20,12 @@ transform:translateX(-110%)}.side.sidebar-open{transform:translateX(0)}
 <main class="main"><header class="top"><button class="sidebar-toggle" type="button">☰</button>
 <strong id="pageTitle">Overview</strong><div><button>Logout</button></div></header>
 <div class="content">
-<section class="page active" id="overview">Overview</section>
+<section class="page active" id="overview">
+<div class="od-owner-priority"><div class="od-priority-title"><strong>Live Orders</strong></div>
+<div id="ownerPriorityOrders">No active orders</div></div>
+<div class="od-dashboard-grid"><section class="od-panel od-live"><div class="od-stages">
+<button class="od-stage" type="button">New</button><button class="od-stage" type="button">Preparing</button>
+<button class="od-stage" type="button">Ready</button></div></section></div></section>
 <section class="page" id="orders" hidden>Orders</section>
 <section class="page" id="pos" hidden>POS</section>
 <section class="page" id="menu" hidden>Menu</section>
@@ -34,6 +39,7 @@ with sync_playwright() as p:
         page=browser.new_page(viewport={"width":width,"height":780},device_scale_factor=1)
         page.set_content(SHELL)
         page.add_style_tag(path=str(ROOT/"assets/owner-mobile-navigation.css"))
+        page.add_style_tag(path=str(ROOT/"assets/owner-mobile-polish.css"))
         page.evaluate("""() => {
           window.showPage=id=>{
             document.querySelectorAll('.page').forEach(el=>{
@@ -71,14 +77,30 @@ with sync_playwright() as p:
             assert page.evaluate("document.body.dataset.billOpened!=='yes'"), "POS tab must not auto-create bills"
             for tab in ['overview','orders','pos','menu']:
                 assert page.locator(f'.side .nav button[data-page="{tab}"]').is_hidden(), f"{tab} repeats in More"
-            assert page.locator('.side .nav button[data-page="expenses"]').is_visible()
+            assert page.locator('.side').is_hidden(), "Owner mobile must not show side drawer"
+            assert page.locator('#overview .od-owner-priority .od-stages').count()==1, "Stages must be in the single live panel"
+            assert page.locator('#overview .od-live').is_hidden(), "No duplicate Live Orders panel"
             page.locator('[data-bite-page="more"]').click()
-            assert page.locator(".side.sidebar-open").count()==1
-            page.locator(".bite-owner-drawer-logout").click()
+            assert page.locator("#biteOwnerMoreScreen").is_visible(), "More must open inside main content"
+            assert page.locator(".side.sidebar-open").count()==0, "More must never slide in sidebar"
+            assert page.locator('#biteOwnerMoreScreen [data-owner-route]').count()==9
+            assert page.locator('#overview').is_hidden(), "Underlying Home hidden while More open"
+            assert page.locator('.bite-owner-back').is_visible(), "Back available on More"
+            assert page.locator('[data-owner-route="expenses"]').is_visible()
+            page.locator('[data-owner-route="expenses"]').click()
+            page.wait_for_function("document.querySelector('#expenses').classList.contains('active')")
+            assert page.locator("#biteOwnerMoreScreen").is_hidden()
+            page.locator('[data-bite-page="more"]').click()
+            assert page.locator('#biteOwnerMoreScreen').is_visible()
+            page.locator('.bite-owner-back').click()
+            assert page.locator('#biteOwnerMoreScreen').is_hidden()
+            page.locator('[data-bite-page="more"]').click()
+            page.locator('.bite-more-logout').click()
             assert page.evaluate("document.body.dataset.logoutCalled==='yes'")
             page.evaluate("document.body.dataset.role='super_admin'")
             page.wait_for_function("document.getElementById('biteOwnerBottomNav').hidden")
             assert nav.is_hidden()
+            assert page.locator('#biteOwnerMoreScreen').is_hidden()
         else:
             assert nav.is_hidden(),"Desktop must keep existing sidebar layout"
             assert page.locator('.side .nav button[data-page="menu"]').is_visible()
