@@ -3505,11 +3505,19 @@ function renderOrderBoard(){
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
- if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
- const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ if(access.role==='owner'){
+  BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
+  BiteOwnerCalendar.update(document,channelOrders,selectedDate=>{
+    activeOrderStatus='all';
+    renderOrderBoard();
+    document.getElementById('orderBoard')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+ }
+ const orders=(activeOrderStatus==='all'?channelOrders:channelOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).filter(o=>access.role!=='owner'||!BiteOwnerCalendar.getSelected()||(!o.isDemo&&BiteOwnerCalendar.dateKey(o.createdAt)===BiteOwnerCalendar.getSelected())).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
  const board=document.getElementById('orderBoard');if(!board)return;
+ let previousOrderDay=null;
  board.innerHTML=orders.map(o=>{
   const restaurant=state.restaurants.find(r=>r.id===o.restaurant);
   const history=state.history.filter(h=>h.order_id===o.id).slice().reverse();
@@ -3525,9 +3533,12 @@ function renderOrderBoard(){
   const payBtn=isPos&&!['Rejected','Cancelled'].includes(o.status)&&Number(pay.balance_amount)>0&&['owner','manager','staff'].includes(access.role)?'<button class="btn secondary" onclick="openPaymentModal(\''+esc(o.id)+'\')">Record payment</button>':'';
   const payments=isPos?(state.orderPayments||[]).filter(p=>p.order_id===o.id):[];
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
+  const orderDay=BiteOwnerCalendar.dateKey(o.createdAt);
+  const dateHeading=canManage&&orderDay!==previousOrderDay?'<h3 class="bite-order-date-heading">'+esc(BiteOwnerCalendar.labelForDay(orderDay))+'</h3>':'';
+  previousOrderDay=orderDay;
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return dateHeading+'<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
  if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
