@@ -483,8 +483,8 @@ try:
   owner.locator('#menuOptionsDraftChoices .bite-option-draft-row').nth(1).locator('[name="option_price"]').fill('40')
   owner.locator('#menuOptionsGroupForm button[type="submit"]').click()
   owner.locator('#menuOptionsGroupList .bite-option-group-card').first.wait_for(state='visible',timeout=10000)
-  check('Full' in owner.locator('#menuOptionsGroupList').inner_text()
-        and 'Paused' in owner.locator('#menuOptionsGroupList').inner_text(),
+  check(owner.locator('#menuOptionsGroupList .bite-option-choice-row').nth(1).locator('[name="name"]').input_value()=='Full'
+        and 'Paused' in owner.locator('#menuOptionsGroupList .bite-option-group-card .pill').inner_text(),
         'Owner saves two choices with different charges as a paused group')
   owner.locator('#menuOptionsGroupList [data-options-action="link-toggle"]').click()
   owner.wait_for_function("document.querySelector('#menuOptionsGroupList .bite-option-group-card .pill')?.textContent==='Configured'")
