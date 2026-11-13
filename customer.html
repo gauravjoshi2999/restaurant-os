@@ -163,7 +163,7 @@ function showDirectRestaurantUnavailable(){
 }
 async function loadRestaurants(){const grid=$('restaurantGrid');try{
  if(BITE_DIRECT_MODE&&!BITE_DIRECT_RESTAURANT_ID){showDirectRestaurantUnavailable();return;}
- const response=await sb.rpc('bite_storefront',{p_postal_code:currentDiscoveryPin||null});
+ const response=await sb.rpc('bite_storefront',{p_postal_code:BITE_DIRECT_MODE?null:(currentDiscoveryPin||null)});
  if(response.error&&response.error.code!=='PGRST202')throw response.error;
  if(response.error){const legacy=await sb.rpc('list_public_restaurants');if(legacy.error)throw legacy.error;restaurants=legacy.data||[];storefrontCategories=[];
   if(currentDiscoveryPin)await Promise.all(restaurants.map(async r=>{const zone=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:r.id,p_postal_code:currentDiscoveryPin});if(zone.error)throw zone.error;const z=Array.isArray(zone.data)?zone.data[0]:zone.data;r.serviceable=z?.serviceable===true;r.zone_delivery_fee=z?.delivery_fee;}));
