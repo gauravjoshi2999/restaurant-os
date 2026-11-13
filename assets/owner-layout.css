@@ -14,7 +14,7 @@ body[data-role="owner"] #mainApp .sidebar-overlay:not(.visible) { display:none!i
 body[data-role="owner"] #mainApp .sidebar-overlay.visible { visibility:visible!important; pointer-events:auto!important; }
 body[data-role="owner"] .nav { display:block!important; width:100%!important; overflow:visible!important; }
 body[data-role="owner"] .nav button { min-height:44px; width:100%!important; white-space:normal!important; text-align:left; }
-body[data-role="owner"] .nav button[data-page="pos"],body[data-role="owner"] .nav button[data-page="refunds"] { display:none!important; }
+body[data-role="owner"] .nav button[data-page="refunds"] { display:none!important; }
 body[data-role="owner"] .table-wrap { max-width:100%; overflow-x:auto!important; overscroll-behavior-x:contain; }
 body[data-role="owner"] .form-row { min-width:0; }
 body[data-role="owner"] .field { min-width:0; }
