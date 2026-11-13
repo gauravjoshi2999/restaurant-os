@@ -155,7 +155,16 @@ try:
   check(customer.locator('#editProfilePhone').input_value()=='9999999999','Hindi navigation does not rewrite user-entered values')
   customer.locator('[data-bite-language="en"]').click()
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
-  owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
+  owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html?bite_page=pos&v=qa-pos',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
+  owner.locator('#posNewSaleBtn').wait_for(state='visible')
+  check(owner.evaluate("""() => document.querySelector('#pos.page')?.classList.contains('active') && document.getElementById('pageTitle')?.textContent==='POS & Billing'"""),
+        'Direct POS URL opens authenticated Owner POS & Billing without navigating the sidebar')
+  nav(owner,'overview')
+  owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
+  check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
+  owner.locator('#ownerQuickPosBtn').click()
+  owner.locator('#posNewSaleBtn').wait_for(state='visible')
+  check(owner.locator('#posNewSaleBtn').is_visible(),'Owner overview quick button navigates to real POS workspace')
   nav(owner,'pos')
   owner.locator('#posNewSaleBtn').wait_for(state='visible')
   check(not owner.locator('.side').evaluate("(el) => el.classList.contains('sidebar-open')") and owner.locator('#posNewSaleBtn').is_visible(),
