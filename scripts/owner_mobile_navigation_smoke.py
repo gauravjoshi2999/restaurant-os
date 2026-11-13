@@ -37,10 +37,10 @@ transform:translateX(-110%)}.side.sidebar-open{transform:translateX(0)}
 <section class="page" id="hr" hidden>
 <div class="grid section"><div class="card">Active employees</div><div class="card">Present</div></div>
 <nav class="bite-hr-tabs" role="tablist">
-<button data-hr-tab="employee" role="tab" aria-selected="true" aria-controls="hrEmployeePanel">Employees</button>
-<button data-hr-tab="attendance" role="tab" aria-selected="false" aria-controls="hrAttendancePanel">Attendance</button>
-<button data-hr-tab="leave" role="tab" aria-selected="false" aria-controls="hrLeavePanel">Leave</button>
-<button data-hr-tab="payment" role="tab" aria-selected="false" aria-controls="hrPaymentCard">Payments</button></nav>
+<button class="bite-hr-tab" data-hr-tab="employee" role="tab" aria-selected="true" aria-controls="hrEmployeePanel">Employees</button>
+<button class="bite-hr-tab" data-hr-tab="attendance" role="tab" aria-selected="false" aria-controls="hrAttendancePanel">Attendance</button>
+<button class="bite-hr-tab" data-hr-tab="leave" role="tab" aria-selected="false" aria-controls="hrLeavePanel">Leave</button>
+<button class="bite-hr-tab" data-hr-tab="payment" role="tab" aria-selected="false" aria-controls="hrPaymentCard">Payments</button></nav>
 <div class="grid section bite-hr-editor-grid">
 <div class="card" id="hrEmployeePanel" data-hr-panel="employee" data-hr-selected="true"><div class="form-row"><div class="field"><label>Name</label><input id="hrEmployeeName"></div><div class="field"><label>Mobile</label><input></div></div></div>
 <div class="card" id="hrAttendancePanel" data-hr-panel="attendance"><div class="form-row"><div class="field"><label>Employee</label><select><option>QA Chef</option></select></div><div class="field"><label>Status</label><select><option>Present</option></select></div></div></div>
