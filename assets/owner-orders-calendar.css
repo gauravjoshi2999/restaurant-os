@@ -1,0 +1,87 @@
+/* Owner date-wise website orders. Tenant data stays in existing Orders controller. */
+body[data-role="owner"] #orders .bite-owner-orders-calendar{
+ width:100%;max-width:1020px;margin:12px auto 8px;
+ background:#fff;border:1px solid #ded5ec;border-radius:14px;padding:0 13px;
+ box-shadow:0 3px 12px #25134509;
+}
+body[data-role="owner"] #orders .bite-owner-orders-calendar>summary{
+ cursor:pointer;padding:14px 3px;min-height:48px;display:list-item;
+ color:#35166e;font-size:14px;font-weight:800;line-height:1.45;
+}
+body[data-role="owner"] #orders .bite-order-cal-note{
+ margin:0 0 11px;font-size:11px;color:#70677a;line-height:1.5;
+}
+body[data-role="owner"] #orders .bite-order-cal-toolbar{
+ display:grid;grid-template-columns:48px minmax(0,1fr) 48px;
+ align-items:center;gap:8px;text-align:center;margin:10px 0;
+}
+body[data-role="owner"] #orders .bite-order-cal-toolbar strong{
+ font-size:15px;color:#2b2351;
+}
+body[data-role="owner"] #orders .bite-order-cal-toolbar button{
+ min-height:44px;border:1px solid #ded5ef;background:#f8f6fc;border-radius:10px;
+ color:#35166e;font-size:27px;cursor:pointer;
+}
+body[data-role="owner"] #orders .bite-order-cal-weekdays,
+body[data-role="owner"] #orders .bite-order-cal-days{
+ display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;
+}
+body[data-role="owner"] #orders .bite-order-cal-weekdays span{
+ font-size:10px;color:#6f6880;text-align:center;padding:4px 0;font-weight:700;
+}
+body[data-role="owner"] #orders .bite-order-cal-day{
+ min-width:0;min-height:53px;border:1px solid #e7e2ee;background:#faf9fc;
+ border-radius:9px;padding:5px 1px;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#29213b;
+}
+body[data-role="owner"] #orders .bite-order-cal-day strong{font-size:13px;line-height:1}
+body[data-role="owner"] #orders .bite-order-cal-day small{
+ font-size:8px;line-height:1.1;max-width:100%;text-align:center;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+body[data-role="owner"] #orders .bite-order-cal-day.has-orders{border-color:#a88ed1;background:#eee7fa;color:#35166e}
+body[data-role="owner"] #orders .bite-order-cal-day.selected{background:#35166e;color:#fff;border-color:#35166e}
+body[data-role="owner"] #orders .bite-order-cal-day.today:not(.selected){box-shadow:inset 0 0 0 2px #d92d3a}
+body[data-role="owner"] #orders .bite-order-cal-footer{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ padding:12px 0 14px;color:#655b76;font-size:11px;
+}
+body[data-role="owner"] #orders .bite-order-cal-footer button{
+ min-height:44px;padding:9px 13px;background:#f1edfa;color:#35166e;
+ border:1px solid #e1d8ef;border-radius:9px;font-weight:800;
+}
+body[data-role="owner"] #orders .bite-order-cal-footer button[hidden]{display:none!important}
+body[data-role="owner"] #orders .bite-order-date-heading{
+ padding:12px 4px 7px;font-size:15px;margin:8px 0;
+ font-weight:800;color:#33245a;border-bottom:1px solid #e2daea;
+ scroll-margin-top:115px;
+}
+body[data-role="owner"] #orders #orderBoard{scroll-margin-top:120px}
+body[data-role="owner"] #khata #khataLedgerTitle,
+body[data-role="owner"] #khata #khataLedgerTitle:focus{outline-offset:3px}
+body[data-role="owner"] #khata .section:has(#khataLedgerTitle){
+ scroll-margin-top:78px;
+}
+body[data-role="owner"] #khata .section.bite-khata-selected-ledger>.section-head h2{color:#35166e}
+body[data-role="owner"] #orders .bite-owner-orders-calendar:focus-within{border-color:#a88ed1}
+body[data-role="owner"] #orders .bite-order-cal-day:focus-visible,
+body[data-role="owner"] #orders .bite-order-cal-toolbar button:focus-visible,
+body[data-role="owner"] #orders .bite-order-cal-footer button:focus-visible{
+ outline:3px solid #9c86ce;outline-offset:2px;
+}
+body[data-role="owner"] #orders .bite-order-quick-action{
+ background:#126b44!important;border-color:#126b44!important;color:#fff!important;
+ font-weight:800!important;
+}
+body[data-role="owner"] #orders .bite-order-secondary-action{margin:0;align-self:center}
+body[data-role="owner"] #orders .bite-order-secondary-action>summary{
+ min-height:44px;display:grid;place-items:center;border:1px solid #ddd5eb;
+ background:#f9f7fc;border-radius:10px;cursor:pointer;font-size:12px;color:#60556f;
+}
+body[data-role="owner"] #orders .bite-order-secondary-action>button{margin-top:8px;width:100%}
+@media(max-width:760px){
+ body[data-role="owner"] #orders .bite-owner-orders-calendar{padding:0 10px}
+ body[data-role="owner"] #orders .bite-order-cal-day{min-height:49px}
+ body[data-role="owner"] #orders .bite-order-cal-day small{font-size:7px}
+ body[data-role="owner"] #orders .order-card .order-actions{grid-template-columns:minmax(0,1fr)!important}
+}
