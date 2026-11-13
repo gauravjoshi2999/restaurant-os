@@ -4,12 +4,15 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const workflow=fs.readFileSync('.github/workflows/bite-android-signed-manual.yml','utf8');
-test('Owner sound and test alert controls appear only once on Overview, never inside Orders',()=>{
+test('Owner overview remains clean; sound controls live only in collapsed settings',()=>{
  assert.equal((html.match(/id="orderSoundToggle"/g)||[]).length,1);
  assert.equal((html.match(/id="ownerPriorityOrders"/g)||[]).length,1);
  const overview=html.split('<section class="page active" id="overview">')[1].split('<section class="page" id="orders">')[0];
- assert.match(overview,/id="orderSoundToggle"/);
- assert.match(overview,/onclick="testOwnerOrderAlert\(\)"/);
+ const settings=html.split('<section class="page" id="settings">')[1].split('</details>')[0];
+ assert.doesNotMatch(overview,/id="orderSoundToggle"|Test alert|Test lock-screen push/);
+ assert.match(settings,/<details class="card" id="ownerAlertPreferences"/);
+ assert.match(settings,/id="orderSoundToggle"/);
+ assert.match(settings,/id="ownerNotificationSoundSettings"/);
  const orders=html.slice(html.indexOf('id="orderLiveState"'),html.indexOf('id="orderStatusTabs"'));
  assert.doesNotMatch(orders,/id="orderSoundToggle"/);
 });
