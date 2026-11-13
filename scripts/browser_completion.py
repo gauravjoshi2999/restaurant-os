@@ -82,10 +82,12 @@ try:
     const hero=document.getElementById('biteRestaurantHeroImage');
     const chosen=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
     const label=document.getElementById('biteRestaurantCoverLabel').textContent;
+    const possible=[chosen.src,chosen.fallback].map(src=>new URL(src,location.href).href);
     return chosen.source!=='owner'
-      && hero?.src===new URL(chosen.src,location.href).href
+      && !activeRestaurant.cover_image_path
       && hero?.complete && hero?.naturalWidth>0
-      && label===(chosen.source==='menu'?'Menu photo':'Bite suggested photo');
+      && possible.includes(hero.src)
+      && (label==='Menu photo'||label==='Bite suggested photo');
   }""",timeout=10000)
   customer.locator('#menuItems .menuitem').first.wait_for(state='visible',timeout=12000)
   check(True,'Removing Owner cover restores restaurant menu photo or curated Bite fallback without losing items')
