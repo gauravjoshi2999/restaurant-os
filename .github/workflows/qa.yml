@@ -43,3 +43,35 @@ jobs:
             dist/launch-qa/ui-*.png
             dist/launch-qa/receipt.pdf
           if-no-files-found: ignore
+
+  cashbook-postgres-qa:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_cashbook_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_cashbook_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_cashbook_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify closing migration on ephemeral PostgreSQL 17
+        run: |
+          psql --version
+          psql -v ON_ERROR_STOP=1 -f scripts/cashbook_postgres_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113212500_cashbook_day_serialization.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/cashbook_closing_db_test.sql
+          bash scripts/cashbook_concurrency_smoke.sh
