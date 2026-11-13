@@ -115,6 +115,19 @@ try:
         else:
             page.locator('#continueBtn').click()
         check(page.locator('#cartModal.show').is_visible(), 'Cart detail opens with the selected dish')
+        check(page.evaluate("document.activeElement?.id === 'closeCartModal'"),
+              'Opening cart moves focus into the dialog')
+        page.locator('#cartModalLines [data-cart-inc="' + item_id + '"]').click()
+        check(page.evaluate("(id) => document.activeElement?.getAttribute('data-cart-inc') === id", item_id),
+              'Cart quantity update preserves focus on the increment button')
+        page.locator('#emptyCartBtn').click()
+        check(page.locator('#cartCount').inner_text() == '(0)' and page.locator('#undoClearCartBtn').is_visible(),
+              'Clear cart offers an immediate Undo without losing the order')
+        page.locator('#undoClearCartBtn').click()
+        check(page.locator('#cartCount').inner_text() == '(2)', 'Undo restores both cart items')
+        page.keyboard.press('Escape')
+        check(not page.locator('#cartModal.show').is_visible(), 'Escape closes the cart without clearing it')
+        page.locator('#floatingViewCart').click()
         page.locator('#closeCartModal').click()
         page.locator('#backBtn').click()
         check(not page.locator('#cartFloating').is_visible(), 'Floating cart is hidden outside the restaurant menu')

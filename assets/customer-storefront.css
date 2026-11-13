@@ -157,3 +157,11 @@ body[data-bite-app="customer"] #menuItems .item-quantity{display:flex!important;
 .menu-reset{border:1px solid #e8c5cc;border-radius:9px;background:#fff7f8;color:#ac243a;font-size:12px;font-weight:750;min-height:42px;padding:8px 12px;cursor:pointer}
 .menu-reset:focus-visible{outline:3px solid #ad2840;outline-offset:2px}
 .menu-reset-empty{margin-top:14px}
+
+/* Mobile cart: safe tap targets, modal keyboard focus, and reversible clear. */
+body.bite-cart-open{overflow:hidden}
+body[data-bite-app="customer"] #cartModal .cart-qty button{min-width:42px;min-height:42px;width:42px;height:42px}
+body[data-bite-app="customer"] #cartModal .cart-qty button:disabled{opacity:.45;cursor:not-allowed}
+body[data-bite-app="customer"] #cartModal button:focus-visible{outline:3px solid #b72330;outline-offset:2px}
+body[data-bite-app="customer"] #cartModal .cart-undo-notice{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#eef9f1;border:1px solid #a3d5b1;border-radius:10px;color:#185d32;padding:8px 12px;font-size:13px;font-weight:700}
+body[data-bite-app="customer"] #cartModal .cart-undo-notice button{min-height:42px;border:1px solid #7ab68d;background:#fff;color:#185d32;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer}
