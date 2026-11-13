@@ -108,10 +108,13 @@ with sync_playwright() as p:
             page.locator('[data-owner-route="expenses"]').click()
             page.wait_for_function("document.querySelector('#expenses').classList.contains('active')")
             assert page.locator("#biteOwnerMoreScreen").is_hidden()
+            page.locator('.bite-owner-back').click()
+            assert page.locator('#biteOwnerMoreScreen').is_visible(), "Back from a More section must return to More grid"
+            assert page.locator('#biteOwnerBottomNav [data-bite-page="more"]').get_attribute('aria-expanded')=='true'
+            page.locator('.bite-owner-back').click()
+            assert page.locator('#biteOwnerMoreScreen').is_hidden(), "Second Back closes More"
             page.locator('[data-bite-page="more"]').click()
             assert page.locator('#biteOwnerMoreScreen').is_visible()
-            page.locator('.bite-owner-back').click()
-            assert page.locator('#biteOwnerMoreScreen').is_hidden()
             page.locator('[data-bite-page="overview"]').click()
             assert page.locator('#overview .od-accounts').is_hidden(), "No duplicate accounts shortcuts on mobile Home"
             assert page.locator('#overview .od-recent').is_hidden(), "No duplicate orders shortcut on mobile Home"
