@@ -1,0 +1,80 @@
+/* Bite Owner Orders P2 — only one actionable order queue. Admin view untouched. */
+body[data-role="owner"] #orders .order-inbox,
+body[data-role="owner"] #orders #orderStatusTabs,
+body[data-role="owner"] #orders #orderEmpty{display:none!important}
+body[data-role="owner"] #orders .orders-page-layout{display:block!important}
+body[data-role="owner"] #orders .orders-main-column{max-width:1020px;margin-inline:auto}
+body[data-role="owner"] #orders .channel-filter-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:8px 0}
+body[data-role="owner"] #orders .order-live-toolbar{margin-bottom:10px!important}
+body[data-role="owner"] #orders #orderStatusTitle{color:#35166e;font-size:17px}
+body[data-role="owner"] #orders .bite-owner-order-stages{
+  display:flex;align-items:stretch;gap:7px;max-width:100%;overflow-x:auto;
+  overscroll-behavior-x:contain;scrollbar-width:thin;scroll-snap-type:x proximity;
+  padding:9px 3px 12px;position:sticky;top:68px;z-index:32;
+  border-bottom:1px solid #e4ddee;background:#f8f7fc;
+}
+body[data-role="owner"] #orders .bite-owner-order-stages[hidden]{display:none!important}
+body[data-role="owner"] #orders .bite-owner-order-stage{
+  display:flex;align-items:center;gap:7px;flex:0 0 auto;justify-content:center;
+  scroll-snap-align:start;border:1px solid #dfd5f1;border-radius:12px;
+  padding:10px 13px;min-height:48px;background:#fff;color:#3d3157;
+  font:700 13px/1.3 inherit;cursor:pointer;touch-action:manipulation;
+}
+body[data-role="owner"] #orders .bite-owner-order-stage b{
+  font-size:11px;min-width:23px;min-height:23px;display:grid;place-items:center;
+  border-radius:20px;padding:2px 6px;background:#f0ebf7;color:#35166e;
+  font-variant-numeric:tabular-nums
+}
+body[data-role="owner"] #orders .bite-owner-order-stage.active{
+  color:#fff;background:#35166e;border-color:#35166e;box-shadow:0 3px 11px #35166e25
+}
+body[data-role="owner"] #orders .bite-owner-order-stage.active b{
+  color:#35166e;background:#fff
+}
+body[data-role="owner"] #orders .bite-owner-order-stage:focus-visible,
+body[data-role="owner"] #orders .bite-owner-order-disclosure>summary:focus-visible{
+  outline:3px solid #8165d7;outline-offset:2px
+}
+body[data-role="owner"] #orders .order-card{
+  border:1px solid #e8e3f0;border-radius:14px;background:#fff;
+  box-shadow:0 3px 12px #2513450a;margin-bottom:12px
+}
+body[data-role="owner"] #orders .order-card-top{flex-wrap:wrap;gap:8px}
+body[data-role="owner"] #orders .order-card-top strong{
+  color:#261b3c;overflow-wrap:anywhere;font-size:15px
+}
+body[data-role="owner"] #orders .order-card-total{
+  color:#35166e;font-variant-numeric:tabular-nums
+}
+body[data-role="owner"] #orders .order-card .order-actions button{
+  min-height:48px!important;padding:11px 14px!important;font-size:13px!important
+}
+body[data-role="owner"] #orders .order-card .order-actions button[onclick*="'Accepted'"]{
+  background:#126b44!important;color:#fff!important;border-color:#126b44!important
+}
+body[data-role="owner"] #orders .order-card .order-actions button.danger{
+  background:#ab202a!important;color:#fff!important;border-color:#ab202a!important
+}
+body[data-role="owner"] #orders .order-card .order-actions button:disabled{
+  opacity:.6;cursor:wait
+}
+body[data-role="owner"] #orders .bite-owner-order-disclosure{
+  max-width:1020px;margin:12px auto;border:1px solid #e5e0ed;
+  border-radius:13px;background:#fff;padding:0 14px;
+}
+body[data-role="owner"] #orders .bite-owner-order-disclosure>summary{
+  padding:16px 0;min-height:48px;cursor:pointer;font-weight:750;
+  color:#35224e;list-style-position:inside
+}
+body[data-role="owner"] #orders .bite-owner-order-disclosure>.card{
+  margin:10px 0 16px!important
+}
+@media(max-width:760px){
+  body[data-role="owner"] #orders .bite-owner-order-stages{top:58px}
+  body[data-role="owner"] #orders .order-card{padding:12px}
+  body[data-role="owner"] #orders .order-card .order-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  body[data-role="owner"] #orders .order-card .order-actions button{width:100%;min-width:0;white-space:normal}
+  body[data-role="owner"] #orders .bite-owner-order-stage{font-size:12px;padding:9px 11px}
+  body[data-role="owner"] #orders .bite-owner-order-disclosure{padding:0 10px}
+}
+@media(prefers-reduced-motion:reduce){body[data-role="owner"] #orders .bite-owner-order-stage{transition:none!important}}
