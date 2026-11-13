@@ -126,5 +126,5 @@ test('POS inline picker stays ready for next item after Add to bill',()=>{
  assert.match(section,/document\.getElementById\('posPickerPrice'\)\.value=''/);
  assert.match(section,/document\.getElementById\('posPickerItemName'\)\.focus\(\)/);
  assert.doesNotMatch(section,/togglePosItemEntry\(/);
- assert.equal((html.match(/onclick="confirmPosItemInline\(\)"/g)||[]).length,1);
+ assert.equal((html.match(/<button[^>]+onclick="confirmPosItemInline\(\)"/g)||[]).length,1);
 });
