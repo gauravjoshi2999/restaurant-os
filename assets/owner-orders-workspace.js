@@ -112,5 +112,77 @@
     const title=doc.getElementById('orderStatusTitle');
     if(title)title.textContent=(stages.find(x=>x.key===filter)?.label||'New')+' Orders';
   }
-  return {stages,isFilter,groupForStatus,matches,counts,prepare,update};
+  // Browser-native confirmation surface: no reliance on prompt() or demo data.
+  // The existing advanceOrder() still sends the reason as orders.status_note.
+  function requestReason(doc,next){
+    if(!doc?.body)return Promise.resolve(null);
+    const reasons=next==='Rejected'
+      ?['Out of stock','Kitchen busy','Cannot deliver','Other']
+      :['Customer requested cancellation','Item unavailable','Cannot fulfil order','Other'];
+    return new Promise(resolve=>{
+      const layer=doc.createElement('div');
+      layer.className='bite-order-reason-overlay';
+      layer.setAttribute('role','presentation');
+      const panel=doc.createElement('section');
+      panel.className='bite-order-reason-modal';
+      panel.setAttribute('role','dialog');
+      panel.setAttribute('aria-modal','true');
+      panel.setAttribute('aria-labelledby','biteOrderReasonTitle');
+      const title=doc.createElement('h2');title.id='biteOrderReasonTitle';
+      title.textContent=next==='Rejected'?'Reject order':'Cancel order';
+      const intro=doc.createElement('p');intro.textContent='Order change ka reason select karein. Bina reason confirm nahi hoga.';
+      const form=doc.createElement('form');form.noValidate=true;
+      const reasonLabel=doc.createElement('label');
+      reasonLabel.textContent='Reason *';
+      const select=doc.createElement('select');select.required=true;
+      select.setAttribute('aria-label','Order reason');
+      const blank=doc.createElement('option');blank.value='';blank.textContent='Choose reason';
+      select.append(blank);
+      for(const text of reasons){
+        const option=doc.createElement('option');option.value=text;option.textContent=text;select.append(option);
+      }
+      reasonLabel.append(select);
+      const extraLabel=doc.createElement('label');extraLabel.textContent='Additional detail (optional)';
+      const extra=doc.createElement('textarea');extra.maxLength=300;extra.rows=2;
+      extra.placeholder='Detail likhein — Other reason ke liye zaroori';
+      extraLabel.append(extra);
+      const message=doc.createElement('p');message.className='bite-order-reason-error';
+      message.setAttribute('role','alert');
+      const actions=doc.createElement('div');actions.className='bite-order-reason-actions';
+      const cancel=doc.createElement('button');cancel.type='button';cancel.textContent='Back';
+      cancel.className='btn secondary';
+      const confirm=doc.createElement('button');confirm.type='submit';confirm.className='btn danger';
+      confirm.textContent=next==='Rejected'?'Confirm Reject':'Confirm Cancel';
+      actions.append(cancel,confirm);
+      form.append(reasonLabel,extraLabel,message,actions);
+      panel.append(title,intro,form);layer.append(panel);doc.body.append(layer);
+      let finished=false;
+      function finish(value){
+        if(finished)return;
+        finished=true;
+        doc.removeEventListener('keydown',onKey,true);
+        layer.remove();
+        resolve(value);
+      }
+      function onKey(event){
+        if(event.key==='Escape'){event.preventDefault();finish(null)}
+      }
+      doc.addEventListener('keydown',onKey,true);
+      cancel.addEventListener('click',()=>finish(null));
+      layer.addEventListener('click',event=>{if(event.target===layer)finish(null)});
+      form.addEventListener('submit',event=>{
+        event.preventDefault();
+        const choice=select.value,detail=extra.value.trim();
+        if(!choice){message.textContent='Reject/Cancel reason chunein.';select.focus();return}
+        if(choice==='Other'&&detail.length<2){
+          message.textContent='Other ke liye kam se kam 2 characters ka reason likhein.';
+          extra.focus();return;
+        }
+        const note=choice==='Other'?detail:(detail?choice+' — '+detail:choice);
+        finish(note);
+      });
+      select.focus();
+    });
+  }
+  return {stages,isFilter,groupForStatus,matches,counts,prepare,update,requestReason};
 });
