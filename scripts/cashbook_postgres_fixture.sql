@@ -4,8 +4,8 @@ create schema auth;
 create or replace function auth.uid() returns uuid language sql stable as $$
  select nullif(pg_catalog.current_setting('request.jwt.claim.sub',true),'')::uuid
 $$;
-do $ begin create role authenticated nologin; exception when duplicate_object then null; end $;
-do $ begin create role anon nologin; exception when duplicate_object then null; end $;
+create role authenticated nologin;
+create role anon nologin;
 grant usage on schema auth,public to authenticated;
 grant execute on function auth.uid() to authenticated;
 
