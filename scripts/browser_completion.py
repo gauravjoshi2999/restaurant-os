@@ -50,10 +50,16 @@ try:
   }""")
   check(updated==['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'],
         'Customer listing fetches the newly published Owner cover without a page reload')
-  customer.wait_for_function("""() => {
+  customer.wait_for_timeout(650)
+  cover_info=customer.evaluate("""() => {
     const img=document.querySelector('#restaurantGrid .restaurant .cover img');
-    return img?.complete && img.naturalWidth>0 && img.currentSrc.includes('/storage/v1/object/public/bite-menu/');
+    return {src:img?.src,currentSrc:img?.currentSrc,complete:img?.complete,width:img?.naturalWidth,
+     label:document.querySelector('#restaurantGrid .restaurant .bite-cover-origin')?.textContent,
+     savedCover:restaurants[0]?.cover_image_path,origin:SUPABASE_URL};
   }""")
+  print('QA COVER IMAGE DEBUG:',cover_info)
+  check(bool(cover_info['src'] and '/storage/v1/object/public/bite-menu/' in cover_info['src'] and cover_info['width']>0),
+    'Browser loads exact saved Owner restaurant cover image from scoped storage URL')
   check(customer.locator('#restaurantGrid .restaurant .bite-cover-origin').inner_text()=='Restaurant photo',
         'Restaurant listing shows Owner photo and correct photo-source label')
   customer.locator('#restaurantGrid .restaurant').first.click()
