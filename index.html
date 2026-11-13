@@ -610,7 +610,8 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <link rel="stylesheet" href="assets/owner-menu-options.css?v=20261113-size1">
 <link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
-<script src="assets/owner-mobile-navigation.js?v=20261114-inpage-more2" defer></script>
+<link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-date1">
+<script src="assets/owner-mobile-navigation.js?v=20261114-backmore1" defer></script>
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261109-market">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><style id="bite-owner-orders-first">
 body[data-role="owner"] .od-welcome{padding:4px 0 8px;margin-bottom:8px}
@@ -1300,6 +1301,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
 <script src="assets/owner-orders-workspace.js?v=20261114-p2"></script>
+<script src="assets/owner-order-calendar.js?v=20261114-date1"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -1924,7 +1926,23 @@ function renderKhata(){
  document.getElementById('khataCustomerEmpty').style.display=khataCustomers.length?'none':'block';
  renderKhataLedger();
 }
-function selectKhataCustomer(id){selectedKhataCustomerId=id;renderKhataLedger()}
+function selectKhataCustomer(id){
+ if(access.role!=='owner'||!khataCustomers.some(c=>c.id===id))return;
+ selectedKhataCustomerId=id;
+ renderKhataLedger();
+ const choose=document.getElementById('khataEntryCustomer');
+ if(choose&&[...choose.options].some(option=>option.value===id))choose.value=id;
+ const heading=document.getElementById('khataLedgerTitle'),ledger=heading?.closest('.section');
+ if(ledger){
+  requestAnimationFrame(()=>{
+   if(document.getElementById('khata')?.classList.contains('active')){
+    heading.setAttribute('tabindex','-1');
+    heading.focus({preventScroll:true});
+    ledger.scrollIntoView({behavior:'smooth',block:'start'});
+   }
+  });
+ }
+}
 function renderKhataLedger(){
  const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),b=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId);
  document.getElementById('khataLedgerTitle').textContent=c?'Khata · '+c.full_name:'Customer ledger';
@@ -1933,7 +1951,7 @@ function renderKhataLedger(){
  let running=bal;
  document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{const effect=x.entry_type==='debit'?Number(x.amount):-Number(x.amount),current=running;running-=effect;return '<tr><td>'+esc(x.entry_date)+'</td><td><span class="pill '+(x.entry_type==='debit'?'amber':'green')+'">'+(x.entry_type==='debit'?'Udhar':'Jama')+'</span></td><td>'+esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'')+'</td><td>'+esc(x.payment_method||'—')+'</td><td>'+money(x.amount)+'</td><td>'+money(current)+'</td></tr>'}).join('');
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
- if(!c)document.getElementById('khataLedgerEmpty').textContent='Select a customer to view their Khata.';
+ document.getElementById('khataLedgerEmpty').textContent=c?'Is customer ke Khata mein abhi koi entry nahi hai.':'Select a customer to view their Khata.';
 }
 function toggleKhataPaymentMode(){const credit=document.getElementById('khataEntryType').value==='credit';document.getElementById('khataPaymentModeField').style.display=credit?'block':'none'}
 async function saveKhataCustomer(){
