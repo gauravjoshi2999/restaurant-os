@@ -35,7 +35,7 @@ function harness({sandbox=true,loggedIn=true,livePending=false,verification=true
   BITE_SANDBOX_CHECKOUT:sandbox,checkoutPaymentBusy:false,
   pendingLiveCheckout:livePending?{id:'synthetic-production-pending'}:null,
   window:{BiteCustomerExtras:{isRecovering:()=>false}},
-  $,sb,activeRestaurant:{id:'restaurant-test-id'},cartEntries:()=>[['dish-test-id',2]],
+  $,sb,activeRestaurant:{id:'restaurant-test-id'},cartEntries:()=>[['dish-test-id',2]],cartInstructionSnapshot:()=>({note:$('customerNote').value.trim(),tooLong:false}),
   checkoutMode:()=> 'pickup',refreshCheckoutPaymentReadiness:async()=>true,
   syncCheckoutPaymentButton:()=>{},
   Cashfree:({mode})=>{calls.push({kind:'sdk-mode',mode});return{checkout:async opts=>{calls.push({kind:'sdk-checkout',opts});return{}}}},
