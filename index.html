@@ -2957,7 +2957,41 @@ async function shareAndHandOverDelivery(id){
  if(!confirm('Kya order vaastav mein delivery person ko hand over kar diya hai?'))return;
  await shareDeliveryHandoff(id,true);
 }
-async function advanceOrder(id,next){if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}const o=state.orders.find(x=>x.id===id);if(!o)return;const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],'Handed Over':['Completed']};if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}let note=null;if(['Rejected','Cancelled'].includes(next)){note=prompt(next==='Rejected'?'Order reject karne ka reason likhein:':'Order cancel karne ka reason likhein:');if(note===null)return;note=note.trim();if(!note){alert('Reason likhna zaroori hai.');return}}const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);if(error){alert('Status update nahi hua: '+error.message);return}await loadCloudData()}
+const ownerOrderActionsPending=new Set();
+async function advanceOrder(id,next){
+ if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}
+ const o=state.orders.find(x=>x.id===id&&x.restaurant===access.restaurantId);
+ if(!o)return;
+ const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],
+   Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],
+   'Handed Over':['Completed']};
+ if(!(allowed[o.status]||[]).includes(next)){alert('Ye order status change allowed nahi hai.');return}
+ if(ownerOrderActionsPending.has(id))return; // repeated fast taps never duplicate a submission
+ ownerOrderActionsPending.add(id);
+ const card=[...document.querySelectorAll('#orderBoard .order-card')]
+   .find(el=>el.dataset.orderId===id);
+ const buttons=[...(card?.querySelectorAll('button')||[])];
+ const previous=buttons.map(button=>button.disabled);
+ buttons.forEach(button=>{button.disabled=true});
+ if(card)card.setAttribute('aria-busy','true');
+ try{
+   let note=null;
+   if(['Rejected','Cancelled'].includes(next)){
+     note=await BiteOwnerOrders.requestReason(document,next);
+     if(note===null)return;
+     note=note.trim();
+     if(!note){alert('Reason likhna zaroori hai.');return}
+   }
+   // Same existing backend mutation and authentication/tenant RLS; no new RPC.
+   const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);
+   if(error){alert('Status update nahi hua: '+error.message);return}
+   await loadCloudData();
+ }finally{
+   ownerOrderActionsPending.delete(id);
+   buttons.forEach((button,i)=>{if(button.isConnected)button.disabled=previous[i]});
+   if(card?.isConnected)card.removeAttribute('aria-busy');
+ }
+}
 
 function paymentSummaryFor(orderId){const order=state.orders.find(o=>o.id===orderId),base=(state.paymentSummaries||[]).find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:(order?.amount||0),payment_status:'unpaid'},waived=Math.min(Number(order?.waivedOffAmount||0),Number(base.balance_amount||0)),balance=Math.max(0,Number(base.balance_amount||0)-waived);return {...base,balance_amount:balance,waived_off_amount:waived,payment_status:balance===0&&waived>0?'waived_off':base.payment_status}}
 function posPaymentContext(orderId){
@@ -3459,7 +3493,7 @@ function renderOrderBoard(){
   const payHistory=payments.length?'<details class="order-history"><summary>Payment history ('+payments.length+')</summary>'+payments.map(p=>'<div class="history-row"><strong>'+money(p.amount)+' · '+esc(p.payment_method)+'</strong><span>'+esc(p.payment_date)+'</span>'+(p.reference?'<p>'+esc(p.reference)+'</p>':'')+'</div>').join('')+'</details>':'';
   const time=o.createdAt?new Date(o.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
-  return '<article class="order-card"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
+  return '<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>'+customerHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="actions order-actions">'+buttons+payBtn+(canManage&&isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+(canManage?'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>':'')+'</div></div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';
  if(!orders.length)board.innerHTML='<div class="order-card-empty">Is filter mein abhi koi order nahi hai.</div>';
