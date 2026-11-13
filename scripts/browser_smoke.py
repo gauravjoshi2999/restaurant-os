@@ -85,7 +85,7 @@ try:
 
         page.locator('#homeSearchInput').fill('BITE-NO-MATCH-ZZ-123')
         check(page.locator('#restaurantGrid .restaurant').count() == 0, 'Unmatched search shows an actionable empty state')
-        page.get_by_role('button', name='Show all restaurants', exact=True).click()
+        page.get_by_role('button', name='Reset search & filters', exact=True).click()
         check(page.locator('#restaurantGrid .restaurant').count() > 0, 'Reset restores public restaurant discovery')
 
         # Browse a restaurant and confirm its menu is reachable without login.
