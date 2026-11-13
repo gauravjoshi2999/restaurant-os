@@ -38,6 +38,7 @@
     const currentPage=()=>app.querySelector('.page.active:not([hidden])')?.id||'overview';
     const currentSection=()=>app.querySelector('.page.active:not([hidden])');
     let moreOpen=false,previousTitle='Overview';
+    let returnToMoreFrom=null; // track a section opened from the More directory
 
     const back=doc.createElement('button');
     back.type='button';back.className='bite-owner-back';
@@ -73,6 +74,7 @@
         button.addEventListener('click',()=>{
           if(doc.body.dataset.role!=='owner'||!mobile())return;
           closeMore();
+          returnToMoreFrom=page;
           if(typeof root.showPage==='function')void root.showPage(page);
         });
         grid.append(button);
@@ -113,7 +115,7 @@
         if(ownerMobile&&stageSource.parentNode!==priority)priority.insertBefore(stageSource,priorityList);
         else if(!ownerMobile&&stageMarker.parentNode&&stageSource.parentNode!==stageMarker.parentNode)stageMarker.after(stageSource);
       }
-      if(!ownerMobile&&moreOpen)closeMore();
+      if(!ownerMobile){returnToMoreFrom=null;if(moreOpen)closeMore()}
     }
     function openMore(){
       if(doc.body.dataset.role!=='owner'||!mobile())return;
@@ -149,6 +151,7 @@
         if(doc.body.dataset.role!=='owner')return;
         if(tab.page==='more'){openMore();return}
         closeMore();
+        returnToMoreFrom=null; // direct bottom navigation leaves the More flow
         // POS is a canonical workspace. Opening a new bill remains the explicit
         // action inside POS; existing Home one-tap billing remains available.
         if(typeof root.showPage==='function')void root.showPage(tab.page);
@@ -167,7 +170,7 @@
     let pendingBack=false;
     function sync(){
       const page=currentPage();
-      if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
+      if(doc.body.dataset.role!=='owner'){returnToMoreFrom=null;if(moreOpen)closeMore()}
       const state=navigationState(doc.body.dataset.role,page,moreOpen);
       nav.hidden=!state.visible;
       drawerLogout.hidden=!state.visible;
@@ -190,6 +193,11 @@
     back.addEventListener('click',()=>{
       if(doc.body.dataset.role!=='owner')return;
       if(moreOpen){closeMore();return}
+      if(mobile()&&returnToMoreFrom===currentPage()){
+        returnToMoreFrom=null;
+        openMore(); // Back from a More child returns to More, not Home
+        return;
+      }
       const target=history.pop()||'overview';
       pendingBack=true;
       if(typeof root.showPage==='function')void root.showPage(target);
