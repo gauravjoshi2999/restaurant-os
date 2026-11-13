@@ -249,6 +249,8 @@ try:
         'New POS Bill opens the real restaurant-scoped payment form')
   check(owner.locator('#posWhatsAppConsent').count()==1,
         'POS form has explicit WhatsApp bill consent before any customer share')
+  check(owner.locator('#posPaidAmount').input_value()=='' and owner.locator('#posPaidAmount').get_attribute('placeholder')=='0.00',
+        'Received Amount shows placeholder only and no pre-filled real zero')
   owner.locator('#posAddItemTrigger').click()
   owner.locator('#posPickerItemName').fill('QA Veg Thali')
   owner.locator('#posPickerQuantity').fill('2')
@@ -256,6 +258,16 @@ try:
   owner.get_by_role('button',name='＋ Add to bill').click()
   check('₹300' in owner.locator('#orderGrandTotal').inner_text(),
         'Mobile POS item picker totals two ₹150 dishes without saving a real bill')
+  check(owner.locator('#posPaidAmount').input_value()=='' and '₹300' in owner.locator('#posBalanceDue').input_value(),
+        'Adding items updates due amount but never auto-fills received payment')
+  owner.locator('#posPaidAmount').fill('250')
+  check(owner.locator('#posPaidAmount').input_value()=='250' and '₹50' in owner.locator('#posBalanceDue').input_value(),
+        'Typing payment starts with the entered digits and recalculates balance')
+  owner.locator('#orderModal button.close').click()
+  owner.locator('#posNewSaleBtn').click()
+  owner.locator('#orderModal.show').wait_for(state='visible')
+  check(owner.locator('#posPaidAmount').input_value()=='' and owner.locator('#posPaidAmount').get_attribute('placeholder')=='0.00',
+        'Reopening a new POS bill clears previously entered received payment')
   owner.locator('#orderModal button.close').click()
   # Real POS share UI, synthetic order only: render itemized photo and PDF in
   # Chromium, and intercept the native OS share target (never contact WhatsApp).
