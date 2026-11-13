@@ -26,7 +26,7 @@ test('closing totals use Cash only, do not double-count UPI, and require discrep
  assert.throws(()=>closing.preview(rows,'100','200',''),/reason/);
  const mismatch=closing.preview(rows,'100','200','Cash drawer short');
  assert.equal(mismatch.difference,-5.2);
- assert.throws(()=>closing.preview(rows,'0','0','Cash drawer short'),/negative/);
+ assert.throws(()=>closing.preview([entry('out','20.05','Cash','out')],'0','0','Cash drawer short'),/negative/);
 });
 test('invalid and future dates are blocked; ledger signature is order independent',()=>{
  closing.validateDate('2026-11-13','2026-11-13');
