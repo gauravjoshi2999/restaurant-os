@@ -125,7 +125,7 @@ async function start(){
       ctx.fillText('SCAN  •  VIEW MENU',450,107);
       ctx.fillStyle='#30253b';ctx.font='900 47px system-ui,sans-serif';
       const name=r.name||'Restaurant';
-      const words=name.split(/\\s+/),lines=[];let line='';
+      const words=name.split(/\s+/),lines=[];let line='';
       for(const word of words){
         const candidate=line?line+' '+word:word;
         if(line&&ctx.measureText(candidate).width>790){lines.push(line);line=word}else line=candidate;
