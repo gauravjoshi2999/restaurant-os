@@ -63,7 +63,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-<script src="assets/customer-discovery.js?v=20261110"></script>
+<script src="assets/customer-discovery.js?v=20261110"></script><script src="assets/customer-menu-search.js?v=20261114-search1"></script>
 <script src="assets/customer-item-notes.js?v=20261113-presets1"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="assets/bite-direct-order.js?v=20261113"></script>
@@ -407,6 +407,7 @@ function renderMenu(cats){
  activeMenuCategory='all';
  $('categoryBar').innerHTML='<button class="chip active" data-cat="all" aria-controls="menuItems" aria-pressed="true">All items</button>'+cats.map(c=>'<button class="chip" data-cat="'+safe(c.id)+'" aria-controls="menuItems" aria-pressed="false">'+safe(c.name)+'</button>').join('');
  $('categoryBar').querySelectorAll('[data-cat]').forEach(b=>b.addEventListener('click',()=>{
+  clearTimeout(biteMenuSearchTimer);
   activeMenuCategory=b.dataset.cat;
   $('categoryBar').querySelectorAll('[data-cat]').forEach(x=>{
    const selected=x===b;
@@ -515,7 +516,7 @@ function renderMenuItems(cat=activeMenuCategory){
  const query=$('menuSearchInput').value;
  $('menuClearSearch').hidden=!query.trim();
  const filtersActive=!!query.trim()||$('menuVegToggle').checked||cat!=='all';
- const list=BiteDiscovery.selectMenu(menuItems,{category:cat,query,vegOnly:$('menuVegToggle').checked});
+ const list=BiteMenuSearch.selectMenu(menuItems,{category:cat,query,vegOnly:$('menuVegToggle').checked});
  $('menuResultCount').textContent=filtersActive?list.length+' of '+menuItems.length+' dishes':list.length+' dish'+(list.length===1?'':'es');
  $('menuResetFilters').hidden=!filtersActive;
  $('menuItems').innerHTML=list.length?list.map(i=>'<article class="menuitem" data-menu-item-id="'+safe(i.id)+'"><div class="menuinfo"><span class="food-type '+(i.is_vegetarian?'veg':'nonveg')+'" aria-label="'+(i.is_vegetarian?'Vegetarian':'Non-vegetarian')+'"><i></i></span><h3 class="itemname">'+safe(i.name)+'</h3><div class="price">'+money(i.price)+'</div><p class="itemdesc">'+safe(i.description||'Prepared fresh by the restaurant.')+'</p></div><div class="menu-item-end">'+(i.image_url?'<img class="menuphoto" loading="lazy" decoding="async" width="120" height="104" src="'+safe(biteMaharaniMenuImage(i))+'" alt="'+safe(i.name)+'" onerror="this.src=\'assets/food-placeholder.svg\';this.onerror=null">':(activeRestaurant?.name==='Hotel Maharani Palace'?'<img class="menuphoto" loading="lazy" decoding="async" width="120" height="104" src="assets/food-placeholder.svg" data-bite-dish="'+safe(i.name)+'" alt="'+safe(i.name)+' vegetarian dish photo" onerror="this.src=\'assets/food-placeholder.svg\';this.onerror=null">':'<div class="menu-photo-placeholder" aria-hidden="true">'+(i.is_vegetarian?'✦':'B')+'</div>'))+'<div class="menu-add-control">'+menuQuantityMarkup(i)+'</div></div></article>').join(''):menuItems.length?'<div class="food-empty"><h3>No matching dishes</h3><p>Search, category ya Veg only filter badlein.</p>'+(query.trim()?'<button type="button" class="menu-reset menu-reset-empty" data-clear-menu-search>Clear search</button>':'')+'<button type="button" class="menu-reset menu-reset-empty" data-reset-menu>Show all dishes</button></div>':'<div class="food-empty"><h3>Menu abhi available nahi hai</h3><p>Restaurant ka menu publish hone par dishes yahan dikhenge.</p></div>';
@@ -523,7 +524,7 @@ function renderMenuItems(cat=activeMenuCategory){
 }
 $('menuItems').addEventListener('click',e=>{if(e.target.closest('[data-reset-menu]')){resetMenuFilters();return;}if(e.target.closest('[data-clear-menu-search]')){clearMenuSearch();return;}const add=e.target.closest('[data-add]'),dec=e.target.closest('[data-menu-dec]');if(!add&&!dec)return;const id=add?.dataset.add||dec.dataset.menuDec;if(!menuItems.some(i=>i.id===id))return;hideCartUndo();cart[id]=add?Math.min(99,(cart[id]||0)+1):Math.max(0,(cart[id]||0)-1);if(!cart[id]){delete cart[id];delete itemNotes[id];}renderCart();refreshMenuQuantityControl(id);});
 let biteMenuSearchTimer=null;
-$('menuSearchInput').addEventListener('input',()=>{clearTimeout(biteMenuSearchTimer);biteMenuSearchTimer=setTimeout(()=>renderMenuItems(),120);});
+$('menuSearchInput').addEventListener('input',()=>{clearTimeout(biteMenuSearchTimer);biteMenuSearchTimer=setTimeout(()=>renderMenuItems(),70);});
 $('menuClearSearch').addEventListener('click',clearMenuSearch);
 $('menuSearchInput').addEventListener('keydown',e=>{
  if(e.key==='Escape'&&$('menuSearchInput').value){e.preventDefault();clearMenuSearch();}
