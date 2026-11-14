@@ -106,7 +106,20 @@
         const value=target.dataset.dateSelect;
         selectedDay=value==='all'?null:value;
         if(selectedDay)calendarMonth=selectedDay.slice(0,7);
+        // Choosing a date means "show the orders from this day", regardless
+        // of a previously selected New/Preparing stage. Keep explicit stage
+        // filtering available after the date has been chosen.
+        calendarOpened=false;
         notifyDateChange(doc);
+        const board=doc.getElementById('orderBoard');
+        const view=doc.defaultView;
+        if(board&&typeof board.scrollIntoView==='function'){
+          const scroll=()=>{if(doc.body?.dataset.role==='owner')
+            board.scrollIntoView({behavior:view?.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});};
+          if(typeof view?.requestAnimationFrame==='function')view.requestAnimationFrame(scroll);
+          else scroll();
+        }
+        return;
       }
       drawCalendar(doc);
     });
@@ -192,7 +205,9 @@
     if(!stageBar||stageBar.hidden)return;
     latestOrders=orders||[];
     drawCalendar(doc);
-    const tally=counts(orders);
+    // Stage badge counts reflect the selected date while calendar badges
+    // continue to count every loaded order across all dates.
+    const tally=counts(dateFilter(orders));
     for(const button of stageBar.querySelectorAll('[data-bite-stage]')){
       const key=button.dataset.biteStage;
       const num=button.querySelector('[data-bite-stage-count]');
