@@ -862,6 +862,24 @@ function renderAuthMode(){
 }
 function setCustomerSession(session){const user=session?.user;const nextUserId=user?.id||null;
  if(activeCustomerId!==nextUserId){
+  // A direct Account A -> Account B switch must be as private as logout.
+  // Keep the user's old pending intent in localStorage for their own later
+  // login recovery, but never show it to a different signed-in customer.
+  ++bitePaymentAccountSequence;
+  if(activeCustomerId)window.BiteCustomerExtras?.clearSensitiveState();
+  pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
+  checkoutPaymentBusy=false;checkoutPaymentReady=false;
+  if(window.BiteCheckoutUX){
+   window.BiteCheckoutUX.freshCartRequested=false;
+   window.BiteCheckoutUX.cancelBusy=false;
+   window.BiteCheckoutUX.resetResult?.();
+  }
+  clearTimeout(biteCancelFollowupTimer);biteCancelFollowupTimer=null;
+  const paymentModal=$('checkoutModal');
+  paymentModal.classList.remove('show');paymentModal.classList.add('hidden');
+  $('checkoutName').value='';$('checkoutPhone').value='';
+  $('checkoutSummary').textContent='';$('checkoutError').textContent='';
+  $('pendingPaymentBanner')?.remove();
   ++customerAccountViewSequence;
   accountAddressRows=[];checkoutAddresses=[];
   $('accountProfile').textContent='Sign in to view your account.';
@@ -1124,6 +1142,10 @@ document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventLis
 $('addressPostal').addEventListener('input',refreshCheckoutZoneEstimate);
 // BITE CHECKOUT PAYMENT START
 let checkoutPaymentReady=false,checkoutPaymentBusy=false,pendingLiveCheckout=null;
+let bitePaymentAccountSequence=0;
+function bitePaymentContextCurrent(sequence,intentId){
+ return sequence===bitePaymentAccountSequence&&!!pendingLiveCheckout&&pendingLiveCheckout.id===intentId;
+}
 // Compare the exact paid cart before clearing it; a later payment webhook must not erase a new cart.
 function biteCheckoutCartSignature(restaurantId,entries){
  return JSON.stringify([restaurantId||null,[...(entries||[])].map(([id,q])=>[String(id),Number(q)]).sort((a,b)=>a[0].localeCompare(b[0]))]);
