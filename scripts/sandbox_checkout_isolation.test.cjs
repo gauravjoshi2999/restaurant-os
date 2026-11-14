@@ -32,7 +32,7 @@ function harness({sandbox=true,loggedIn=true,livePending=false,verification=true
   }}
  };
  const ctx={
-  BITE_SANDBOX_CHECKOUT:sandbox,checkoutPaymentBusy:false,
+  BITE_SANDBOX_CHECKOUT:sandbox,checkoutPaymentBusy:false,bitePaymentAccountSequence:0,
   pendingLiveCheckout:livePending?{id:'synthetic-production-pending'}:null,
   window:{BiteCustomerExtras:{isRecovering:()=>false}},
   $,sb,activeRestaurant:{id:'restaurant-test-id'},cartEntries:()=>[['dish-test-id',2]],cartInstructionSnapshot:()=>({note:$('customerNote').value.trim(),tooLong:false}),
