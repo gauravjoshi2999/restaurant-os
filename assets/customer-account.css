@@ -22,7 +22,9 @@
 .account-address{border:1px solid var(--bite-border);background:var(--bite-field);border-radius:12px;padding:15px;margin:10px 0;color:var(--bite-ink);min-width:0;overflow-wrap:anywhere}
 .account-address strong{font-size:14px;font-weight:700;display:block;margin-bottom:5px}
 .account-address small{display:block;font-size:12px;line-height:1.6;color:var(--bite-muted);margin-top:5px}
-.account-address button{font-size:12px;min-height:42px}
+.account-address button{font-size:12px;min-height:46px;padding:10px 13px;border-radius:10px;line-height:1.3}
+#accountView #customerAddressForm{scroll-margin-top:110px}
+#accountView .account-address button:focus-visible{outline:3px solid var(--bite-focus);outline-offset:2px}
 .account-address-form{margin-top:26px;padding-top:25px;border-top:1px solid var(--bite-border)}
 .account-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 14px;align-items:start}
 .account-field{display:flex;flex-direction:column;gap:8px;min-width:0;width:100%}
