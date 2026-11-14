@@ -131,10 +131,10 @@ test('split inspection is restricted to Super Admin and never starts automatical
  const a=setup({role:'owner',isAdmin:false});
  await a.audit.load();await a.audit.inspectSplit('order-paid');
  assert.equal(a.calls.length,0);
- a.setRole('super_admin');a.setUser('super-admin-b');
- await a.audit.load();
- assert.equal(a.calls.length,0);
- assert.equal(a.find('biteProviderAuditRows').children[0].children[5].children.length,2,
+ const admin=setup();
+ await admin.audit.load();
+ assert.equal(admin.calls.length,0);
+ assert.equal(admin.find('biteProviderAuditRows').children[0].children[5].children.length,2,
   'both manual actions are explicit buttons');
 });
 
