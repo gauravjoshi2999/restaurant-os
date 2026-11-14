@@ -1,0 +1,21 @@
+/* Printable Bite menu QR: deep purple data modules on clean white,
+   tangerine framing, original brand mark below the QR. */
+:root{--orange:#f77b1a;--dark-orange:#35166e;--purple:#35166e;--ink:#2a2133}
+body{background:#f7f6fa}
+.card{border-color:#dac9eb;box-shadow:0 7px 25px #2a134c13}
+.card-top{background:linear-gradient(124deg,#f1e9fc,#fff5eb);border-bottom-color:#e8d8f4;border-top-color:var(--purple)}
+.card #restaurantName{color:var(--purple)}
+.scan-caption{color:#5c407c}
+.qr-heading{color:var(--purple)}
+.qr-frame{border-color:#d5c5ea;box-shadow:0 2px 14px #35166e10}
+.qr-brand-block{border-top-color:#e7def2;max-width:355px}
+.qr-brand-text strong{color:#35166e}
+.qr-brand-text span{color:#6f4b86}
+.menu-tagline{color:#5f4277}
+.toolbar button{border-color:#35166e;color:white;background:#35166e}
+.toolbar button.secondary{color:#35166e}
+.status{border-color:#e3d8f1}
+@media print{
+ .card{border-color:#35166e}
+ .card-top{border-top-color:#35166e}
+}
