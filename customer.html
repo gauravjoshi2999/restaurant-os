@@ -267,25 +267,85 @@ function showDirectRestaurantUnavailable(){
  $('cartFloating').classList.remove('show');
  showCustomerView('menu');
 }
-async function loadRestaurants(){const grid=$('restaurantGrid');try{
- if(BITE_DIRECT_MODE&&!BITE_DIRECT_RESTAURANT_ID){showDirectRestaurantUnavailable();return;}
- const response=await sb.rpc('bite_storefront',{p_postal_code:BITE_DIRECT_MODE?null:(currentDiscoveryPin||null)});
- if(response.error&&response.error.code!=='PGRST202')throw response.error;
- if(response.error){const legacy=await sb.rpc('list_public_restaurants');if(legacy.error)throw legacy.error;restaurants=legacy.data||[];storefrontCategories=[];
-  if(currentDiscoveryPin)await Promise.all(restaurants.map(async r=>{const zone=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:r.id,p_postal_code:currentDiscoveryPin});if(zone.error)throw zone.error;const z=Array.isArray(zone.data)?zone.data[0]:zone.data;r.serviceable=z?.serviceable===true;r.zone_delivery_fee=z?.delivery_fee;}));
- }else{restaurants=response.data?.restaurants||[];storefrontCategories=response.data?.categories||[];}
- if(BITE_DIRECT_MODE){
-  restaurants=restaurants.filter(r=>r.id===BITE_DIRECT_RESTAURANT_ID);
-  storefrontCategories=[];
-  if(restaurants.length!==1){showDirectRestaurantUnavailable();return;}
+// Only the newest selected PIN may commit results to visible restaurant discovery.
+let biteStorefrontLoadToken=0;
+window.biteStorefrontLoading=false;
+async function loadRestaurants(){
+ const grid=$('restaurantGrid'),token=++biteStorefrontLoadToken,pin=currentDiscoveryPin;
+ const current=()=>token===biteStorefrontLoadToken&&pin===currentDiscoveryPin;
+ window.biteStorefrontLoading=true;
+ if(!BITE_DIRECT_MODE){
+  grid.innerHTML='<div class="food-empty" role="status">Checking restaurants for your selected area…</div>';
+  $('resultCount').textContent='Checking delivery area…';
  }
- let searchQuery=sb.from('menu_items').select('restaurant_id,name,description,price,is_vegetarian,image_url').eq('is_available',true);
- if(BITE_DIRECT_MODE)searchQuery=searchQuery.eq('restaurant_id',BITE_DIRECT_RESTAURANT_ID);
- const {data:items,error:itemError}=await searchQuery.limit(1000);if(itemError)throw itemError;
- publicMenuSearch=items||[];restaurants.forEach(r=>{const menu=publicMenuSearch.filter(m=>m.restaurant_id===r.id);r.has_veg=menu.some(m=>m.is_vegetarian===true);r.has_nonveg=menu.some(m=>m.is_vegetarian===false);if(r.price_from==null&&menu.length)r.price_from=Math.min(...menu.map(m=>Number(m.price)));});renderRestaurants();window.BiteCustomerExtras?.renderCategories();
- coverRefreshLastAt=Date.now();
- if(BITE_DIRECT_MODE){document.title=restaurants[0].name+' | Order Online · Bite';await openRestaurant(BITE_DIRECT_RESTAURANT_ID);}
-}catch(e){grid.innerHTML='<div class="food-empty"><h3>Restaurants load nahi ho paaye.</h3><p>Connection check karke dobara try karein.</p><button class="secondary" type="button" onclick="loadRestaurants()">Try again</button></div>';$('resultCount').textContent='Unable to load';console.error(e)}}
+ try{
+  if(BITE_DIRECT_MODE&&!BITE_DIRECT_RESTAURANT_ID){
+   if(current()){window.biteStorefrontLoading=false;showDirectRestaurantUnavailable();}
+   return;
+  }
+  const response=await sb.rpc('bite_storefront',{p_postal_code:BITE_DIRECT_MODE?null:(pin||null)});
+  if(!current())return;
+  if(response.error&&response.error.code!=='PGRST202')throw response.error;
+  let nextRestaurants=[],nextCategories=[];
+  if(response.error){
+   const legacy=await sb.rpc('list_public_restaurants');
+   if(!current())return;
+   if(legacy.error)throw legacy.error;
+   nextRestaurants=(legacy.data||[]).map(r=>({...r}));
+   if(pin){
+    await Promise.all(nextRestaurants.map(async r=>{
+     const zone=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:r.id,p_postal_code:pin});
+     if(zone.error)throw zone.error;
+     const z=Array.isArray(zone.data)?zone.data[0]:zone.data;
+     r.serviceable=z?.serviceable===true;
+     r.zone_delivery_fee=r.serviceable?z?.delivery_fee:null;
+    }));
+    if(!current())return;
+   }
+  }else{
+   nextRestaurants=response.data?.restaurants||[];
+   nextCategories=response.data?.categories||[];
+  }
+  if(BITE_DIRECT_MODE){
+   nextRestaurants=nextRestaurants.filter(r=>r.id===BITE_DIRECT_RESTAURANT_ID);
+   nextCategories=[];
+   if(nextRestaurants.length!==1){
+    if(current()){window.biteStorefrontLoading=false;showDirectRestaurantUnavailable();}
+    return;
+   }
+  }
+  let query=sb.from('menu_items').select('restaurant_id,name,description,price,is_vegetarian,image_url').eq('is_available',true);
+  if(BITE_DIRECT_MODE)query=query.eq('restaurant_id',BITE_DIRECT_RESTAURANT_ID);
+  const {data:items,error:itemError}=await query.limit(1000);
+  if(!current())return;
+  if(itemError)throw itemError;
+  const nextMenuItems=items||[];
+  nextRestaurants.forEach(r=>{
+   const menu=nextMenuItems.filter(i=>i.restaurant_id===r.id);
+   r.has_veg=menu.some(i=>i.is_vegetarian===true);
+   r.has_nonveg=menu.some(i=>i.is_vegetarian===false);
+   if(r.price_from==null&&menu.length)r.price_from=Math.min(...menu.map(i=>Number(i.price)));
+  });
+  // Restaurant, serviceability, and public dishes are one atomic snapshot.
+  restaurants=nextRestaurants;
+  storefrontCategories=nextCategories;
+  publicMenuSearch=nextMenuItems;
+  window.biteStorefrontLoading=false;
+  renderRestaurants();
+  window.BiteCustomerExtras?.renderCategories();
+  coverRefreshLastAt=Date.now();
+  if(BITE_DIRECT_MODE){
+   document.title=restaurants[0].name+' | Order Online · Bite';
+   await openRestaurant(BITE_DIRECT_RESTAURANT_ID);
+  }
+ }catch(error){
+  if(!current())return;
+  window.biteStorefrontLoading=false;
+  grid.innerHTML='<div class="food-empty"><h3>Restaurants load nahi ho paaye.</h3><p>Connection check karke dobara try karein.</p><button class="secondary" type="button" onclick="loadRestaurants()">Try again</button></div>';
+  $('resultCount').textContent='Unable to load';
+  console.error(error);
+ }
+}
 function customerDistanceKm(r){if(!customerGeo||r.latitude==null||r.longitude==null)return null;const rad=x=>x*Math.PI/180,dLat=rad(Number(r.latitude)-customerGeo.latitude),dLon=rad(Number(r.longitude)-customerGeo.longitude),a=Math.sin(dLat/2)**2+Math.cos(rad(customerGeo.latitude))*Math.cos(rad(Number(r.latitude)))*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 function enableCustomerLocation(){const btn=$('customerUseLocation');if(!navigator.geolocation){$('customerLocationLabel').textContent='Location support available nahi';return}btn.disabled=true;btn.textContent='Location mil rahi hai...';navigator.geolocation.getCurrentPosition(pos=>{customerGeo={latitude:pos.coords.latitude,longitude:pos.coords.longitude};btn.disabled=false;btn.textContent='✓ Near me active';$('customerLocationLabel').textContent='Aapki location ke aas-paas ke restaurants';renderRestaurants()},err=>{btn.disabled=false;btn.textContent='📍 Near me';$('customerLocationLabel').textContent=err.code===1?'Location permission allow karein':'Location nahi mil paayi'}, {enableHighAccuracy:true,timeout:12000,maximumAge:120000})}
 function discoveryEmptyMarkup(){
@@ -301,15 +361,20 @@ function discoveryEmptyMarkup(){
  return '<div class="food-empty"><span aria-hidden="true">⌕</span><h3>Kuch aur try karein?</h3><p>Is search ya filter mein restaurant nahi mila. Search badlein ya filters reset karein.</p><button class="secondary" type="button" data-discovery-reset>Reset search &amp; filters</button></div>';
 }
 function renderRestaurants(){
+ if(window.biteStorefrontLoading&&!BITE_DIRECT_MODE){
+  $('restaurantGrid').innerHTML='<div class="food-empty" role="status">Checking delivery availability…</div>';
+  $('resultCount').textContent='Checking delivery area…';
+  return;
+ }
  if(BITE_DIRECT_MODE){restaurants=restaurants.filter(r=>r.id===BITE_DIRECT_RESTAURANT_ID);publicMenuSearch=publicMenuSearch.filter(m=>m.restaurant_id===BITE_DIRECT_RESTAURANT_ID);}
  const q=$('homeSearchInput').value.trim();
  const list=BiteDiscovery.selectRestaurants(restaurants,publicMenuSearch,{query:q,category:activeFilter,service:window.restaurantServiceFilter||'all',fast:!!window.restaurantSortFast,geo:customerGeo,pin:currentDiscoveryPin,openNow:$('filterOpenNow')?.getAttribute('aria-pressed')==='true',favourites:$('filterFavourites')?.getAttribute('aria-pressed')==='true'?favouriteRestaurantIds:null,diet:$('discoveryDiet')?.value,minRating:Number($('discoveryRating')?.value||0),sort:$('discoverySort')?.value});
  $('resultCount').textContent=list.length+' restaurant'+(list.length===1?'':'s')+(q?' matching “'+q+'”':' to explore');
  $('restaurantGrid').innerHTML=list.length?list.map(({restaurant:r,dishes},i)=>{
-  const closed=BiteDiscovery.isClosed(r),closureLabel=r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until)>new Date())?'Temporarily closed':'Closed now',delivery=r.accepts_delivery&&!r.delivery_paused;
+  const closed=BiteDiscovery.isClosed(r),closureLabel=r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until)>new Date())?'Temporarily closed':'Closed now',delivery=!!currentDiscoveryPin&&r.serviceable===true&&r.accepts_delivery&&!r.delivery_paused;
   const rating=Number(r.average_rating)>0?Number(r.average_rating).toFixed(1)+' ★':'New';
   const cover=BiteRestaurantCovers.choose(r,publicMenuSearch,SUPABASE_URL),photo=cover.src;
-  return '<button type="button" class="restaurant" data-id="'+safe(r.id)+'" aria-label="View menu of '+safe(r.name)+'"><div class="cover"><img loading="lazy" decoding="async" width="640" height="400" src="'+safe(photo)+'" alt="'+safe(cover.alt)+'"><span class="bite-cover-origin" aria-hidden="true">'+safe(cover.source==='owner'?'Restaurant photo':cover.source==='menu'?'Menu photo':'Bite suggested photo')+'</span><span class="covertag">'+(closed?closureLabel:'Explore menu <span aria-hidden="true">↗</span>')+'</span></div><div class="rbody">'+(r.featured?'<span class="bite-featured">Featured</span>':'')+'<div class="restaurant-title-row"><h3 class="rname">'+safe(r.name)+'</h3><span class="rating">'+rating+'</span></div><div class="desc">'+safe((r.cuisine_tags||[]).join(' · ')||r.public_description||'Freshly prepared, locally served')+'</div>'+(dishes.length?'<div class="dish-match">Found: '+dishes.map(d=>safe(d.name)).join(', ')+'</div>':'')+'<div class="meta"><span>◷ '+Number(r.estimated_prep_minutes||30)+' min prep</span><span>Min. '+money(r.minimum_order_amount)+'</span><span>Delivery '+money(r.zone_delivery_fee??r.default_delivery_fee)+'</span></div><div class="restaurant-service"><span>'+safe(r.city||'Local restaurant')+'</span><span>'+(closed?'Closed':delivery&&r.accepts_pickup?'Delivery · Pickup':delivery?'Delivery':r.accepts_pickup?'Pickup':'Currently unavailable')+'</span></div>'+(customerGeo&&customerDistanceKm(r)!==null?'<div class="distance-label">'+customerDistanceKm(r).toFixed(1)+' km away</div>':'')+'</div></button>';
+  return '<button type="button" class="restaurant" data-id="'+safe(r.id)+'" aria-label="View menu of '+safe(r.name)+'"><div class="cover"><img loading="lazy" decoding="async" width="640" height="400" src="'+safe(photo)+'" alt="'+safe(cover.alt)+'"><span class="bite-cover-origin" aria-hidden="true">'+safe(cover.source==='owner'?'Restaurant photo':cover.source==='menu'?'Menu photo':'Bite suggested photo')+'</span><span class="covertag">'+(closed?closureLabel:'Explore menu <span aria-hidden="true">↗</span>')+'</span></div><div class="rbody">'+(r.featured?'<span class="bite-featured">Featured</span>':'')+'<div class="restaurant-title-row"><h3 class="rname">'+safe(r.name)+'</h3><span class="rating">'+rating+'</span></div><div class="desc">'+safe((r.cuisine_tags||[]).join(' · ')||r.public_description||'Freshly prepared, locally served')+'</div>'+(dishes.length?'<div class="dish-match">Found: '+dishes.map(d=>safe(d.name)).join(', ')+'</div>':'')+'<div class="meta"><span>◷ '+Number(r.estimated_prep_minutes||30)+' min prep</span><span>Min. '+money(r.minimum_order_amount)+'</span><span>Delivery '+(delivery?money(r.zone_delivery_fee??r.default_delivery_fee):r.accepts_delivery?'Check PIN':'Not offered')+'</span></div><div class="restaurant-service"><span>'+safe(r.city||'Local restaurant')+'</span><span>'+(closed?'Closed':delivery&&r.accepts_pickup?'Delivery · Pickup':delivery?'Delivery':r.accepts_pickup?'Pickup':r.accepts_delivery?'Check delivery PIN':'Currently unavailable')+'</span></div>'+(customerGeo&&customerDistanceKm(r)!==null?'<div class="distance-label">'+customerDistanceKm(r).toFixed(1)+' km away</div>':'')+'</div></button>';
  }).join(''):discoveryEmptyMarkup();
  document.querySelectorAll('.restaurant[data-id]').forEach(el=>{
   const restaurant=restaurants.find(r=>r.id===el.dataset.id);
@@ -344,8 +409,8 @@ $('restaurantGrid').addEventListener('click',e=>{
  if(e.target.closest('[data-discovery-pickup]')){resetDiscovery('pickup');return;}
  if(e.target.closest('[data-discovery-reset]')){resetDiscovery();return;}
  if(e.target.closest('[data-discovery-pin]')){
-  $('discoveryPinInput').focus();
-  $('discoveryPinInput').scrollIntoView({behavior:'smooth',block:'center'});
+  $('biteLocationOpen').click();
+  return;
  }
 });
 $('homeSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){$('restaurantResults').scrollIntoView({behavior:'smooth',block:'start'});}});
