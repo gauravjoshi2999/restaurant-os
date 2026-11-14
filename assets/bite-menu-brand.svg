@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 555 147" role="img" aria-labelledby="title desc">
+<title id="title">Bite — Eat. Repeat.</title>
+<desc id="desc">Bite's new purple and tangerine food menu identity, with an original rounded B emblem and wordmark</desc>
+<defs><linearGradient id="purple" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38166e"/><stop offset="1" stop-color="#512688"/></linearGradient><linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff9c28"/><stop offset="1" stop-color="#f66c15"/></linearGradient><clipPath id="corners"><rect x="6" y="7" width="116" height="129" rx="30"/></clipPath></defs>
+<g clip-path="url(#corners)">
+<rect x="6" y="7" width="116" height="129" fill="url(#purple)"/>
+<path d="M0 88c27-18 59-2 86-22 18-13 33-14 53-5v90H0Z" fill="url(#orange)"/>
+<path d="M37 27h33c23 0 38 12 38 30 0 11-7 20-18 25 15 5 24 16 24 29 0 19-15 31-40 31H37z" fill="#fff"/>
+<path d="M58 47h14c11 0 17 5 17 13 0 7-7 13-18 13H58z" fill="#4e2484"/>
+<path d="M58 91h18c12 0 18 6 18 14s-7 14-18 14H58z" fill="#f77719"/>
+<path d="M21 108c27-21 52-18 82-26" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+</g>
+<text x="148" y="98" fill="#34156d" font-family="Trebuchet MS, Arial Rounded MT Bold, Arial, sans-serif" font-size="88" font-weight="900" letter-spacing="-5">Bite</text>
+<path d="M284 11c5-9 15-12 25-9-1 12-10 19-25 20z" fill="#fb801a"/>
+<rect x="153" y="118" width="31" height="5" rx="2.5" fill="#fb801a"/>
+<text x="197" y="126" fill="#553b73" font-family="Trebuchet MS, Arial, sans-serif" font-size="20" font-weight="900" letter-spacing="2.1">EAT. REPEAT.</text>
+<rect x="396" y="118" width="32" height="5" rx="2.5" fill="#fb801a"/>
+</svg>
