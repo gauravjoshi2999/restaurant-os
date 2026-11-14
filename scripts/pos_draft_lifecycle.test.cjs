@@ -7,7 +7,7 @@ const source=fs.readFileSync('assets/bite-pos-drafts.js','utf8');
 const UUID_A='11111111-1111-4111-8111-111111111111';
 const UUID_B='22222222-2222-4222-8222-222222222222';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-function harness({deletionError=false,storageFail=false,delayedUpsert=false}={}){
+function harness({deletionError=false,storageFail=false,delayedUpsert=false,delayedRead=false,delayedOpen=false}={}){
  const map=new Map(),remote=new Map(),listeners={},elements={};
  const stats={upserts:0,deletes:0,opens:0};
  const localStorage={
@@ -33,6 +33,9 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false}={})
  let resolveGate,started;
  const upsertStarted=new Promise(resolve=>started=resolve);
  const upsertGate=delayedUpsert?new Promise(resolve=>resolveGate=resolve):null;
+ let resolveRead,resolveOpen;
+ const readGate=delayedRead?new Promise(resolve=>resolveRead=resolve):null;
+ const openGate=delayedOpen?new Promise(resolve=>resolveOpen=resolve):null;
  let uid='owner1',restaurantId='rest1';
  const sb={from(table){
   assert.equal(table,'restaurant_pos_drafts');
@@ -54,11 +57,11 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false}={})
     filters:{},
     eq(field,value){this.filters[field]=value;return this},
     order(){return this},limit(){return this},
-    maybeSingle(){return Promise.resolve({data:remote.get(this.filters.id)||null,error:null})},
+    maybeSingle(){return Promise.resolve(readGate).then(()=>({data:remote.get(this.filters.id)||null,error:null}))},
     then(resolve,reject){
      const rows=[...remote.values()].filter(row=>
       Object.entries(this.filters).every(([field,value])=>row[field]===value));
-     Promise.resolve({data:rows,error:null}).then(resolve,reject);
+     Promise.resolve(readGate).then(()=>({data:rows,error:null})).then(resolve,reject);
     }
    };return query}
   };
@@ -78,16 +81,16 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false}={})
     }};return q},
    select(){const q={filters:{},eq(field,value){this.filters[field]=value;return this},
     order(){return this},limit(){return this},
-    maybeSingle(){return Promise.resolve({data:remote.get(this.filters.id)||null,error:null})},
+    maybeSingle(){return Promise.resolve(readGate).then(()=>({data:remote.get(this.filters.id)||null,error:null}))},
     then(resolve,reject){
      const rows=[...remote.values()].filter(row=>
       Object.entries(this.filters).every(([field,value])=>row[field]===value));
-     Promise.resolve({data:rows,error:null}).then(resolve,reject);
+     Promise.resolve(readGate).then(()=>({data:rows,error:null})).then(resolve,reject);
     }};return q}
   };
  };
  const sandbox={window:{addEventListener:(name,cb)=>listeners[name]=cb,
-  openOrder:async()=>{stats.opens++},closeModal:()=>{},
+  openOrder:async()=>{stats.opens++;if(delayedOpen)await openGate},closeModal:()=>{},
   addOrderItemRow:()=>{},renderPosItemSummary:()=>{},updateOrderTotal:()=>{}},
   document:{getElementById:el,querySelectorAll:()=>[]},localStorage,
   crypto:{randomUUID:()=>UUID_A},console:{warn:()=>{},log:()=>{}},
@@ -97,7 +100,7 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false}={})
  api.init({sb,getUser:()=>({id:uid}),getAccess:()=>({role:'owner',restaurantId}),getState:()=>({})});
  function setTenant(u,r){uid=u;restaurantId=r}
  return {api,localStorage,map,remote,stats,elements,uid:()=>uid,rest:()=>restaurantId,
-  setTenant,resolveGate,upsertStarted,goOnline:()=>listeners.online?.(),
+  setTenant,resolveGate,resolveRead,resolveOpen,upsertStarted,goOnline:()=>listeners.online?.(),
   setDeletionError:value=>deletionError=value};
 }
 function drafts(h,uid='owner1',rid='rest1'){
@@ -185,4 +188,64 @@ test('POS draft recovery retains existing safe edit and void guards',()=>{
  assert.match(fs.readFileSync('index.html','utf8'),/BitePOS\.editSavedPos/);
  for(const page of ['orders','menu','settings'])
   assert.match(fs.readFileSync('index.html','utf8'),new RegExp('id="'+page+'"'));
+});
+
+test('a delayed saved draft open never fills a different signed-in Owner form',async()=>{
+ const h=harness({delayedOpen:true});
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ const opening=h.api.openDraft(UUID_A);
+ await tick();
+ assert.equal(h.stats.opens,1);
+ h.setTenant('owner2','rest2');
+ h.elements.orderCustomerName.value='Second owner untouched';
+ h.resolveOpen();
+ await opening;
+ assert.equal(h.elements.orderCustomerName.value,'Second owner untouched');
+});
+
+test('an account switch during remote draft fetch prevents opening another Owner draft',async()=>{
+ const h=harness({delayedRead:true});
+ h.remote.set(UUID_B,{id:UUID_B,created_by:'owner1',restaurant_id:'rest1',
+  payload:{customerName:'Private customer',items:[]},updated_at:'2026-11-14T09:00:00Z'});
+ const opening=h.api.openDraft(UUID_B);
+ h.setTenant('owner2','rest2');
+ h.resolveRead();
+ await opening;
+ assert.equal(h.stats.opens,0);
+ assert.notEqual(h.elements.orderCustomerName.value,'Private customer');
+});
+
+test('a stale draft-list response does not write old Owner data to local cache',async()=>{
+ const h=harness({delayedRead:true});
+ h.remote.set(UUID_B,{id:UUID_B,created_by:'owner1',restaurant_id:'rest1',
+  payload:{customerName:'Private customer',items:[]},updated_at:'2026-11-14T09:00:00Z'});
+ const refreshing=h.api.refreshDrafts();
+ h.setTenant('owner2','rest2');
+ h.resolveRead();
+ await refreshing;
+ assert.equal(drafts(h,'owner1','rest1').length,0,'stale list must not populate the old cache');
+ assert.equal(drafts(h,'owner2','rest2').length,0,'other tenant must remain empty');
+});
+
+test('unsaved old Owner bill cannot autosave into a newly signed-in restaurant',async()=>{
+ const h=harness();
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ assert.equal(drafts(h,'owner1','rest1').length,1);
+ h.setTenant('owner2','rest2');
+ h.elements.orderCustomerName.value='Old owner still in modal';
+ h.api.touch();
+ await h.api.saveNow();
+ assert.equal(drafts(h,'owner2','rest2').length,0,'must never copy customer fields to new tenant');
+ assert.match(h.elements.posDraftStatus.textContent,/Owner session changed/);
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ assert.equal(drafts(h,'owner2','rest2').length,1,'new Owner can start a legitimate new bill');
+});
+
+test('completed bill tombstone belongs to originating Owner after session switch',async()=>{
+ const h=harness();
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ h.setTenant('owner2','rest2');
+ await h.api.finishOrder();
+ assert.equal(tombstones(h,'owner1','rest1').find(x=>x.id===UUID_A)?.pending!==undefined,true);
+ assert.equal(tombstones(h,'owner2','rest2').length,0);
 });

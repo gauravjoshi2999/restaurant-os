@@ -2,13 +2,18 @@
    Drafts are NOT orders, payments or sales. Posted orders have separate guarded workflows. */
 (function(){
 'use strict';
-let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
+let ctx=null,activeId=null,activeOwner=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
 const deletedThisSession=new Set();
 const $=id=>document.getElementById(id);
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function identity(){
  const u=ctx?.getUser(),a=ctx?.getAccess();
  return u&&a?.role==='owner'&&a.restaurantId?{uid:u.id,restaurantId:a.restaurantId}:null;
+}
+// An asynchronous draft request must never apply to another signed-in Owner.
+function sameIdentity(ident){
+ const live=identity();
+ return !!(ident&&live&&ident.uid===live.uid&&ident.restaurantId===live.restaurantId);
 }
 function cacheKey(ident){return 'bite_pos_drafts_v2:'+ident.uid+':'+ident.restaurantId}
 function deletionKey(ident){return 'bite_pos_draft_deletions_v1:'+ident.uid+':'+ident.restaurantId}
@@ -120,18 +125,19 @@ async function syncOne(rec){
  markClean(ident,rec.id,rec.updated_at);
 }
 async function syncPending(){
- if(cloudBusy||!identity())return;
+ const ident=identity();if(cloudBusy||!ident)return;
  cloudBusy=true;
  try{
-  const list=readCache(identity()).filter(d=>d.dirty&&!deletionExists(identity(),d.id));
+  const list=readCache(ident).filter(d=>d.dirty&&!deletionExists(ident,d.id));
   for(const rec of list){
-   try{await syncOne(rec);if(activeId===rec.id)setStatus('Draft saved securely ✓')}
-   catch(err){if(activeId===rec.id)setStatus('Draft saved on this device; cloud pending');console.warn('POS draft cloud sync failed:',err.message)}
+   if(!sameIdentity(ident))break;
+   try{await syncOne(rec);if(sameIdentity(ident)&&activeId===rec.id)setStatus('Draft saved securely ✓')}
+   catch(err){if(sameIdentity(ident)&&activeId===rec.id)setStatus('Draft saved on this device; cloud pending');console.warn('POS draft cloud sync failed:',err.message)}
   }
  }finally{cloudBusy=false}
 }
 function touch(){
- if(suspend||!activeId||!identity()||!$('orderModal')?.classList.contains('show'))return;
+ if(suspend||!activeId||!sameIdentity(activeOwner)||!$('orderModal')?.classList.contains('show'))return;
  const payload=fields();
  if(!payload||!hasContent(payload))return;
  const rec=remember(activeId,payload);
@@ -139,13 +145,19 @@ function touch(){
  clearTimeout(saveTimer);saveTimer=setTimeout(()=>{void syncPending()},650);
 }
 async function saveNow(){
+ if(activeId&&!sameIdentity(activeOwner)){
+  clearTimeout(saveTimer);
+  setStatus('Owner session changed. Reopen the bill before saving.');
+  return;
+ }
  touch();clearTimeout(saveTimer);await syncPending();
  if(!activeId){setStatus('Add an item or customer detail to save a draft');return}
+ if(!sameIdentity(activeOwner))return;
  const ident=identity(),r=ident&&readCache(ident).find(x=>x.id===activeId);
  if(r)setStatus(r.dirty?'Saved on this device (cloud pending)':'Draft saved ✓');
 }
 function newBill(){
- clearTimeout(saveTimer);activeId=crypto.randomUUID();
+ clearTimeout(saveTimer);activeOwner=identity();activeId=crypto.randomUUID();
  if($('posReplaceOrderId'))$('posReplaceOrderId').value='';
  if($('orderModalTitle'))$('orderModalTitle').textContent='New POS Bill';
  setStatus('Auto-save enabled · add items to create a draft');
@@ -178,10 +190,19 @@ function fill(data){
 async function openDraft(id){
  const ident=identity();if(!ident)return;
  let rec=readCache(ident).find(x=>x.id===id);
- if(!rec&&!deletionExists(ident,id)){const r=await ctx.sb.from('restaurant_pos_drafts').select('*').eq('id',id).eq('restaurant_id',ident.restaurantId).maybeSingle();if(r.error)throw r.error;rec=r.data}
+ if(!rec&&!deletionExists(ident,id)){
+  const r=await ctx.sb.from('restaurant_pos_drafts').select('*')
+   .eq('id',id).eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).maybeSingle();
+  if(!sameIdentity(ident))return;
+  if(r.error)throw r.error;
+  rec=r.data;
+ }
+ if(!sameIdentity(ident))return;
  if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,id)){alert('Draft already deleted or not found for your restaurant.');return}
  await window.openOrder();
- activeId=rec.id;fill(rec.payload||{});
+ // openOrder may itself be async; do not fill one Owner's customer details in another Owner's bill.
+ if(!sameIdentity(ident))return;
+ activeOwner=ident;activeId=rec.id;fill(rec.payload||{});
  setStatus(rec.dirty?'Draft restored · cloud sync pending':'Draft restored ✓');
 }
 async function discardDraft(id){
@@ -197,10 +218,16 @@ async function discardDraft(id){
  // Show the owner the local result immediately; retry cloud deletion on reload/online.
  void cleanupDeletions();
 }
-async function discardActive(){if(activeId)await discardDraft(activeId);else window.closeModal('orderModal')}
+async function discardActive(){
+ if(activeId&&!sameIdentity(activeOwner)){
+  clearTimeout(saveTimer);activeId=null;activeOwner=null;
+  window.closeModal('orderModal');return;
+ }
+ if(activeId)await discardDraft(activeId);else window.closeModal('orderModal');
+}
 async function finishOrder(){
  clearTimeout(saveTimer);
- const id=activeId,ident=identity();activeId=null;
+ const id=activeId,ident=activeOwner;activeId=null;activeOwner=null;
  if(!id||!ident)return;
  // Sale has committed. Never let cloud draft deletion block or undo the sale.
  // Persist a deletion fence before removing local data so an in-flight upsert
@@ -220,6 +247,8 @@ async function refreshDrafts(){
  let local=readCache(ident),list=local.slice();
  const r=await ctx.sb.from('restaurant_pos_drafts').select('id,restaurant_id,created_by,payload,updated_at')
   .eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).order('updated_at',{ascending:false}).limit(40);
+ // Stale list responses must not update cache or UI after an account/restaurant switch.
+ if(!sameIdentity(ident))return;
  if(r.error){console.warn('Draft list unavailable:',r.error.message);renderDrafts();void cleanupDeletions();return}
  for(const remote of r.data||[]){
   if(remote.created_by!==ident.uid||deletionExists(ident,remote.id))continue;
@@ -247,7 +276,9 @@ async function editSavedPos(orderId){
  if(!o||o.restaurant!==a?.restaurantId||o.channel!=='POS - Counter'||o.isDemo||o.status!=='Received'||o.waivedOffAmount>0||s.orderPayments.some(p=>p.order_id===orderId)||s.orderRefunds.some(x=>x.order_id===orderId)){alert('Sirf open aur unpaid POS bill edit ho sakta hai. Paid bill ke liye refund/correction record use karein.');return}
  const items=s.orderItems.filter(x=>x.order_id===orderId).map(x=>({name:x.item_name,quantity:Number(x.quantity),unit_price:Number(x.unit_price),menuItemId:x.menu_item_id||null}));
  if(!items.length){alert('Bill items load nahi huye. Refresh karein.');return}
+ const ident=identity();
  await window.openOrder();
+ if(!sameIdentity(ident))return;
  fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar'});
  touch();setStatus('Correction draft saved automatically · original bill replaces only on Save');
 }
