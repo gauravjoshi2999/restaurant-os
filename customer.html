@@ -638,7 +638,7 @@ function biteAccountRequestActive(sequence,userId){
   (!activeCustomerId||activeCustomerId===userId)&&
   !$('accountView').classList.contains('hidden');
 }
-async function loadAccountAddresses(sequence=customerAccountViewSequence,userId=activeCustomerId){const {data,error}=await sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false});if(!biteAccountRequestActive(sequence,userId))return false;if(error)throw error;accountAddressRows=data||[];checkoutAddresses=accountAddressRows;$('accountAddresses').innerHTML=accountAddressRows.length?accountAddressRows.map(x=>'<div class="account-address"><strong>'+safe(x.label)+(x.is_default?' · Default':'')+'</strong><div>'+safe(x.address_line)+(x.landmark?' · '+safe(x.landmark):'')+'</div><small>'+safe([x.city,x.state,x.postal_code,x.recipient_phone].filter(Boolean).join(', '))+'</small><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="secondary" data-aedit="'+x.id+'">Edit</button><button class="secondary" data-adefault="'+x.id+'" '+(x.is_default?'disabled':'')+'>Make default</button><button class="secondary" data-adelete="'+x.id+'">Delete</button></div></div>').join(''):'<div class="muted">No saved address yet. Add one below.</div>';return true;}
+async function loadAccountAddresses(sequence=customerAccountViewSequence,userId=activeCustomerId){const {data,error}=await sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').eq('customer_id',userId).order('is_default',{ascending:false}).order('created_at',{ascending:false});if(!biteAccountRequestActive(sequence,userId))return false;if(error)throw error;accountAddressRows=data||[];checkoutAddresses=accountAddressRows;$('accountAddresses').innerHTML=accountAddressRows.length?accountAddressRows.map(x=>'<div class="account-address"><strong>'+safe(x.label)+(x.is_default?' · Default':'')+'</strong><div>'+safe(x.address_line)+(x.landmark?' · '+safe(x.landmark):'')+'</div><small>'+safe([x.city,x.state,x.postal_code,x.recipient_phone].filter(Boolean).join(', '))+'</small><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="secondary" aria-label="Edit saved address" data-aedit="'+x.id+'">Edit</button><button type="button" class="secondary" aria-label="Set as default address" data-adefault="'+x.id+'" '+(x.is_default?'disabled':'')+'>Make default</button><button type="button" class="secondary" aria-label="Delete saved address" data-adelete="'+x.id+'">Delete</button></div></div>').join(''):'<div class="muted">No saved address yet. Add one below.</div>';return true;}
 function resetAddrForm(){['addrId','addrName','addrPhone','addrLine','addrLandmark','addrCity','addrState','addrPostal'].forEach(id=>$(id).value='');$('addrLabel').value='Home';$('addrDefault').checked=!accountAddressRows.length;$('addrFormTitle').textContent='Add a delivery address';$('addrSave').textContent='Save address';$('addrCancel').classList.add('hidden');$('addrError').textContent='';}
 async function openAccountView(){
  const accountRequestId=++customerAccountViewSequence;
@@ -655,7 +655,81 @@ async function openAccountView(){
   if(!biteAccountRequestActive(accountRequestId,accountUserId))return;
   if(pe)throw pe;$('accountProfile').innerHTML='<strong>'+safe(p?.full_name||data.session.user.user_metadata?.full_name||'Customer')+'</strong><div>'+safe(data.session.user.email||'')+'</div><div>'+safe(p?.phone||'Mobile number not added')+'</div>';if(!await loadAccountAddresses(accountRequestId,accountUserId))return;if(!biteAccountRequestActive(accountRequestId,accountUserId))return;resetAddrForm();await loadCustomerSupportTickets(accountRequestId,accountUserId);}catch(e){if(!biteAccountRequestActive(accountRequestId,accountUserId))return;$('accountProfile').textContent='Account load error: '+(e.message||'Try again');$('accountAddresses').textContent='';}}
 $('customerAddressForm').addEventListener('submit',e=>{e.preventDefault();$('addrSave').click();});
-$('addrSave').addEventListener('click',async()=>{const err=$('addrError');err.textContent='';const name=$('addrName').value.trim(),phone=$('addrPhone').value.replace(/[^0-9]/g,''),line=$('addrLine').value.trim(),city=$('addrCity').value.trim(),state=$('addrState').value.trim(),pin=$('addrPostal').value.trim();if(name.length<2||phone.length<10||phone.length>15||!line||!city||!state||(pin&&!/^[0-9]{6}$/.test(pin))){err.textContent='Name, valid mobile, address, city aur state bharein. PIN 6 digits ka hona chahiye.';return;}const {data:s}=await sb.auth.getSession();if(!s.session){showAuth('login');return;}const btn=$('addrSave');btn.disabled=true;try{const id=$('addrId').value,payload={customer_id:s.session.user.id,label:$('addrLabel').value,recipient_name:name,recipient_phone:phone,address_line:line,landmark:$('addrLandmark').value.trim()||null,city,state,postal_code:pin||null,is_default:$('addrDefault').checked||!accountAddressRows.length,updated_at:new Date().toISOString()};if(payload.is_default){const {error}=await sb.from('customer_addresses').update({is_default:false,updated_at:new Date().toISOString()}).eq('customer_id',s.session.user.id);if(error)throw error;}const res=id?await sb.from('customer_addresses').update(payload).eq('id',id).select('id').single():await sb.from('customer_addresses').insert(payload).select('id').single();if(res.error)throw res.error;await loadAccountAddresses();resetAddrForm();}catch(e){err.textContent=e.message||'Save failed';}finally{btn.disabled=false;}});
+// Address operations are scoped to the active customer; avoid concurrent writes.
+let biteAddressMutationBusy=false;
+async function bitePromoteDefaultAddress(addressId,customerId){
+ const wasDefault=accountAddressRows.some(row=>row.id===addressId&&row.is_default);
+ const stamp=new Date().toISOString();
+ const selected=await sb.from('customer_addresses').update({is_default:true,updated_at:stamp})
+  .eq('customer_id',customerId).eq('id',addressId).select('id').maybeSingle();
+ if(selected.error)throw selected.error;
+ if(!selected.data?.id)throw new Error('This address is no longer available. Refresh and try again.');
+ const other=await sb.from('customer_addresses').update({is_default:false,updated_at:stamp})
+  .eq('customer_id',customerId).neq('id',addressId);
+ if(other.error){
+  // Restore the previous default if clearing the other rows failed.
+  if(!wasDefault){
+   const rollback=await sb.from('customer_addresses').update({is_default:false,updated_at:new Date().toISOString()})
+    .eq('customer_id',customerId).eq('id',addressId);
+   if(rollback.error)console.warn('Default-address rollback failed',rollback.error);
+  }
+  throw new Error('Could not finish updating your default address. Please refresh and retry.');
+ }
+}
+$('addrSave').addEventListener('click',async()=>{
+ if(biteAddressMutationBusy)return;
+ const err=$('addrError');err.textContent='';
+ const name=$('addrName').value.trim(),phone=$('addrPhone').value.replace(/[^0-9]/g,''),
+  line=$('addrLine').value.trim(),city=$('addrCity').value.trim(),state=$('addrState').value.trim(),pin=$('addrPostal').value.trim();
+ if(name.length<2||phone.length<10||phone.length>15||!line||!city||!state||(pin&&!/^[0-9]{6}$/.test(pin))){
+  err.textContent='Name, valid mobile, address, city aur state bharein. PIN 6 digits ka hona chahiye.';return;
+ }
+ const requestedId=$('addrId').value,existing=requestedId?accountAddressRows.find(x=>x.id===requestedId):null;
+ if(requestedId&&!existing){err.textContent='Address no longer available. Refresh your account.';return;}
+ const wantsDefault=$('addrDefault').checked||!accountAddressRows.length;
+ if(existing?.is_default&&!wantsDefault){
+  err.textContent='To change your default, use Make default on another saved address.';return;
+ }
+ biteAddressMutationBusy=true;const btn=$('addrSave');btn.disabled=true;
+ const accountSequence=customerAccountViewSequence;
+ try{
+  const {data:sessionData,error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw sessionError;
+  const customerId=sessionData?.session?.user?.id;
+  if(!customerId||!biteAccountRequestActive(accountSequence,customerId))return showAuth('login');
+  const id=requestedId;
+  const payload={
+   customer_id:customerId,label:$('addrLabel').value,recipient_name:name,recipient_phone:phone,
+   address_line:line,landmark:$('addrLandmark').value.trim()||null,city,state,postal_code:pin||null,
+   // The previous default remains intact until the new address is saved.
+   is_default:existing?.is_default===true,updated_at:new Date().toISOString()
+  };
+  const res=id
+   ?await sb.from('customer_addresses').update(payload).eq('customer_id',customerId).eq('id',id).select('id').single()
+   :await sb.from('customer_addresses').insert({...payload,is_default:false}).select('id').single();
+  if(res.error)throw res.error;
+  if(!biteAccountRequestActive(accountSequence,customerId))return;
+  const savedId=res.data?.id;
+  if(!savedId)throw new Error('Address could not be confirmed. Please refresh.');
+  if(wantsDefault&&!existing?.is_default){
+   try{await bitePromoteDefaultAddress(savedId,customerId);}
+   catch(defaultError){
+    // The address itself was saved successfully. Reload instead of resubmitting
+    // an INSERT and accidentally creating a duplicate if default promotion failed.
+    if(biteAccountRequestActive(accountSequence,customerId)){
+     await loadAccountAddresses(accountSequence,customerId);
+     resetAddrForm();
+     err.textContent='Address saved, but default could not be updated. Use Make default on this saved address to retry.';
+    }
+    return;
+   }
+  }
+  if(!biteAccountRequestActive(accountSequence,customerId))return;
+  if(await loadAccountAddresses(accountSequence,customerId))resetAddrForm();
+ }catch(e){
+  if(accountSequence===customerAccountViewSequence)err.textContent=e.message||'Save failed';
+ }finally{biteAddressMutationBusy=false;btn.disabled=false;}
+});
 $('addrCancel').addEventListener('click',resetAddrForm);
 async function loadCustomerSupportTickets(sequence=customerAccountViewSequence,userId=activeCustomerId){
  const box=$('customerSupportList'),orderSelect=$('customerSupportOrder');
@@ -695,7 +769,48 @@ $('customerSupportForm')?.addEventListener('submit',async e=>{
  finally{button.disabled=false;button.textContent='Send support request';}
 });
 
-$('accountAddresses').addEventListener('click',async e=>{const edit=e.target.closest('[data-aedit]'),def=e.target.closest('[data-adefault]'),del=e.target.closest('[data-adelete]');if(edit){const x=accountAddressRows.find(v=>v.id===edit.dataset.aedit);if(!x)return;$('addrId').value=x.id;$('addrLabel').value=x.label;$('addrName').value=x.recipient_name;$('addrPhone').value=x.recipient_phone;$('addrLine').value=x.address_line;$('addrLandmark').value=x.landmark||'';$('addrCity').value=x.city;$('addrState').value=x.state;$('addrPostal').value=x.postal_code||'';$('addrDefault').checked=x.is_default;$('addrFormTitle').textContent='Edit delivery address';$('addrSave').textContent='Update address';$('addrCancel').classList.remove('hidden');return;}if(def){try{const {data:s}=await sb.auth.getSession();let r=await sb.from('customer_addresses').update({is_default:false}).eq('customer_id',s.session.user.id);if(r.error)throw r.error;r=await sb.from('customer_addresses').update({is_default:true}).eq('id',def.dataset.adefault);if(r.error)throw r.error;await loadAccountAddresses();}catch(e){$('addrError').textContent=e.message||'Default update failed';}return;}if(del){if(!confirm('Delete this saved address? Existing orders apni original delivery details rakhenge.'))return;try{const {error}=await sb.from('customer_addresses').delete().eq('id',del.dataset.adelete);if(error)throw error;await loadAccountAddresses();resetAddrForm();}catch(e){$('addrError').textContent=e.message||'Delete failed';}}});
+$('accountAddresses').addEventListener('click',async e=>{
+ const edit=e.target.closest('[data-aedit]'),def=e.target.closest('[data-adefault]'),del=e.target.closest('[data-adelete]');
+ if(biteAddressMutationBusy)return;
+ if(edit){
+  const x=accountAddressRows.find(v=>v.id===edit.dataset.aedit);if(!x)return;
+  $('addrId').value=x.id;$('addrLabel').value=x.label;$('addrName').value=x.recipient_name;
+  $('addrPhone').value=x.recipient_phone;$('addrLine').value=x.address_line;$('addrLandmark').value=x.landmark||'';
+  $('addrCity').value=x.city;$('addrState').value=x.state;$('addrPostal').value=x.postal_code||'';
+  $('addrDefault').checked=x.is_default;$('addrFormTitle').textContent='Edit delivery address';
+  $('addrSave').textContent='Update address';$('addrCancel').classList.remove('hidden');
+  $('customerAddressForm').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+  $('addrName').focus({preventScroll:true});
+  return;
+ }
+ if(!def&&!del)return;
+ const addressId=def?.dataset.adefault||del?.dataset.adelete;
+ if(!accountAddressRows.some(x=>x.id===addressId)){
+  $('addrError').textContent='Address no longer available. Refresh your account.';return;
+ }
+ if(del&&!confirm('Delete this saved address? Existing orders apni original delivery details rakhenge.'))return;
+ biteAddressMutationBusy=true;
+ const requestedSequence=customerAccountViewSequence;
+ const target=def||del;target.disabled=true;
+ try{
+  const {data,error}=await sb.auth.getSession();if(error)throw error;
+  const customerId=data?.session?.user?.id;
+  if(!customerId||!biteAccountRequestActive(requestedSequence,customerId))return showAuth('login');
+  if(def){
+   await bitePromoteDefaultAddress(addressId,customerId);
+  }else{
+   const result=await sb.from('customer_addresses').delete().eq('customer_id',customerId).eq('id',addressId);
+   if(result.error)throw result.error;
+  }
+  if(!biteAccountRequestActive(requestedSequence,customerId))return;
+  if(await loadAccountAddresses(requestedSequence,customerId))resetAddrForm();
+ }catch(err){
+  if(requestedSequence===customerAccountViewSequence){
+   $('addrError').textContent=err.message||'Address update failed';
+   $('addrError').scrollIntoView({block:'nearest'});
+  }
+ }finally{biteAddressMutationBusy=false;target.disabled=false;}
+});
 $('accountBackBtn').addEventListener('click',()=>showCustomerView('home'));
 $('accountLogoutBtn').addEventListener('click',async()=>{const {error}=await sb.auth.signOut();if(error){$('accountProfile').textContent='Logout nahi ho paaya: '+error.message;return;}setCustomerSession(null);showCustomerView('home');});
 function formatOrderDate(value){try{return new Date(value).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return value||''}}
@@ -759,7 +874,7 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
   $('ordersList').innerHTML='<div class="empty">Log in to view your orders.</div>';
   $('ordersSubtitle').textContent='Your orders';
  }
- if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);}}
+ if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden')||!$('accountView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);}}
 async function sendCustomerPasswordResetLink(){
  const email=$('customerEmail').value.trim().toLowerCase();
  if(!email.includes('@')||email.startsWith('@')||!email.split('@')[1]?.includes('.')){

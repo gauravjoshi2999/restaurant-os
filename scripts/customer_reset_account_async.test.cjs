@@ -102,7 +102,7 @@ test('stale saved addresses response never shows previous customer addresses aft
  const { $ }=dom();
  const ctx=vm.createContext({
   $,activeCustomerId:'customer-a',checkoutAddresses:[],
-  sb:{from:()=>{let sorts=0;const chain={select:()=>chain,order:()=>{if(++sorts===2){started();return waiting;}return chain;}};return chain;}}
+  sb:{from:()=>{let sorts=0;const chain={select:()=>chain,eq:()=>chain,order:()=>{if(++sorts===2){started();return waiting;}return chain;}};return chain;}}
  });
  vm.runInContext(accountLoad+';globalThis.load=loadAccountAddresses;',ctx);
  const running=ctx.load();
