@@ -226,3 +226,26 @@ test('a stale draft-list response does not write old Owner data to local cache',
  assert.equal(drafts(h,'owner1','rest1').length,0,'stale list must not populate the old cache');
  assert.equal(drafts(h,'owner2','rest2').length,0,'other tenant must remain empty');
 });
+
+test('unsaved old Owner bill cannot autosave into a newly signed-in restaurant',async()=>{
+ const h=harness();
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ assert.equal(drafts(h,'owner1','rest1').length,1);
+ h.setTenant('owner2','rest2');
+ h.elements.orderCustomerName.value='Old owner still in modal';
+ h.api.touch();
+ await h.api.saveNow();
+ assert.equal(drafts(h,'owner2','rest2').length,0,'must never copy customer fields to new tenant');
+ assert.match(h.elements.posDraftStatus.textContent,/Owner session changed/);
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ assert.equal(drafts(h,'owner2','rest2').length,1,'new Owner can start a legitimate new bill');
+});
+
+test('completed bill tombstone belongs to originating Owner after session switch',async()=>{
+ const h=harness();
+ h.api.newBill();h.api.touch();await h.api.saveNow();
+ h.setTenant('owner2','rest2');
+ await h.api.finishOrder();
+ assert.equal(tombstones(h,'owner1','rest1').find(x=>x.id===UUID_A)?.pending!==undefined,true);
+ assert.equal(tombstones(h,'owner2','rest2').length,0);
+});
