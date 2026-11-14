@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 142" role="img" aria-labelledby="t d">
+<title id="t">Bite — new restaurant menu symbol</title>
+<desc id="d">Purple and tangerine rounded B emblem with a white smiling plate</desc>
+<defs><linearGradient id="purple" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38166e"/><stop offset="1" stop-color="#512688"/></linearGradient><linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff9c28"/><stop offset="1" stop-color="#f66c15"/></linearGradient><clipPath id="corners"><rect x="5" y="5" width="121" height="132" rx="31"/></clipPath></defs>
+<g clip-path="url(#corners)">
+<rect x="5" y="5" width="121" height="132" fill="url(#purple)"/>
+<path d="M-1 89C28 69 65 87 88 66c18-15 36-16 54-9v88H-1Z" fill="url(#orange)"/>
+<path d="M37 24h34c24 0 39 12 39 31 0 11-6 20-18 26 16 5 25 16 25 31 0 19-16 31-42 31H37z" fill="#fff"/>
+<path d="M58 45h16c11 0 17 5 17 13s-7 14-18 14H58z" fill="#4e2484"/>
+<path d="M58 91h19c12 0 19 6 19 15 0 8-7 14-19 14H58z" fill="#f77719"/>
+<path d="M20 110c28-24 54-19 83-28" stroke="#fff" stroke-opacity=".92" stroke-width="4" fill="none" stroke-linecap="round"/>
+</g>
+</svg>
