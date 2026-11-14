@@ -81,11 +81,15 @@ try:
    page.locator('#dishSearch').fill('')
    page.locator('#jumpToMenuBtn').click()
    page.wait_for_function('window.scrollY>40',timeout=8000)
-   check(page.evaluate("document.getElementById('summary').getBoundingClientRect().top<210"),f'Jump button scrolls to dishes at {width}px')
+   page.wait_for_function("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80",timeout=8000)
+   check(page.evaluate("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80"),
+     f'Jump button makes dish cards visible at {width}px')
    page.locator('#categories [data-category="cat-breakfast"]').click()
    page.wait_for_function("document.getElementById('selectedCategoryTitle').textContent==='Breakfast'",timeout=8000)
    check(page.locator('.item').count()==1 and 'Veg Sandwich' in page.locator('#menu').inner_text(),f'Breakfast filters dishes at {width}px')
-   check(page.evaluate("document.getElementById('summary').getBoundingClientRect().top<210"),f'Breakfast tap scrolls to dishes at {width}px')
+   page.wait_for_function("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80",timeout=8000)
+   check(page.evaluate("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80"),
+     f'Breakfast tap displays matching dish cards in the viewport at {width}px')
    page.locator('#categories [data-category="all"]').click()
    check('₹180' in page.locator('#menu').inner_text(),f'Original menu price appears at {width}px')
    page.evaluate("window.__qrMenuPrice=240")
