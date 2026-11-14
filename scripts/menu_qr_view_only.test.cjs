@@ -71,3 +71,23 @@ test('Printed permanent QR stays unchanged when live menu prices are updated',()
  assert.match(menu,/\.textContent=money\(item\.price\)/);
  assert.match(menu,/\$\('refreshMenuBtn'\)\.addEventListener\('click',\(\)=>loadMenu\(\)\)/);
 });
+
+test('Printable QR card uses orange scan-friendly modules and full Bite branding under QR',()=>{
+ assert.match(card,/colorDark:'#af450a'/);
+ assert.match(card,/colorLight:'#ffffff'/);
+ assert.match(card,/--orange:#fc8019/);
+ assert.match(card,/class="qr-frame"/);
+ assert.match(card,/class="qr-brand-block"/);
+ assert.match(card,/id="biteBrandLogo" class="qr-bite-logo" src="assets\/bite-app-icon\.svg" alt="Bite logo"/);
+ assert.match(card,/<strong>Bite<\/strong><span>Eat\. Repeat\.<\/span>/);
+ assert.ok(card.indexOf('id="code"')<card.indexOf('class="qr-brand-block"'),
+   'Bite logo and name must be below QR, not above it');
+ assert.match(card,/@media print/);
+ assert.match(card,/print-color-adjust:exact/);
+ assert.match(card,/>Download QR Card<\/button>/);
+ assert.match(card,/canvas\.width=900;canvas\.height=1200/);
+ assert.match(card,/ctx\.drawImage\(qrCanvas\|\|qrImage,210,331,480,480\)/);
+ assert.match(card,/ctx\.drawImage\(logo,270,891,94,94\)/);
+ assert.match(card,/bite-branded-menu-qr-/);
+ assert.doesNotMatch(card,/colorDark:'#1e1337'/);
+});
