@@ -1,0 +1,53 @@
+/* Bite premium order history — customer only. */
+body[data-bite-app="customer"] #ordersView .ordersbar{align-items:center;gap:16px;margin-bottom:17px}
+body[data-bite-app="customer"] #ordersView .ordersbar h2{font-size:clamp(24px,4vw,30px);color:#20362a;font-weight:850;letter-spacing:-.65px}
+body[data-bite-app="customer"] #ordersView .ordersbar small{font-size:12px;color:#627467}
+body[data-bite-app="customer"] #ordersView #refreshOrdersBtn{min-height:44px;border:1px solid #b6ddc0;background:#eaf8ee;color:#087448;border-radius:12px;font-size:13px;font-weight:800;padding:10px 15px}
+body[data-bite-app="customer"] #ordersView .bite-history-toolbar{border:1px solid #e0ebe2;background:#fff;padding:15px;border-radius:18px;box-shadow:0 5px 20px #1b442114;margin:0 0 19px}
+body[data-bite-app="customer"] #ordersView .bite-history-search{display:flex;align-items:center;gap:11px;min-height:49px;border:1px solid #d6e7da;background:#f8fbf7;border-radius:12px;padding:0 13px}
+body[data-bite-app="customer"] #ordersView .bite-history-search svg{height:20px;width:20px;color:#087b4d;flex:none}
+body[data-bite-app="customer"] #ordersView #biteHistorySearch{width:100%;min-width:0;min-height:47px;background:transparent;border:0;outline:none;font-size:16px;color:#20362a}
+body[data-bite-app="customer"] #ordersView .bite-history-search:focus-within{border-color:#087b4d;box-shadow:0 0 0 3px #087b4d18}
+body[data-bite-app="customer"] #ordersView .bite-history-chips{display:flex;align-items:center;gap:9px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;padding:14px 0 3px}
+body[data-bite-app="customer"] #ordersView .bite-history-chips::-webkit-scrollbar{display:none}
+body[data-bite-app="customer"] #ordersView .bite-history-chips button{flex:none;min-height:44px;border:1px solid #dbe8de;border-radius:100px;padding:10px 16px;color:#38513e;background:#fff;font-size:13px;font-weight:800;scroll-snap-align:start}
+body[data-bite-app="customer"] #ordersView .bite-history-chips button[aria-pressed="true"]{background:#087b4d;border-color:#087b4d;color:#fff}
+body[data-bite-app="customer"] #ordersView .bite-history-count{font-size:12px;color:#617365;margin:11px 0 0}
+body[data-bite-app="customer"] #ordersView .bite-history-count:empty{display:none}
+body[data-bite-app="customer"] #ordersView #biteHistoryNoMatches[hidden],
+body[data-bite-app="customer"] #ordersView .ordercard[hidden]{display:none!important}
+body[data-bite-app="customer"] #ordersView .bite-history-no-matches{text-align:center;padding:32px 17px;margin:14px 0;background:#fff;border:1px dashed #bdd9c5;border-radius:17px}
+body[data-bite-app="customer"] #ordersView .bite-history-no-matches h3{margin:0 0 5px;font-size:18px;color:#20362a}
+body[data-bite-app="customer"] #ordersView .bite-history-no-matches p{margin:0 0 14px;color:#5b6d60;font-size:13px}
+body[data-bite-app="customer"] #ordersView .bite-history-no-matches button{min-height:44px;border-radius:12px;background:#eaf8ee;color:#087448;border:1px solid #add9bb;padding:10px 15px;font-size:13px;font-weight:800}
+body[data-bite-app="customer"] #ordersView .ordercard{border:1px solid #dfeae1;background:#fff;border-radius:20px;box-shadow:0 7px 24px #183e2110;padding:19px 19px 17px;margin-bottom:15px}
+body[data-bite-app="customer"] #ordersView .orderhead{gap:12px;align-items:start}
+body[data-bite-app="customer"] #ordersView .ordercode{font-size:14px;font-weight:850;color:#243b2a;overflow-wrap:anywhere}
+body[data-bite-app="customer"] #ordersView .orderrestaurant{font-size:13px;color:#627063;line-height:1.5;margin-top:4px}
+body[data-bite-app="customer"] #ordersView .orderamount{color:#173f27;font-size:17px;font-weight:850;white-space:nowrap}
+body[data-bite-app="customer"] #ordersView .orderstatus{display:inline-flex;align-items:center;min-height:30px;border-radius:999px;font-size:12px;font-weight:800;padding:5px 10px;margin:12px 0 6px}
+body[data-bite-app="customer"] #ordersView .orderstatus.completed,
+body[data-bite-app="customer"] #ordersView .orderstatus.delivered{color:#086d43;background:#e6f7eb}
+body[data-bite-app="customer"] #ordersView .orderstatus.received,
+body[data-bite-app="customer"] #ordersView .orderstatus.accepted,
+body[data-bite-app="customer"] #ordersView .orderstatus.preparing,
+body[data-bite-app="customer"] #ordersView .orderstatus.ready,
+body[data-bite-app="customer"] #ordersView .orderstatus.handed-over{color:#245f95;background:#e8f3ff}
+body[data-bite-app="customer"] #ordersView .orderstatus.cancelled{color:#a13b3f;background:#fff0f0}
+body[data-bite-app="customer"] #ordersView .orderactions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:14px}
+body[data-bite-app="customer"] #ordersView .orderactions button{min-height:44px;border-radius:12px;padding:9px 13px;font-size:12px;font-weight:780;border-color:#d7e7da}
+body[data-bite-app="customer"] #ordersView .orderactions button:hover{border-color:#9fcdb0;background:#eff9f1}
+body[data-bite-app="customer"] #ordersView .orderactions .muted{font-size:12px;color:#698071}
+body[data-bite-app="customer"] #ordersView .orderdetail{margin-top:15px;border-top:1px solid #e5eee7;padding-top:15px;color:#334d3a}
+@media(max-width:600px){
+ body[data-bite-app="customer"] #ordersView .ordersbar{gap:10px}
+ body[data-bite-app="customer"] #ordersView .ordersbar h2{font-size:25px}
+ body[data-bite-app="customer"] #ordersView .bite-history-toolbar{padding:11px;border-radius:15px;margin-bottom:15px}
+ body[data-bite-app="customer"] #ordersView .bite-history-chips{margin-right:-11px;padding-right:11px}
+ body[data-bite-app="customer"] #ordersView .bite-history-chips button{font-size:12px;padding:9px 13px}
+ body[data-bite-app="customer"] #ordersView .ordercard{border-radius:17px;padding:16px 14px}
+ body[data-bite-app="customer"] #ordersView .ordercode{font-size:13px}
+ body[data-bite-app="customer"] #ordersView .orderrestaurant{font-size:12px}
+ body[data-bite-app="customer"] #ordersView .orderamount{font-size:15px}
+ body[data-bite-app="customer"] #ordersView .orderactions{gap:8px}
+}
