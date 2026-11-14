@@ -73,7 +73,7 @@ test('missing target does not clear the other saved addresses',async()=>{
 });
 
 test('address list, save and delete are explicitly owner-scoped and do not clear default before saving',()=>{
- assert.match(html,/function loadAccountAddresses\([^)]*\)\{[^}]*\.eq\('customer_id',userId\)\.order\('is_default'/);
+ assert.match(html,/async function loadAccountAddresses\([\s\S]*?\.eq\('customer_id',userId\)\.order\('is_default'/);
  assert.match(html,/\.update\(payload\)\.eq\('customer_id',customerId\)\.eq\('id',id\)/);
  assert.match(html,/\.delete\(\)\.eq\('customer_id',customerId\)\.eq\('id',addressId\)/);
  assert.match(html,/const payload=\{[\s\S]*is_default:existing\?\.is_default===true/);
