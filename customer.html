@@ -711,7 +711,19 @@ $('addrSave').addEventListener('click',async()=>{
   if(!biteAccountRequestActive(accountSequence,customerId))return;
   const savedId=res.data?.id;
   if(!savedId)throw new Error('Address could not be confirmed. Please refresh.');
-  if(wantsDefault&&!existing?.is_default)await bitePromoteDefaultAddress(savedId,customerId);
+  if(wantsDefault&&!existing?.is_default){
+   try{await bitePromoteDefaultAddress(savedId,customerId);}
+   catch(defaultError){
+    // The address itself was saved successfully. Reload instead of resubmitting
+    // an INSERT and accidentally creating a duplicate if default promotion failed.
+    if(biteAccountRequestActive(accountSequence,customerId)){
+     await loadAccountAddresses(accountSequence,customerId);
+     resetAddrForm();
+     err.textContent='Address saved, but default could not be updated. Use Make default on this saved address to retry.';
+    }
+    return;
+   }
+  }
   if(!biteAccountRequestActive(accountSequence,customerId))return;
   if(await loadAccountAddresses(accountSequence,customerId))resetAddrForm();
  }catch(e){
