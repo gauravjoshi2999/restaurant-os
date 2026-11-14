@@ -1,4 +1,5 @@
 import {createClient} from "npm:@supabase/supabase-js@2.95.0";
+import {summarizePushHealth} from "./summary.mjs";
 
 // Read-only health report for ONE authenticated restaurant Owner.
 // "sent" means submitted to FCM, NEVER delivered to an Android device.
@@ -44,22 +45,6 @@ Deno.serve(async req=>{
  ]);
  if(deviceResult.error||eventResult.error)
   return reply({error:"Notification health temporarily unavailable"},503);
- const devices=deviceResult.data||[],events=eventResult.data||[];
- const active=devices.filter(x=>x.enabled===true);
- const recentCutoff=Date.now()-48*60*60*1000;
- const recent=active.filter(x=>x.last_seen_at&&Number.isFinite(Date.parse(x.last_seen_at))
-  &&Date.parse(x.last_seen_at)>=recentCutoff);
- const count=(status:string)=>events.filter(x=>x.delivery_status===status).length;
- return reply({
-  status:active.length>0?"FCM_DEVICE_REGISTERED":"NO_ACTIVE_PARTNER_DEVICE",
-  devices:{registered:devices.length,enabled:active.length,
-   supports_order_actions:active.filter(x=>x.supports_order_actions===true).length,
-   seen_within_48h:recent.length},
-  outbox:{sampled_events:events.length,
-   submitted_to_fcm:count("sent"),failed:count("failed"),
-   queued:count("queued"),retry:count("retry"),processing:count("processing"),
-   no_devices:count("no_devices")},
-  delivered_to_phone:"NOT_VERIFIED",
-  note:"FCM accepted/submitted does not prove Android displayed the notification. No test push or order was created."
- });
+ const summary=summarizePushHealth(deviceResult.data||[],eventResult.data||[]);
+ return reply(summary);
 });
