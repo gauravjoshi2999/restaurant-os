@@ -1435,9 +1435,11 @@ async function cancelPendingCustomerCheckout(options={}){
 }
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
+ const accountSequence=bitePaymentAccountSequence;
  if(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested){
   // A new cart may be edited but payment must never be sent to an old Cashfree intent.
   if(!window.BiteCheckoutUX.cancelBusy)await cancelPendingCustomerCheckout({background:true});
+  if(accountSequence!==bitePaymentAccountSequence)return;
   syncCheckoutPaymentButton();
   return;
  }
@@ -1462,11 +1464,16 @@ async function submitCustomerOrder(){
   const entries=cartEntries();if(!entries.length)throw new Error('Cart khaali hai.');
   const instructions=cartInstructionSnapshot();
   if(instructions.tooLong)throw new Error('Cooking requests 500 characters se zyada hain. Cart mein notes chhote karein.');
-  if(!BITE_SANDBOX_CHECKOUT&&!await refreshCheckoutPaymentReadiness())throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
+  if(!BITE_SANDBOX_CHECKOUT){
+   const ready=await refreshCheckoutPaymentReadiness();
+   if(accountSequence!==bitePaymentAccountSequence)return;
+   if(!ready)throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
+  }
   if(mode==='delivery')await getCheckoutDeliveryZone();
-  const {data:sessionData}=await sb.auth.getSession();if(!sessionData.session)throw new Error('Please login again.');
+  if(accountSequence!==bitePaymentAccountSequence)return;
+  const {data:sessionData}=await sb.auth.getSession();if(accountSequence!==bitePaymentAccountSequence)return;if(!sessionData.session)throw new Error('Please login again.');
   const userId=sessionData.session.user.id;
-  if(!BITE_SANDBOX_CHECKOUT){const {error:profileError}=await sb.from('customer_contact_profiles').upsert({customer_id:userId,full_name:name,phone:digits,updated_at:new Date().toISOString()},{onConflict:'customer_id'});if(profileError)throw profileError;}
+  if(!BITE_SANDBOX_CHECKOUT){const {error:profileError}=await sb.from('customer_contact_profiles').upsert({customer_id:userId,full_name:name,phone:digits,updated_at:new Date().toISOString()},{onConflict:'customer_id'});if(accountSequence!==bitePaymentAccountSequence)return;if(profileError)throw profileError;}
   let addressId=null;
   if(mode==='delivery'){
    if($('savedAddress').value==='new'){
@@ -1481,11 +1488,12 @@ async function submitCustomerOrder(){
     }
    }
   }
+  if(accountSequence!==bitePaymentAccountSequence)return;
   const items=entries.map(([id,quantity])=>({menu_item_id:id,quantity}));
   if(!BITE_SANDBOX_CHECKOUT&&!checkoutRequestKey){checkoutRequestKey=crypto.randomUUID();window.BiteCustomerExtras?.saveCheckoutKey(checkoutRequestKey);}
   const checkoutArgs={p_restaurant_id:activeRestaurant.id,p_delivery_type:mode,p_address_id:addressId,p_customer_note:instructions.note||null,p_items:items};
   if(!BITE_SANDBOX_CHECKOUT){checkoutArgs.p_coupon_code=appliedCheckoutCoupon?.code||null;checkoutArgs.p_checkout_key=checkoutRequestKey;}
-  const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(error)throw error;
+  const {data:orderId,error}=await sb.rpc(BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2',checkoutArgs);if(accountSequence!==bitePaymentAccountSequence)return;if(error)throw error;
   if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,cartSignature:biteCheckoutCartSignature(activeRestaurant.id,entries),intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
   window.BiteCheckoutUX?.markPending?.(orderId);
   const {data:payment,error:paymentError}=await sb.functions.invoke('cashfree-sandbox-draft-checkout',{body:{draft_id:orderId}});if(paymentError)throw paymentError;
@@ -1497,8 +1505,8 @@ async function submitCustomerOrder(){
    if(window.BiteCheckoutUX?.showSandboxSuccess)window.BiteCheckoutUX.showSandboxSuccess();
    else $('checkoutError').textContent='Test payment successful. No real charge was made.';
   }else $('checkoutError').textContent='Test payment not confirmed yet. Check status before trying again.';
- }catch(error){$('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';}
- finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();}
+ }catch(error){if(accountSequence===bitePaymentAccountSequence)$('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';}
+ finally{if(accountSequence===bitePaymentAccountSequence){checkoutPaymentBusy=false;syncCheckoutPaymentButton();}}
 }
 // BITE CHECKOUT PAYMENT END
 
