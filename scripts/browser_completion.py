@@ -313,6 +313,56 @@ try:
   customer.locator('#menuResetFilters').click()
   check(not customer.locator('#menuVegToggle').is_checked() and customer.locator('#categoryBar [data-cat="all"]').get_attribute('aria-pressed')=='true',
     'Clear filters resets veg and category controls to All items')
+  # Synthetic menu search and suggestions: fixtures live only in this browser's memory.
+  customer.evaluate("""() => {
+    window.__biteSearchOriginalMenu=menuItems;
+    const base=menuItems[0];
+    menuItems=[...menuItems,
+      {...base,id:'11111111-1111-4111-8111-111111111111',
+        name:'QA Veg Thali Special',description:'A full plate',
+        category_id:'breakfast',price:190,is_vegetarian:true},
+      {...base,id:'22222222-2222-4222-8222-222222222222',
+        name:'Seasonal Bowl',description:'Contains QA Veg Thali ingredients',
+        category_id:'sides',price:80,is_vegetarian:true},
+      {...base,id:'33333333-3333-4333-8333-333333333333',
+        name:'QA Chicken Special',description:'Nonvegetarian dish',
+        category_id:'sides',price:210,is_vegetarian:false}
+    ];
+    renderMenu([]);
+  }""")
+  customer.locator('#menuSearchInput').fill('QA Veg Thali')
+  customer.wait_for_function("""() => {
+    const names=[...document.querySelectorAll('#menuItems .itemname')].map(el=>el.textContent.trim());
+    return names.length===3 && names[0]==='QA Veg Thali'
+      && names[1]==='QA Veg Thali Special' && names[2]==='Seasonal Bowl';
+  }""",timeout=8000)
+  check(customer.locator('#menuResultCount').inner_text().startswith('3 of '),
+    'Menu search shows actual name-first matches ahead of description-only matches')
+  customer.locator('#menuClearSearch').click()
+  customer.evaluate("""() => {
+    cart={[menuItems[0].id]:1};
+    renderCart();
+    openCartModal();
+  }""")
+  add_ons=customer.locator('#biteCartAddOnList [data-bite-add-on]')
+  add_ons.first.wait_for(state='visible')
+  check(add_ons.count()==3
+    and add_ons.first.get_attribute('data-bite-add-on')=='11111111-1111-4111-8111-111111111111'
+    and add_ons.last.get_attribute('data-bite-add-on')=='33333333-3333-4333-8333-333333333333',
+    'Real menu suggestions prefer vegetarian and category-varied items without fake popularity')
+  add_ons.first.click()
+  check(customer.locator('#cartModalLines .cart-product').count()==2,
+    'Choosing a suggestion updates the actual cart and editable items')
+  customer.evaluate("""() => {
+    closeCartModal();
+    cart={};
+    menuItems=window.__biteSearchOriginalMenu;
+    renderCart();
+    renderMenu([]);
+  }""")
+  check(customer.locator('#menuItems .menuitem').count()==1
+    and customer.locator('#cartCount').inner_text()=='(0)',
+    'Synthetic search and cart fixture resets before real customer journey tests')
   customer.locator('#restaurantFavourite').click()
   customer.wait_for_function("document.querySelector('#restaurantFavourite').getAttribute('aria-pressed')==='true'")
   check('Saved' in customer.locator('#restaurantFavourite').inner_text(),'Favourite button persists through the Customer transport')
