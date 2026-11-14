@@ -12,7 +12,7 @@
     const currentCart=typeof cart!=='undefined'?cart:{};
     const hasItems=typeof cartEntries==='function'&&cartEntries().length>0;
     // Suggestions are simply other available menu items, not claimed to be
-    // favourites, personalised recommendations or highly reordered dishes.
+    // favourites, personalised recommendations or any popularity ranking.
     const choices=hasItems?currentItems.filter(item=>
       item&&item.id&&!currentCart[item.id]&&Number.isFinite(Number(item.price))
       &&Number(item.price)>=0
