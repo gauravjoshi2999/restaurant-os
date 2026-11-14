@@ -30,6 +30,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run Chromium customer journey smoke tests
         run: |
+          python scripts/menu_qr_browser_smoke.py
           python scripts/browser_smoke.py
           python scripts/browser_completion.py
           python scripts/owner_cash_closing_smoke.py
