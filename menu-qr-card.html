@@ -8,47 +8,75 @@
 <title>Print Menu QR · Bite</title>
 <link rel="icon" href="assets/bite-app-icon.svg" type="image/svg+xml">
 <style>
+:root{--orange:#fc8019;--dark-orange:#af450a;--purple:#35166e;--ink:#30253b}
 *{box-sizing:border-box}
-body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f2f8;color:#302440;margin:0}
-main{max-width:680px;margin:24px auto;padding:0 14px 32px}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff6ed;color:var(--ink);margin:0}
+main{max-width:650px;margin:24px auto;padding:0 14px 34px}
 h1{font-size:22px;margin:0 0 9px}p{line-height:1.55}
-.instructions{color:#61546d;font-size:13px;margin:0 0 17px}
-.card{background:#fff;border:1px solid #ded4ed;border-radius:18px;text-align:center;padding:26px 18px;box-shadow:0 5px 23px #32165f12;margin-bottom:15px}
-.card>strong{display:block;font-size:23px;color:#35166e;line-height:1.25;margin:9px 0}
-.card>p{margin:3px 0 15px;color:#5b4d69}
-#code{width:272px;height:272px;max-width:100%;margin:auto;display:grid;place-items:center;background:#fff}
+.instructions{color:#5c5067;font-size:13px;margin:0 0 17px}
+.card{position:relative;overflow:hidden;background:white;border:2px solid #ffd1aa;border-radius:22px;text-align:center;padding:0 18px 22px;box-shadow:0 10px 28px #ae580f16;margin-bottom:15px}
+.card-top{background:linear-gradient(130deg,#fff1e2,#fff8ef);border-bottom:1px solid #ffe2c6;margin:0 -18px 20px;padding:23px 12px 18px;border-top:9px solid var(--orange)}
+.qr-heading{display:block;font-size:12px;font-weight:900;letter-spacing:1.5px;color:var(--dark-orange);margin-bottom:9px;text-transform:uppercase}
+.card #restaurantName{display:block;font-size:clamp(21px,4.6vw,29px);font-weight:900;color:#312044;line-height:1.25;overflow-wrap:anywhere}
+.scan-caption{margin:10px 0 0;color:#80512e;font-size:14px;font-weight:800}
+.qr-frame{display:inline-grid;place-items:center;padding:18px;border:2px solid #ffd1aa;border-radius:17px;background:white;max-width:100%;box-shadow:0 3px 15px #b2682614}
+#code{width:260px;height:260px;max-width:100%;margin:auto;display:grid;place-items:center;background:#fff}
 #code img,#code canvas{max-width:100%;height:auto}
-.menu-tagline{font-size:13px;font-weight:750;color:#35166e;margin:15px 0 1px}
-#menuLink{font-size:11px;word-break:break-all;margin:9px auto;max-width:460px;color:#797083}
+.qr-brand-block{display:flex;justify-content:center;align-items:center;gap:14px;margin:23px auto 6px;padding:12px 14px;border-top:1px solid #ffe0c3;max-width:340px}
+.qr-bite-logo{width:72px;height:72px;object-fit:contain;flex:none}
+.qr-brand-text{display:flex;flex-direction:column;align-items:flex-start;text-align:left;line-height:1.08}
+.qr-brand-text strong{font-size:35px;font-weight:950;letter-spacing:-1.2px;color:var(--dark-orange)}
+.qr-brand-text span{font-size:15px;font-weight:800;letter-spacing:1px;color:#49354f;margin-top:5px}
+.menu-tagline{font-size:13px;font-weight:750;color:#744e32;margin:10px 0 4px}
+#menuLink{font-size:10px;line-height:1.45;word-break:break-all;margin:9px auto 0;max-width:450px;color:#877888}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap}
-.toolbar button,.toolbar a{display:inline-flex;justify-content:center;align-items:center;min-height:48px;flex:1;border:1px solid #35166e;border-radius:10px;padding:11px 14px;text-decoration:none;font-weight:750;font-size:14px;background:#35166e;color:#fff;cursor:pointer}
-.toolbar button.secondary{background:#fff;color:#35166e}
+.toolbar button{display:inline-flex;justify-content:center;align-items:center;min-height:48px;flex:1;border:1px solid var(--dark-orange);border-radius:10px;padding:11px 14px;font-weight:800;font-size:14px;background:var(--orange);color:#251506;cursor:pointer}
+.toolbar button.secondary{background:white;color:var(--dark-orange)}
 .toolbar button:disabled{opacity:.4;cursor:not-allowed}
-.status{font-size:13px;margin:13px 0;padding:12px;border:1px solid #ded4ed;border-radius:10px;background:white;color:#655874}
+.status{font-size:13px;margin:13px 0;padding:12px;border:1px solid #ffdfc2;border-radius:10px;background:white;color:#655874}
+button:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
 @media print{
- @page{size:A5 portrait;margin:14mm}
- body{background:white}main{margin:0;padding:0;max-width:none}
+ @page{size:A5 portrait;margin:12mm}
+ html,body{background:white!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ main{margin:0;padding:0;max-width:none}
  .toolbar,.instructions,h1,.status{display:none!important}
- .card{box-shadow:none;border:2px solid #35166e;break-inside:avoid;margin:0;padding:20px}
+ .card{box-shadow:none;border:2px solid var(--orange);break-inside:avoid;margin:0;padding-bottom:14px;border-radius:18px}
+ .card-top{padding:17px 9px 15px;margin-bottom:12px}
+ .qr-brand-block{margin-top:12px;padding:8px}
+ .qr-bite-logo{width:57px;height:57px}
+ .qr-brand-text strong{font-size:29px}
+ .qr-frame{padding:14px}
 }
-@media(max-width:460px){main{margin:14px auto}.toolbar{flex-direction:column}.card{padding:20px 10px}}
+@media(max-width:460px){
+ main{margin:14px auto}.toolbar{flex-direction:column}
+ .card{padding:0 12px 18px}
+ .card-top{margin-left:-12px;margin-right:-12px}
+ .qr-frame{padding:12px}
+ .qr-bite-logo{width:63px;height:63px}
+}
 </style>
 </head>
 <body>
 <main>
 <h1>Restaurant Menu QR</h1>
 <p class="instructions">Same restaurant QR har table par laga sakte hain. Customer QR scan karke sirf menu dekhega. Order waiter lega aur owner POS mein bill banayega.</p>
-<article class="card" aria-label="Printable digital menu card">
-<div style="font-weight:900;font-size:20px;color:#35166e">Bite <span style="font-size:13px;font-weight:500">· Eat. Repeat.</span></div>
-<strong id="restaurantName">Restaurant</strong>
-<p>Scan karein · Menu dekhein</p>
-<div id="code" aria-label="Restaurant menu QR code"></div>
+<article class="card" aria-label="Printable Bite restaurant QR menu card">
+<div class="card-top">
+  <span class="qr-heading">Scan • View Menu</span>
+  <strong id="restaurantName">Restaurant</strong>
+  <p class="scan-caption">Scan karein · Menu dekhein</p>
+</div>
+<div class="qr-frame"><div id="code" aria-label="Restaurant menu QR code"></div></div>
+<div class="qr-brand-block">
+  <img id="biteBrandLogo" class="qr-bite-logo" src="assets/bite-app-icon.svg" alt="Bite logo">
+  <div class="qr-brand-text"><strong>Bite</strong><span>Eat. Repeat.</span></div>
+</div>
 <div class="menu-tagline">Menu only · Order waiter ko batayein</div>
 <div id="menuLink"></div>
 </article>
 <div class="toolbar">
 <button id="printBtn" type="button" disabled>Print QR Card</button>
-<button id="downloadBtn" type="button" class="secondary" disabled>Download QR</button>
+<button id="downloadBtn" type="button" class="secondary" disabled>Download QR Card</button>
 <button id="copyBtn" type="button" class="secondary" disabled>Copy menu link</button>
 </div>
 <p class="status" id="status" role="status" aria-live="polite">Restaurant verify ho raha hai...</p>
@@ -77,15 +105,53 @@ async function start(){
   const url=menuUrl.href;
   $('restaurantName').textContent=r.name||'Restaurant';
   $('menuLink').textContent=url;
-  new QRCode($('code'),{text:url,width:260,height:260,colorDark:'#1e1337',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  // Dark orange modules maintain stronger scan contrast than bright orange on white.
+  new QRCode($('code'),{text:url,width:260,height:260,colorDark:'#af450a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   $('printBtn').disabled=false;$('downloadBtn').disabled=false;$('copyBtn').disabled=false;
   $('printBtn').addEventListener('click',()=>window.print());
-  $('downloadBtn').addEventListener('click',()=>{
-    const canvas=$('code').querySelector('canvas'),img=$('code').querySelector('img');
-    const src=canvas?.toDataURL?.('image/png')||img?.src;
-    if(!src){status('QR image abhi ready nahi hai. Dobara try karein.');return}
-    const a=document.createElement('a');a.href=src;a.download='bite-menu-'+restaurantId+'.png';
-    document.body.append(a);a.click();a.remove();
+  $('downloadBtn').addEventListener('click',async()=>{
+    const qrCanvas=$('code').querySelector('canvas');
+    const qrImage=$('code').querySelector('img');
+    if(!qrCanvas&&!qrImage){status('QR image ready nahi hai. Dobara try karein.');return}
+    const button=$('downloadBtn');button.disabled=true;
+    try{
+      // Export the FULL branded card, not just the QR squares.
+      const canvas=document.createElement('canvas');canvas.width=900;canvas.height=1200;
+      const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas unavailable');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,900,1200);
+      ctx.fillStyle='#fc8019';ctx.fillRect(0,0,900,32);ctx.fillRect(0,1178,900,22);
+      ctx.fillStyle='#fff1e2';ctx.fillRect(0,32,900,245);
+      ctx.textAlign='center';ctx.fillStyle='#af450a';ctx.font='900 25px system-ui,sans-serif';
+      ctx.fillText('SCAN  •  VIEW MENU',450,107);
+      ctx.fillStyle='#30253b';ctx.font='900 47px system-ui,sans-serif';
+      const name=r.name||'Restaurant';
+      const words=name.split(/\\s+/),lines=[];let line='';
+      for(const word of words){
+        const candidate=line?line+' '+word:word;
+        if(line&&ctx.measureText(candidate).width>790){lines.push(line);line=word}else line=candidate;
+      }
+      if(line)lines.push(line);
+      lines.slice(0,2).forEach((text,index)=>ctx.fillText(text.length>34?text.slice(0,33)+'…':text,450,170+index*52));
+      ctx.font='700 26px system-ui,sans-serif';ctx.fillStyle='#80512e';
+      ctx.fillText('Scan karein  •  Menu dekhein',450,255);
+      // White quiet zone protects scanning, especially when printed.
+      ctx.fillStyle='#ffffff';ctx.fillRect(179,300,542,542);
+      ctx.strokeStyle='#ffd1aa';ctx.lineWidth=4;ctx.strokeRect(179,300,542,542);
+      ctx.drawImage(qrCanvas||qrImage,210,331,480,480);
+      const logo=$('biteBrandLogo');
+      if(logo&&!logo.complete){try{await logo.decode()}catch(e){/* Text brand still exports. */}}
+      if(logo?.naturalWidth)ctx.drawImage(logo,270,891,94,94);
+      ctx.fillStyle='#af450a';ctx.textAlign='left';ctx.font='900 67px system-ui,sans-serif';ctx.fillText('Bite',382,944);
+      ctx.fillStyle='#49354f';ctx.font='800 27px system-ui,sans-serif';ctx.fillText('Eat. Repeat.',385,982);
+      ctx.textAlign='center';ctx.fillStyle='#744e32';ctx.font='700 22px system-ui,sans-serif';
+      ctx.fillText('Menu only  •  Order waiter ko batayein',450,1061);
+      ctx.fillStyle='#918391';ctx.font='19px system-ui,sans-serif';ctx.fillText('Bite Digital Menu',450,1113);
+      const a=document.createElement('a');a.href=canvas.toDataURL('image/png');
+      a.download='bite-branded-menu-qr-'+restaurantId+'.png';
+      document.body.append(a);a.click();a.remove();
+      status('Bite logo, tagline aur orange QR ke saath poora card download ho gaya.');
+    }catch(error){console.error('QR card download',error);status('Branded QR card download nahi hua. Print QR Card se save karein.')}
+    finally{button.disabled=false}
   });
   $('copyBtn').addEventListener('click',async()=>{
    try{
