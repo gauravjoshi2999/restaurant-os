@@ -3,7 +3,25 @@
 (function(root){
  'use strict';
  let deps=null,requestToken=0,loadedOrders=[],lastChecks=[],working=false,activeUser=null;
- const splitResults=new Map();
+ const splitResults=new Map(),vendorComparisons=new Map();
+ // Candidate matching is deliberately ephemeral. It is NOT an approved
+ // restaurant/vendor mapping and must never authorize transfers or paid labels.
+ function compareVendorCandidate(value,split){
+  const id=typeof value==='string'?value.trim():'';
+  if(!/^[A-Za-z0-9_-]{1,80}$/.test(id))
+   return {status:'INVALID_ID',message:'Enter a valid Cashfree Vendor ID (letters, numbers, _ or -).'};
+  if(split?.status!=='PROVIDER_VENDOR_SPLIT_RECORDS'||!Array.isArray(split.vendors)||
+     split.vendor_count!==split.vendors.length||split.vendors.length>50)
+   return {status:'NO_TRUSTED_SPLIT',message:'First check the provider split for this exact order.'};
+  const found=split.vendors.filter(v=>v&&v.vendor_id===id);
+  if(found.length!==1)
+   return {status:'NOT_IN_ORDER',message:'Vendor ID is not present in this order split. Do not link this restaurant.'};
+  const amount=found[0].amount;
+  if(typeof amount!=='number'||!Number.isFinite(amount)||amount<0)
+   return {status:'INVALID_SPLIT_AMOUNT',message:'Provider split amount is invalid.'};
+  return {status:'FOUND_IN_ORDER_ONLY',vendorId:id,amount,
+   message:'Vendor ID appears in this paid order split. Restaurant identity, KYC, bank mapping and UTR are NOT verified.'};
+ }
  const byId=id=>document.getElementById(id);
  const authorized=()=>!!deps&&deps.getAccess()?.isPlatformAdmin===true&&deps.getAccess()?.role==='super_admin'&&!!deps.getUser()?.id;
  const customerAmount=f=>Number(f?.customer_payable_amount);
@@ -30,7 +48,7 @@
  };
  const money=n=>deps?.formatMoney?deps.formatMoney(n):'₹'+Number(n||0).toFixed(2);
  function wipe(){
-  loadedOrders=[];lastChecks=[];splitResults.clear();
+  loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
   for(const id of ['biteProviderNeedCount','biteProviderCheckedCount','biteProviderPayoutCount']){
    const el=byId(id);if(el)el.textContent='—';
@@ -71,6 +89,10 @@
      split.status==='NO_VENDOR_SPLIT_RECORDS'?'No vendor entries in provider response':
      'Provider split records: '+split.vendor_count+' ['+names+']');
     payoutNote+=' · Vendor mapping/bank UTR still unverified';
+    const comparison=vendorComparisons.get(row.orderId);
+    if(comparison&&comparison.restaurantId===row.restaurantId){
+     payoutNote+=' · '+comparison.verdict.message;
+    }
    }
    tr.append(cell(row.orderCode+' · '+row.restaurantName),cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
     cell(row.verdict.collection),cell(row.verdict.merchantSettlement),cell(payoutNote));
@@ -83,13 +105,34 @@
    splitBtn.type='button';splitBtn.className='btn secondary';splitBtn.dataset.biteInspectSplit=row.orderId;
    splitBtn.textContent='Check vendor split';splitBtn.disabled=working;
    splitBtn.setAttribute('aria-label','Read Cashfree vendor split for order '+row.orderCode+' without initiating a transfer');
-   action.append(btn,splitBtn);tr.append(action);body.append(tr);
+   action.append(btn,splitBtn);
+   if(split?.status==='PROVIDER_VENDOR_SPLIT_RECORDS'){
+    const label=document.createElement('label');
+    label.textContent='Cashfree vendor ID (candidate only)';
+    const input=document.createElement('input');
+    input.type='text';input.maxLength=80;input.autocomplete='off';
+    input.dataset.biteVendorCandidate=row.orderId;
+    input.placeholder='Vendor ID from Cashfree';
+    input.setAttribute('aria-label','Candidate Cashfree Vendor ID for '+row.orderCode);
+    input.value=vendorComparisons.get(row.orderId)?.vendorId||'';
+    label.append(input);
+    const compareBtn=document.createElement('button');
+    compareBtn.type='button';compareBtn.className='btn secondary';
+    compareBtn.dataset.biteCompareVendor=row.orderId;
+    compareBtn.textContent='Compare vendor ID';compareBtn.disabled=working;
+    compareBtn.setAttribute('aria-label','Compare candidate vendor to Cashfree split without saving a mapping');
+    action.append(label,compareBtn);
+   }
+   tr.append(action);body.append(tr);
   }
   byId('biteProviderAuditEmpty').hidden=loadedOrders.length>0;
  }
  async function load(){
   if(!authorized()){requestToken++;wipe();return;}
   const token=++requestToken,userId=deps.getUser().id;
+  if(activeUser&&activeUser!==userId)wipe();
+  // Refresh revokes any temporary vendor candidate evidence.
+  splitResults.clear();vendorComparisons.clear();
   activeUser=userId;setStatus('Loading recorded provider checks…');
   try{
    // Direct client access uses the existing admin/owner SELECT RLS on bite_provider_checks.
@@ -138,6 +181,7 @@
   const selected=loadedOrders.find(row=>row.orderId===orderId);
   if(!selected)return;
   const userId=deps.getUser().id,token=requestToken;
+  splitResults.delete(orderId);vendorComparisons.delete(orderId);
   working=true;render();
   setStatus('Reading Cashfree Easy Split order record. This does not create a vendor, split, refund or transfer.');
   try{
@@ -159,6 +203,17 @@
    if(token===requestToken&&authorized()&&deps.getUser()?.id===userId)render();
   }
  }
+ function compareVendor(orderId,candidate){
+  if(!authorized()||working)return;
+  const row=loadedOrders.find(r=>r.orderId===orderId);
+  if(!row)return;
+  const verdict=compareVendorCandidate(candidate,splitResults.get(orderId));
+  vendorComparisons.set(orderId,{restaurantId:row.restaurantId,
+   vendorId:typeof candidate==='string'?candidate.trim().slice(0,80):'',verdict});
+  render();
+  setStatus(verdict.message,verdict.status!=='FOUND_IN_ORDER_ONLY');
+  return verdict;
+ }
  function init(config){
   deps=config;
   if(byId('biteProviderAuditRefresh')?.dataset.auditWired==='1')return;
@@ -171,8 +226,14 @@
    if(item)void reconcile(item.dataset.biteReconcileOrder);
    const split=event.target.closest('[data-bite-inspect-split]');
    if(split)void inspectSplit(split.dataset.biteInspectSplit);
+   const compare=event.target.closest('[data-bite-compare-vendor]');
+   if(compare){
+    const input=byId('biteProviderAuditRows')?.querySelector(
+     'input[data-bite-vendor-candidate="'+compare.dataset.biteCompareVendor+'"]');
+    compareVendor(compare.dataset.biteCompareVendor,input?.value||'');
+   }
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,clear,classify,buildRows};
+ root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,compareVendorCandidate,clear,classify,buildRows};
 })(window);
