@@ -193,7 +193,13 @@ try:
   check(customer.locator('[data-home-filter="North Indian"]').get_attribute('aria-pressed')=='true','Thali and curries category keeps selected filter after scrolling')
   customer.locator('[data-home-filter="all"]').click()
   check(customer.locator('[data-home-filter="all"]').get_attribute('aria-pressed')=='true','Everything category restores all restaurant results')
-  customer.locator('#discoveryPinInput').fill('313399');customer.locator('#discoveryLocationForm button[type=submit]').click()
+  # Delivery PIN changes through the visible header sheet; the legacy form is intentionally hidden.
+  customer.locator('#biteLocationOpen').click()
+  customer.locator('#biteSheetPin').fill('313399')
+  customer.locator('#biteSheetPinForm button[type=submit]').click()
+  check(customer.locator('#biteLocationOpen').inner_text().strip()=='PIN 313399'
+    and customer.locator('#discoveryLocationForm').is_hidden(),
+    'Customer changes location in header without a duplicate PIN card')
   customer.wait_for_function("document.querySelector('#resultCount').textContent.startsWith('0 ')")
   check(customer.locator('#restaurantGrid .restaurant').count()==0,'Out-of-area PIN removes delivery restaurants')
   check('313399' in customer.locator('#restaurantGrid .food-empty').inner_text()
@@ -232,7 +238,11 @@ try:
       && [...document.querySelectorAll('[data-service-filter]')].every(b=>(b.getAttribute('aria-pressed')==='true')===(b.dataset.serviceFilter==='all'))
       && currentDiscoveryPin==='313399' && el('discoveryPinInput').value==='313399';
   }"""),'Reset filters clears every discovery control while retaining delivery PIN')
-  customer.locator('#discoveryPinInput').fill('313324');customer.locator('#discoveryLocationForm button[type=submit]').click()
+  customer.locator('#biteLocationOpen').click()
+  customer.locator('#biteSheetPin').fill('313324')
+  customer.locator('#biteSheetPinForm button[type=submit]').click()
+  check(customer.locator('#biteLocationOpen').inner_text().strip()=='PIN 313324',
+    'Header location picker restores serviceable delivery PIN')
   customer.wait_for_function("document.querySelector('#resultCount').textContent.startsWith('1 ')")
   customer.locator('#homeSearchInput').fill('dish that does not exist')
   check(customer.locator('#restaurantGrid [data-discovery-reset]').count()==1,
