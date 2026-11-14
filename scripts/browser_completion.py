@@ -341,9 +341,12 @@ try:
   customer.locator('#homeBottomNav [data-nav="account"]').click();customer.locator('#customerProfileEdit').wait_for(state='visible')
   customer.locator('#editProfileName').fill('QA updated name');customer.locator('#editProfilePhone').fill('9999999999');customer.locator('#editCustomerProfile button[type=submit]').click()
   check('saved' in customer.locator('#profileEditStatus').inner_text().lower(),'Customer profile form exposes save feedback')
-  customer.locator('[data-bite-language="hi"]').click();customer.wait_for_function("document.documentElement.lang==='hi'")
-  check(customer.locator('#editProfilePhone').input_value()=='9999999999','Hindi navigation does not rewrite user-entered values')
-  customer.locator('[data-bite-language="en"]').click()
+  check(customer.locator('[data-bite-language]').count()==0
+    and customer.locator('.bite-language-row').count()==0
+    and customer.evaluate("document.documentElement.lang")=='en',
+    'Customer UI no longer has the unwanted Hindi/English language strip')
+  check(customer.locator('#editProfilePhone').input_value()=='9999999999',
+    'Removing the language switch preserves the customer profile input')
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
   owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html?bite_page=pos&v=qa-pos',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
   check(not owner.locator('#authScreen').is_visible() and
