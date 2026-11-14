@@ -259,13 +259,38 @@ try:
         check("checking online payment" in button.inner_text().lower(), "Checkout shows a readiness check instead of the obsolete setup-pending lock")
         check("cash on delivery" not in page.locator("body").inner_text().lower(), "No cash-on-delivery option is offered")
 
-        # Forgot-password UI must be reachable and validate the email before sending.
+        # Password reset must have its own email-only request screen, with no real email sent by QA.
         page.locator("#loginBtn").click()
         page.locator("#authModal.show").wait_for(state="visible", timeout=5000)
         check(page.locator("#forgotPasswordBtn").is_visible(), "Customer login exposes a forgot-password action")
         page.locator("#forgotPasswordBtn").click()
+        check(page.locator("#authTitle").inner_text() == "Reset your password"
+              and page.locator("#customerEmail").is_visible()
+              and page.locator("#customerPassword").is_hidden()
+              and page.locator("#passwordLabel").is_hidden()
+              and page.locator("#customerPasswordConfirm").is_hidden()
+              and page.locator("#authBackToLogin").is_visible(),
+              "Forgot password opens an email-only screen without password fields")
+        page.locator("#authSubmit").click()
         check("sahi email" in page.locator("#authError").inner_text().lower(),
-              "Forgot-password flow validates email before requesting a reset link")
+              "Email-only reset screen validates address before calling Supabase")
+        page.evaluate("""() => {
+          window.__biteQaResetCalls=[];
+          sb.auth.resetPasswordForEmail=async (email,opts)=>{
+            window.__biteQaResetCalls.push({email,redirectTo:opts.redirectTo});
+            return {error:null};
+          };
+        }""")
+        page.locator("#customerEmail").fill("qa-reset@example.com")
+        page.locator("#authSubmit").click()
+        page.wait_for_function("() => window.__biteQaResetCalls.length===1")
+        check("reset link" in page.locator("#authError").inner_text().lower()
+              and page.evaluate("window.__biteQaResetCalls[0].email") == "qa-reset@example.com",
+              "Email reset link request uses the intended address in a mocked provider flow")
+        page.locator("#authBackToLogin").click()
+        check(page.locator("#authTitle").inner_text() == "Login karein"
+              and page.locator("#customerPassword").is_visible(),
+              "Back to login restores the regular login form")
         page.locator('#closeAuth').click()
         check_history_filters(page)
         check_account_layout(page, 1365)
