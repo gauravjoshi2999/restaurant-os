@@ -11,12 +11,10 @@
     const currentItems=typeof menuItems!=='undefined'?menuItems:[];
     const currentCart=typeof cart!=='undefined'?cart:{};
     const hasItems=typeof cartEntries==='function'&&cartEntries().length>0;
-    // Suggestions are simply other available menu items, not claimed to be
-    // favourites, personalised recommendations or any popularity ranking.
-    const choices=hasItems?currentItems.filter(item=>
-      item&&item.id&&!currentCart[item.id]&&Number.isFinite(Number(item.price))
-      &&Number(item.price)>=0
-    ).slice(0,6):[];
+    // Other available, real items from this same restaurant's published menu.
+    // Prefer a different menu category and respect an all-veg cart, without
+    // pretending these are popular, personalised or AI-rated dishes.
+    const choices=hasItems?BiteMenuSearch.selectAddOns(currentItems,currentCart,6):[];
     list.replaceChildren();
     wrapper.hidden=!choices.length;
     for(const item of choices){
