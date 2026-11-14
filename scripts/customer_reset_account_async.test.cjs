@@ -147,7 +147,8 @@ test('account profile fetch and address fetch are guarded before rendering',()=>
  assert.match(accountOpen,/loadAccountAddresses\(accountRequestId,accountUserId\)/);
  assert.match(accountOpen,/loadCustomerSupportTickets\(accountRequestId,accountUserId\)/);
  assert.match(accountSupport,/if\(!biteAccountRequestActive\(sequence,userId\)\)return/);
- assert.match(html,/if\(activeCustomerId!==nextUserId\)\{\s*\+\+customerAccountViewSequence/);
+ assert.match(html,/if\(activeCustomerId!==nextUserId\)\{[\s\S]{0,1600}\+\+customerAccountViewSequence/);
+ assert.match(html,/\+\+bitePaymentAccountSequence/);
  assert.match(html,/accountAddressRows=\[\];checkoutAddresses=\[\]/);
  assert.match(html,/event==='PASSWORD_RECOVERY'/);
  assert.match(html,/signInWithPassword/);
