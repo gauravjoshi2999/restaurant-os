@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fff9f5">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Bite restaurant owner survey — share your real problems, ideas and wishes. Help shape a simpler restaurant management experience.">
+<title>Restaurant Owner Survey | Bite — Eat. Repeat.</title>
+<link rel="icon" href="assets/bite-app-icon.svg" type="image/svg+xml">
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans Devanagari","Segoe UI",Arial,sans-serif;color:#24232b;background:#fff9f5;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#ffe0d0,transparent 43%),#fff9f5;min-height:100vh}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}.shell{max-width:800px;margin:auto;padding:20px 16px 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}.logo{width:154px;max-width:44%;height:auto}.pill{border:1px solid #ffd3bd;border-radius:99px;padding:8px 12px;color:#a94725;background:#fff;font-weight:750;font-size:12px;white-space:nowrap}.hero{margin:12px 0 27px}.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:850;color:#ea5421}.hero h1{font-size:clamp(28px,5.2vw,44px);line-height:1.24;letter-spacing:-.025em;margin:13px 0 11px}.hero h1 em{font-style:normal;color:#ed5925}.lead{font-size:16px;line-height:1.75;color:#5c5960;max-width:650px;margin:0}.trust{display:flex;gap:9px;flex-wrap:wrap;margin-top:19px}.trust span{background:#fff;box-shadow:0 4px 24px #6a2d1010;border:1px solid #f6e6df;padding:8px 11px;border-radius:12px;color:#655750;font-size:12px;font-weight:700}.card{background:#fff;border:1px solid #f2e2d9;border-radius:24px;box-shadow:0 17px 60px #572a1314;overflow:hidden}.cardhead{padding:24px 28px 0;display:flex;justify-content:space-between;align-items:center}.cardhead strong{font-size:14px}.progress{font-size:13px;color:#8e7165;font-weight:800}.track{height:7px;background:#ffede2;margin:16px 28px 0;border-radius:99px;overflow:hidden}.fill{height:100%;width:33.333%;background:linear-gradient(100deg,#fb7b29,#ec4523);border-radius:99px;transition:width .25s}.step{padding:29px 28px 25px}.step[hidden]{display:none}.step h2{font-size:23px;letter-spacing:-.03em;line-height:1.3;margin:0 0 7px}.subtitle{color:#6d696b;line-height:1.65;font-size:14px;margin:0 0 26px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.field{display:flex;flex-direction:column;gap:8px}.field.full{grid-column:1/-1}.field label,.sectionlabel{font-size:14px;font-weight:800;color:#343039}.optional{font-size:12px;font-weight:500;color:#8a8281}.field input,.field select,.field textarea{width:100%;border:1px solid #dfdcdd;border-radius:12px;padding:13px 14px;background:#fff;color:#28242a;outline:none;min-height:49px;transition:border-color .15s,box-shadow .15s}.field textarea{min-height:130px;resize:vertical;line-height:1.6}.field :is(input,select,textarea):focus{border-color:#f26330;box-shadow:0 0 0 4px #f46b2720}.field input::placeholder,.field textarea::placeholder{color:#999396}.sectionlabel{margin-bottom:12px;display:block}.multi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:0 0 22px}.check{display:flex;align-items:flex-start;gap:10px;padding:12px 12px;border:1px solid #eee2dc;border-radius:13px;cursor:pointer;background:#fffdfb;min-height:54px;line-height:1.35;font-size:13px;font-weight:700}.check:has(input:checked){background:#fff3ea;border-color:#fd9e6a;color:#c74d1f}.check input{accent-color:#eb5d25;width:17px;height:17px;flex-shrink:0;margin:0}.note{font-size:12px;color:#81787b;line-height:1.65;margin-top:6px}.divider{border:0;border-top:1px solid #f1e8e3;margin:23px 0}.privacy{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.6;color:#5c5860;cursor:pointer}.privacy input{flex-shrink:0;margin-top:4px;accent-color:#ef612a}.actions{border-top:1px solid #f7ece6;padding:19px 28px;display:flex;gap:12px;align-items:center;justify-content:flex-end}.btn{border:0;border-radius:12px;padding:13px 23px;font-weight:800;min-height:47px}.btn.primary{background:linear-gradient(110deg,#fb792b,#ed4d21);color:#fff;box-shadow:0 5px 15px #f25b2840}.btn.secondary{background:#f5f2f0;color:#4f4641}.btn:disabled{opacity:.6;cursor:not-allowed}.err{color:#b62528;font-size:13px;font-weight:700;margin:0 auto 0 0;line-height:1.5}.success{display:none;text-align:center;padding:58px 25px 65px}.success-icon{font-size:50px;background:#ebfbf0;width:85px;height:85px;border-radius:100%;display:grid;place-items:center;margin:0 auto 18px;color:#22964b}.success h2{font-size:27px;margin:0 0 12px}.success p{color:#69636a;line-height:1.75;max-width:440px;margin:0 auto 22px}.footer{text-align:center;color:#847b7e;font-size:12px;line-height:1.7;margin-top:24px}.invisible{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0;pointer-events:none}@media(max-width:590px){.shell{padding:16px 12px 36px}.top{margin-bottom:19px}.logo{width:125px}.pill{font-size:10px;padding:7px 9px}.hero{margin-bottom:21px}.lead{font-size:14px}.card{border-radius:18px}.cardhead{padding:21px 18px 0}.track{margin:13px 18px 0}.step{padding:24px 18px}.step h2{font-size:21px}.fields,.multi{grid-template-columns:1fr}.actions{padding:16px 18px;flex-wrap:wrap}.actions .btn{flex:1}.err{width:100%;order:3}.trust span{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top"><img class="logo" src="https://gauravjoshi2999.github.io/restaurant-os/assets/bite-logo.svg" alt="Bite — Eat. Repeat."><span class="pill">RESTAURANT OWNER VOICE</span></header>
+  <div class="hero"><div class="eyebrow">BITE · OWNER DISCOVERY</div><h1>आपका रेस्टोरेंट।<br><em>आपकी परेशानी, आपके Ideas.</em></h1><p class="lead">हर restaurant owner की अपनी कहानी होती है। आप रोज़ किन दिक्कतों से जूझते हैं और एक बेहतर system कैसा होना चाहिए? खुलकर बताइए। आपके जवाब Bite को सही दिशा देंगे।</p><div class="trust"><span>⏱ लगभग 4–5 मिनट</span><span>✓ कोई Login नहीं</span><span>🔒 जवाब सार्वजनिक नहीं</span><span>☕ कोई फीस नहीं</span></div></div>
+  <main class="card">
+    <div id="surveyPanel">
+      <div class="cardhead"><strong id="stepName">1. आपके रेस्टोरेंट के बारे में</strong><span class="progress" id="stepCounter">1 / 3</span></div><div class="track" aria-label="Survey progress"><div class="fill" id="progressFill"></div></div>
+      <form id="survey" novalidate>
+        <input class="invisible" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <section class="step" data-step="0">
+          <h2>थोड़ा अपने रेस्टोरेंट के बारे में बताएँ</h2><p class="subtitle">सिर्फ इतना कि हम आपकी परिस्थितियों को बेहतर समझ सकें।</p>
+          <div class="fields">
+            <div class="field"><label for="restaurant_name">रेस्टोरेंट / होटल का नाम <span class="optional">(वैकल्पिक)</span></label><input id="restaurant_name" maxlength="100" placeholder="जैसे: Shree Family Restaurant"></div>
+            <div class="field"><label for="city">शहर / कस्बा *</label><input id="city" required maxlength="80" placeholder="जैसे: राजसमंद"></div>
+            <div class="field"><label for="restaurant_kind">आपका बिज़नेस किस तरह का है?</label><select id="restaurant_kind"><option value="">चुनें (वैकल्पिक)</option><option value="dhaba">ढाबा / हाईवे होटल</option><option value="family_restaurant">Family Restaurant</option><option value="cafe_fastfood">Cafe / Fast Food</option><option value="hotel_restaurant">Hotel + Restaurant</option><option value="cloud_kitchen">Cloud Kitchen / Takeaway</option><option value="other">अन्य</option></select></div>
+            <div class="field"><label for="team_size">लगभग कितने स्टाफ हैं?</label><select id="team_size"><option value="">चुनें (वैकल्पिक)</option><option value="1-3">1–3</option><option value="4-10">4–10</option><option value="11-25">11–25</option><option value="26+">26+</option></select></div>
+            <div class="field full"><label for="existing_method">अभी Orders / Bills / हिसाब कैसे संभालते हैं?</label><select id="existing_method"><option value="">चुनें (वैकल्पिक)</option><option value="register">कॉपी / रजिस्टर</option><option value="whatsapp">WhatsApp / Phone</option><option value="excel">Excel / Sheets</option><option value="software">किसी POS / Restaurant Software से</option><option value="mixed">कई तरीकों से</option><option value="other">अन्य</option></select></div>
+          </div>
+        </section>
+        <section class="step" data-step="1" hidden>
+          <h2>सबसे ज्यादा समस्या कहाँ आती है?</h2><p class="subtitle">आपके अपने अनुभव जानना चाहते हैं। जो लागू होता है वह चुनें, फिर एक वास्तविक उदाहरण लिखें।</p>
+          <div class="sectionlabel">आपको किन-किन कामों में परेशानी होती है? <span class="optional">(कम से कम 1 चुनें) *</span></div>
+          <div class="multi" id="problems">
+            <label class="check"><input type="checkbox" value="billing">Billing / POS में समय लगता है</label>
+            <label class="check"><input type="checkbox" value="orders">Order लेना, बदलना या भूल जाना</label>
+            <label class="check"><input type="checkbox" value="staff">Staff, attendance, salary</label>
+            <label class="check"><input type="checkbox" value="stock">Stock, wastage, purchases</label>
+            <label class="check"><input type="checkbox" value="accounting">रोज़ की कमाई, खर्च व लाभ</label>
+            <label class="check"><input type="checkbox" value="online_orders">Online orders / delivery</label>
+            <label class="check"><input type="checkbox" value="payments">Payment, उधारी, settlement</label>
+            <label class="check"><input type="checkbox" value="marketing">नए / पुराने ग्राहक लाना</label>
+            <label class="check"><input type="checkbox" value="remote">बाहर रहकर Restaurant संभालना</label>
+            <label class="check"><input type="checkbox" value="other">कुछ और</label>
+          </div>
+          <div class="field"><label for="real_story">अपनी सबसे बड़ी समस्या का एक असली उदाहरण लिखें *</label><textarea id="real_story" required minlength="20" maxlength="2000" placeholder="जैसे, शाम के rush में bill बार-बार बदलता है, पुराने customer का हिसाब नहीं मिलता... क्या हुआ, कितना समय/परेशानी हुई?"></textarea><div class="note">जितना विस्तार से बताएँगे, उतना अच्छा समाधान सोच पाएँगे।</div></div>
+        </section>
+        <section class="step" data-step="2" hidden>
+          <h2>अगर आप अपना Perfect Software बनवाएँ…</h2><p class="subtitle">वह क्या करे जिससे आपका समय बचे, गलती कम हो और restaurant चलाना आसान लगे?</p>
+          <div class="sectionlabel">आपके लिए कौन-से features उपयोगी होंगे? <span class="optional">(कई चुन सकते हैं)</span></div>
+          <div class="multi" id="features">
+            <label class="check"><input type="checkbox" value="fast_pos">तेज़ Billing / POS</label>
+            <label class="check"><input type="checkbox" value="qr_menu">Customer के लिए QR Menu</label>
+            <label class="check"><input type="checkbox" value="live_orders">Live order alerts</label>
+            <label class="check"><input type="checkbox" value="whatsapp_bills">WhatsApp Bill / Customer updates</label>
+            <label class="check"><input type="checkbox" value="expenses">Income–Expenses / Profit Report</label>
+            <label class="check"><input type="checkbox" value="inventory">Stock / Purchase tracking</label>
+            <label class="check"><input type="checkbox" value="staff">Staff / Attendance management</label>
+            <label class="check"><input type="checkbox" value="customers">Regular customers / Loyalty</label>
+            <label class="check"><input type="checkbox" value="delivery">Online orders / Delivery</label>
+            <label class="check"><input type="checkbox" value="remote">Mobile से सब manage करना</label>
+            <label class="check"><input type="checkbox" value="other">कुछ अलग / नया Idea</label>
+          </div>
+          <div class="fields">
+            <div class="field full"><label for="one_change">अगर Bite आपकी सिर्फ एक परेशानी दूर करे, तो वह क्या हो? *</label><textarea id="one_change" required minlength="12" maxlength="1800" placeholder="आपकी अपनी भाषा में लिखें। कोई सही या गलत जवाब नहीं है।"></textarea></div>
+            <div class="field full"><label for="other_ideas">कोई नया Idea या ऐसी सुविधा जो बाकी Apps में नहीं मिली? <span class="optional">(वैकल्पिक)</span></label><textarea id="other_ideas" maxlength="2500" placeholder="आपकी कल्पना, सुझाव, खास ज़रूरत या मौजूदा software से शिकायत…"></textarea></div>
+          </div>
+          <hr class="divider">
+          <div class="fields">
+            <div class="field"><label for="owner_name">आपका नाम <span class="optional">(वैकल्पिक)</span></label><input id="owner_name" maxlength="90" placeholder="Owner / Manager"></div>
+            <div class="field"><label for="owner_phone">WhatsApp मोबाइल <span class="optional">(वैकल्पिक)</span></label><input id="owner_phone" type="tel" inputmode="tel" maxlength="15" placeholder="10-digit number" autocomplete="tel"></div>
+          </div>
+          <p class="note">नंबर सिर्फ तभी दें जब आप Bite team से संपर्क चाहते हों। किसी बैंक डिटेल, OTP या पासवर्ड की ज़रूरत नहीं है।</p>
+          <div style="display:grid;gap:12px;margin:19px 0">
+            <label class="privacy"><input id="pilot_interest" type="checkbox">Bite के बनने पर मैं शुरुआती trial / testing में हिस्सा लेना चाहूँगा/चाहूँगी।</label>
+            <label class="privacy"><input id="contact_consent" type="checkbox">मेरे दिए गए संपर्क नंबर पर Bite team मेरे सुझावों या trial के बारे में संपर्क कर सकती है।</label>
+            <label class="privacy"><input id="privacy_agreed" required type="checkbox">मैं सहमत हूँ कि मेरे जवाब Bite के product research और सुधार के लिए सुरक्षित रखे जाएँगे, सार्वजनिक रूप से प्रकाशित नहीं किए जाएँगे। *</label>
+          </div>
+        </section>
+        <div class="actions"><p class="err" id="error" role="alert" aria-live="polite"></p><button class="btn secondary" type="button" id="back" hidden>पीछे</button><button class="btn primary" type="button" id="next">आगे बढ़ें →</button><button class="btn primary" type="button" id="send" hidden>मेरे सुझाव भेजें ✓</button></div>
+      </form>
+    </div>
+    <div class="success" id="success" role="status" aria-live="polite"><div class="success-icon">✓</div><h2>धन्यवाद! आपका सुझाव मिल गया।</h2><p>आपने जो अनुभव और Idea साझा किया, वह Bite को वास्तविक restaurant owners के लिए बेहतर बनाने में मदद करेगा। आपकी राय मायने रखती है।</p><button class="btn secondary" id="again" type="button">एक और जवाब भेजें</button></div>
+  </main>
+  <footer class="footer">Bite — Eat. Repeat. · Built for restaurants, shaped by owners.<br>यह feedback survey है, restaurant registration या कोई भुगतान फॉर्म नहीं।</footer>
+</div>
+<script>
+(function(){
+  'use strict';
+  var endpoint='https://wedbgpybbgsszcmffoha.supabase.co/functions/v1/bite-owner-feedback';
+  var form=document.getElementById('survey');
+  var steps=Array.from(document.querySelectorAll('.step'));
+  var labels=['1. आपके रेस्टोरेंट के बारे में','2. रोज़ की असली समस्याएँ','3. आपके Ideas और सुझाव'];
+  var current=0,started=Date.now();
+  var error=document.getElementById('error'),next=document.getElementById('next'),send=document.getElementById('send'),back=document.getElementById('back');
+  function choices(id){return Array.from(document.querySelectorAll('#'+id+' input:checked')).map(function(c){return c.value;});}
+  function field(id){return document.getElementById(id).value.trim();}
+  function update(){
+    steps.forEach(function(step,i){step.hidden=i!==current;});
+    document.getElementById('stepName').textContent=labels[current];
+    document.getElementById('stepCounter').textContent=(current+1)+' / 3';
+    document.getElementById('progressFill').style.width=((current+1)/3*100)+'%';
+    back.hidden=current===0;next.hidden=current===2;send.hidden=current!==2;error.textContent='';
+    if(current>0){document.getElementById('surveyPanel').scrollIntoView({behavior:'smooth',block:'start'});}
+  }
+  function validate(){
+    error.textContent='';
+    var required=Array.from(steps[current].querySelectorAll('[required]'));
+    for(var i=0;i<required.length;i++){if(!required[i].checkValidity()){required[i].reportValidity();return false;}}
+    if(current===1 && choices('problems').length===0){error.textContent='कृपया कम से कम एक समस्या चुनें।';return false;}
+    if(current===2){
+      var phone=field('owner_phone');
+      if(phone && !/^[+]?[0-9 -]{10,15}$/.test(phone)){error.textContent='मोबाइल नंबर ठीक से दर्ज करें या खाली छोड़ दें।';return false;}
+      if(document.getElementById('contact_consent').checked && !phone){error.textContent='संपर्क की अनुमति देने पर मोबाइल नंबर भी भरें।';return false;}
+    }
+    return true;
+  }
+  next.onclick=function(){if(validate()){current=Math.min(2,current+1);update();}};
+  back.onclick=function(){current=Math.max(0,current-1);update();};
+  send.onclick=async function(){
+    if(!validate())return;
+    var data={
+      restaurant_name:field('restaurant_name'),city:field('city'),restaurant_kind:field('restaurant_kind'),team_size:field('team_size'),
+      owner_name:field('owner_name'),owner_phone:field('owner_phone'),existing_method:field('existing_method'),
+      biggest_problems:choices('problems'),real_story:field('real_story'),wish_list:choices('features'),
+      one_change:field('one_change'),other_ideas:field('other_ideas'),
+      pilot_interest:document.getElementById('pilot_interest').checked,
+      contact_consent:document.getElementById('contact_consent').checked,
+      privacy_agreed:document.getElementById('privacy_agreed').checked,
+      website:form.elements.website.value,elapsed_ms:Date.now()-started
+    };
+    if(data.pilot_interest&&!data.owner_phone){error.textContent='Trial में हिस्सा लेने के लिए WhatsApp नंबर दें, या trial विकल्प हटाएँ।';return;}
+    send.disabled=true;send.textContent='सुझाव भेज रहे हैं…';error.textContent='';
+    try{
+      var controller=new AbortController(),timeout=setTimeout(function(){controller.abort();},18000);
+      var response;
+      try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:controller.signal});}
+      finally{clearTimeout(timeout);}
+      var result=await response.json().catch(function(){return {};});
+      if(!response.ok)throw new Error(result.error || 'अभी जवाब जमा नहीं हो सका।');
+      document.getElementById('surveyPanel').hidden=true;
+      document.getElementById('success').style.display='block';
+      document.querySelector('.card').scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(e){error.textContent=e.name==='AbortError'?'Network slow है। कृपया दोबारा प्रयास करें।':(e.message||'Internet कनेक्शन जाँचें और दोबारा कोशिश करें।');}
+    finally{send.disabled=false;send.textContent='मेरे सुझाव भेजें ✓';}
+  };
+  document.getElementById('again').onclick=function(){form.reset();current=0;started=Date.now();update();document.getElementById('surveyPanel').hidden=false;document.getElementById('success').style.display='none';window.scrollTo({top:0,behavior:'smooth'});};
+  update();
+})();
+</script>
+</body>
+</html>
