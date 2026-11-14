@@ -117,12 +117,18 @@ test('real session invalidation clears old orders, detail and pending checkout',
   sessionLabel:{textContent:'Owner A'},
   loginBtn:{textContent:'Logout'},
   myOrdersBtn:{classList:{add(){}}},
-  ordersView:{classList:{contains:()=>false}}
+  ordersView:{classList:{contains:()=>false}},
+  accountProfile:{textContent:'Old account email'},
+  accountAddresses:{textContent:'Old saved address'},
+  customerSupportList:{textContent:'Old support ticket'},
+  customerSupportOrder:{innerHTML:'Old order'}
  };
  let changedView=null;
  const ctx=ctxOf({
   activeCustomerId:'customer-a',customerOrders:[{id:'old'}],
   expandedOrderId:'old',customerOrderViewSequence:3,biteCheckoutOpenSequence:7,
+  customerAccountViewSequence:5,accountAddressRows:[{id:'old'}],checkoutAddresses:[{id:'old'}],
+  resetAddrForm:()=>{},
   favouriteRestaurantIds:new Set(['favourite']),orderChannel:null,
   $:id=>nodes[id],window:{BiteCustomerExtras:{clearSensitiveState(){}}},
   sb:{removeChannel(){}},showCustomerView:x=>{changedView=x;}
@@ -134,6 +140,12 @@ test('real session invalidation clears old orders, detail and pending checkout',
  assert.equal(ctx.expandedOrderId,null);
  assert.equal(ctx.customerOrderViewSequence,4);
  assert.equal(ctx.biteCheckoutOpenSequence,8);
+ assert.equal(ctx.customerAccountViewSequence,6);
+ assert.equal(ctx.accountAddressRows.length,0);
+ assert.equal(ctx.checkoutAddresses.length,0);
+ assert.doesNotMatch(nodes.accountProfile.textContent,/Old account/);
+ assert.doesNotMatch(nodes.accountAddresses.textContent,/Old saved address/);
+ assert.equal(nodes.customerSupportList.textContent,'');
  assert.match(nodes.ordersList.innerHTML,/Log in/);
  assert.equal(changedView,'home');
 });
