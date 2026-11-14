@@ -65,7 +65,8 @@ test('Edge Function read-only branch uses trusted paid order; no client vendor o
  assert.match(branch,/\/easy-split\/orders\//);
  assert.match(branch,/x-api-version":"2026-01-01"/);
  assert.match(branch,/parseCashfreeSplit/);
- assert.doesNotMatch(branch,/\\.insert\\(|\\.update\\(|method:"POST"|execute_refund|create_vendor|create_transfer/);
+ assert.ok(!branch.includes(".insert(")&&!branch.includes(".update("));
+ assert.doesNotMatch(branch,/method:"POST"|execute_refund|create_vendor|create_transfer/);
  assert.match(code,/client\.rpc\("is_platform_admin"\)/);
  assert.match(code,/CASHFREE_SECRET_KEY/);
  assert.match(code,/provider_order_id!=="bite_live_"/);
