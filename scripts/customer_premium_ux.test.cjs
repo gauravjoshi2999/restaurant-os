@@ -10,7 +10,7 @@ const js=fs.readFileSync('assets/customer-premium.js','utf8');
 
 test('premium assets are linked only by the customer storefront',()=>{
   assert.match(html,/assets\/customer-premium\.css\?v=20261114-premium1/);
-  assert.match(html,/assets\/customer-premium\.js\?v=20261114-premium1/);
+  assert.match(html,/assets\/customer-premium\.js\?v=20261114-location-scope2/);
   assert.match(css,/body\[data-bite-app="customer"\]/);
   assert.doesNotMatch(css,/body\[data-bite-app="workspace"\]/);
 });
