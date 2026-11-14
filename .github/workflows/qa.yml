@@ -80,3 +80,4 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/cashbook_closing_db_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/cashbook_production_view_parity.sql
           bash scripts/cashbook_concurrency_smoke.sh
+          bash scripts/cashbook_close_vs_write_smoke.sh
