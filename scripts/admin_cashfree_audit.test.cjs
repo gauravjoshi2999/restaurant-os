@@ -148,3 +148,66 @@ test('changing login clears split details instead of showing prior Owner or Admi
  const tr=a.find('biteProviderAuditRows').children[0];
  assert.doesNotMatch(tr.children[4].textContent,/vendor_1/);
 });
+
+test('vendor candidate comparison requires provider evidence for the exact paid order and never writes mapping',async()=>{
+ const a=setup();
+ await a.audit.load();
+ const without=a.audit.compareVendor('order-paid','vendor_1');
+ assert.equal(without.status,'NO_TRUSTED_SPLIT');
+ assert.equal(a.calls.length,0);
+ await a.audit.inspectSplit('order-paid');
+ const found=a.audit.compareVendor('order-paid','vendor_1');
+ assert.equal(found.status,'FOUND_IN_ORDER_ONLY');
+ assert.equal(found.amount,145);
+ assert.match(found.message,/KYC, bank mapping and UTR are NOT verified/);
+ assert.equal(a.calls.length,1,'only the deliberate provider split GET is invoked');
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+ const tr=a.find('biteProviderAuditRows').children[0];
+ assert.match(tr.children[4].textContent,/Vendor ID appears in this paid order split/);
+ assert.equal(tr.children[5].children.length,4,'candidate input and manual comparison button are shown after split read');
+});
+
+test('other vendor candidate is rejected and is never cross-linked to the restaurant',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ const bad=a.audit.compareVendor('order-paid','another_restaurant_vendor');
+ assert.equal(bad.status,'NOT_IN_ORDER');
+ assert.match(bad.message,/Do not link this restaurant/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+
+test('invalid candidate IDs cannot be interpreted as an approved vendor mapping',async()=>{
+ const a=setup();
+ const split={status:'PROVIDER_VENDOR_SPLIT_RECORDS',vendor_count:1,vendors:[{vendor_id:'vendor_1',amount:145}]};
+ for(const v of ['','vendor/other','<script>','vendor@bank.com','x'.repeat(81)])
+  assert.equal(a.audit.compareVendorCandidate(v,split).status,'INVALID_ID');
+ assert.equal(a.audit.compareVendorCandidate('vendor_1',split).status,'FOUND_IN_ORDER_ONLY');
+ assert.equal(a.audit.compareVendorCandidate('vendor_1',{...split,vendor_count:2}).status,'NO_TRUSTED_SPLIT');
+});
+
+test('vendor candidate and any comparison are discarded on refresh or sign-out',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');
+ await a.audit.load();
+ const tr=a.find('biteProviderAuditRows').children[0];
+ assert.doesNotMatch(tr.children[4].textContent,/Vendor ID appears in this paid order split/);
+ assert.equal(tr.children[5].children.length,2);
+ a.audit.clear();
+ assert.equal(a.find('biteProviderAuditRows').children.length,0);
+});
+
+test('owner cannot compare candidate or expose another restaurant vendor details',async()=>{
+ const a=setup({role:'owner',isAdmin:false});
+ await a.audit.load();
+ assert.equal(a.audit.compareVendor('order-paid','vendor_1'),undefined);
+ assert.equal(a.calls.length,0);
+ assert.equal(a.find('biteProviderAuditRows').children.length,0);
+});
+
+test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261114-vendor-candidate3/);
+ assert.match(code,/function compareVendorCandidate\(/);
+ assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
+ assert.match(html,/Vendor ID compare/);
+});
