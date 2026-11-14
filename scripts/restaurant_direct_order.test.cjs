@@ -50,13 +50,13 @@ test('Successful POS save is required before creating a consented WhatsApp messa
 test('Unrelated restaurant discovery and navigation are hidden in direct mode',()=>{
  assert.match(customer,/const BITE_DIRECT_MODE=BITE_DIRECT_PARAMS\.get\('direct'\)==='1'/);
  assert.match(customer,/restaurants=restaurants\.filter\(r=>r\.id===BITE_DIRECT_RESTAURANT_ID\)/);
- assert.match(customer,/searchQuery=searchQuery\.eq\('restaurant_id',BITE_DIRECT_RESTAURANT_ID\)/);
+ assert.match(customer,/if\(BITE_DIRECT_MODE\)query=query\.eq\('restaurant_id',BITE_DIRECT_RESTAURANT_ID\)/);
  assert.match(customer,/if\(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURANT_ID\)return/);
  assert.match(customer,/if\(BITE_DIRECT_MODE&&view==='home'\)view='menu'/);
  assert.match(customer,/html\.bite-direct-order #homeView/);
  assert.match(customer,/html\.bite-direct-order #backBtn/);
  assert.match(customer,/html\.bite-direct-order #homeBottomNav/);
- assert.match(customer,/if\(BITE_DIRECT_MODE\)\{document\.title=restaurants\[0\]\.name/);
+ assert.match(customer,/if\(BITE_DIRECT_MODE\)\s*\{\s*document\.title=restaurants\[0\]\.name/);
  assert.match(customer,/if\(BITE_DIRECT_MODE&&!BITE_DIRECT_RESTAURANT_ID\)/);
 });
 test('Direct mode order history and email signup remain inside the restaurant experience',()=>{
