@@ -1368,12 +1368,13 @@ async function cancelPendingCustomerCheckout(options={}){
  if(!pendingLiveCheckout||checkoutPaymentBusy||window.BiteCheckoutUX?.cancelBusy)return;
  window.BiteCheckoutUX.cancelBusy=true;
  const startFresh=options?.startFresh===true,background=options?.background===true,autoAttempt=Number(options?.autoAttempt||0);
- const button=$('quickCancelCheckout'),fresh=$('bitePendingStartFresh'),id=pendingLiveCheckout.id;
+ const button=$('quickCancelCheckout'),fresh=$('bitePendingStartFresh'),id=pendingLiveCheckout.id,accountSequence=bitePaymentAccountSequence;
  button.disabled=true;fresh.disabled=true;button.textContent='Checking payment & cancelling…';fresh.textContent='Checking payment…';if(!background)$('checkoutError').textContent='';
  try{
   let result=null;
   for(let attempt=0;attempt<2;attempt++){
    const {data,error}=await sb.functions.invoke('bite-live-cancel-checkout',{body:{intent_id:id}});
+   if(!bitePaymentContextCurrent(accountSequence,id))return false;
    result=data;
    if(error){
     let detail=null;try{detail=await error.context?.json?.();}catch{}
@@ -1386,8 +1387,10 @@ async function cancelPendingCustomerCheckout(options={}){
    if(attempt===0){
     if(!background)$('checkoutError').textContent='Cashfree is confirming cancellation…';
     await new Promise(resolve=>setTimeout(resolve,1200));
+    if(!bitePaymentContextCurrent(accountSequence,id))return false;
    }
   }
+  if(!bitePaymentContextCurrent(accountSequence,id))return false;
   if(result?.status==='cancellation_processing'){
    const stillChecking=autoAttempt<3;
    $('checkoutError').textContent=stillChecking?'Closing the earlier payment. Your cart is saved; Pay online unlocks when Cashfree confirms.':'Cancellation is still pending at Cashfree. No new payment was started. Check the earlier payment status.';
@@ -1418,6 +1421,7 @@ async function cancelPendingCustomerCheckout(options={}){
   Object.assign(notice.style,{position:'fixed',bottom:'90px',left:'12px',right:'12px',zIndex:'9999',background:'#153d2a',color:'white',padding:'14px',borderRadius:'10px',textAlign:'center',boxShadow:'0 5px 20px #0002'});
   document.body.append(notice);setTimeout(()=>notice.remove(),5500);
  }catch(e){
+  if(!bitePaymentContextCurrent(accountSequence,id))return false;
   console.warn('Checkout cancellation not confirmed',e);
   $('checkoutError').textContent='Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
   if(background){if(!$('checkoutFormPanel').classList.contains('hidden')&&!$('checkoutModal').classList.contains('hidden'))$('checkoutError').textContent='Earlier payment is still being checked. Cart is saved; payment is paused.';}
@@ -1425,7 +1429,7 @@ async function cancelPendingCustomerCheckout(options={}){
   else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
   return false;
  }
- finally{window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}
+ finally{if(accountSequence===bitePaymentAccountSequence){window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}}
 }
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
