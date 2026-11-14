@@ -40,3 +40,13 @@ The current customer site already implements Supabase-backed discovery, PIN serv
 4. Production release only after the established approved checkout, RLS and payment-verification gate passes.
 
 Production is deliberately unchanged on this feature branch until reviewed and merged.
+
+## Phase 2 — restaurant menu and cart enhancements (14 November 2026)
+
+- Enhanced hierarchy and accessibility of existing restaurant menu cards, category filters and search without rebuilding data flows.
+- Added **Add something else?** carousel in the existing cart modal. Items come only from the currently selected restaurant's loaded, available menu rows; there are no fabricated ratings, offers or popularity rankings.
+- Each add-on button uses the exact same local cart mutation, menu quantity refresh, cart rendering and restaurant-scoped persistence as ordinary menu buttons.
+- Existing pending-payment guard prevents add-on changes while a previous payment needs verification.
+- Added new Node source guards in `scripts/customer_menu_cart_premium.test.cjs` and a real Chromium click-through assertion in `scripts/browser_smoke.py`.
+- No backend changes, owner/admin modifications or unverified checkout/payment changes.
+- Mobile screenshots, performance measurements and authenticated production checkout are **not** certified by these commits.
