@@ -1297,7 +1297,7 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261113"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
-<script src="./assets/bite-pos-payment-ui.js?v=20261113-1"></script>
+<script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
 <script>
 window.addEventListener('error', function(e) {
   const box = document.getElementById('authError');
@@ -3088,8 +3088,13 @@ async function advanceOrder(id,next){
 function paymentSummaryFor(orderId){const order=state.orders.find(o=>o.id===orderId),base=(state.paymentSummaries||[]).find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:(order?.amount||0),payment_status:'unpaid'},waived=Math.min(Number(order?.waivedOffAmount||0),Number(base.balance_amount||0)),balance=Math.max(0,Number(base.balance_amount||0)-waived);return {...base,balance_amount:balance,waived_off_amount:waived,payment_status:balance===0&&waived>0?'waived_off':base.payment_status}}
 function posPaymentContext(orderId){
  const order=state.orders.find(x=>x.id===orderId);
- return {sb,userId:currentUser?.id,restaurantId:access.restaurantId,role:access.role,orderId,order,
-  paymentSummaryFor,money,today:localDateInput,closeModal,loadCloudData};
+ const userId=currentUser?.id,restaurantId=access.restaurantId,role=access.role;
+ return {sb,userId,restaurantId,role,orderId,order,
+  paymentSummaryFor,money,today:localDateInput,closeModal,loadCloudData,
+  // Async payment confirmations must never close or update a different Owner session.
+  isCurrent:()=>!!userId&&currentUser?.id===userId&&
+   access.restaurantId===restaurantId&&access.role===role&&
+   state.orders.some(o=>o.id===orderId&&o.restaurant===restaurantId)};
 }
 function openPaymentModal(orderId){return window.BitePOSPaymentUI.open(posPaymentContext(orderId))}
 async function saveOrderPayment(){
