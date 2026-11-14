@@ -1170,16 +1170,18 @@ function syncCheckoutPaymentButton(){
  });
 }
 async function refreshCheckoutPaymentReadiness(){
+ const accountSequence=bitePaymentAccountSequence;
  if(BITE_SANDBOX_CHECKOUT){syncCheckoutPaymentButton();return true;}
  checkoutPaymentReady=false;
  syncCheckoutPaymentButton();
  try{
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{action:'readiness'}});
+  if(accountSequence!==bitePaymentAccountSequence)return false;
   if(error||data?.ready!==true||data?.provider!=='cashfree'||data?.environment!=='production'||typeof Cashfree!=='function')return false;
   checkoutPaymentReady=true;
   return true;
  }catch{return false;}
- finally{syncCheckoutPaymentButton();}
+ finally{if(accountSequence===bitePaymentAccountSequence)syncCheckoutPaymentButton();}
 }
 async function finishVerifiedCheckout(result,options={}){
  if(result?.status!=='activated'||!result.order_id)throw new Error('Payment verification pending. Dobara payment na karein.');
