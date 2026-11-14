@@ -78,7 +78,9 @@ test('address list, save and delete are explicitly owner-scoped and do not clear
  assert.match(html,/\.delete\(\)\.eq\('customer_id',customerId\)\.eq\('id',addressId\)/);
  assert.match(html,/const payload=\{[\s\S]*is_default:existing\?\.is_default===true/);
  assert.match(html,/\.insert\(\{\.\.\.payload,is_default:false\}\)/);
- assert.match(html,/if\(wantsDefault&&!existing\?\.is_default\)await bitePromoteDefaultAddress\(savedId,customerId\)/);
+ assert.match(html,/if\(wantsDefault&&!existing\?\.is_default\)\{[\s\S]*await bitePromoteDefaultAddress\(savedId,customerId\)/);
+ assert.match(html,/Address saved, but default could not be updated/);
+ assert.match(html,/await loadAccountAddresses\(accountSequence,customerId\);\s*resetAddrForm\(\)/);
  assert.match(html,/let biteAddressMutationBusy=false/);
  assert.match(html,/if\(biteAddressMutationBusy\)return/);
  assert.match(html,/finally\{biteAddressMutationBusy=false;/);
