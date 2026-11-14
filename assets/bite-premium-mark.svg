@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="Bite food mark">
+  <rect x="2" y="2" width="68" height="68" rx="19" fill="#087B4D"/>
+  <path d="M20 40c1 11 7 17 16 17s15-6 16-17H20Z" fill="#fff" opacity=".98"/>
+  <path d="M17 39.5h38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M29 19c-5 6 5 8 0 14M41 18c-5 6 5 8 0 14" fill="none" stroke="#F5E7B3" stroke-width="4" stroke-linecap="round"/>
+  <path d="M52 24c4-5 9-3 8 1-1 4-5 6-10 5" fill="none" stroke="#D4F3DD" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="35.5" cy="47" r="2.3" fill="#087B4D" opacity=".75"/>
+</svg>

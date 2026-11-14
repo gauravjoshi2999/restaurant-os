@@ -26,6 +26,17 @@ def check(condition, message):
 
 def check_premium_ui(page):
     """Exercise new customer-only controls with live public data; never create an order."""
+    brand = page.locator(".customer-brand .bite-premium-icon")
+    check(brand.is_visible(), "Updated Bite brand mark is visible in customer header")
+    check(brand.evaluate("img => img.complete && img.naturalWidth > 0"),
+          "Green Bite brand SVG loads correctly")
+    check(page.locator(".customer-brand .bite-brand-copy strong").inner_text() == "Bite",
+          "Compact Bite wordmark and tagline replace off-theme logo")
+    check(page.locator(".bite-language-row").count() == 0,
+          "Customer language toggle is not injected")
+    check(page.locator("#discoveryLocationForm").is_hidden(),
+          "Duplicate PIN entry card is absent from restaurant discovery")
+
     location = page.locator("#biteLocationOpen")
     check(location.is_visible(), "Premium header location picker is accessible")
     location.click()
@@ -270,6 +281,12 @@ try:
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 1, f"Customer page has no horizontal overflow at 390px (overflow={overflow}px)")
         check(mobile.locator("#restaurantGrid").is_visible(), "Customer restaurant discovery is visible on mobile")
+        check(mobile.locator("#discoveryLocationForm").is_hidden(),
+              "PIN is selected in mobile header, not repeated in a body card")
+        check(mobile.locator(".bite-language-row").count() == 0,
+              "Language selection buttons are absent from mobile customer pages")
+        check(mobile.locator(".customer-brand .bite-premium-icon").is_visible(),
+              "Compact Bite brand is visible on mobile")
         check_history_filters(mobile)
         check_account_layout(mobile, 390)
         mobile.set_viewport_size({'width':340,'height':780})
