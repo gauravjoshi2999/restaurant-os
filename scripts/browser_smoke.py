@@ -24,6 +24,30 @@ def check(condition, message):
     print("PASS:", message)
 
 
+def check_premium_ui(page):
+    """Exercise new customer-only controls with live public data; never create an order."""
+    location = page.locator("#biteLocationOpen")
+    check(location.is_visible(), "Premium header location picker is accessible")
+    location.click()
+    sheet = page.locator("#biteLocationSheet")
+    check(sheet.is_visible(), "Location bottom sheet opens")
+    check(page.locator("#biteSheetPin").is_visible(), "Location sheet exposes PIN input")
+    page.keyboard.press("Escape")
+    check(not sheet.is_visible(), "Escape closes location sheet")
+    check(location.evaluate("el => document.activeElement === el"), "Location picker restores focus")
+
+    search = page.locator("#homeSearchInput")
+    search.fill("paneer")
+    suggestion_box = page.locator("#biteSearchSuggestions")
+    suggestion_box.wait_for(state="visible", timeout=6000)
+    check(bool(suggestion_box.inner_text().strip()), "Live restaurant/dish search shows suggestions")
+    if suggestion_box.locator("button").count():
+        suggestion_box.locator("button").first.click()
+        check(not suggestion_box.is_visible(), "Choosing a suggestion closes the popup")
+    search.fill("")
+    check(not suggestion_box.is_visible(), "Clearing search removes suggestions")
+
+
 def check_account_layout(page, width):
     """Render the real Account markup without credentials or any business writes."""
     page.evaluate("""() => {
@@ -74,6 +98,7 @@ try:
         availability_fields = page.evaluate("""() => restaurants.length > 0 && restaurants.every(r =>
             ['is_temporarily_closed','temporary_closure_until','delivery_paused','opening_time','closing_time'].every(k => Object.prototype.hasOwnProperty.call(r,k)))""")
         check(availability_fields, "Public restaurant listing returns the new availability fields from Supabase")
+        check_premium_ui(page)
 
         # Exercise the customer-visible closure state using the live restaurant record.
         original = page.evaluate("() => ({id:restaurants[0].id,closed:restaurants[0].is_temporarily_closed,until:restaurants[0].temporary_closure_until})")
@@ -117,6 +142,28 @@ try:
         check(page.locator('#cartModal.show').is_visible(), 'Cart detail opens with the selected dish')
         check(page.evaluate("document.activeElement?.id === 'closeCartModal'"),
               'Opening cart moves focus into the dialog')
+        # Cart add-ons use real menu items; no fake rating or discount data.
+        alternative_count = page.evaluate("""() => menuItems.filter(i =>
+            !cart[i.id] && Number.isFinite(Number(i.price)) && Number(i.price) >= 0).length""")
+        if alternative_count:
+            add_on = page.locator('#biteCartAddOnList [data-bite-add-on]').first
+            check(add_on.is_visible(), 'Another real restaurant dish is visible in cart add-ons')
+            add_on_id = add_on.get_attribute('data-bite-add-on')
+            add_on.click()
+            check(page.locator('#cartCount').inner_text() == '(2)',
+                  'Adding a dish inside the cart updates the existing cart state')
+            check('added to cart' in page.locator('#biteCartAddOnStatus').inner_text().lower(),
+                  'Add-on action gives clear confirmation')
+            check(page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').count() == 1,
+                  'Newly added dish appears immediately in the editable cart')
+            add_on_total = page.evaluate("""() => money(cartEntries().reduce((n,[id,q]) =>
+                n + Number(menuItems.find(i => i.id === id).price) * q, 0))""")
+            check(add_on_total in page.locator('#cartModalTotal').inner_text(),
+                  'Cart uses existing real menu prices after an add-on')
+            page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').click()
+            check(page.locator('#cartCount').inner_text() == '(1)',
+                  'Removing the added dish restores the original cart')
+
         page.locator('#cartModalLines [data-cart-inc="' + item_id + '"]').click()
         check(page.evaluate("(id) => document.activeElement?.getAttribute('data-cart-inc') === id", item_id),
               'Cart quantity update preserves focus on the increment button')
