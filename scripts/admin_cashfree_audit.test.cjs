@@ -35,7 +35,14 @@ function setup(options={}){
  ];
  const state={orders,financials:fin,restaurants:[{id:'restaurant-a',name:'Test Restaurant'}]};
  const query={select(...args){read.push({type:'select',args});return this;},order(){return this;},async limit(){return {data:checks,error};}};
- const sb={from(name){read.push({type:'table',name});return query;},functions:{async invoke(name,payload){calls.push({name,payload});checks=[{order_id:'order-paid',collection_status:'PAID',collection_amount:174,settlement_evidence:{settlement:{status:'SUCCESS',settlement_utr:'some-utr'}},checked_at:'2026-11-14T10:00:00Z'}];return {data:{collection:{status:'PAID',amount:174,currency:'INR'},restaurant_payout:'NOT_VERIFIED_BY_PG_COLLECTION'},error:null};}}};
+ const sb={from(name){read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
+    calls.push({name,payload});
+    if(payload.body?.action==='inspect_split'){
+      return {data:{split:{status:'PROVIDER_VENDOR_SPLIT_RECORDS',vendor_count:1,
+       vendors:[{vendor_id:'vendor_1',amount:145,settlement_reference:'78123'}],
+       vendor_mapping:'NOT_VERIFIED',bank_payout:'NOT_VERIFIED'}},error:null};
+    }
+    checks=[{order_id:'order-paid',collection_status:'PAID',collection_amount:174,settlement_evidence:{settlement:{status:'SUCCESS',settlement_utr:'some-utr'}},checked_at:'2026-11-14T10:00:00Z'}];return {data:{collection:{status:'PAID',amount:174,currency:'INR'},restaurant_payout:'NOT_VERIFIED_BY_PG_COLLECTION'},error:null};}}};
  window.BiteCashfreeAudit.init({sb,getState:()=>state,getAccess:()=>({role,isPlatformAdmin:isAdmin}),getUser:()=>user?{id:user}:null,formatMoney:n=>'₹'+Number(n).toFixed(2)});
  return {audit:window.BiteCashfreeAudit,find,calls,read,state,setUser(x){user=x;},setRole(x){role=x;},setChecks(x){checks=x;},setError(x){error=x;}};
 }
@@ -103,4 +110,41 @@ test('GitHub UI wires Super Admin financials only and never exposes provider sec
  for(const part of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]){
   if(part[1].trim()) assert.doesNotThrow(()=>new vm.Script(part[1]));
  }
+});
+
+test('manual vendor inspection only invokes read-only inspect_split and does not mark bank payout',async()=>{
+ const a=setup();
+ await a.audit.load();
+ assert.equal(a.calls.length,0);
+ await a.audit.inspectSplit('order-paid');
+ assert.equal(a.calls.length,1);
+ assert.equal(a.calls[0].payload.body.action,'inspect_split');
+ assert.equal(a.calls[0].payload.body.order_id,'order-paid');
+ const tr=a.find('biteProviderAuditRows').children[0];
+ assert.match(tr.children[4].textContent,/vendor_1/);
+ assert.match(tr.children[4].textContent,/NOT verified/);
+ assert.match(a.find('biteProviderAuditStatus').textContent,/mapping and bank payout remain NOT verified/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+
+test('split inspection is restricted to Super Admin and never starts automatically',async()=>{
+ const a=setup({role:'owner',isAdmin:false});
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ assert.equal(a.calls.length,0);
+ const admin=setup();
+ await admin.audit.load();
+ assert.equal(admin.calls.length,0);
+ assert.equal(admin.find('biteProviderAuditRows').children[0].children[5].children.length,2,
+  'both manual actions are explicit buttons');
+});
+
+test('changing login clears split details instead of showing prior Owner or Admin data',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.clear();
+ assert.equal(a.find('biteProviderAuditRows').children.length,0);
+ a.setUser('another-admin');
+ await a.audit.load();
+ const tr=a.find('biteProviderAuditRows').children[0];
+ assert.doesNotMatch(tr.children[4].textContent,/vendor_1/);
 });

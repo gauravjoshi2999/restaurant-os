@@ -9,6 +9,8 @@
 #financials .bite-provider-payout{font-size:14px;font-weight:750;line-height:1.35;max-width:230px}
 #financials #biteProviderAuditRows td{max-width:245px;vertical-align:top;line-height:1.45;overflow-wrap:anywhere}
 #financials #biteProviderAuditRows button{min-height:44px;min-width:125px;white-space:normal}
+#financials #biteProviderAuditRows td:last-child{min-width:152px}
+#financials #biteProviderAuditRows td:last-child button+button{margin-top:8px}
 #financials #biteProviderAuditStatus{display:block;margin:12px 0;min-height:22px}
 #financials #biteProviderAuditRefresh{min-height:44px}
 #financials #biteProviderAuditRefresh:focus-visible,
