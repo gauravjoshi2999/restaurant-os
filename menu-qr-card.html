@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#35166e">
+<title>Print Menu QR · Bite</title>
+<link rel="icon" href="assets/bite-app-icon.svg" type="image/svg+xml">
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f2f8;color:#302440;margin:0}
+main{max-width:680px;margin:24px auto;padding:0 14px 32px}
+h1{font-size:22px;margin:0 0 9px}p{line-height:1.55}
+.instructions{color:#61546d;font-size:13px;margin:0 0 17px}
+.card{background:#fff;border:1px solid #ded4ed;border-radius:18px;text-align:center;padding:26px 18px;box-shadow:0 5px 23px #32165f12;margin-bottom:15px}
+.card>strong{display:block;font-size:23px;color:#35166e;line-height:1.25;margin:9px 0}
+.card>p{margin:3px 0 15px;color:#5b4d69}
+#code{width:272px;height:272px;max-width:100%;margin:auto;display:grid;place-items:center;background:#fff}
+#code img,#code canvas{max-width:100%;height:auto}
+.menu-tagline{font-size:13px;font-weight:750;color:#35166e;margin:15px 0 1px}
+#menuLink{font-size:11px;word-break:break-all;margin:9px auto;max-width:460px;color:#797083}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar button,.toolbar a{display:inline-flex;justify-content:center;align-items:center;min-height:48px;flex:1;border:1px solid #35166e;border-radius:10px;padding:11px 14px;text-decoration:none;font-weight:750;font-size:14px;background:#35166e;color:#fff;cursor:pointer}
+.toolbar button.secondary{background:#fff;color:#35166e}
+.toolbar button:disabled{opacity:.4;cursor:not-allowed}
+.status{font-size:13px;margin:13px 0;padding:12px;border:1px solid #ded4ed;border-radius:10px;background:white;color:#655874}
+@media print{
+ @page{size:A5 portrait;margin:14mm}
+ body{background:white}main{margin:0;padding:0;max-width:none}
+ .toolbar,.instructions,h1,.status{display:none!important}
+ .card{box-shadow:none;border:2px solid #35166e;break-inside:avoid;margin:0;padding:20px}
+}
+@media(max-width:460px){main{margin:14px auto}.toolbar{flex-direction:column}.card{padding:20px 10px}}
+</style>
+</head>
+<body>
+<main>
+<h1>Restaurant Menu QR</h1>
+<p class="instructions">Same restaurant QR har table par laga sakte hain. Customer QR scan karke sirf menu dekhega. Order waiter lega aur owner POS mein bill banayega.</p>
+<article class="card" aria-label="Printable digital menu card">
+<div style="font-weight:900;font-size:20px;color:#35166e">Bite <span style="font-size:13px;font-weight:500">· Eat. Repeat.</span></div>
+<strong id="restaurantName">Restaurant</strong>
+<p>Scan karein · Menu dekhein</p>
+<div id="code" aria-label="Restaurant menu QR code"></div>
+<div class="menu-tagline">Menu only · Order waiter ko batayein</div>
+<div id="menuLink"></div>
+</article>
+<div class="toolbar">
+<button id="printBtn" type="button" disabled>Print QR Card</button>
+<button id="downloadBtn" type="button" class="secondary" disabled>Download QR</button>
+<button id="copyBtn" type="button" class="secondary" disabled>Copy menu link</button>
+</div>
+<p class="status" id="status" role="status" aria-live="polite">Restaurant verify ho raha hai...</p>
+</main>
+<script src="assets/vendor/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+'use strict';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const restaurantId=new URLSearchParams(location.search).get('restaurant');
+const $=id=>document.getElementById(id);
+const status=message=>$('status').textContent=message;
+async function start(){
+ if(!UUID.test(restaurantId||'')){status('QR link sahi nahi hai. Owner Menu page se dobara QR kholein.');return}
+ if(!window.supabase?.createClient||!window.QRCode){status('QR library load nahi hui. Page reload karein.');return}
+ const sb=window.supabase.createClient('https://wedbgpybbgsszcmffoha.supabase.co','sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ try{
+  const {data,error}=await sb.rpc('list_public_restaurants');
+  if(error)throw error;
+  const r=(data||[]).find(item=>item.id===restaurantId);
+  if(!r){status('Restaurant ka menu public/published nahi hai. Owner pehle restaurant publish karein.');return}
+  const menuUrl=new URL('menu-qr.html',location.href);
+  menuUrl.search='';
+  menuUrl.searchParams.set('restaurant',restaurantId);
+  const url=menuUrl.href;
+  $('restaurantName').textContent=r.name||'Restaurant';
+  $('menuLink').textContent=url;
+  new QRCode($('code'),{text:url,width:260,height:260,colorDark:'#1e1337',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  $('printBtn').disabled=false;$('downloadBtn').disabled=false;$('copyBtn').disabled=false;
+  $('printBtn').addEventListener('click',()=>window.print());
+  $('downloadBtn').addEventListener('click',()=>{
+    const canvas=$('code').querySelector('canvas'),img=$('code').querySelector('img');
+    const src=canvas?.toDataURL?.('image/png')||img?.src;
+    if(!src){status('QR image abhi ready nahi hai. Dobara try karein.');return}
+    const a=document.createElement('a');a.href=src;a.download='bite-menu-'+restaurantId+'.png';
+    document.body.append(a);a.click();a.remove();
+  });
+  $('copyBtn').addEventListener('click',async()=>{
+   try{
+    await navigator.clipboard.writeText(url);status('Menu link copy ho gaya. Isi QR ko saare tables par laga sakte hain.');
+   }catch(e){status('Copy nahi hua; card ke niche likha link manually copy karein.')}
+  });
+  status('QR ready. Print karke har table par laga sakte hain. Menu update hone par QR badalne ki zarurat nahi.');
+ }catch(error){console.error('Public menu QR setup:',error);status('QR ban nahi paaya. Internet check karke dobara kholein.')}
+}
+start();
+})();
+</script>
+</body>
+</html>

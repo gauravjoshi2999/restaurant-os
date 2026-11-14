@@ -1,0 +1,21 @@
+/* QR menu remains read-only for guests; Owner-only publishing controls. */
+body:not([data-role="owner"]) #printMenuQrBtn{display:none!important}
+body[data-role="owner"] #menu .bite-qr-menu-actions{
+ display:flex;gap:9px;align-items:center;flex-wrap:wrap
+}
+body[data-role="owner"] #menu #printMenuQrBtn{
+ background:#fff!important;color:#35166e!important;border:1px solid #c7b6dd!important;
+ min-height:46px;border-radius:11px;font-weight:750!important
+}
+body[data-role="owner"] #menu .bite-qr-menu-note{
+ border:1px solid #e1d4ef;background:#f7f2fc;color:#523a72;
+ padding:12px 14px;border-radius:12px;margin:0 0 14px;line-height:1.6;font-size:12px
+}
+body[data-role="owner"] #menu #printMenuQrBtn:focus-visible{
+ outline:3px solid #8661d3;outline-offset:2px
+}
+@media(max-width:760px){
+ body[data-role="owner"] #menu .bite-qr-menu-actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%}
+ body[data-role="owner"] #menu .bite-qr-menu-actions button{width:100%!important;min-height:48px}
+ body[data-role="owner"] #menu .bite-qr-menu-note{font-size:12px;margin-top:0}
+}

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#35166e">
+<meta name="robots" content="noindex,follow">
+<meta name="description" content="Scan a restaurant QR code to view its latest Bite menu. No login, ordering or payment.">
+<title>Restaurant Menu · Bite — Eat. Repeat.</title>
+<link rel="icon" href="assets/bite-app-icon.svg" type="image/svg+xml">
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#292338;background:#f5f4f8;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}
+header{background:#35166e;color:white;padding:18px max(18px,calc((100vw - 1080px)/2))}
+.brand{display:flex;align-items:center;gap:11px;font-size:20px;font-weight:850;letter-spacing:-.6px}
+.brand img{width:71px;max-height:39px;object-fit:contain}
+.brand small{font-weight:450;font-size:12px;opacity:.9;letter-spacing:0}
+main{width:min(100% - 28px,980px);margin:20px auto 60px}
+.hero{border-radius:20px;background:white;padding:24px;border:1px solid #e7e0ef;box-shadow:0 4px 20px #35166e0a}
+.hero h1{font-size:clamp(24px,5vw,33px);margin:0 0 8px;line-height:1.2;color:#32165f}
+.hero p{margin:0;color:#655c70;line-height:1.6}
+.menu-note{display:flex;gap:9px;align-items:center;margin-top:18px;background:#f4eefb;border-radius:12px;padding:12px;color:#4b326f;font-size:13px;font-weight:700;line-height:1.5}
+.filters{margin:15px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+input[type=search]{width:100%;min-height:48px;border:1px solid #ddd2ea;border-radius:12px;padding:11px 14px;font-size:16px;background:#fff;color:#292338}
+.veg-switch{white-space:nowrap;min-height:48px;display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid #ddd2ea;border-radius:12px;background:#fff;font-size:13px;font-weight:700}
+.veg-switch input{width:18px;height:18px;accent-color:#238752}
+.categories{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 13px;overscroll-behavior-inline:contain}
+.categories button{flex:none;border:1px solid #ded4e9;background:white;color:#443658;border-radius:100px;padding:10px 15px;min-height:44px;font:700 13px inherit;cursor:pointer}
+.categories button[aria-pressed=true]{background:#35166e;color:white;border-color:#35166e}
+.summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 2px 9px;flex-wrap:wrap}
+.summary strong{font-size:18px}.summary span{color:#756c7c;font-size:12px}
+.menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.item{background:white;border:1px solid #ebe6f0;border-radius:15px;padding:12px;display:flex;gap:12px;min-width:0;min-height:121px}
+.item img{width:102px;height:102px;object-fit:cover;border-radius:11px;background:#eee;flex:none}
+.item .placeholder{width:102px;height:102px;border-radius:11px;background:#f1edf9;display:grid;place-items:center;color:#a392bc;font-size:25px;flex:none}
+.details{min-width:0;flex:1}.item-name{font-weight:800;color:#302440;line-height:1.35;margin:2px 0 6px;overflow-wrap:anywhere}
+.item-desc{color:#726b7c;font-size:12px;line-height:1.5;margin:0 0 8px;overflow-wrap:anywhere}
+.item .price{font-weight:850;color:#32165f;font-variant-numeric:tabular-nums}
+.mark{display:inline-flex;align-items:center;gap:5px;color:#248352;font-size:11px;margin-left:6px;font-weight:800}
+.mark.nonveg{color:#a24a47}
+#message{background:#fff;border:1px solid #e5dfef;border-radius:14px;padding:23px;color:#54466b;line-height:1.5}
+#message[hidden],#menu[hidden],#filters[hidden],#categories[hidden],#summary[hidden]{display:none!important}
+footer{text-align:center;color:#877f90;padding:15px;font-size:12px}
+button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offset:2px}
+@media(max-width:640px){main{width:min(100% - 22px,560px);margin-top:13px}.hero{padding:19px 15px}.filters{grid-template-columns:1fr}.veg-switch{justify-content:flex-start}.menu{grid-template-columns:1fr}.item{padding:10px;gap:11px}.item img,.item .placeholder{width:93px;height:93px}.item{min-height:112px}.item-name{font-size:15px}.brand{font-size:17px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><div class="brand"><img src="assets/bite-logo.svg" alt="Bite"><span>Digital Menu <small>· Eat. Repeat.</small></span></div></header>
+<main>
+<section class="hero" aria-labelledby="restaurantName">
+<h1 id="restaurantName">Restaurant menu</h1>
+<p id="restaurantDescription">Menu load ho raha hai...</p>
+<div class="menu-note" role="note"><span aria-hidden="true">🍽️</span><span>Menu dekhein aur order waiter ko batayein. Payment aur bill restaurant counter par hoga. QR se online order ya payment nahi hota.</span></div>
+</section>
+<div id="message" role="status" aria-live="polite">Menu load ho raha hai...</div>
+<section id="filters" class="filters" hidden aria-label="Menu filters">
+<label><span style="display:block;font-size:12px;margin:0 0 6px;color:#64596d;font-weight:700">Dish search</span><input type="search" id="dishSearch" placeholder="Khana search karein, jaise Paneer" autocomplete="off"></label>
+<label class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label>
+</section>
+<nav id="categories" class="categories" hidden aria-label="Menu categories"></nav>
+<div id="summary" class="summary" hidden><strong>Hamare dishes</strong><span id="itemCount"></span></div>
+<div id="menu" class="menu" hidden aria-live="polite"></div>
+</main>
+<footer>Bite — Eat. Repeat. · Menu only. Prices/availability restaurant se confirm karein.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+'use strict';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const params=new URLSearchParams(location.search);
+const restaurantId=params.get('restaurant');
+const $=id=>document.getElementById(id);
+let items=[],categories=[],category='all';
+const money=value=>'₹'+Number(value||0).toLocaleString('en-IN',{maximumFractionDigits:2,minimumFractionDigits:0});
+function status(message){$('message').hidden=false;$('message').textContent=message}
+function safeImage(value){
+ if(typeof value!=='string'||!value.trim())return '';
+ try{
+  const url=new URL(value,location.href);
+  if(url.protocol!=='https:'&&!(url.protocol==='http:'&&url.hostname==='localhost'))return '';
+  return url.href;
+ }catch(_){return ''}
+}
+function draw(){
+ const search=$('dishSearch').value.trim().toLocaleLowerCase();
+ const vegOnly=$('vegOnly').checked;
+ const visible=items.filter(item=>(category==='all'||item.category_id===category)
+   &&(!vegOnly||item.is_vegetarian===true)
+   &&(!search||String(item.name||'').toLocaleLowerCase().includes(search)
+    ||String(item.description||'').toLocaleLowerCase().includes(search)));
+ $('itemCount').textContent=visible.length+' dishes';
+ const menu=$('menu');menu.replaceChildren();
+ if(!visible.length){const p=document.createElement('p');p.textContent='Is filter mein koi dish nahi. Search ya category badlein.';p.style.color='#726b7c';menu.append(p);return}
+ for(const item of visible){
+  const card=document.createElement('article');card.className='item';
+  const imageUrl=safeImage(item.image_url);
+  const placeholder=document.createElement('div');placeholder.className='placeholder';placeholder.textContent='🍽️';
+  if(imageUrl){
+    const img=document.createElement('img');img.src=imageUrl;img.loading='lazy';img.alt=String(item.name||'Dish');
+    img.addEventListener('error',()=>{img.remove();card.prepend(placeholder)},{once:true});card.append(img);
+  }else card.append(placeholder);
+  const content=document.createElement('div');content.className='details';
+  const name=document.createElement('div');name.className='item-name';name.textContent=item.name||'Dish';
+  const desc=document.createElement('p');desc.className='item-desc';desc.textContent=item.description||'';
+  const price=document.createElement('span');price.className='price';price.textContent=money(item.price);
+  const mark=document.createElement('span');mark.className='mark'+(item.is_vegetarian===false?' nonveg':'');
+  mark.textContent=item.is_vegetarian===true?'● Veg':item.is_vegetarian===false?'● Non-veg':'';
+  content.append(name,desc,price,mark);card.append(content);menu.append(card);
+ }
+}
+function drawCategories(){
+ const nav=$('categories');nav.replaceChildren();
+ const options=[{id:'all',name:'All dishes'},...categories];
+ for(const c of options){
+  const button=document.createElement('button');button.type='button';button.textContent=c.name;
+  button.dataset.category=c.id;button.setAttribute('aria-pressed',String(c.id===category));
+  button.addEventListener('click',()=>{
+   category=c.id;
+   nav.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===button)));
+   draw();
+  });
+  nav.append(button);
+ }
+ nav.hidden=false;
+}
+async function loadMenu(){
+ if(!UUID.test(restaurantId||'')){status('QR link sahi nahi hai. Restaurant se naya QR scan karein.');return}
+ if(!window.supabase||typeof window.supabase.createClient!=='function'){status('Menu load nahi hua. Internet check karke page refresh karein.');return}
+ const client=window.supabase.createClient('https://wedbgpybbgsszcmffoha.supabase.co','sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ try{
+  // Public, published restaurants only. No login, no writes and no customer details.
+  const restaurants=await client.rpc('list_public_restaurants');
+  if(restaurants.error)throw restaurants.error;
+  const restaurant=(restaurants.data||[]).find(r=>r.id===restaurantId);
+  if(!restaurant){status('Yeh restaurant ka public menu abhi available nahi hai. Waiter se menu mangein.');return}
+  const [catResult,itemResult]=await Promise.all([
+   client.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',restaurantId).eq('is_active',true).order('sort_order'),
+   client.from('menu_items').select('id,category_id,name,description,price,image_url,is_vegetarian').eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000)
+  ]);
+  if(catResult.error)throw catResult.error;
+  if(itemResult.error)throw itemResult.error;
+  categories=catResult.data||[];items=itemResult.data||[];
+  $('restaurantName').textContent=restaurant.name||'Restaurant menu';
+  $('restaurantDescription').textContent=(restaurant.public_description||restaurant.address||'')+' · Apna order waiter ko batayein.';
+  document.title=(restaurant.name||'Restaurant')+' · Menu Only | Bite';
+  if(!items.length){status('Is restaurant mein abhi menu items available nahi hain. Waiter se poochhein.');return}
+  $('message').hidden=true;$('filters').hidden=false;$('summary').hidden=false;$('menu').hidden=false;
+  $('dishSearch').addEventListener('input',draw);$('vegOnly').addEventListener('change',draw);
+  drawCategories();draw();
+ }catch(error){console.error('Bite QR menu public fetch:',error);status('Menu abhi load nahi ho pa raha. Internet check karein ya waiter se menu lein.')}
+}
+loadMenu();
+})();
+</script>
+</body>
+</html>
