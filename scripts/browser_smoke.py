@@ -48,6 +48,46 @@ def check_premium_ui(page):
     check(not suggestion_box.is_visible(), "Clearing search removes suggestions")
 
 
+def check_history_filters(page):
+    """Synthetic DOM-only browser test; no customer identity or database writes."""
+    page.evaluate("""() => {
+        for (const id of ['homeView','menuView','accountView']) {
+            document.getElementById(id).classList.add('hidden');
+        }
+        document.getElementById('ordersView').classList.remove('hidden');
+        document.body.dataset.view='orders';
+        document.getElementById('ordersList').innerHTML =
+          '<article class="ordercard"><span class="ordercode">BITE-QA-101</span><span class="orderrestaurant">Hotel Maharani Palace</span><span class="orderstatus received">Received</span></article>'
+          + '<article class="ordercard"><span class="ordercode">BITE-QA-102</span><span class="orderrestaurant">Royal Thali House</span><span class="orderstatus completed">Completed</span></article>'
+          + '<article class="ordercard"><span class="ordercode">BITE-QA-103</span><span class="orderrestaurant">Bajrang Food Court</span><span class="orderstatus cancelled">Cancelled</span></article>';
+        window.BiteHistoryPremium.applyFilters();
+    }""")
+    cards=page.locator('#ordersList > .ordercard:visible')
+    check(cards.count() == 3, 'Order history initially displays all available orders')
+    page.locator('[data-bite-history-filter="active"]').click()
+    check(cards.count() == 1 and 'Maharani' in cards.first.inner_text(),
+          'Ongoing filter shows only active orders')
+    page.locator('[data-bite-history-filter="completed"]').click()
+    check(cards.count() == 1 and 'Royal' in cards.first.inner_text(),
+          'Delivered filter includes real Completed status')
+    page.locator('[data-bite-history-filter="cancelled"]').click()
+    check(cards.count() == 1 and 'Bajrang' in cards.first.inner_text(),
+          'Cancelled filter excludes active and delivered orders')
+    search=page.locator('#biteHistorySearch')
+    search.fill('not-an-order')
+    check(page.locator('#biteHistoryNoMatches').is_visible(),
+          'No matching order gives an actionable empty state')
+    page.locator('#biteHistoryNoMatches button').click()
+    check(cards.count() == 3 and not search.input_value(),
+          'Clear search and filters restores all orders')
+    search.fill('BITE-QA-102')
+    check(cards.count() == 1 and 'Royal' in cards.first.inner_text(),
+          'Order ID search filters history without new backend requests')
+    search.fill('')
+    check(not page.locator('#biteHistoryNoMatches').is_visible(),
+          'Clearing order search dismisses the empty state')
+
+
 def check_account_layout(page, width):
     """Render the real Account markup without credentials or any business writes."""
     page.evaluate("""() => {
@@ -216,6 +256,7 @@ try:
         check("sahi email" in page.locator("#authError").inner_text().lower(),
               "Forgot-password flow validates email before requesting a reset link")
         page.locator('#closeAuth').click()
+        check_history_filters(page)
         check_account_layout(page, 1365)
 
         # Android-sized viewport smoke check.
@@ -229,6 +270,7 @@ try:
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 1, f"Customer page has no horizontal overflow at 390px (overflow={overflow}px)")
         check(mobile.locator("#restaurantGrid").is_visible(), "Customer restaurant discovery is visible on mobile")
+        check_history_filters(mobile)
         check_account_layout(mobile, 390)
         mobile.set_viewport_size({'width':340,'height':780})
         check_account_layout(mobile, 340)
