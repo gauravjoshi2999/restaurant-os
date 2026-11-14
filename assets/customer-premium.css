@@ -167,3 +167,8 @@ body[data-bite-app="customer"] .bite-sheet-hint{font-size:12px;line-height:1.5;c
 @media(max-width:480px){body[data-bite-app="customer"] .restaurants{grid-template-columns:1fr}body[data-bite-app="customer"] .cover{height:190px}body[data-bite-app="customer"] .restaurant .rbody{padding:15px 16px}body[data-bite-app="customer"] .rname{font-size:17px}body[data-bite-app="customer"] .rating{font-size:12px}body[data-bite-app="customer"] .meta,body[data-bite-app="customer"] .restaurant-service{font-size:12px}}
 @media(max-width:350px){body[data-bite-app="customer"] .customer-brand .bite-logo{width:74px!important;max-width:24vw!important}body[data-bite-app="customer"] .bite-location-opener{font-size:12px}body[data-bite-app="customer"] .location-sub{font-size:9px}body[data-bite-app="customer"] .header .login{font-size:10px;padding:8px}body[data-bite-app="customer"] .search.home-searchrow>button{padding:8px 10px}}
 @media(prefers-reduced-motion:reduce){body[data-bite-app="customer"] *,body[data-bite-app="customer"] *::before,body[data-bite-app="customer"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Keep autocomplete visible beyond the promotional hero boundary. */
+body[data-bite-app="customer"] .food-hero{overflow:visible}
+body[data-bite-app="customer"] .food-hero-art{overflow:hidden;border-radius:0 24px 24px 0}
+@media(max-width:760px){body[data-bite-app="customer"] .food-hero-art{border-radius:0 19px 19px 0}}
