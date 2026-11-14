@@ -37,6 +37,13 @@ function setup(options={}){
  const query={select(...args){read.push({type:'select',args});return this;},order(){return this;},async limit(){return {data:checks,error};}};
  const sb={from(name){read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
     calls.push({name,payload});
+    if(payload.body?.action==='inspect_vendor'){
+      return {data:{provider_vendor:{
+       vendor_id:payload.body.vendor_id,provider_vendor_status:'IN_BENE_CREATION',
+       bank_details_comparison:options.vendorBankMatch||'MATCH',
+       comparison_reason:'BANK_DETAILS_MATCH_ONLY',vendor_kyc:'NOT_VERIFIED'},
+       restaurant_payout:'NOT_VERIFIED',bank_credit:'NOT_VERIFIED'},error:null};
+    }
     if(payload.body?.action==='inspect_split'){
       return {data:{split:{status:'PROVIDER_VENDOR_SPLIT_RECORDS',vendor_count:1,
        vendors:[{vendor_id:'vendor_1',amount:145,settlement_reference:'78123'}],
@@ -164,7 +171,7 @@ test('vendor candidate comparison requires provider evidence for the exact paid 
  assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
  const tr=a.find('biteProviderAuditRows').children[0];
  assert.match(tr.children[4].textContent,/Vendor ID appears in this paid order split/);
- assert.equal(tr.children[5].children.length,4,'candidate input and manual comparison button are shown after split read');
+ assert.equal(tr.children[5].children.length,5,'vendor bank inspection is offered only after matching a split vendor');
 });
 
 test('other vendor candidate is rejected and is never cross-linked to the restaurant',async()=>{
@@ -210,4 +217,62 @@ test('candidate UI is cache-busted and never persists, transfers or marks restau
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
+});
+
+test('Cashfree vendor-bank comparison is explicit and requires a matched split candidate',async()=>{
+ const a=setup();
+ await a.audit.load();
+ await a.audit.inspectVendor('order-paid');
+ assert.equal(a.calls.length,0,'no bank lookup on page load or without vendor evidence');
+ await a.audit.inspectSplit('order-paid');
+ await a.audit.inspectVendor('order-paid');
+ assert.equal(a.calls.length,1,'split GET only until candidate matches');
+ a.audit.compareVendor('order-paid','vendor_1');
+ await a.audit.inspectVendor('order-paid');
+ assert.equal(a.calls.length,2,'bank comparison is a distinct deliberate action');
+ assert.equal(a.calls[1].payload.body.action,'inspect_vendor');
+ assert.equal(a.calls[1].payload.body.vendor_id,'vendor_1');
+ assert.equal(a.calls[1].payload.body.order_id,'order-paid');
+ const payout=a.find('biteProviderAuditRows').children[0].children[4].textContent;
+ assert.match(payout,/bank settings MATCH/);
+ assert.match(payout,/bank credit remain NOT verified/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+
+test('Cashfree bank mismatch is a STOP signal and cannot show vendor as paid',async()=>{
+ const a=setup({vendorBankMatch:'MISMATCH'});
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');
+ await a.audit.inspectVendor('order-paid');
+ assert.match(a.find('biteProviderAuditStatus').textContent,/DO NOT MATCH/);
+ assert.match(a.find('biteProviderAuditStatus').textContent,/do not map or pay/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+
+test('vendor bank result clears whenever candidate changes, page refreshes or admin signs out',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');await a.audit.inspectVendor('order-paid');
+ a.audit.compareVendor('order-paid','another_vendor');
+ let note=a.find('biteProviderAuditRows').children[0].children[4].textContent;
+ assert.doesNotMatch(note,/bank settings MATCH/);
+ await a.audit.load();
+ note=a.find('biteProviderAuditRows').children[0].children[4].textContent;
+ assert.doesNotMatch(note,/bank settings MATCH/);
+ a.audit.clear();
+ assert.equal(a.find('biteProviderAuditRows').children.length,0);
+});
+
+test('non-admin Owner cannot use vendor bank lookup',async()=>{
+ const a=setup({role:'owner',isAdmin:false});
+ await a.audit.load();await a.audit.inspectVendor('order-paid');
+ assert.equal(a.calls.length,0);
+ assert.equal(a.read.length,0);
+});
+
+test('public UI never receives or displays raw bank, PAN, KYC document or full account fields',()=>{
+ assert.match(code,/action:'inspect_vendor'/);
+ assert.match(code,/bank_details_comparison/);
+ assert.doesNotMatch(code,/account_number|account_holder|PAN_NUMBER|bank\.ifsc|SUPABASE_SERVICE_ROLE_KEY/);
+ assert.match(html,/admin-cashfree-audit\.js/);
 });
