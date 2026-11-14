@@ -60,6 +60,11 @@ body[data-role="owner"] #orders .bite-date-cell.selected small{color:#fff}
 body[data-role="owner"] #orders .bite-orders-calendar-body>p{
  margin:10px 0 0;font-size:11px;color:#766c83;line-height:1.5
 }
+body[data-role="owner"] #orders #orderBoard{scroll-margin-top:85px}
+body[data-role="owner"] #orders .order-card-empty button{
+ min-height:44px;margin:9px 5px 0;padding:10px 13px;
+ color:#35166e;border-color:#d9ccec;
+}
 body[data-role="owner"] #orders .bite-order-date-group{
  display:flex;align-items:center;justify-content:space-between;gap:9px;
  margin:16px 0 11px;padding:0 3px;font-size:15px;color:#35166e
@@ -105,6 +110,7 @@ body[data-role="owner"] #khata #khataCustomerRows button:focus-visible{
  outline:3px solid #937bd5;outline-offset:2px
 }
 @media(max-width:760px){
+ body[data-role="owner"] #orders #orderBoard{scroll-margin-top:145px}
  body[data-role="owner"] #orders .bite-owner-order-calendar{padding:11px;margin-top:9px}
  body[data-role="owner"] #orders .bite-orders-date-tools button{flex:1 1 auto}
  body[data-role="owner"] #orders .bite-date-cell{min-height:57px;padding:4px 0}
