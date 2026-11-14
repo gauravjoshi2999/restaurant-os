@@ -37,6 +37,16 @@ function setup(options={}){
  const query={select(...args){read.push({type:'select',args});return this;},order(){return this;},async limit(){return {data:checks,error};}};
  const sb={from(name){read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
     calls.push({name,payload});
+    if(payload.body?.action==='inspect_vendor_recon'){
+      return {data:{vendor_reconciliation:{
+       status:options.reconStatus||'PROVIDER_REPORTS_SETTLED',provider_settled:true,
+       vendor_settlement_utr_masked:'••••6789',
+       utr_check:payload.body.bank_statement_utr?
+        (options.mismatchedUtr?'DIFFERS_FROM_OPERATOR_INPUT':'MATCHES_OPERATOR_INPUT'):'NOT_SUBMITTED',
+       bank_credit:'NOT_INDEPENDENTLY_VERIFIED'},
+       bank_settings_match:'MATCH',restaurant_payout:'NOT_INDEPENDENTLY_VERIFIED',
+       bank_credit:'NOT_INDEPENDENTLY_VERIFIED'},error:null};
+    }
     if(payload.body?.action==='inspect_vendor'){
       return {data:{provider_vendor:{
        vendor_id:payload.body.vendor_id,provider_vendor_status:'IN_BENE_CREATION',
@@ -213,7 +223,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-bankmatch1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-vendorrecon1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -275,4 +285,57 @@ test('public UI never receives or displays raw bank, PAN, KYC document or full a
  assert.match(code,/bank_details_comparison/);
  assert.doesNotMatch(code,/account_number|account_holder|PAN_NUMBER|bank\.ifsc|SUPABASE_SERVICE_ROLE_KEY/);
  assert.match(html,/admin-cashfree-audit\.js/);
+});
+
+test('vendor recon only runs after exact provider split + matching restaurant bank',async()=>{
+ const a=setup();
+ await a.audit.load();
+ await a.audit.inspectVendorRecon('order-paid','');
+ assert.equal(a.calls.length,0);
+ await a.audit.inspectSplit('order-paid');
+ await a.audit.inspectVendorRecon('order-paid','');
+ assert.equal(a.calls.length,1,'no settlement query without candidate and bank check');
+ a.audit.compareVendor('order-paid','vendor_1');
+ await a.audit.inspectVendorRecon('order-paid','');
+ assert.equal(a.calls.length,1);
+ await a.audit.inspectVendor('order-paid');
+ await a.audit.inspectVendorRecon('order-paid','');
+ assert.equal(a.calls.length,3);
+ assert.equal(a.calls[2].payload.body.action,'inspect_vendor_recon');
+ assert.equal(a.calls[2].payload.body.vendor_id,'vendor_1');
+ assert.equal(a.calls[2].payload.body.order_id,'order-paid');
+ assert.equal(a.calls[2].payload.body.bank_statement_utr,undefined);
+ assert.match(a.find('biteProviderAuditStatus').textContent,/bank credit remains NOT independently verified/i);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+test('UTR comparison never triggers a transfer or a paid label',async()=>{
+ const a=setup({mismatchedUtr:true});
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');await a.audit.inspectVendor('order-paid');
+ await a.audit.inspectVendorRecon('order-paid','EXAMPLEUTR6789');
+ assert.equal(a.calls.at(-1).payload.body.bank_statement_utr,'EXAMPLEUTR6789');
+ assert.match(a.find('biteProviderAuditStatus').textContent,/STOP.*DIFFERS/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+test('invalid bank UTR and non-admin attempts fail before provider fetch',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');await a.audit.inspectVendor('order-paid');
+ await a.audit.inspectVendorRecon('order-paid','unsafe characters!');
+ assert.equal(a.calls.length,2);
+ assert.match(a.find('biteProviderAuditStatus').textContent,/Invalid statement UTR/);
+ const owner=setup({role:'owner',isAdmin:false});
+ await owner.audit.load();await owner.audit.inspectVendorRecon('order-paid','');
+ assert.equal(owner.calls.length,0);
+});
+test('vendor recon evidence clears on refresh and bank recheck',async()=>{
+ const a=setup();
+ await a.audit.load();await a.audit.inspectSplit('order-paid');
+ a.audit.compareVendor('order-paid','vendor_1');await a.audit.inspectVendor('order-paid');
+ await a.audit.inspectVendorRecon('order-paid','');
+ assert.match(a.find('biteProviderAuditRows').children[0].children[4].textContent,/Cashfree reports vendor SETTLED/);
+ await a.audit.inspectVendor('order-paid');
+ assert.doesNotMatch(a.find('biteProviderAuditRows').children[0].children[4].textContent,/Cashfree reports vendor SETTLED/);
+ await a.audit.load();
+ assert.equal(a.find('biteProviderAuditRows').children[0].children[5].children.length,2);
 });

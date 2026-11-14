@@ -58,7 +58,7 @@ test('documented Cashfree numeric bank accounts can be safely compared only at e
 test('inspect_vendor Edge Function revalidates the paid Bite order and provider split before bank GET',()=>{
  const code=fs.readFileSync('supabase/functions/bite-cashfree-operations/index.ts','utf8');
  const start=code.indexOf('if(body.action==="inspect_vendor"){');
- const end=code.indexOf('if(body.action==="reconcile"){',start);
+ const end=code.indexOf('if(body.action==="inspect_vendor_recon"){',start);
  assert(start>0&&end>start);
  const block=code.slice(start,end);
  assert.match(block,/order_status!=="PAID"/);

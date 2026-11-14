@@ -57,7 +57,7 @@ test('rejects missing list, duplicate vendor IDs and invalid financial amounts',
 test('Edge Function read-only branch uses trusted paid order; no client vendor or payment transfer',()=>{
  const code=fs.readFileSync('supabase/functions/bite-cashfree-operations/index.ts','utf8');
  const start=code.indexOf('if(body.action==="inspect_split"){');
- const end=code.indexOf('if(body.action==="reconcile"){',start);
+ const end=code.indexOf('if(body.action==="inspect_vendor"){',start);
  assert(start>0&&end>start);
  const branch=code.slice(start,end);
  assert.match(branch,/collection\.data\?\.order_id!==intent\.provider_order_id/);
