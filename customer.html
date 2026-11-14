@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261110-mobile-menu-fix">
-<link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1"><link rel="stylesheet" href="assets/customer-premium.css?v=20261114-premium1"><link rel="stylesheet" href="assets/customer-history-premium.css?v=20261114-history1">
+<link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1"><link rel="stylesheet" href="assets/customer-premium.css?v=20261114-singlepin1"><link rel="stylesheet" href="assets/customer-history-premium.css?v=20261114-history1">
 </head>
 <body data-bite-app="customer">
 <header class="header"><div class="wrap storefront-header"><a href="customer.html?v=20261111-payment-fix" class="customer-brand" aria-label="Bite home"><img src="assets/bite-selected-wordmark.webp" alt="Bite — Eat. Repeat." class="bite-logo"></a><div class="header-location"><span class="location-pin" aria-hidden="true">⌖</span><div><span class="location-kicker">EXPLORE LOCAL</span><button class="bite-location-opener" type="button" id="biteLocationOpen" aria-haspopup="dialog" aria-controls="biteLocationSheet" aria-label="Choose delivery PIN or saved address"><span id="biteLocationTitle">Choose PIN</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="location-sub" id="customerLocationLabel">Delivery &amp; pickup</span></div><button type="button" class="nearby-btn" id="customerUseLocation">Near me</button></div><div class="headright"><span class="muted" id="sessionLabel">Fresh food, made nearby.</span><button class="secondary hidden" id="myOrdersBtn">My Orders</button><button class="login" id="loginBtn">Login</button><button class="home-account" id="homeAccountBtn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button></div></div></header><section class="hero hidden"><div class="wrap"><div class="eyebrow">Discover local food</div><h1>Good food. Great mood.</h1><p>Apne aas-paas ke restaurants se pasand ka khana order karein.</p><div class="search"><input id="searchInput" placeholder="Restaurant ya cuisine search karein..." aria-label="Search restaurants"><button id="searchBtn">Search</button></div></div></section>
@@ -1437,7 +1437,7 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
  verify();
 })();
 </script>
-<script src="assets/customer-completion.js?v=20261113-discovery-reset1"></script><script src="./android-update-check.js" defer></script>
+<script src="assets/customer-completion.js?v=20261114-singlepin1"></script><script src="./android-update-check.js" defer></script>
 <script id="bite-customer-update-prompt">
 /* Only offer a reload after comparing the actual deployed SHA; never reload during payment. */
 (async function(){
