@@ -1,0 +1,23 @@
+/* Super Admin Cashfree audit: mobile-first, readable without implying payout. */
+#financials .bite-provider-audit{margin:22px 0}
+#financials .bite-provider-audit .section-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+#financials .bite-provider-audit .section-head h2{margin-bottom:5px}
+#financials .bite-provider-audit .notice{margin:12px 0 16px}
+#financials .bite-provider-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+#financials .bite-provider-stats .card{min-width:0;padding:15px}
+#financials .bite-provider-stats .metric{font-variant-numeric:tabular-nums}
+#financials .bite-provider-payout{font-size:14px;font-weight:750;line-height:1.35;max-width:230px}
+#financials #biteProviderAuditRows td{max-width:245px;vertical-align:top;line-height:1.45;overflow-wrap:anywhere}
+#financials #biteProviderAuditRows button{min-height:44px;min-width:125px;white-space:normal}
+#financials #biteProviderAuditStatus{display:block;margin:12px 0;min-height:22px}
+#financials #biteProviderAuditRefresh{min-height:44px}
+#financials #biteProviderAuditRefresh:focus-visible,
+#financials #biteProviderAuditRows button:focus-visible{outline:3px solid #166b4d;outline-offset:2px}
+@media(max-width:760px){
+ #financials .bite-provider-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #financials .bite-provider-stats .card{padding:12px}
+ #financials .bite-provider-stats .card:last-child{grid-column:1/-1}
+ #financials .bite-provider-audit .table-wrap{overflow-x:auto;overscroll-behavior-x:contain}
+ #financials .bite-provider-audit table{min-width:770px}
+ #financials .bite-provider-audit .section-head button{width:100%}
+}
