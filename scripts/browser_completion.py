@@ -205,11 +205,22 @@ try:
   check('313399' in customer.locator('#restaurantGrid .food-empty').inner_text()
     and customer.locator('#restaurantGrid [data-discovery-pickup]').count()==1,
     'Out-of-area PIN explains unavailable delivery and offers a pickup action')
+  customer.locator('#restaurantGrid [data-discovery-pin]').click()
+  check(customer.locator('#biteLocationSheet').is_visible()
+    and customer.locator('#biteSheetPin').input_value()=='313399',
+    'Change PIN from delivery-unavailable state opens the visible location picker')
+  customer.keyboard.press('Escape')
+  check(customer.locator('#biteLocationSheet').is_hidden()
+    and customer.locator('#discoveryLocationForm').is_hidden(),
+    'Closing the location picker never focuses or exposes the obsolete hidden PIN form')
   customer.locator('#restaurantGrid [data-discovery-pickup]').click()
   check(customer.locator('#restaurantGrid .restaurant').count()==1
     and customer.locator('[data-service-filter="pickup"]').get_attribute('aria-pressed')=='true'
     and customer.evaluate("currentDiscoveryPin")=='313399',
     'Pickup recovery shows restaurants without changing the saved delivery PIN')
+  check(customer.locator('#restaurantGrid .restaurant-service').inner_text().endswith('Pickup')
+    and 'Check PIN' in customer.locator('#restaurantGrid .restaurant .meta').inner_text(),
+    'Out-of-zone pickup card does not misleadingly advertise available delivery or a verified fee')
   customer.evaluate("""() => {
     activeFilter='North Indian';
     document.getElementById('homeSearchInput').value='impossible search';
