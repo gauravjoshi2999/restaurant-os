@@ -1693,7 +1693,7 @@ function renderCashbook(){
  const status=document.getElementById('cashbookStatus');status.textContent=cashbookClosing?'Closed':cashbookDataReadyKey===cashbookKey()?'Open':'Loading…';status.className='tag '+(cashbookClosing?'success':'');
  const closed=!!cashbookClosing,owner=access.role==='owner',ready=cashbookDataReadyKey===cashbookKey();
  document.getElementById('cashbookSaveBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
- document.getElementById('cashbookReviewBtn').disabled=!owner||closed||!ready||cashbookClosingBusy;
+ document.getElementById('cashbookReviewBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
  document.getElementById('cashbookReviewBtn').style.display=owner&&!closed?'inline-flex':'none';
  document.getElementById('cashbookCloseBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||!cashbookReview;
  document.getElementById('cashbookCloseBtn').style.display=owner&&!closed&&cashbookReview?'inline-flex':'none';
@@ -1721,7 +1721,7 @@ function cashbookClosingForm(){
   notes:document.getElementById('cashbookClosingNote').value.trim()};
 }
 async function reviewCashbookDay(){
- if(access.role!=='owner'||cashbookClosingBusy||cashbookClosing||cashbookDataReadyKey!==cashbookKey())return;
+ if(access.role!=='owner'||cashbookClosingBusy||cashbookEntryBusy||cashbookClosing||cashbookDataReadyKey!==cashbookKey())return;
  const session=cashbookSessionToken();
  const rid=cashbookRestaurantId(),date=cashbookDateValue(),key=cashbookKey();
  const message=document.getElementById('cashbookCloseMessage');
@@ -1769,6 +1769,7 @@ async function saveCashbookEntry(){
 }
 async function closeCashbookDay(){
  if(access.role!=='owner'||cashbookClosingBusy||!cashbookReview)return;
+ if(cashbookEntryBusy)return;
  const session=cashbookSessionToken();
  const review=cashbookReview,rid=cashbookRestaurantId(),date=cashbookDateValue(),key=cashbookKey();
  if(!cashbookSameSession(session)||review.ownerId!==session.userId||review.workspaceId!==session.workspaceId){
