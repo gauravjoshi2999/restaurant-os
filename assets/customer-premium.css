@@ -326,3 +326,6 @@ body[data-bite-app="customer"] #cartModal .bite-cart-add-on-status:empty{display
   body[data-bite-app="customer"] #cartModal .bite-cart-add-ons{padding:12px 10px}
   body[data-bite-app="customer"] #cartModal .bite-cart-add-on{flex-basis:128px}
 }
+
+/* Keep the legacy PIN form available to JS without repeating location controls in the UI. */
+body[data-bite-app="customer"] #discoveryLocationForm[hidden]{display:none!important}
