@@ -1055,6 +1055,10 @@ function renderCartModal(){
  const expandedNotes=new Set(Array.from($('cartModalLines').querySelectorAll('.cart-item-note-editor:not(.hidden)'))
   .map(el=>el.id.replace('cart-note-editor-','')));
  const focusedNoteId=document.activeElement?.dataset?.cartItemNote||null;
+ const activeQty=document.activeElement;
+ const focusedQty=activeQty?.dataset?.cartInc
+  ?{key:'cartInc',id:activeQty.dataset.cartInc}
+  :activeQty?.dataset?.cartDec?{key:'cartDec',id:activeQty.dataset.cartDec}:null;
  const previousSelection=focusedNoteId?{start:document.activeElement.selectionStart,end:document.activeElement.selectionEnd}:null;
  const entries=cartEntries();
  const total=entries.reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
@@ -1081,6 +1085,14 @@ function renderCartModal(){
    editor.focus({preventScroll:true});
    try{editor.setSelectionRange(previousSelection.start,previousSelection.end);}catch{}
   }
+ }
+ // A late restaurant-hours refresh can rebuild the cart between two button
+ // taps. Keep focus on the equivalent quantity control after every render.
+ if(focusedQty){
+  const buttons=Array.from($('cartModalLines').querySelectorAll('[data-cart-inc],[data-cart-dec]'));
+  const next=buttons.find(button=>button.dataset[focusedQty.key]===focusedQty.id&&!button.disabled)
+   ||buttons.find(button=>button.dataset.cartDec===focusedQty.id&&!button.disabled);
+  next?.focus({preventScroll:true});
  }
  const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
  const closedNotice=biteCartHoursError?biteCartHoursError:closed?cartRestaurantClosedMessage():'';
