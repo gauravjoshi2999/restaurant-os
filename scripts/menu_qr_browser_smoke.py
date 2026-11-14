@@ -69,7 +69,7 @@ try:
    page.wait_for_function("document.getElementById('restaurantName').textContent==='Hotel Maharani Palace'",timeout=8000)
    check(page.locator('.item').count()==2,f'Pure Veg menu shows two available items at {width}px')
    check(page.locator('.hero-photo img').is_visible() and 'assets/food/meal-1100.jpg' in page.locator('#restaurantCoverImage').get_attribute('src'),f'QR hero matches customer cover at {width}px')
-   check(page.locator('.brand img').get_attribute('src')=='assets/bite-menu-brand-mark.svg',f'New Bite logo in header at {width}px')
+   check(page.locator('.brand img').get_attribute('src')=='assets/bite-selected-wordmark.webp',f'New Bite logo in header at {width}px')
    check('Pure Veg Restaurant' in page.locator('#restaurantDescription').inner_text(),f'Correct restaurant details at {width}px')
    check(page.locator('#vegSwitch').is_hidden() and page.locator('#pureVegLabel').is_visible(),
          f'Pure Veg restaurant hides redundant vegetarian checkbox at {width}px')
@@ -117,15 +117,16 @@ try:
    content_type='application/javascript',body=SUPABASE_MOCK))
   page.goto(f'http://127.0.0.1:4189/menu-qr-card.html?restaurant={RID}',wait_until='load')
   page.locator('#printBtn:enabled').wait_for(timeout=8000)
+  check(page.locator('#biteBrandLogo').evaluate('(img)=>img.complete&&img.naturalWidth>0'),
+    'Official selected Bite image is ready before QR card download')
   check(page.locator('#code canvas, #code img').count()>0,'Restaurant QR generated from bundled local library')
   check(f'restaurant={RID}' in page.locator('#menuLink').inner_text(),'QR links to same restaurant read-only menu')
   check(page.locator('#downloadBtn').is_enabled() and page.locator('#copyBtn').is_enabled(),'QR can be printed, saved or linked')
-  check(page.locator('#biteBrandLogo').get_attribute('src')=='assets/bite-menu-brand-mark.svg','QR card uses the new Bite mark')
+  check(page.locator('#biteBrandLogo').get_attribute('src')=='assets/bite-selected-wordmark.webp','QR card uses the new Bite mark')
   check(page.locator('.qr-brand-block').is_visible()
      and page.locator('#biteBrandLogo').is_visible()
-     and page.locator('.qr-brand-text strong').inner_text()=='Bite'
-     and page.locator('.qr-brand-text span').inner_text()=='Eat. Repeat.',
-     'Brand logo, Bite name and Eat. Repeat. are visible under QR')
+     and page.locator('#biteBrandLogo').evaluate('(img)=>img.complete&&img.naturalWidth>0'),
+     'Selected full Bite wordmark with its tagline is visible under QR')
   qr_ink=page.evaluate("""() => {
     const c=document.querySelector('#code canvas');
     if(!c)return null;

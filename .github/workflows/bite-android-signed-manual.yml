@@ -102,6 +102,57 @@ jobs:
         run: npx cap add android
       - name: Sync Android assets
         run: npx cap sync android
+      - name: Fetch current official Bite icon from main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: bite-approved-brand
+          sparse-checkout: |
+            assets/bite-selected-icon.png
+          sparse-checkout-cone-mode: false
+      - name: Prepare native Bite launcher icon tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Pillow for native icon sizes
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+      - name: Apply founder-selected Bite launcher icon to customer, partner and admin APKs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw
+          src=Path('../bite-approved-brand/assets/bite-selected-icon.png')
+          if not src.is_file(): raise SystemExit('Official Bite icon missing from main')
+          image=Image.open(src).convert('RGBA')
+          android=Path('android/app/src/main/res')
+          densities={'mdpi':48,'hdpi':72,'xhdpi':96,'xxhdpi':144,'xxxhdpi':192}
+          for density,px in densities.items():
+            out=android/('mipmap-'+density);out.mkdir(parents=True,exist_ok=True)
+            base=Image.new('RGBA',(px,px),'white')
+            logo=image.resize((px,px),Image.Resampling.LANCZOS)
+            base.alpha_composite(logo)
+            base.save(out/'ic_launcher.png')
+            mask=Image.new('L',(px,px),0)
+            ImageDraw.Draw(mask).ellipse((0,0,px-1,px-1),fill=255)
+            circle=Image.new('RGBA',(px,px),'white')
+            circle.alpha_composite(logo)
+            circle.putalpha(mask)
+            circle.save(out/'ic_launcher_round.png')
+            foreground=Image.new('RGBA',(round(px*2.25),round(px*2.25)),(0,0,0,0))
+            size=round(px*1.55)
+            resized=image.resize((size,size),Image.Resampling.LANCZOS)
+            foreground.alpha_composite(resized,((foreground.width-size)//2,(foreground.height-size)//2))
+            foreground.save(out/'ic_launcher_foreground.png')
+          adaptive=android/'mipmap-anydpi-v26';adaptive.mkdir(parents=True,exist_ok=True)
+          for name in ('ic_launcher','ic_launcher_round'):
+            (adaptive/(name+'.xml')).write_text(
+              '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">'
+              '<background android:drawable="@android:color/white"/>'
+              '<foreground android:drawable="@mipmap/ic_launcher_foreground"/>'
+              '</adaptive-icon>\n')
+          print('Applied current official Bite B icon to all launcher densities.')
+          PY
       - name: Preserve WebView login and install native new-order notifications
         run: python3 patch_bite_native.py
       - name: Install Firebase push only when Bite Partner Firebase config is available
