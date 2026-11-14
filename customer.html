@@ -632,13 +632,32 @@ function biteCurrentOrderRequest(requestId,userId){
 }
 function showCustomerView(view){if(BITE_DIRECT_MODE&&view==='home')view='menu';document.body.dataset.view=view;$('homeView').classList.toggle('hidden',view!=='home');$('menuView').classList.toggle('hidden',view!=='menu');$('ordersView').classList.toggle('hidden',view!=='orders');$('accountView').classList.toggle('hidden',view!=='account');document.querySelectorAll('#homeBottomNav [data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===(view==='menu'?'home':view)));$('cartFloating').classList.toggle('show',view==='menu'&&cartEntries().length>0);}
 let accountAddressRows=[];
-async function loadAccountAddresses(){const {data,error}=await sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;accountAddressRows=data||[];checkoutAddresses=accountAddressRows;$('accountAddresses').innerHTML=accountAddressRows.length?accountAddressRows.map(x=>'<div class="account-address"><strong>'+safe(x.label)+(x.is_default?' · Default':'')+'</strong><div>'+safe(x.address_line)+(x.landmark?' · '+safe(x.landmark):'')+'</div><small>'+safe([x.city,x.state,x.postal_code,x.recipient_phone].filter(Boolean).join(', '))+'</small><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="secondary" data-aedit="'+x.id+'">Edit</button><button class="secondary" data-adefault="'+x.id+'" '+(x.is_default?'disabled':'')+'>Make default</button><button class="secondary" data-adelete="'+x.id+'">Delete</button></div></div>').join(''):'<div class="muted">No saved address yet. Add one below.</div>';}
+let customerAccountViewSequence=0;
+function biteAccountRequestActive(sequence,userId){
+ return !!userId&&sequence===customerAccountViewSequence&&
+  (!activeCustomerId||activeCustomerId===userId)&&
+  !$('accountView').classList.contains('hidden');
+}
+async function loadAccountAddresses(sequence=customerAccountViewSequence,userId=activeCustomerId){const {data,error}=await sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false});if(!biteAccountRequestActive(sequence,userId))return false;if(error)throw error;accountAddressRows=data||[];checkoutAddresses=accountAddressRows;$('accountAddresses').innerHTML=accountAddressRows.length?accountAddressRows.map(x=>'<div class="account-address"><strong>'+safe(x.label)+(x.is_default?' · Default':'')+'</strong><div>'+safe(x.address_line)+(x.landmark?' · '+safe(x.landmark):'')+'</div><small>'+safe([x.city,x.state,x.postal_code,x.recipient_phone].filter(Boolean).join(', '))+'</small><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="secondary" data-aedit="'+x.id+'">Edit</button><button class="secondary" data-adefault="'+x.id+'" '+(x.is_default?'disabled':'')+'>Make default</button><button class="secondary" data-adelete="'+x.id+'">Delete</button></div></div>').join(''):'<div class="muted">No saved address yet. Add one below.</div>';return true;}
 function resetAddrForm(){['addrId','addrName','addrPhone','addrLine','addrLandmark','addrCity','addrState','addrPostal'].forEach(id=>$(id).value='');$('addrLabel').value='Home';$('addrDefault').checked=!accountAddressRows.length;$('addrFormTitle').textContent='Add a delivery address';$('addrSave').textContent='Save address';$('addrCancel').classList.add('hidden');$('addrError').textContent='';}
-async function openAccountView(){const {data,error}=await sb.auth.getSession();if(error||!data.session){showAuth('login');return;}showCustomerView('account');window.BiteCustomerExtras?.renderAccountExtras();window.scrollTo({top:0,behavior:'smooth'});try{const {data:p,error:pe}=await sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle();if(pe)throw pe;$('accountProfile').innerHTML='<strong>'+safe(p?.full_name||data.session.user.user_metadata?.full_name||'Customer')+'</strong><div>'+safe(data.session.user.email||'')+'</div><div>'+safe(p?.phone||'Mobile number not added')+'</div>';await loadAccountAddresses();resetAddrForm();await loadCustomerSupportTickets();}catch(e){$('accountProfile').textContent='Account load error: '+(e.message||'Try again');$('accountAddresses').textContent='';}}
+async function openAccountView(){
+ const accountRequestId=++customerAccountViewSequence;
+ const {data,error}=await sb.auth.getSession();
+ if(accountRequestId!==customerAccountViewSequence)return;
+ if(error||!data.session){showAuth('login');return;}
+ const accountUserId=data.session.user.id;
+ if(activeCustomerId&&activeCustomerId!==accountUserId)return;
+ showCustomerView('account');
+ window.BiteCustomerExtras?.renderAccountExtras();
+ window.scrollTo({top:0,behavior:'smooth'});
+ try{
+  const {data:p,error:pe}=await sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle();
+  if(!biteAccountRequestActive(accountRequestId,accountUserId))return;
+  if(pe)throw pe;$('accountProfile').innerHTML='<strong>'+safe(p?.full_name||data.session.user.user_metadata?.full_name||'Customer')+'</strong><div>'+safe(data.session.user.email||'')+'</div><div>'+safe(p?.phone||'Mobile number not added')+'</div>';if(!await loadAccountAddresses(accountRequestId,accountUserId))return;if(!biteAccountRequestActive(accountRequestId,accountUserId))return;resetAddrForm();await loadCustomerSupportTickets(accountRequestId,accountUserId);}catch(e){if(!biteAccountRequestActive(accountRequestId,accountUserId))return;$('accountProfile').textContent='Account load error: '+(e.message||'Try again');$('accountAddresses').textContent='';}}
 $('customerAddressForm').addEventListener('submit',e=>{e.preventDefault();$('addrSave').click();});
 $('addrSave').addEventListener('click',async()=>{const err=$('addrError');err.textContent='';const name=$('addrName').value.trim(),phone=$('addrPhone').value.replace(/[^0-9]/g,''),line=$('addrLine').value.trim(),city=$('addrCity').value.trim(),state=$('addrState').value.trim(),pin=$('addrPostal').value.trim();if(name.length<2||phone.length<10||phone.length>15||!line||!city||!state||(pin&&!/^[0-9]{6}$/.test(pin))){err.textContent='Name, valid mobile, address, city aur state bharein. PIN 6 digits ka hona chahiye.';return;}const {data:s}=await sb.auth.getSession();if(!s.session){showAuth('login');return;}const btn=$('addrSave');btn.disabled=true;try{const id=$('addrId').value,payload={customer_id:s.session.user.id,label:$('addrLabel').value,recipient_name:name,recipient_phone:phone,address_line:line,landmark:$('addrLandmark').value.trim()||null,city,state,postal_code:pin||null,is_default:$('addrDefault').checked||!accountAddressRows.length,updated_at:new Date().toISOString()};if(payload.is_default){const {error}=await sb.from('customer_addresses').update({is_default:false,updated_at:new Date().toISOString()}).eq('customer_id',s.session.user.id);if(error)throw error;}const res=id?await sb.from('customer_addresses').update(payload).eq('id',id).select('id').single():await sb.from('customer_addresses').insert(payload).select('id').single();if(res.error)throw res.error;await loadAccountAddresses();resetAddrForm();}catch(e){err.textContent=e.message||'Save failed';}finally{btn.disabled=false;}});
 $('addrCancel').addEventListener('click',resetAddrForm);
-async function loadCustomerSupportTickets(){
+async function loadCustomerSupportTickets(sequence=customerAccountViewSequence,userId=activeCustomerId){
  const box=$('customerSupportList'),orderSelect=$('customerSupportOrder');
  if(!box)return;
  try{
@@ -646,6 +665,7 @@ async function loadCustomerSupportTickets(){
    sb.from('customer_support_tickets').select('id,category,subject,message,status,admin_response,created_at,updated_at').order('created_at',{ascending:false}).limit(50),
    sb.rpc('list_my_customer_orders')
   ]);
+  if(!biteAccountRequestActive(sequence,userId))return;
   if(ticketsRes.error)throw ticketsRes.error;
   const tickets=ticketsRes.data||[];
   if(!ordersRes.error){
@@ -653,7 +673,7 @@ async function loadCustomerSupportTickets(){
    if(orderSelect)orderSelect.innerHTML='<option value="">General support</option>'+orders.map(o=>'<option value="'+safe(o.id)+'">'+safe(o.order_code)+' · '+safe(o.restaurant_name||'Restaurant')+'</option>').join('');
   }
   box.innerHTML=tickets.length?tickets.map(t=>'<article style="border:1px solid #eee;border-radius:12px;padding:12px;margin:9px 0"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>'+safe(t.subject)+'</strong><span class="orderstatus '+statusClass(t.status)+'">'+safe(t.status)+'</span></div><small class="muted">'+safe(t.category)+' · '+formatOrderDate(t.created_at)+'</small><p style="margin:8px 0">'+safe(t.message)+'</p>'+(t.admin_response?'<div style="background:#f5faf7;padding:10px;border-radius:8px"><strong>BITE Support</strong><p style="margin:4px 0">'+safe(t.admin_response)+'</p></div>':'<small class="muted">Support team ka response pending hai.</small>')+'</article>').join(''):'<div class="muted">Abhi koi support request nahi hai.</div>';
- }catch(error){box.textContent='Support requests load nahi hui: '+(error.message||String(error));}
+ }catch(error){if(!biteAccountRequestActive(sequence,userId))return;box.textContent='Support requests load nahi hui: '+(error.message||String(error));}
 }
 $('customerSupportForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
@@ -727,6 +747,13 @@ function renderAuthMode(){
 }
 function setCustomerSession(session){const user=session?.user;const nextUserId=user?.id||null;
  if(activeCustomerId!==nextUserId){
+  ++customerAccountViewSequence;
+  accountAddressRows=[];checkoutAddresses=[];
+  $('accountProfile').textContent='Sign in to view your account.';
+  $('accountAddresses').textContent='Sign in to view saved addresses.';
+  if($('customerSupportList'))$('customerSupportList').textContent='';
+  if($('customerSupportOrder'))$('customerSupportOrder').innerHTML='<option value="">General support</option>';
+  resetAddrForm();
   ++biteCheckoutOpenSequence;
   ++customerOrderViewSequence;customerOrders=[];expandedOrderId=null;
   $('ordersList').innerHTML='<div class="empty">Log in to view your orders.</div>';
