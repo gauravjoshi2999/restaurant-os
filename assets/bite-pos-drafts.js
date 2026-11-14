@@ -2,7 +2,7 @@
    Drafts are NOT orders, payments or sales. Posted orders have separate guarded workflows. */
 (function(){
 'use strict';
-let ctx=null,activeId=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
+let ctx=null,activeId=null,activeOwner=null,suspend=false,saveTimer=null,cloudBusy=false,deleteBusy=false,deleteAgain=false;
 const deletedThisSession=new Set();
 const $=id=>document.getElementById(id);
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -137,7 +137,7 @@ async function syncPending(){
  }finally{cloudBusy=false}
 }
 function touch(){
- if(suspend||!activeId||!identity()||!$('orderModal')?.classList.contains('show'))return;
+ if(suspend||!activeId||!sameIdentity(activeOwner)||!$('orderModal')?.classList.contains('show'))return;
  const payload=fields();
  if(!payload||!hasContent(payload))return;
  const rec=remember(activeId,payload);
@@ -145,13 +145,19 @@ function touch(){
  clearTimeout(saveTimer);saveTimer=setTimeout(()=>{void syncPending()},650);
 }
 async function saveNow(){
+ if(activeId&&!sameIdentity(activeOwner)){
+  clearTimeout(saveTimer);
+  setStatus('Owner session changed. Reopen the bill before saving.');
+  return;
+ }
  touch();clearTimeout(saveTimer);await syncPending();
  if(!activeId){setStatus('Add an item or customer detail to save a draft');return}
+ if(!sameIdentity(activeOwner))return;
  const ident=identity(),r=ident&&readCache(ident).find(x=>x.id===activeId);
  if(r)setStatus(r.dirty?'Saved on this device (cloud pending)':'Draft saved ✓');
 }
 function newBill(){
- clearTimeout(saveTimer);activeId=crypto.randomUUID();
+ clearTimeout(saveTimer);activeOwner=identity();activeId=crypto.randomUUID();
  if($('posReplaceOrderId'))$('posReplaceOrderId').value='';
  if($('orderModalTitle'))$('orderModalTitle').textContent='New POS Bill';
  setStatus('Auto-save enabled · add items to create a draft');
@@ -196,7 +202,7 @@ async function openDraft(id){
  await window.openOrder();
  // openOrder may itself be async; do not fill one Owner's customer details in another Owner's bill.
  if(!sameIdentity(ident))return;
- activeId=rec.id;fill(rec.payload||{});
+ activeOwner=ident;activeId=rec.id;fill(rec.payload||{});
  setStatus(rec.dirty?'Draft restored · cloud sync pending':'Draft restored ✓');
 }
 async function discardDraft(id){
@@ -212,10 +218,16 @@ async function discardDraft(id){
  // Show the owner the local result immediately; retry cloud deletion on reload/online.
  void cleanupDeletions();
 }
-async function discardActive(){if(activeId)await discardDraft(activeId);else window.closeModal('orderModal')}
+async function discardActive(){
+ if(activeId&&!sameIdentity(activeOwner)){
+  clearTimeout(saveTimer);activeId=null;activeOwner=null;
+  window.closeModal('orderModal');return;
+ }
+ if(activeId)await discardDraft(activeId);else window.closeModal('orderModal');
+}
 async function finishOrder(){
  clearTimeout(saveTimer);
- const id=activeId,ident=identity();activeId=null;
+ const id=activeId,ident=activeOwner;activeId=null;activeOwner=null;
  if(!id||!ident)return;
  // Sale has committed. Never let cloud draft deletion block or undo the sale.
  // Persist a deletion fence before removing local data so an in-flight upsert
@@ -264,7 +276,9 @@ async function editSavedPos(orderId){
  if(!o||o.restaurant!==a?.restaurantId||o.channel!=='POS - Counter'||o.isDemo||o.status!=='Received'||o.waivedOffAmount>0||s.orderPayments.some(p=>p.order_id===orderId)||s.orderRefunds.some(x=>x.order_id===orderId)){alert('Sirf open aur unpaid POS bill edit ho sakta hai. Paid bill ke liye refund/correction record use karein.');return}
  const items=s.orderItems.filter(x=>x.order_id===orderId).map(x=>({name:x.item_name,quantity:Number(x.quantity),unit_price:Number(x.unit_price),menuItemId:x.menu_item_id||null}));
  if(!items.length){alert('Bill items load nahi huye. Refresh karein.');return}
+ const ident=identity();
  await window.openOrder();
+ if(!sameIdentity(ident))return;
  fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar'});
  touch();setStatus('Correction draft saved automatically · original bill replaces only on Save');
 }
