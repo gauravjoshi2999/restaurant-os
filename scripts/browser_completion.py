@@ -278,8 +278,21 @@ try:
   customer.locator('#restaurantFavourite').click()
   customer.wait_for_function("document.querySelector('#restaurantFavourite').getAttribute('aria-pressed')==='true'")
   check('Saved' in customer.locator('#restaurantFavourite').inner_text(),'Favourite button persists through the Customer transport')
-  customer.locator('#homeBottomNav [data-nav="orders"]').click();customer.locator('[data-invoice]').wait_for(state='visible')
-  with customer.expect_download(timeout=20000) as download:customer.locator('[data-invoice]').click()
+  customer.locator('#homeBottomNav [data-nav="orders"]').click()
+  order_card=customer.locator('#ordersList > .ordercard').first
+  order_card.wait_for(state='visible')
+  check(order_card.locator('.orderactions > button').count()==2
+    and order_card.locator('.order-badges .order-mode').is_visible(),
+    'Order History shows two primary actions plus real status and fulfilment badges')
+  check(order_card.locator('.order-more summary').is_visible()
+    and order_card.locator('[data-invoice]').is_hidden(),
+    'Secondary order actions are available through a collapsed accessible disclosure')
+  order_card.locator('.order-more summary').click()
+  check(order_card.locator('[data-invoice]').is_visible()
+    and order_card.locator('.order-more').get_attribute('open') is not None,
+    'More options reveals Download bill without navigating away')
+  customer.screenshot(path=str(OUT/'ui-orders-compact.png'),full_page=False)
+  with customer.expect_download(timeout=20000) as download:order_card.locator('[data-invoice]').click()
   receipt=OUT/'receipt.pdf';download.value.save_as(receipt)
   check(receipt.read_bytes().startswith(b'%PDF-1.4'),'Customer bill downloads as an actual PDF file')
   customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
