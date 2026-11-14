@@ -48,7 +48,7 @@ try:
    page.route('**/supabase.min.js',lambda route:route.fulfill(status=200,
      content_type='application/javascript',body=SUPABASE_MOCK))
    page.goto(f'http://127.0.0.1:4189/menu-qr.html?restaurant={RID}',wait_until='load')
-   page.locator('#restaurantName').get_by_text('Hotel Maharani Palace').wait_for(timeout=8000)
+   page.wait_for_function("document.getElementById('restaurantName').textContent==='Hotel Maharani Palace'",timeout=8000)
    check(page.locator('.item').count()==2,f'Menu shows only available items at {width}px')
    check('Pure Veg Restaurant' in page.locator('#restaurantDescription').inner_text(),f'Correct restaurant details at {width}px')
    check(page.locator('form').count()==0 and page.get_by_text('Add to Cart').count()==0
