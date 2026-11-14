@@ -2,6 +2,14 @@
 -- Applied after the staged cashbook migration to synthetic fixtures.
 -- This script must never be run against Supabase production.
 \set ON_ERROR_STOP on
+-- Fail closed if accidentally pointed at a non-CI database.
+do $ci$
+begin
+ if pg_catalog.current_database() <> 'bite_cashbook_ci' then
+  raise exception 'REFUSED: cashbook RLS role matrix is CI-only';
+ end if;
+end
+$ci$;
 begin;
 
 -- Simulate independent identities and memberships instead of the single
