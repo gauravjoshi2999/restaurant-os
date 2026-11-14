@@ -156,10 +156,9 @@ try:
                   'Add-on action gives clear confirmation')
             check(page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').count() == 1,
                   'Newly added dish appears immediately in the editable cart')
-            add_on_total = page.evaluate("""() => cartEntries().reduce((n,[id,q]) =>
-                n + Number(menuItems.find(i => i.id === id).price) * q, 0)""")
-            check('₹' in page.locator('#cartModalTotal').inner_text() and
-                  f'{add_on_total:,.0f}' in page.locator('#cartModalTotal').inner_text(),
+            add_on_total = page.evaluate("""() => money(cartEntries().reduce((n,[id,q]) =>
+                n + Number(menuItems.find(i => i.id === id).price) * q, 0))""")
+            check(add_on_total in page.locator('#cartModalTotal').inner_text(),
                   'Cart uses existing real menu prices after an add-on')
             page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').click()
             check(page.locator('#cartCount').inner_text() == '(1)',
