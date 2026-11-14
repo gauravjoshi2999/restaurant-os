@@ -142,6 +142,29 @@ try:
         check(page.locator('#cartModal.show').is_visible(), 'Cart detail opens with the selected dish')
         check(page.evaluate("document.activeElement?.id === 'closeCartModal'"),
               'Opening cart moves focus into the dialog')
+        # Cart add-ons use real menu items; no fake rating or discount data.
+        alternative_count = page.evaluate("""() => menuItems.filter(i =>
+            !cart[i.id] && Number.isFinite(Number(i.price)) && Number(i.price) >= 0).length""")
+        if alternative_count:
+            add_on = page.locator('#biteCartAddOnList [data-bite-add-on]').first
+            check(add_on.is_visible(), 'Another real restaurant dish is visible in cart add-ons')
+            add_on_id = add_on.get_attribute('data-bite-add-on')
+            add_on.click()
+            check(page.locator('#cartCount').inner_text() == '(2)',
+                  'Adding a dish inside the cart updates the existing cart state')
+            check('added to cart' in page.locator('#biteCartAddOnStatus').inner_text().lower(),
+                  'Add-on action gives clear confirmation')
+            check(page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').count() == 1,
+                  'Newly added dish appears immediately in the editable cart')
+            add_on_total = page.evaluate("""() => cartEntries().reduce((n,[id,q]) =>
+                n + Number(menuItems.find(i => i.id === id).price) * q, 0)""")
+            check('₹' in page.locator('#cartModalTotal').inner_text() and
+                  f'{add_on_total:,.0f}' in page.locator('#cartModalTotal').inner_text(),
+                  'Cart uses existing real menu prices after an add-on')
+            page.locator('#cartModalLines [data-cart-dec="' + add_on_id + '"]').click()
+            check(page.locator('#cartCount').inner_text() == '(1)',
+                  'Removing the added dish restores the original cart')
+
         page.locator('#cartModalLines [data-cart-inc="' + item_id + '"]').click()
         check(page.evaluate("(id) => document.activeElement?.getAttribute('data-cart-inc') === id", item_id),
               'Cart quantity update preserves focus on the increment button')
