@@ -1,0 +1,75 @@
+/* Bite menu category navigation — readable selection and unobscured dish results. */
+body[data-bite-app="customer"] #menuView .categorybar{
+  scroll-padding-inline:12px;
+  overscroll-behavior-x:contain;
+  gap:9px;
+}
+body[data-bite-app="customer"] #menuView .categorybar .chip{
+  border:1px solid #d0e6d7;
+  border-radius:999px;
+  background:#fff;color:#315643;
+  font-size:13px;font-weight:800;
+  min-height:44px;
+  white-space:nowrap;
+  transition:background .14s ease,border-color .14s ease;
+}
+body[data-bite-app="customer"] #menuView .categorybar .chip.active{
+  color:#fff;background:#087b4d;border-color:#087b4d;
+}
+body[data-bite-app="customer"] #menuView .categorybar .chip:focus-visible{
+  outline:3px solid #77be96;outline-offset:2px;
+}
+body[data-bite-app="customer"] #menuView .menu-results-summary{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;min-height:70px;padding:12px 4px 15px;
+}
+body[data-bite-app="customer"] #menuView .menu-results-summary>div{
+  display:flex;flex-direction:column;gap:3px;min-width:0;
+}
+body[data-bite-app="customer"] #menuView .bite-menu-category-heading{
+  margin:0;color:#203b2b;font-size:clamp(18px,3.6vw,23px);
+  font-weight:850;line-height:1.3;letter-spacing:-.45px;
+  overflow-wrap:anywhere;
+}
+body[data-bite-app="customer"] #menuView #menuResultCount{
+  font-size:12px;color:#667568;line-height:1.4;
+}
+body[data-bite-app="customer"] #menuView #menuResetFilters{
+  min-height:44px;flex:none;border-radius:10px;
+  font-size:12px;font-weight:800;padding:9px 12px;
+}
+body[data-bite-app="customer"] #menuView #menuItems{
+  scroll-margin-top:160px;
+}
+body[data-bite-app="customer"] #menuView .food-empty{
+  border:1px dashed #bcd9c5;border-radius:17px;
+  background:#fbfdfb;padding:28px 16px;
+}
+@media(max-width:760px){
+  body[data-bite-app="customer"] #menuView .categorybar{gap:7px}
+  body[data-bite-app="customer"] #menuView .categorybar .chip{
+    font-size:12px;min-height:44px;padding:10px 14px;
+  }
+  body[data-bite-app="customer"] #menuView .menu-results-summary{
+    min-height:65px;padding:10px 3px 13px;
+  }
+  body[data-bite-app="customer"] #menuView .bite-menu-category-heading{
+    font-size:19px;
+  }
+  body[data-bite-app="customer"] #menuView #menuItems{
+    scroll-margin-top:145px;
+  }
+}
+@media(max-width:360px){
+  body[data-bite-app="customer"] #menuView .bite-menu-category-heading{
+    font-size:17px;
+  }
+  body[data-bite-app="customer"] #menuView #menuResetFilters{
+    padding:8px 9px;font-size:11px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-bite-app="customer"] #menuView .categorybar .chip{
+    transition:none;
+  }
+}

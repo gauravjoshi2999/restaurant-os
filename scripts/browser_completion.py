@@ -254,6 +254,44 @@ try:
   customer.locator('[data-service-filter="delivery"]').click()
   customer.locator('#restaurantGrid .restaurant').click()
   customer.locator('#menuItems [data-menu-item-id]').wait_for(state='visible')
+  # Menu category QA uses only the isolated fixture DOM; no restaurant data writes.
+  customer.evaluate("""() => {
+    window.__biteQAOriginalMenu=menuItems.slice();
+    menuItems=[...menuItems,{
+      ...menuItems[0],
+      id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      category_id:'qa-breakfast',
+      name:'QA Breakfast Idli',
+      price:60
+    }];
+    renderMenu([{id:'qa-breakfast',name:'Breakfast'}]);
+    window.scrollTo({top:0,behavior:'instant'});
+  }""")
+  category=customer.locator('#categoryBar [data-cat="qa-breakfast"]')
+  check(category.get_attribute('aria-controls')=='menuItems',
+    'Category chip is semantically connected to dish results')
+  category.click()
+  customer.wait_for_function("""() => {
+    const heading=document.getElementById('menuCategoryHeading');
+    const list=document.getElementById('menuItems');
+    const rail=document.getElementById('categoryBar');
+    const cards=[...list.querySelectorAll('.menuitem')];
+    return heading.textContent==='Breakfast'
+      && cards.length===1 && cards[0].textContent.includes('QA Breakfast Idli')
+      && window.scrollY>0
+      && list.getBoundingClientRect().top>=rail.getBoundingClientRect().bottom-8
+      && list.getBoundingClientRect().top<window.innerHeight-55;
+  }""",timeout=9000)
+  check(category.get_attribute('aria-pressed')=='true',
+    'Selecting Breakfast filters real loaded dishes and reveals them below sticky categories')
+  customer.evaluate("""() => {
+    menuItems=window.__biteQAOriginalMenu;
+    renderMenu([]);
+    window.scrollTo({top:0,behavior:'instant'});
+  }""")
+  check(customer.locator('#menuCategoryHeading').inner_text()=='All dishes'
+    and customer.locator('#menuItems .menuitem').count()==1,
+    'Restoring all menu data also restores the category label and original dish')
   customer.evaluate("window.__biteQaDishImage=document.querySelector('#menuItems .menuphoto')")
   customer.locator('#menuItems [data-add]').first.click()
   check(customer.evaluate("document.querySelector('#menuItems .menuphoto')===window.__biteQaDishImage"), 'ADD leaves existing dish image and menu DOM mounted')
