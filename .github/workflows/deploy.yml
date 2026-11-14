@@ -74,3 +74,6 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages-${{ github.run_attempt }}
+      - name: Verify the live public build matches the approved commit
+        run: |
+          python scripts/verify_live_pages.py --sha "$BITE_DEPLOY_SHA" --attempts 8
