@@ -15,8 +15,8 @@ test('restaurant cart exposes real-data add-ons in the existing cart modal',()=>
   assert.match(html,/assets\/customer-menu-cart-premium\.js\?v=20261114-menu-cart2/);
 });
 test('add-ons derive from current restaurant published menu, never fake discounts',()=>{
-  assert.match(js,/currentItems\.filter/);
-  assert.match(js,/!currentCart\[item\.id\]/);
+  assert.match(js,/BiteMenuSearch\.selectAddOns\(currentItems,currentCart,6\)/);
+  assert.match(html,/assets\/customer-menu-search\.js\?v=20261114-search1/);
   assert.match(js,/BiteDiscovery\.safeImage/);
   assert.doesNotMatch(js,/40% OFF|50% OFF|highly reordered|rating:|cashfree/i);
   assert.doesNotMatch(js,/\.innerHTML\s*=/);

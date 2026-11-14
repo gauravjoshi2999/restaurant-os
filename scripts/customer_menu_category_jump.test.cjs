@@ -50,7 +50,7 @@ test('real category chips and selected headings use loaded menu, no fake content
  assert.match(html,/data-cat="'\+safe\(c\.id\)\+'" aria-controls="menuItems"/);
  assert.match(html,/requestAnimationFrame\(biteRevealMenuResults\)/);
  assert.match(html,/activeChip\?\.textContent\?\.trim\(\)/);
- assert.match(html,/BiteDiscovery\.selectMenu\(menuItems/);
+ assert.match(html,/BiteMenuSearch\.selectMenu\(menuItems/);
  assert.match(html,/id="menuResultCount"[^>]*role="status" aria-live="polite"/);
  assert.match(html,/assets\/customer-menu-navigation\.css\?v=20261114-menujump1/);
  assert.doesNotMatch(css,/display:none!important/);
