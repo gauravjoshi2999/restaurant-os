@@ -129,7 +129,7 @@ try:
   check(downloaded.suggested_filename.startswith('bite-branded-menu-qr-')
       and downloaded.suggested_filename.endswith('.png'),
       'Download saves a fully branded card PNG')
-  check(Path(downloaded.path()).read_bytes()[:8]==b'\\x89PNG\\r\\n\\x1a\\n',
+  check(Path(downloaded.path()).read_bytes()[:8]==b'\x89PNG\r\n\x1a\n',
       'Branded QR download is a genuine PNG')
   page.emulate_media(media='print')
   check(page.locator('#biteBrandLogo').is_visible()
