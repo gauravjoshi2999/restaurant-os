@@ -132,7 +132,7 @@
       privacy_agreed:document.getElementById('privacy_agreed').checked,
       website:form.elements.website.value,elapsed_ms:Date.now()-started
     };
-    if(data.pilot_interest&&!data.owner_phone){error.textContent='Trial में हिस्सा लेने के लिए WhatsApp नंबर दें, या trial विकल्प हटाएँ।';return;}
+    if(data.pilot_interest&&(!data.owner_phone||!data.contact_consent)){error.textContent='Trial में हिस्सा लेने के लिए WhatsApp नंबर और संपर्क की अनुमति दें, या trial विकल्प हटाएँ।';return;}
     send.disabled=true;send.textContent='सुझाव भेज रहे हैं…';error.textContent='';
     try{
       var controller=new AbortController(),timeout=setTimeout(function(){controller.abort();},18000);
