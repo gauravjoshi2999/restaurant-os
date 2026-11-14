@@ -1,0 +1,115 @@
+/* Bite customer: compact, action-first My Orders cards.
+   Non-destructive disclosure: existing data-* action hooks remain unchanged. */
+body[data-bite-app="customer"] #ordersView .ordercard{
+  position:relative;
+  padding:16px 16px 13px;
+  margin-bottom:12px;
+  border-radius:16px;
+  box-shadow:0 5px 18px #173c220c;
+}
+body[data-bite-app="customer"] #ordersView .orderhead{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+}
+body[data-bite-app="customer"] #ordersView .orderhead>div:first-child{min-width:0}
+body[data-bite-app="customer"] #ordersView .ordercode{
+  line-height:1.4;overflow-wrap:anywhere;font-size:13px;
+}
+body[data-bite-app="customer"] #ordersView .orderrestaurant{
+  line-height:1.45;margin-top:3px;
+}
+body[data-bite-app="customer"] #ordersView .orderamount{
+  flex:none;font-size:16px;
+}
+body[data-bite-app="customer"] #ordersView .order-badges{
+  margin:10px 0 2px;
+}
+body[data-bite-app="customer"] #ordersView .orderactions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;margin-top:14px;align-items:stretch;
+}
+body[data-bite-app="customer"] #ordersView .orderactions>button{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-width:0;min-height:46px;
+  padding:9px 12px;border-radius:12px;line-height:1.25;
+  font-size:13px;font-weight:800;
+  text-wrap:balance;
+}
+body[data-bite-app="customer"] #ordersView .orderactions>button[data-order-detail]{
+  background:#f4faf6;color:#145d3b;border:1px solid #cee8d7;
+}
+body[data-bite-app="customer"] #ordersView .orderactions>button[data-customer-order-action="cancel"]{
+  border:1px solid #e5bec0;background:#fff7f7;color:#9b3e43;
+}
+body[data-bite-app="customer"] #ordersView .orderactions>button[data-customer-order-action="cancel_request"]{
+  border:1px solid #e8d5ad;background:#fffaf0;color:#85571d;
+}
+body[data-bite-app="customer"] #ordersView .order-more{
+  grid-column:1/-1;
+  min-width:0;margin:0;
+  border-top:1px solid #edf1ed;
+}
+body[data-bite-app="customer"] #ordersView .order-more>summary{
+  list-style:none;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  min-height:44px;margin-top:3px;padding:8px 11px;
+  border-radius:11px;color:#4c6556;
+  font-size:12px;line-height:1.3;font-weight:800;
+  text-align:center;cursor:pointer;
+  transition:background .15s ease,color .15s ease;
+}
+body[data-bite-app="customer"] #ordersView .order-more>summary::-webkit-details-marker{display:none}
+body[data-bite-app="customer"] #ordersView .order-more>summary::after{
+  content:"";width:7px;height:7px;
+  border-right:2px solid currentColor;
+  border-bottom:2px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);
+  transition:transform .15s ease;
+}
+body[data-bite-app="customer"] #ordersView .order-more[open]>summary::after{
+  transform:rotate(225deg) translateY(-1px);
+}
+body[data-bite-app="customer"] #ordersView .order-more>summary:hover{
+  color:#087b4d;background:#f1f8f2;
+}
+body[data-bite-app="customer"] #ordersView .order-more>summary:focus-visible{
+  outline:3px solid #087b4d;outline-offset:2px;
+}
+body[data-bite-app="customer"] #ordersView .order-more-items{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;padding:5px 0 8px;
+}
+body[data-bite-app="customer"] #ordersView .order-more:not([open]) .order-more-items{
+  display:none;
+}
+body[data-bite-app="customer"] #ordersView .order-more-items>button{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-width:0;min-height:44px;
+  border-radius:11px;border:1px solid #d7e7da;
+  background:#fff;color:#365544;
+  padding:9px 10px;text-align:center;line-height:1.3;
+  font-size:12px;font-weight:780;text-wrap:balance;
+}
+body[data-bite-app="customer"] #ordersView .order-more-items>button:hover{
+  background:#eff8f1;border-color:#afdbc0;
+}
+body[data-bite-app="customer"] #ordersView .order-more-items>button:focus-visible{
+  outline:3px solid #087b4d;outline-offset:2px;
+}
+@media(max-width:600px){
+  body[data-bite-app="customer"] #ordersView .ordercard{padding:14px 13px 10px}
+  body[data-bite-app="customer"] #ordersView .orderactions{gap:8px;margin-top:12px}
+  body[data-bite-app="customer"] #ordersView .orderactions>button{font-size:12px}
+  body[data-bite-app="customer"] #ordersView .orderrestaurant{font-size:12px}
+}
+@media(max-width:350px){
+  body[data-bite-app="customer"] #ordersView .ordercard{padding:12px 11px 10px}
+  body[data-bite-app="customer"] #ordersView .orderactions>button{font-size:11px;padding:8px 7px}
+  body[data-bite-app="customer"] #ordersView .order-more-items>button{font-size:11px;padding:8px 6px}
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-bite-app="customer"] #ordersView .order-more>summary,
+  body[data-bite-app="customer"] #ordersView .order-more>summary::after{
+    transition:none;
+  }
+}
