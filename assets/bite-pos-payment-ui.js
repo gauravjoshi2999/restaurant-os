@@ -6,6 +6,11 @@
  const el=id=>document.getElementById(id);
  const core=()=>root.BitePOSPayment;
  function identity(ctx){return {uid:ctx.userId,restaurantId:ctx.restaurantId,orderId:ctx.orderId}}
+ // A pending server response belongs to the owner/restaurant session that started it.
+ // The caller supplies a live identity check; old UI responses must not affect new login.
+ function sameSession(ctx){
+  return typeof ctx.isCurrent!=='function'||ctx.isCurrent()===true;
+ }
  function eligible(ctx){
   return ['owner','manager','staff'].includes(ctx.role)&&
    ctx.order&&ctx.order.restaurant===ctx.restaurantId&&
@@ -22,7 +27,7 @@
   el('paymentCheckBtn').disabled=value;
  }
  function open(ctx){
-  if(busy||!eligible(ctx))return;
+  if(busy||!eligible(ctx)||!sameSession(ctx))return;
   const id=identity(ctx),summary=ctx.paymentSummaryFor(ctx.orderId);
   let pending;
   try{pending=core().getPending(localStorage,id)}
@@ -45,12 +50,12 @@
   if(pending)void check(ctx);
  }
  async function check(ctx){
-  if(busy||!eligible(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
+  if(busy||!eligible(ctx)||!sameSession(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
   const id=identity(ctx),message=el('paymentMessage');
   lock(true);
   try{
    const result=await core().reconcile({sb:ctx.sb,storage:localStorage,identity:id});
-   if(el('paymentOrderId').value!==ctx.orderId)return;
+   if(!sameSession(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
    if(result.status==='confirmed'){
     ctx.closeModal('paymentModal');
     try{await ctx.loadCloudData()}catch(err){console.warn('Payment confirmed; dashboard refresh postponed',err)}
@@ -63,11 +68,11 @@
     message.textContent='Payment details mismatch. Safety ke liye entry blocked hai; support se verify karein.';
    }else message.textContent='Koi pending payment nahi hai.';
    pendingUI(!!core().getPending(localStorage,id));
-  }catch(err){message.textContent='Payment status check nahi hua: '+err.message}
+  }catch(err){if(sameSession(ctx)&&el('paymentOrderId').value===ctx.orderId)message.textContent='Payment status check nahi hua: '+err.message}
   finally{lock(false)}
  }
  async function save(ctx){
-  if(busy||!eligible(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
+  if(busy||!eligible(ctx)||!sameSession(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
   const id=identity(ctx),summary=ctx.paymentSummaryFor(ctx.orderId),message=el('paymentMessage');
   const details={
    amount:Number(el('paymentAmount').value),method:el('paymentMethod').value,
@@ -86,7 +91,7 @@
   try{
    const result=await core().save({sb:ctx.sb,storage:localStorage,identity:id,
     details,uuid:()=>crypto.randomUUID()});
-   if(el('paymentOrderId').value!==ctx.orderId)return;
+   if(!sameSession(ctx)||el('paymentOrderId').value!==ctx.orderId)return;
    if(result.status==='confirmed'){
     ctx.closeModal('paymentModal');
     // A dashboard refresh failure is NOT a failed payment.
@@ -98,7 +103,7 @@
     message.textContent='Payment verification pending. Nayi payment entry mat banayein. Check status karein ya wahi payment retry karein.';
     pendingUI(true);
    }
-  }catch(err){message.textContent='Payment abhi save nahi hua: '+err.message}
+  }catch(err){if(sameSession(ctx)&&el('paymentOrderId').value===ctx.orderId)message.textContent='Payment abhi save nahi hua: '+err.message}
   finally{lock(false)}
  }
  const api={open,check,save};
