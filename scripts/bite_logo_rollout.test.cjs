@@ -8,6 +8,8 @@ test('Selected founder-approved logo images exist and use real binary formats',(
  assert.equal(word.toString('ascii',0,4),'RIFF');
  assert.equal(word.toString('ascii',8,12),'WEBP');
  assert.equal(icon.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+ assert.equal(icon.readUInt32BE(16),192,'Launcher asset width');
+ assert.equal(icon.readUInt32BE(20),192,'Launcher asset height');
  assert.ok(word.length>10000&&icon.length>8000);
 });
 
