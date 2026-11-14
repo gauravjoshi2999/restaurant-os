@@ -17,6 +17,7 @@ create table public.bite_live_checkout_intents(
  amount numeric(14,2) not null,currency text not null,
  status text not null,provider_order_id text
 );
+grant select on public.restaurants,public.orders,public.bite_live_checkout_intents to service_role;
 insert into public.restaurants values
  ('22222222-2222-4222-8222-222222222222'),
  ('99999999-9999-4999-8999-999999999999');
