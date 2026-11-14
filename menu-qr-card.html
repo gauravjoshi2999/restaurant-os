@@ -56,8 +56,9 @@ button:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
 }
 </style>
 <link rel="stylesheet" href="assets/qr-card-premium.css?v=20261114-brand1">
+<link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
 </head>
-<body>
+<body class="bite-qr-print">
 <main>
 <h1>Restaurant Menu QR</h1>
 <p class="instructions">Same restaurant QR har table par laga sakte hain. Customer QR scan karke sirf menu dekhega. Order waiter lega aur owner POS mein bill banayega.</p>
@@ -69,8 +70,7 @@ button:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
 </div>
 <div class="qr-frame"><div id="code" aria-label="Restaurant menu QR code"></div></div>
 <div class="qr-brand-block">
-  <img id="biteBrandLogo" class="qr-bite-logo" src="assets/bite-menu-brand-mark.svg" alt="Bite new menu logo">
-  <div class="qr-brand-text"><strong>Bite</strong><span>Eat. Repeat.</span></div>
+  <img id="biteBrandLogo" class="qr-bite-logo" src="assets/bite-selected-wordmark.webp" alt="Bite — Eat. Repeat. official logo">
 </div>
 <div class="menu-tagline">Menu only · Order waiter ko batayein</div>
 <div id="menuLink"></div>
@@ -141,17 +141,18 @@ async function start(){
       ctx.strokeStyle='#d5c5ea';ctx.lineWidth=4;ctx.strokeRect(179,300,542,542);
       ctx.drawImage(qrCanvas||qrImage,210,331,480,480);
       const logo=$('biteBrandLogo');
-      if(logo&&!logo.complete){try{await logo.decode()}catch(e){/* Text brand still exports. */}}
-      if(logo?.naturalWidth)ctx.drawImage(logo,270,891,94,94);
-      ctx.fillStyle='#35166e';ctx.textAlign='left';ctx.font='900 67px system-ui,sans-serif';ctx.fillText('Bite',382,944);
-      ctx.fillStyle='#49354f';ctx.font='800 27px system-ui,sans-serif';ctx.fillText('Eat. Repeat.',385,982);
+      if(!logo.complete){try{await logo.decode()}catch(e){/* Fallback below. */}}
+      if(!logo.naturalWidth)throw Error('Bite official logo could not load');
+      // Export the exact selected Bite image, including its chef hat,
+      // food-cloche emblem, fork underline, name and Eat. Repeat. tagline.
+      ctx.drawImage(logo,212,841,476,196);
       ctx.textAlign='center';ctx.fillStyle='#5f4277';ctx.font='700 22px system-ui,sans-serif';
-      ctx.fillText('Menu only  •  Order waiter ko batayein',450,1061);
-      ctx.fillStyle='#918391';ctx.font='19px system-ui,sans-serif';ctx.fillText('Bite Digital Menu',450,1113);
+      ctx.fillText('Menu only  •  Order waiter ko batayein',450,1083);
+      ctx.fillStyle='#918391';ctx.font='19px system-ui,sans-serif';ctx.fillText('Bite Digital Menu',450,1130);
       const a=document.createElement('a');a.href=canvas.toDataURL('image/png');
       a.download='bite-branded-menu-qr-'+restaurantId+'.png';
       document.body.append(a);a.click();a.remove();
-      status('Bite logo, tagline aur orange QR ke saath poora card download ho gaya.');
+      status('Selected Bite logo aur tagline ke saath poora QR card download ho gaya.');
     }catch(error){console.error('QR card download',error);status('Branded QR card download nahi hua. Print QR Card se save karein.')}
     finally{button.disabled=false}
   });
