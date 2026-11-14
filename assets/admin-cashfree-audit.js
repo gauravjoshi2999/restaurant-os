@@ -3,6 +3,7 @@
 (function(root){
  'use strict';
  let deps=null,requestToken=0,loadedOrders=[],lastChecks=[],working=false,activeUser=null;
+ const splitResults=new Map();
  const byId=id=>document.getElementById(id);
  const authorized=()=>!!deps&&deps.getAccess()?.isPlatformAdmin===true&&deps.getAccess()?.role==='super_admin'&&!!deps.getUser()?.id;
  const customerAmount=f=>Number(f?.customer_payable_amount);
@@ -29,7 +30,7 @@
  };
  const money=n=>deps?.formatMoney?deps.formatMoney(n):'₹'+Number(n||0).toFixed(2);
  function wipe(){
-  loadedOrders=[];lastChecks=[];
+  loadedOrders=[];lastChecks=[];splitResults.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
   for(const id of ['biteProviderNeedCount','biteProviderCheckedCount','biteProviderPayoutCount']){
    const el=byId(id);if(el)el.textContent='—';
@@ -62,14 +63,27 @@
   byId('biteProviderPayoutCount').textContent='Not independently verified';
   for(const row of loadedOrders){
    const tr=document.createElement('tr');
+   const split=splitResults.get(row.orderId);
+   let payoutNote=row.verdict.restaurantPayout;
+   if(split){
+    const names=split.vendors.map(v=>v.vendor_id.slice(0,35)+' · '+money(v.amount)).join(', ');
+    payoutNote+=' · '+(split.status==='NOT_FOUND'?'No Easy Split record found':
+     split.status==='NO_VENDOR_SPLIT_RECORDS'?'No vendor entries in provider response':
+     'Provider split records: '+split.vendor_count+' ['+names+']');
+    payoutNote+=' · Vendor mapping/bank UTR still unverified';
+   }
    tr.append(cell(row.orderCode+' · '+row.restaurantName),cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
-    cell(row.verdict.collection),cell(row.verdict.merchantSettlement),cell(row.verdict.restaurantPayout));
+    cell(row.verdict.collection),cell(row.verdict.merchantSettlement),cell(payoutNote));
    const action=cell('');
    const btn=document.createElement('button');
    btn.type='button';btn.className='btn secondary';btn.dataset.biteReconcileOrder=row.orderId;
    btn.textContent='Verify with Cashfree';btn.disabled=working;
    btn.setAttribute('aria-label','Verify Cashfree collection for order '+row.orderCode+' without a bank transfer');
-   action.append(btn);tr.append(action);body.append(tr);
+   const splitBtn=document.createElement('button');
+   splitBtn.type='button';splitBtn.className='btn secondary';splitBtn.dataset.biteInspectSplit=row.orderId;
+   splitBtn.textContent='Check vendor split';splitBtn.disabled=working;
+   splitBtn.setAttribute('aria-label','Read Cashfree vendor split for order '+row.orderCode+' without initiating a transfer');
+   action.append(btn,splitBtn);tr.append(action);body.append(tr);
   }
   byId('biteProviderAuditEmpty').hidden=loadedOrders.length>0;
  }
@@ -119,6 +133,32 @@
    }
   }
  }
+ async function inspectSplit(orderId){
+  if(!authorized()||working)return;
+  const selected=loadedOrders.find(row=>row.orderId===orderId);
+  if(!selected)return;
+  const userId=deps.getUser().id,token=requestToken;
+  working=true;render();
+  setStatus('Reading Cashfree Easy Split order record. This does not create a vendor, split, refund or transfer.');
+  try{
+   const {data,error}=await deps.sb.functions.invoke('bite-cashfree-operations',{body:{action:'inspect_split',order_id:orderId}});
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(error)throw error;
+   const split=data?.split;
+   if(!split||!['NOT_FOUND','NO_VENDOR_SPLIT_RECORDS','PROVIDER_VENDOR_SPLIT_RECORDS'].includes(split.status)||
+      !Number.isInteger(split.vendor_count)||!Array.isArray(split.vendors))
+    throw Error('Provider split response cannot be trusted');
+   splitResults.set(orderId,split);
+   setStatus(split.status==='NOT_FOUND'?'Cashfree found no Easy Split record for this order. Restaurant bank payout is NOT verified.':
+    'Provider reports '+split.vendor_count+' vendor split rows. Restaurant vendor mapping and bank payout remain NOT verified.');
+  }catch(error){
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   setStatus('Vendor split lookup unavailable or inconsistent. Do not mark restaurant paid. '+String(error?.message||'Check Cashfree account approval').slice(0,140),true);
+  }finally{
+   working=false;
+   if(token===requestToken&&authorized()&&deps.getUser()?.id===userId)render();
+  }
+ }
  function init(config){
   deps=config;
   if(byId('biteProviderAuditRefresh')?.dataset.auditWired==='1')return;
@@ -129,8 +169,10 @@
   byId('biteProviderAuditRows')?.addEventListener('click',event=>{
    const item=event.target.closest('[data-bite-reconcile-order]');
    if(item)void reconcile(item.dataset.biteReconcileOrder);
+   const split=event.target.closest('[data-bite-inspect-split]');
+   if(split)void inspectSplit(split.dataset.biteInspectSplit);
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,clear,classify,buildRows};
+ root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,clear,classify,buildRows};
 })(window);
