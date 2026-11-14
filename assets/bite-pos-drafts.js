@@ -10,6 +10,11 @@ function identity(){
  const u=ctx?.getUser(),a=ctx?.getAccess();
  return u&&a?.role==='owner'&&a.restaurantId?{uid:u.id,restaurantId:a.restaurantId}:null;
 }
+// An asynchronous draft request must never apply to another signed-in Owner.
+function sameIdentity(ident){
+ const live=identity();
+ return !!(ident&&live&&ident.uid===live.uid&&ident.restaurantId===live.restaurantId);
+}
 function cacheKey(ident){return 'bite_pos_drafts_v2:'+ident.uid+':'+ident.restaurantId}
 function deletionKey(ident){return 'bite_pos_draft_deletions_v1:'+ident.uid+':'+ident.restaurantId}
 function deletedId(ident,id){return deletionKey(ident)+':'+id}
@@ -120,13 +125,14 @@ async function syncOne(rec){
  markClean(ident,rec.id,rec.updated_at);
 }
 async function syncPending(){
- if(cloudBusy||!identity())return;
+ const ident=identity();if(cloudBusy||!ident)return;
  cloudBusy=true;
  try{
-  const list=readCache(identity()).filter(d=>d.dirty&&!deletionExists(identity(),d.id));
+  const list=readCache(ident).filter(d=>d.dirty&&!deletionExists(ident,d.id));
   for(const rec of list){
-   try{await syncOne(rec);if(activeId===rec.id)setStatus('Draft saved securely ✓')}
-   catch(err){if(activeId===rec.id)setStatus('Draft saved on this device; cloud pending');console.warn('POS draft cloud sync failed:',err.message)}
+   if(!sameIdentity(ident))break;
+   try{await syncOne(rec);if(sameIdentity(ident)&&activeId===rec.id)setStatus('Draft saved securely ✓')}
+   catch(err){if(sameIdentity(ident)&&activeId===rec.id)setStatus('Draft saved on this device; cloud pending');console.warn('POS draft cloud sync failed:',err.message)}
   }
  }finally{cloudBusy=false}
 }
@@ -178,9 +184,18 @@ function fill(data){
 async function openDraft(id){
  const ident=identity();if(!ident)return;
  let rec=readCache(ident).find(x=>x.id===id);
- if(!rec&&!deletionExists(ident,id)){const r=await ctx.sb.from('restaurant_pos_drafts').select('*').eq('id',id).eq('restaurant_id',ident.restaurantId).maybeSingle();if(r.error)throw r.error;rec=r.data}
+ if(!rec&&!deletionExists(ident,id)){
+  const r=await ctx.sb.from('restaurant_pos_drafts').select('*')
+   .eq('id',id).eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).maybeSingle();
+  if(!sameIdentity(ident))return;
+  if(r.error)throw r.error;
+  rec=r.data;
+ }
+ if(!sameIdentity(ident))return;
  if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,id)){alert('Draft already deleted or not found for your restaurant.');return}
  await window.openOrder();
+ // openOrder may itself be async; do not fill one Owner's customer details in another Owner's bill.
+ if(!sameIdentity(ident))return;
  activeId=rec.id;fill(rec.payload||{});
  setStatus(rec.dirty?'Draft restored · cloud sync pending':'Draft restored ✓');
 }
@@ -220,6 +235,8 @@ async function refreshDrafts(){
  let local=readCache(ident),list=local.slice();
  const r=await ctx.sb.from('restaurant_pos_drafts').select('id,restaurant_id,created_by,payload,updated_at')
   .eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).order('updated_at',{ascending:false}).limit(40);
+ // Stale list responses must not update cache or UI after an account/restaurant switch.
+ if(!sameIdentity(ident))return;
  if(r.error){console.warn('Draft list unavailable:',r.error.message);renderDrafts();void cleanupDeletions();return}
  for(const remote of r.data||[]){
   if(remote.created_by!==ident.uid||deletionExists(ident,remote.id))continue;
