@@ -108,7 +108,7 @@ test('stale saved addresses response never shows previous customer addresses aft
  const running=ctx.load();
  await arrived;
  ctx.activeCustomerId=null;
- ctx.customerAccountViewSequence++;
+ vm.runInContext('customerAccountViewSequence++',ctx);
  $('accountAddresses').innerHTML='Sign in to view saved addresses.';
  release({data:[{id:'old-secret',address_line:'Old customer address'}],error:null});
  await running;
@@ -127,7 +127,8 @@ test('stale support response does not inject old tickets or customer orders afte
    rpc:async()=>({data:[{id:'old-order',order_code:'OLD-ORDER'}],error:null})},
   safe:String,statusClass:String,formatOrderDate:String
  });
- vm.runInContext(accountSupport+';globalThis.load=loadCustomerSupportTickets;globalThis.check=()=>biteAccountRequestActive(customerAccountViewSequence,activeCustomerId);',ctx);
+ ctx.biteAccountRequestActive=(sequence,userId)=>sequence===ctx.customerAccountViewSequence&&ctx.activeCustomerId===userId;
+ vm.runInContext(accountSupport+';globalThis.load=loadCustomerSupportTickets;',ctx);
  const running=ctx.load();
  await pending;
  ctx.activeCustomerId=null;
