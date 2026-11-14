@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.49.8";
 import {parseCashfreeSplit} from "./split-evidence.mjs";
+import {compareProviderVendorBank} from "./vendor-bank-match.mjs";
 const cors={"access-control-allow-origin":"https://gauravjoshi2999.github.io","access-control-allow-headers":"authorization, apikey, content-type, x-client-info, x-supabase-api-version","access-control-allow-methods":"POST, OPTIONS"};
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{"content-type":"application/json","cache-control":"no-store",...cors}});
 export function exactMoney(value:unknown,expected:unknown):boolean{
@@ -20,14 +21,14 @@ Deno.serve(async req=>{
   const client=createClient(url,anon,{global:{headers:{Authorization:bearer}}}),{data:{user},error:ae}=await client.auth.getUser();if(ae||!user)return json({error:"Invalid session"},401);
   const {data:admin,error:roleError}=await client.rpc("is_platform_admin");if(roleError||admin!==true)return json({error:"Admin access required"},403);
   let body:any;try{body=await req.json();}catch{return json({error:"Invalid JSON"},400);}
-  if(!["reconcile","inspect_split","execute_refund","check_refund"].includes(body?.action))return json({error:"Invalid action"},400);
+  if(!["reconcile","inspect_split","inspect_vendor","execute_refund","check_refund"].includes(body?.action))return json({error:"Invalid action"},400);
   if(body.action==="execute_refund"&&(Deno.env.get("BITE_PROVIDER_REFUNDS_ENABLED")!=="true"||body.confirm!=="EXECUTE APPROVED REFUND"))return json({error:"Real refunds require explicit rollout approval and confirmation"},409);
   const app=Deno.env.get("CASHFREE_APP_ID"),secret=Deno.env.get("CASHFREE_SECRET_KEY");if(!app||!secret)return json({error:"Provider not configured"},503);
   const db=createClient(url,service),headers={"content-type":"application/json","x-api-version":"2023-08-01","x-client-id":app,"x-client-secret":secret};
   async function provider(path:string,options:any={}){const r=await fetch("https://api.cashfree.com/pg"+path,{...options,headers:{...headers,...options.headers},signal:AbortSignal.timeout(12000)});const data=await r.json().catch(()=>null);return{r,data};}
   const uuid=(v:unknown)=>typeof v==="string"&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v);
   let job:any=null,orderId=body.order_id;
-  if(!["reconcile","inspect_split"].includes(body.action)){
+  if(!["reconcile","inspect_split","inspect_vendor"].includes(body.action)){
    if(!uuid(body.refund_id))return json({error:"Invalid refund ID"},400);
    const {data,error}=await db.from("bite_refund_jobs").select("*").eq("id",body.refund_id).maybeSingle();if(error)return json({error:"Refund database unavailable"},503);job=data;
    if(!job||!job.approved_by||!job.approved_at||["pending_approval","rejected"].includes(job.status))return json({error:"Approved refund not found"},409);orderId=job.order_id;
@@ -57,6 +58,44 @@ Deno.serve(async req=>{
    catch{return json({error:"Easy Split provider response mismatched or unsafe"},409);}
    return json({split:evidence,restaurant_payout:"NOT_VERIFIED",bank_credit:"NOT_VERIFIED",
     note:"Cashfree vendor references are not a restaurant bank confirmation. Verify vendor KYC, mapping and UTR independently."});
+  }
+  if(body.action==="inspect_vendor"){
+   // A vendor ID supplied by an admin is only a *candidate*, never a payout
+   // destination. Bind it afresh to this activated, PAID provider order.
+   const candidate=body.vendor_id;
+   if(typeof candidate!=="string"||!/^[A-Za-z0-9_-]{1,80}$/.test(candidate))
+    return json({error:"Invalid Cashfree vendor ID"},400);
+   const collection=await provider("/orders/"+cfId);
+   if(!collection.r.ok)return json({error:"Provider collection lookup unavailable",provider_status:collection.r.status},503);
+   if(collection.data?.order_id!==intent.provider_order_id||
+      collection.data?.order_currency!=="INR"||
+      collection.data?.order_status!=="PAID"||
+      !exactMoney(collection.data.order_amount,intent.amount)||
+      !exactMoney(collection.data.order_amount,order.amount))
+    return json({error:"Trusted paid collection is not verified"},409);
+   const split=await provider("/easy-split/orders/"+cfId,{headers:{"x-api-version":"2026-01-01"}});
+   if(!split.r.ok)return json({error:"Verified order split details unavailable",provider_status:split.r.status},503);
+   let splitEvidence;
+   try{splitEvidence=parseCashfreeSplit(split.data,{orderId:intent.provider_order_id,
+    orderAmount:intent.amount,currency:"INR"});}
+   catch{return json({error:"Provider split evidence mismatch"},409);}
+   if(!splitEvidence.vendors.some((v:any)=>v.vendor_id===candidate))
+    return json({error:"Vendor ID is not in this paid order split. Do not map this restaurant."},409);
+   const vendor=await provider("/easy-split/vendors/"+encodeURIComponent(candidate),
+    {headers:{"x-api-version":"2026-01-01"}});
+   if(!vendor.r.ok)return json({error:"Cashfree vendor details unavailable",provider_status:vendor.r.status},503);
+   // Only a service-side comparison with the already-entered restaurant bank
+   // profile is permitted. Never send the provider's bank details to a client.
+   const {data:profile,error:pe}=await db.from("restaurant_payout_profiles")
+    .select("restaurant_id,account_number,ifsc_code")
+    .eq("restaurant_id",order.restaurant_id).maybeSingle();
+   if(pe)return json({error:"Restaurant payout profile comparison unavailable"},503);
+   let comparison;
+   try{comparison=compareProviderVendorBank(vendor.data,profile,candidate);}
+   catch{return json({error:"Provider vendor reference mismatch"},409);}
+   return json({provider_vendor:comparison,split_order_checked:true,
+    restaurant_payout:"NOT_VERIFIED",bank_credit:"NOT_VERIFIED",
+    warning:"Matching bank settings do not verify KYC, beneficiary authorization or actual settlement."});
   }
   if(body.action==="reconcile"){
    const {r,data}=await provider("/orders/"+cfId);if(!r.ok)return json({error:"Provider collection lookup unavailable",provider_status:r.status},503);

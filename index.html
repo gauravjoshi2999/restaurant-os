@@ -721,7 +721,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
 <link rel="stylesheet" href="assets/admin-cashfree-audit.css?v=20261114-recon1">
-<script src="assets/admin-cashfree-audit.js?v=20261114-vendor-candidate3" defer></script>
+<script src="assets/admin-cashfree-audit.js?v=20261115-bankmatch1" defer></script>
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -828,7 +828,7 @@ body.bite-session-check #biteSessionSplash{
 <section class="section bite-provider-audit" aria-labelledby="biteProviderAuditHeading">
  <div class="section-head"><div><h2 id="biteProviderAuditHeading">Cashfree payment verification</h2><p class="small">Super Admin only · Paid own-platform orders · Provider evidence ≠ restaurant bank payout</p></div>
  <button class="btn secondary" type="button" id="biteProviderAuditRefresh">Refresh verification</button></div>
- <p class="notice">“Verify with Cashfree” collection status पढ़ता है। “Check vendor split” Cashfree के मौजूदा Easy Split records पढ़ता है। Vendor ID compare केवल इसी order में ID मौजूद है या नहीं बताता है; यह restaurant mapping, KYC, bank UTR या payout को verify नहीं करता। कोई split, refund या bank transfer शुरू नहीं होता।</p>
+ <p class="notice">“Verify with Cashfree” collection status पढ़ता है। “Check vendor split” Cashfree के मौजूदा Easy Split records पढ़ता है। Vendor ID compare केवल इस order में ID मौजूद है या नहीं बताता है। “Check Cashfree bank match” अलग से provider vendor account और restaurant के saved payout profile को server पर compare करता है; bank account browser में नहीं आता। Bank MATCH होने पर भी KYC, restaurant approval, UTR और actual bank credit verify नहीं होते। कोई split, refund या bank transfer शुरू नहीं होता।</p>
  <div class="grid bite-provider-stats">
   <div class="card"><div class="metric-label">Needs provider verification</div><div class="metric" id="biteProviderNeedCount">—</div></div>
   <div class="card"><div class="metric-label">Provider checked: PAID</div><div class="metric" id="biteProviderCheckedCount">—</div></div>

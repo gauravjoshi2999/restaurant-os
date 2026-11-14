@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  let deps=null,requestToken=0,loadedOrders=[],lastChecks=[],working=false,activeUser=null;
- const splitResults=new Map(),vendorComparisons=new Map();
+ const splitResults=new Map(),vendorComparisons=new Map(),vendorBankChecks=new Map();
  // Candidate matching is deliberately ephemeral. It is NOT an approved
  // restaurant/vendor mapping and must never authorize transfers or paid labels.
  function compareVendorCandidate(value,split){
@@ -48,7 +48,7 @@
  };
  const money=n=>deps?.formatMoney?deps.formatMoney(n):'₹'+Number(n||0).toFixed(2);
  function wipe(){
-  loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();
+  loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
   for(const id of ['biteProviderNeedCount','biteProviderCheckedCount','biteProviderPayoutCount']){
    const el=byId(id);if(el)el.textContent='—';
@@ -92,6 +92,9 @@
     const comparison=vendorComparisons.get(row.orderId);
     if(comparison&&comparison.restaurantId===row.restaurantId){
      payoutNote+=' · '+comparison.verdict.message;
+     const bank=vendorBankChecks.get(row.orderId);
+     if(bank&&bank.restaurantId===row.restaurantId&&bank.vendorId===comparison.vendorId)
+      payoutNote+=' · '+bank.message;
     }
    }
    tr.append(cell(row.orderCode+' · '+row.restaurantName),cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
@@ -122,6 +125,15 @@
     compareBtn.textContent='Compare vendor ID';compareBtn.disabled=working;
     compareBtn.setAttribute('aria-label','Compare candidate vendor to Cashfree split without saving a mapping');
     action.append(label,compareBtn);
+    const comparison=vendorComparisons.get(row.orderId);
+    if(comparison?.restaurantId===row.restaurantId&&comparison.verdict.status==='FOUND_IN_ORDER_ONLY'){
+     const bankBtn=document.createElement('button');
+     bankBtn.type='button';bankBtn.className='btn secondary';
+     bankBtn.dataset.biteInspectVendor=row.orderId;
+     bankBtn.textContent='Check Cashfree bank match';bankBtn.disabled=working;
+     bankBtn.setAttribute('aria-label','Compare provider vendor bank with this restaurant saved payout profile without a transfer');
+     action.append(bankBtn);
+    }
    }
    tr.append(action);body.append(tr);
   }
@@ -132,7 +144,7 @@
   const token=++requestToken,userId=deps.getUser().id;
   if(activeUser&&activeUser!==userId)wipe();
   // Refresh revokes any temporary vendor candidate evidence.
-  splitResults.clear();vendorComparisons.clear();
+  splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();
   activeUser=userId;setStatus('Loading recorded provider checks…');
   try{
    // Direct client access uses the existing admin/owner SELECT RLS on bite_provider_checks.
@@ -181,7 +193,7 @@
   const selected=loadedOrders.find(row=>row.orderId===orderId);
   if(!selected)return;
   const userId=deps.getUser().id,token=requestToken;
-  splitResults.delete(orderId);vendorComparisons.delete(orderId);
+  splitResults.delete(orderId);vendorComparisons.delete(orderId);vendorBankChecks.delete(orderId);
   working=true;render();
   setStatus('Reading Cashfree Easy Split order record. This does not create a vendor, split, refund or transfer.');
   try{
@@ -208,11 +220,51 @@
   const row=loadedOrders.find(r=>r.orderId===orderId);
   if(!row)return;
   const verdict=compareVendorCandidate(candidate,splitResults.get(orderId));
+  vendorBankChecks.delete(orderId);
   vendorComparisons.set(orderId,{restaurantId:row.restaurantId,
    vendorId:typeof candidate==='string'?candidate.trim().slice(0,80):'',verdict});
   render();
   setStatus(verdict.message,verdict.status!=='FOUND_IN_ORDER_ONLY');
   return verdict;
+ }
+ async function inspectVendor(orderId){
+  if(!authorized()||working)return;
+  const row=loadedOrders.find(r=>r.orderId===orderId);
+  const choice=vendorComparisons.get(orderId);
+  if(!row||!choice||choice.restaurantId!==row.restaurantId||
+     choice.verdict.status!=='FOUND_IN_ORDER_ONLY'||choice.verdict.vendorId!==choice.vendorId)return;
+  const userId=deps.getUser().id,token=requestToken;
+  vendorBankChecks.delete(orderId);
+  working=true;render();
+  setStatus('Comparing Cashfree vendor bank with this restaurant payout settings. No transfer is being made.');
+  try{
+   const {data,error}=await deps.sb.functions.invoke('bite-cashfree-operations',{
+    body:{action:'inspect_vendor',order_id:orderId,vendor_id:choice.vendorId}});
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(error)throw error;
+   const result=data?.provider_vendor;
+   if(!result||result.vendor_id!==choice.vendorId||
+      !['MATCH','MISMATCH','NOT_COMPARABLE'].includes(result.bank_details_comparison)||
+      typeof result.provider_vendor_status!=='string'||
+      !/^[A-Z][A-Z0-9_]{0,39}$/.test(result.provider_vendor_status)||
+      data.restaurant_payout!=='NOT_VERIFIED'||data.bank_credit!=='NOT_VERIFIED')
+    throw Error('Untrusted provider comparison result');
+   const message=result.bank_details_comparison==='MATCH'?
+    'Cashfree vendor bank settings MATCH this restaurant saved payout profile. KYC, approval, UTR and bank credit remain NOT verified.':
+    result.bank_details_comparison==='MISMATCH'?
+    'Cashfree vendor bank settings DO NOT MATCH this restaurant payout profile. STOP: do not map or pay.':
+    'Bank settings could not be compared. Check Cashfree vendor status and restaurant bank profile before proceeding.';
+   vendorBankChecks.set(orderId,{restaurantId:row.restaurantId,vendorId:choice.vendorId,
+    message,bankMatch:result.bank_details_comparison});
+   setStatus(message,result.bank_details_comparison!=='MATCH');
+  }catch(error){
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   setStatus('Bank comparison unavailable. Restaurant payout is NOT verified. '+
+    String(error?.message||'Try again later').slice(0,110),true);
+  }finally{
+   working=false;
+   if(token===requestToken&&authorized()&&deps.getUser()?.id===userId)render();
+  }
  }
  function init(config){
   deps=config;
@@ -232,8 +284,10 @@
      'input[data-bite-vendor-candidate="'+compare.dataset.biteCompareVendor+'"]');
     compareVendor(compare.dataset.biteCompareVendor,input?.value||'');
    }
+   const vendor=event.target.closest('[data-bite-inspect-vendor]');
+   if(vendor)void inspectVendor(vendor.dataset.biteInspectVendor);
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,compareVendorCandidate,clear,classify,buildRows};
+ root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,compareVendorCandidate,clear,classify,buildRows};
 })(window);
