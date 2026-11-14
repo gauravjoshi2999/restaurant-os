@@ -341,7 +341,24 @@ try:
   check(customer.locator('#cartModal.show').is_visible() and not customer.locator('#checkoutModal').is_visible(),'Closed restaurant never launches checkout or charges the customer')
   customer.evaluate("activeRestaurant.is_temporarily_closed=false;window.__BITE_QA_SERVER_RESTAURANT.is_temporarily_closed=false;renderCartModal()")
   check(customer.locator('#cartCheckoutBtn').is_enabled() and customer.locator('#cartCheckoutBtn').inner_text()=='Proceed to checkout','Available restaurant restores working checkout button')
-  customer.locator('#cartCheckoutBtn').click();customer.locator('#checkoutCoupon').fill('QA10');customer.locator('#applyCheckoutCoupon').click()
+  customer.locator('#cartCheckoutBtn').click()
+  customer.locator('#checkoutFormPanel').wait_for(state='visible')
+  check(customer.locator('#checkoutEditItems').is_visible()
+    and customer.locator('.bite-checkout-steps [aria-current="step"]').inner_text()=='Details',
+    'Checkout shows an Edit items path and accessible ordering progress')
+  check(customer.locator('input[name="deliveryMode"][value="delivery"]').is_checked(),
+    'Checkout retains selected delivery when it is available')
+  customer.locator('#checkoutEditItems').click()
+  check(customer.locator('#cartModal.show').is_visible() and not customer.locator('#checkoutModal.show').is_visible(),
+    'Edit items returns to the cart without reopening checkout or payment')
+  check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text()
+    and customer.locator('#cartModalLines [data-cart-inc]').count()>0,
+    'Cart retains the real selected dish and its editable quantity')
+  check(customer.evaluate('cartEntries().length===1 && cartEntries()[0][1]===1'),
+    'Editing checkout preserves the quantity and does not duplicate the dish')
+  customer.locator('#cartCheckoutBtn').click()
+  customer.locator('#checkoutFormPanel').wait_for(state='visible')
+  customer.locator('#checkoutCoupon').fill('QA10');customer.locator('#applyCheckoutCoupon').click()
   customer.wait_for_function("document.querySelector('#checkoutSummary').textContent.includes('155')")
   check('₹155' in customer.locator('#checkoutSummary').inner_text(),'Coupon total is 150 food + 20 delivery − 15 discount')
   check(customer.locator('#placeOrderBtn').is_disabled(),'Synthetic provider readiness cannot unlock a real payment')
