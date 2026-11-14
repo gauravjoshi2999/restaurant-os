@@ -24,6 +24,14 @@ main{width:min(100% - 28px,980px);margin:20px auto 60px}
 input[type=search]{width:100%;min-height:48px;border:1px solid #ddd2ea;border-radius:12px;padding:11px 14px;font-size:16px;background:#fff;color:#292338}
 .veg-switch{white-space:nowrap;min-height:48px;display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid #ddd2ea;border-radius:12px;background:#fff;font-size:13px;font-weight:700}
 .veg-switch input{width:18px;height:18px;accent-color:#238752}
+.veg-switch[hidden]{display:none!important}
+.filters.pure-veg{grid-template-columns:minmax(0,1fr)}
+.pure-veg-label{display:inline-flex;margin:12px 0 0;background:#e6f6ee;border:1px solid #b9e2cb;color:#207247;border-radius:50px;padding:7px 12px;font-size:12px;font-weight:850}
+.pure-veg-label[hidden]{display:none!important}
+.menu-freshness{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#menuFreshness{font-size:11px;color:#756c7c}
+#refreshMenuBtn{border:1px solid #d8cdea;background:#fff;color:#35166e;border-radius:10px;font:750 12px inherit;min-height:42px;padding:8px 11px;cursor:pointer}
+#refreshMenuBtn:disabled{opacity:.6;cursor:wait}
 .categories{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 13px;overscroll-behavior-inline:contain}
 .categories button{flex:none;border:1px solid #ded4e9;background:white;color:#443658;border-radius:100px;padding:10px 15px;min-height:44px;font:700 13px inherit;cursor:pointer}
 .categories button[aria-pressed=true]{background:#35166e;color:white;border-color:#35166e}
@@ -52,15 +60,16 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 <section class="hero" aria-labelledby="restaurantName">
 <h1 id="restaurantName">Restaurant menu</h1>
 <p id="restaurantDescription">Menu load ho raha hai...</p>
+<div id="pureVegLabel" class="pure-veg-label" hidden>● 100% Pure Vegetarian</div>
 <div class="menu-note" role="note"><span aria-hidden="true">🍽️</span><span>Menu dekhein aur order waiter ko batayein. Payment aur bill restaurant counter par hoga. QR se online order ya payment nahi hota.</span></div>
 </section>
 <div id="message" role="status" aria-live="polite">Menu load ho raha hai...</div>
 <section id="filters" class="filters" hidden aria-label="Menu filters">
 <label><span style="display:block;font-size:12px;margin:0 0 6px;color:#64596d;font-weight:700">Dish search</span><input type="search" id="dishSearch" placeholder="Khana search karein, jaise Paneer" autocomplete="off"></label>
-<label class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label>
+<label id="vegSwitch" class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label>
 </section>
 <nav id="categories" class="categories" hidden aria-label="Menu categories"></nav>
-<div id="summary" class="summary" hidden><strong>Hamare dishes</strong><span id="itemCount"></span></div>
+<div id="summary" class="summary" hidden><strong>Hamare dishes</strong><div class="menu-freshness"><span id="itemCount"></span><button id="refreshMenuBtn" type="button" aria-label="Refresh menu and current prices">↻ Refresh rates</button><span id="menuFreshness" role="status" aria-live="polite"></span></div></div>
 <div id="menu" class="menu" hidden aria-live="polite"></div>
 </main>
 <footer>Bite — Eat. Repeat. · Menu only. Prices/availability restaurant se confirm karein.</footer>
@@ -72,7 +81,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const params=new URLSearchParams(location.search);
 const restaurantId=params.get('restaurant');
 const $=id=>document.getElementById(id);
-let items=[],categories=[],category='all';
+let items=[],categories=[],category='all',menuLoading=false,lastLoadedAt=0;
+const REFRESH_INTERVAL_MS=120000;
 const money=value=>'₹'+Number(value||0).toLocaleString('en-IN',{maximumFractionDigits:2,minimumFractionDigits:0});
 function status(message){$('message').hidden=false;$('message').textContent=message}
 function safeImage(value){
@@ -110,6 +120,14 @@ function draw(){
   content.append(name,desc,price,mark);card.append(content);menu.append(card);
  }
 }
+function pureVegMenu(restaurant,availableItems){
+ const tags=Array.isArray(restaurant.cuisine_tags)?restaurant.cuisine_tags.join(' '):String(restaurant.cuisine_tags||'');
+ const taggedPureVeg=/\bpure\s*veg(?:etarian)?\b|शुद्ध\s*शाकाहारी/i.test(tags);
+ // Data-driven: Pure Veg explicitly marked in restaurant settings, OR every
+ // currently available dish is verified vegetarian. Never hide if any non-veg.
+ return availableItems.length>0&&!availableItems.some(item=>item.is_vegetarian===false)
+   &&(taggedPureVeg||availableItems.every(item=>item.is_vegetarian===true));
+}
 function drawCategories(){
  const nav=$('categories');nav.replaceChildren();
  const options=[{id:'all',name:'All dishes'},...categories];
@@ -125,32 +143,77 @@ function drawCategories(){
  }
  nav.hidden=false;
 }
-async function loadMenu(){
- if(!UUID.test(restaurantId||'')){status('QR link sahi nahi hai. Restaurant se naya QR scan karein.');return}
- if(!window.supabase||typeof window.supabase.createClient!=='function'){status('Menu load nahi hua. Internet check karke page refresh karein.');return}
- const client=window.supabase.createClient('https://wedbgpybbgsszcmffoha.supabase.co','sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+function hideMenu(){
+ $('filters').hidden=true;$('categories').hidden=true;$('summary').hidden=true;$('menu').hidden=true;
+}
+async function loadMenu({quiet=false}={}){
+ if(menuLoading)return;
+ if(!UUID.test(restaurantId||'')){hideMenu();status('QR link sahi nahi hai. Restaurant se naya QR scan karein.');return}
+ if(!window.supabase||typeof window.supabase.createClient!=='function'){
+  if(!items.length)status('Menu load nahi hua. Internet check karke page refresh karein.');
+  return;
+ }
+ menuLoading=true;
+ const alreadyLoaded=items.length>0;
+ $('refreshMenuBtn').disabled=true;
+ if(!quiet||!alreadyLoaded)$('menuFreshness').textContent='Rates update ho rahe hain...';
+ const client=window.supabase.createClient('https://wedbgpybbgsszcmffoha.supabase.co','sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn',{
+  auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+  // Every scan and refresh reads the latest public menu, not a cached price.
+  global:{fetch:(input,init)=>fetch(input,{...(init||{}),cache:'no-store'})}
+ });
  try{
-  // Public, published restaurants only. No login, no writes and no customer details.
   const restaurants=await client.rpc('list_public_restaurants');
   if(restaurants.error)throw restaurants.error;
   const restaurant=(restaurants.data||[]).find(r=>r.id===restaurantId);
-  if(!restaurant){status('Yeh restaurant ka public menu abhi available nahi hai. Waiter se menu mangein.');return}
+  if(!restaurant){
+   items=[];categories=[];hideMenu();
+   $('restaurantName').textContent='Restaurant menu';
+   status('Yeh restaurant ka public menu abhi available nahi hai. Waiter se menu mangein.');
+   return;
+  }
   const [catResult,itemResult]=await Promise.all([
    client.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',restaurantId).eq('is_active',true).order('sort_order'),
    client.from('menu_items').select('id,category_id,name,description,price,image_url,is_vegetarian').eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000)
   ]);
   if(catResult.error)throw catResult.error;
   if(itemResult.error)throw itemResult.error;
-  categories=catResult.data||[];items=itemResult.data||[];
+  const newCategories=catResult.data||[],newItems=itemResult.data||[];
+  categories=newCategories;items=newItems;
+  if(category!=='all'&&!categories.some(c=>c.id===category))category='all';
+  const isPureVeg=pureVegMenu(restaurant,items);
+  $('vegSwitch').hidden=isPureVeg;
+  $('filters').classList.toggle('pure-veg',isPureVeg);
+  $('pureVegLabel').hidden=!isPureVeg;
+  if(isPureVeg)$('vegOnly').checked=false;
   $('restaurantName').textContent=restaurant.name||'Restaurant menu';
   $('restaurantDescription').textContent=(restaurant.public_description||restaurant.address||'')+' · Apna order waiter ko batayein.';
   document.title=(restaurant.name||'Restaurant')+' · Menu Only | Bite';
-  if(!items.length){status('Is restaurant mein abhi menu items available nahi hain. Waiter se poochhein.');return}
-  $('message').hidden=true;$('filters').hidden=false;$('summary').hidden=false;$('menu').hidden=false;
-  $('dishSearch').addEventListener('input',draw);$('vegOnly').addEventListener('change',draw);
+  lastLoadedAt=Date.now();
+  if(!items.length){hideMenu();status('Is restaurant mein abhi menu items available nahi hain. Waiter se poochhein.');return}
+  $('message').hidden=true;
+  $('filters').hidden=false;$('summary').hidden=false;$('menu').hidden=false;
+  $('menuFreshness').textContent='Latest menu · '+new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit'}).format(new Date(lastLoadedAt));
   drawCategories();draw();
- }catch(error){console.error('Bite QR menu public fetch:',error);status('Menu abhi load nahi ho pa raha. Internet check karein ya waiter se menu lein.')}
+ }catch(error){
+  console.error('Bite QR menu public fetch:',error);
+  if(alreadyLoaded){
+   $('menuFreshness').textContent='Update nahi hua. Internet check karke Refresh rates dabayein.';
+  }else status('Menu abhi load nahi ho pa raha. Internet check karein ya waiter se menu lein.');
+ }finally{
+  menuLoading=false;
+  $('refreshMenuBtn').disabled=false;
+ }
 }
+$('dishSearch').addEventListener('input',draw);
+$('vegOnly').addEventListener('change',draw);
+$('refreshMenuBtn').addEventListener('click',()=>loadMenu());
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&Date.now()-lastLoadedAt>30000)void loadMenu({quiet:true});
+});
+setInterval(()=>{
+ if(!document.hidden&&Date.now()-lastLoadedAt>=REFRESH_INTERVAL_MS)void loadMenu({quiet:true});
+},REFRESH_INTERVAL_MS);
 loadMenu();
 })();
 </script>
