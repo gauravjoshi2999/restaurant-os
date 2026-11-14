@@ -122,16 +122,24 @@ test('real session invalidation clears old orders, detail and pending checkout',
   accountProfile:{textContent:'Old account email'},
   accountAddresses:{textContent:'Old saved address'},
   customerSupportList:{textContent:'Old support ticket'},
-  customerSupportOrder:{innerHTML:'Old order'}
+  customerSupportOrder:{innerHTML:'Old order'},
+  checkoutModal:{classList:{remove(){},add(){}}},
+  checkoutName:{value:'Old private name'},checkoutPhone:{value:'Old private phone'},
+  checkoutSummary:{textContent:'Old private amount'},checkoutError:{textContent:''},
+  pendingPaymentBanner:{remove(){}}
  };
  let changedView=null;
  const ctx=ctxOf({
   activeCustomerId:'customer-a',customerOrders:[{id:'old'}],
   expandedOrderId:'old',customerOrderViewSequence:3,biteCheckoutOpenSequence:7,
+  bitePaymentAccountSequence:4,biteCancelFollowupTimer:null,
+  pendingLiveCheckout:{id:'old-pending'},checkoutRequestKey:'old-key',checkoutQuotedTotal:199,
+  appliedCheckoutCoupon:{code:'OLD'},checkoutPaymentBusy:true,checkoutPaymentReady:true,
+  clearTimeout:()=>{},
   customerAccountViewSequence:5,accountAddressRows:[{id:'old'}],checkoutAddresses:[{id:'old'}],
   resetAddrForm:()=>{},
   favouriteRestaurantIds:new Set(['favourite']),orderChannel:null,
-  $:id=>nodes[id],window:{BiteCustomerExtras:{clearSensitiveState(){}}},
+  $:id=>nodes[id],window:{BiteCustomerExtras:{clearSensitiveState(){}},BiteCheckoutUX:{resetResult(){},freshCartRequested:true,cancelBusy:true}},
   sb:{removeChannel(){}},showCustomerView:x=>{changedView=x;}
  });
  vm.runInContext(setSession+'globalThis.endSession=setCustomerSession;',ctx);
@@ -141,6 +149,14 @@ test('real session invalidation clears old orders, detail and pending checkout',
  assert.equal(ctx.expandedOrderId,null);
  assert.equal(ctx.customerOrderViewSequence,4);
  assert.equal(ctx.biteCheckoutOpenSequence,8);
+ assert.equal(ctx.bitePaymentAccountSequence,5);
+ assert.equal(ctx.pendingLiveCheckout,null);
+ assert.equal(ctx.checkoutRequestKey,null);
+ assert.equal(nodes.checkoutName.value,'');
+ assert.equal(nodes.checkoutPhone.value,'');
+ assert.equal(nodes.checkoutSummary.textContent,'');
+ assert.equal(ctx.checkoutPaymentBusy,false);
+ assert.equal(ctx.checkoutPaymentReady,false);
  assert.equal(ctx.customerAccountViewSequence,6);
  assert.equal(ctx.accountAddressRows.length,0);
  assert.equal(ctx.checkoutAddresses.length,0);
