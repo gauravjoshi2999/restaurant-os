@@ -1,0 +1,159 @@
+/* Bite checkout mobile UX polish. Presentation only; price and provider flows unchanged. */
+body[data-bite-app="customer"] #checkoutFormPanel{
+  width:min(100%,580px);
+  border:1px solid #dfe9e1;
+  border-radius:22px;
+  background:#fff;
+  box-shadow:0 16px 52px #153b201d;
+  scrollbar-gutter:stable;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-head .eyebrow{
+  flex:1;min-width:0;letter-spacing:.08em;font-size:10px;
+  color:#338057;font-weight:850;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-head-actions{
+  display:flex;align-items:center;gap:7px;flex:none;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutEditItems{
+  min-height:44px;padding:10px 13px;border:1px solid #b8d9c2;
+  border-radius:11px;color:#087b4d;background:#eff9f2;
+  font-size:12px;font-weight:850;white-space:nowrap;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutEditItems:hover{
+  background:#e3f5e9;border-color:#8fc6a0;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #closeCheckout{
+  min-width:44px;min-height:44px;padding:8px;
+  border:1px solid #e1ebe2;border-radius:11px;background:#fff;
+  font-size:17px;color:#3e5745;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-steps{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;align-items:center;margin:19px 0 15px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-steps>*{
+  min-width:0;text-align:center;border-radius:999px;
+  padding:9px 6px;line-height:1.35;font-size:11px;
+  font-weight:750;color:#60766a;background:#f5f8f5;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-steps>span::before{
+  content:"✓";margin-right:5px;font-weight:900;color:#087b4d;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-steps>[aria-current="step"]{
+  color:#fff;background:#087b4d;font-weight:870;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutTitle{
+  color:#20362a;font-weight:880;letter-spacing:-.65px;
+  line-height:1.2;font-size:clamp(22px,3.5vw,28px);
+  margin:0 0 5px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutRestaurant{
+  color:#627366;font-size:13px;line-height:1.5;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutSummary{
+  padding:15px 14px;background:#f4faf5;
+  border:1px solid #dcece0;border-radius:14px;
+  font-size:13px;color:#304838;line-height:1.55;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutSummary strong{
+  color:#173c27;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;margin:16px 0;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode label{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  min-width:0;min-height:50px;padding:10px 12px;
+  border:1px solid #d5e3d9;background:#fbfdfb;
+  border-radius:13px;font-size:13px;font-weight:800;color:#30493b;
+  line-height:1.25;text-align:center;cursor:pointer;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode label:has(input:checked){
+  color:#087348;border-color:#81bc95;background:#eaf8ee;
+  box-shadow:0 0 0 1px #81bc9520;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode label:has(input:disabled){
+  opacity:.48;cursor:not-allowed;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode label:focus-within{
+  outline:3px solid #a7dbc0;outline-offset:2px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode input{
+  width:17px;height:17px;flex:none;accent-color:#087b4d;
+}
+body[data-bite-app="customer"] #checkoutFormPanel label{
+  color:#2f4a38;line-height:1.5;
+}
+body[data-bite-app="customer"] #checkoutFormPanel input:not([type="radio"]),
+body[data-bite-app="customer"] #checkoutFormPanel select,
+body[data-bite-app="customer"] #checkoutFormPanel textarea{
+  font-size:16px;min-height:46px;border:1px solid #d4e3d8;
+  background:#fff;color:#20362a;border-radius:12px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel textarea{
+  min-height:84px;resize:vertical;
+}
+body[data-bite-app="customer"] #checkoutFormPanel input:focus-visible,
+body[data-bite-app="customer"] #checkoutFormPanel select:focus-visible,
+body[data-bite-app="customer"] #checkoutFormPanel textarea:focus-visible,
+body[data-bite-app="customer"] #checkoutFormPanel button:focus-visible{
+  outline:3px solid #8ecdad;outline-offset:2px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutactions{
+  gap:9px;border-top:1px solid #e2ebe3;
+  padding-top:13px;background:#fff;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .checkoutactions>button{
+  min-height:48px;border-radius:12px;font-size:13px;
+  line-height:1.3;font-weight:850;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #placeOrderBtn{
+  background:#087b4d;border-color:#087b4d;color:#fff;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #placeOrderBtn:disabled{
+  background:#e3eae5;color:#52665a;border-color:#d8e3dc;
+  opacity:1;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #checkoutPaymentNote{
+  line-height:1.5;color:#5c7164;
+}
+@media(max-width:600px){
+  body[data-bite-app="customer"] #checkoutModal{padding:10px;align-items:center}
+  body[data-bite-app="customer"] #checkoutFormPanel{
+    max-height:calc(100dvh - 20px);overflow:auto;
+    padding:17px 15px calc(15px + env(safe-area-inset-bottom));
+    border-radius:19px;
+  }
+  body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-steps{
+    gap:6px;margin:15px 0 13px;
+  }
+  body[data-bite-app="customer"] #checkoutFormPanel .checkoutactions{
+    position:sticky;bottom:0;
+    margin-left:-15px;margin-right:-15px;
+    padding:12px 15px max(12px,env(safe-area-inset-bottom));
+    z-index:3;box-shadow:0 -5px 12px #173e220d;
+  }
+}
+@media(max-width:350px){
+  body[data-bite-app="customer"] #checkoutFormPanel .bite-checkout-head .eyebrow{
+    font-size:9px;
+  }
+  body[data-bite-app="customer"] #checkoutFormPanel #checkoutEditItems{
+    padding:9px 10px;font-size:11px;
+  }
+  body[data-bite-app="customer"] #checkoutFormPanel .checkoutmode label{
+    padding:9px 7px;font-size:12px;
+  }
+  body[data-bite-app="customer"] #checkoutFormPanel .checkoutactions>button{
+    padding:9px 6px;font-size:12px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-bite-app="customer"] #checkoutFormPanel *{
+    scroll-behavior:auto!important;transition:none!important;
+  }
+}
