@@ -78,8 +78,8 @@ test('Printable QR card uses orange scan-friendly modules and full Bite branding
  assert.match(card,/--orange:#fc8019/);
  assert.match(card,/class="qr-frame"/);
  assert.match(card,/class="qr-brand-block"/);
- assert.match(card,/id="biteBrandLogo" class="qr-bite-logo" src="assets\/bite-menu-brand-mark\.svg" alt="Bite new menu logo"/);
- assert.match(card,/<strong>Bite<\/strong><span>Eat\. Repeat\.<\/span>/);
+ assert.match(card,/id="biteBrandLogo" class="qr-bite-logo" src="assets\/bite-selected-wordmark\.webp"/);
+ assert.doesNotMatch(card,/class="qr-brand-text"/);
  assert.ok(card.indexOf('id="code"')<card.indexOf('class="qr-brand-block"'),
    'Bite logo and name must be below QR, not above it');
  assert.match(card,/@media print/);
@@ -87,14 +87,14 @@ test('Printable QR card uses orange scan-friendly modules and full Bite branding
  assert.match(card,/>Download QR Card<\/button>/);
  assert.match(card,/canvas\.width=900;canvas\.height=1200/);
  assert.match(card,/ctx\.drawImage\(qrCanvas\|\|qrImage,210,331,480,480\)/);
- assert.match(card,/ctx\.drawImage\(logo,270,891,94,94\)/);
+ assert.match(card,/ctx\.drawImage\(logo,212,841,476,196\)/);
  assert.match(card,/bite-branded-menu-qr-/);
  assert.doesNotMatch(card,/colorDark:'#1e1337'/);
 });
 
 test('QR customer menu uses new Bite visual identity and same cover selector as website',()=>{
  const module=fs.readFileSync('assets/bite-restaurant-covers.js','utf8');
- assert.match(menu,/assets\/bite-menu-brand-mark\.svg/);
+ assert.match(menu,/assets\/bite-selected-wordmark\.webp/);
  assert.match(menu,/assets\/bite-restaurant-covers\.js/);
  assert.match(menu,/id="restaurantCoverImage"/);
  assert.match(menu,/id="jumpToMenuBtn"/);
@@ -110,9 +110,36 @@ test('QR customer menu uses new Bite visual identity and same cover selector as 
  assert.match(fs.readFileSync('assets/qr-menu-premium.css','utf8'),/\.categories\{position:sticky/);
  const logo=fs.readFileSync('assets/bite-menu-brand.svg','utf8');
  const mark=fs.readFileSync('assets/bite-menu-brand-mark.svg','utf8');
- assert.match(logo,/<svg/);assert.match(logo,/EAT\. REPEAT\./);
- assert.match(mark,/rounded B emblem/);
- assert.match(card,/assets\/bite-menu-brand-mark\.svg/);
+ assert.match(logo,/Official selected logo/);
+ assert.match(mark,/Official purple orange Bite B/);
+ assert.match(card,/assets\/bite-selected-wordmark\.webp/);
  assert.match(card,/assets\/qr-card-premium\.css/);
  assert.doesNotMatch(menu,/\.insert\(|\.upsert\(|\.update\(|\.delete\(/);
+});
+
+test('Chosen Bite identity covers website, QR, dashboards, print and app icons',()=>{
+ const word=fs.readFileSync('assets/bite-selected-wordmark.webp');
+ const icon=fs.readFileSync('assets/bite-selected-icon.png');
+ assert.equal(word.toString('ascii',0,4),'RIFF');
+ assert.equal(word.toString('ascii',8,12),'WEBP');
+ assert.ok(word.length>10000);
+ assert.equal(icon.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
+ for(const path of ['assets/bite-logo.svg','assets/bite-logo-on-dark.svg','assets/bite-menu-brand.svg']){
+   const content=fs.readFileSync(path,'utf8');
+   assert.match(content,/Official selected logo/);
+   assert.match(content,/data:image\/webp;base64,/);
+ }
+ for(const path of ['assets/bite-app-icon.svg','assets/bite-menu-brand-mark.svg']){
+   const content=fs.readFileSync(path,'utf8');
+   assert.match(content,/Official purple orange Bite B/);
+   assert.match(content,/data:image\/png;base64,/);
+ }
+ for(const path of ['index.html','customer.html','menu-qr.html','menu-qr-card.html','owner-feedback.html','delivery.html','contact.html']){
+   const content=fs.readFileSync(path,'utf8');
+   assert.match(content,/bite-selected-logo-rollout\.css/);
+ }
+ assert.match(menu,/src="assets\/bite-selected-wordmark\.webp"/);
+ assert.match(card,/ctx\.drawImage\(logo,212,841,476,196\)/);
+ assert.match(card,/id="biteBrandLogo"/);
+ assert.match(fs.readFileSync('assets/bite-selected-logo-rollout.css','utf8'),/bite-dashboard-brand img/);
 });
