@@ -19,6 +19,7 @@ window.__qrMenuPrice=180;
 window.supabase={
  createClient:()=>({
   rpc: async name=>{
+   if(name==='bite_storefront')return {data:{restaurants:[{id:'262aaba7-f48b-4fa5-9ff6-b334ededca84',cover_image_path:null},{id:'11111111-1111-4111-8111-111111111111',cover_image_path:null}]},error:null};
    if(name!=='list_public_restaurants')throw Error('Unexpected RPC '+name);
    return {data:[
      {id:'262aaba7-f48b-4fa5-9ff6-b334ededca84',
@@ -37,12 +38,12 @@ window.supabase={
       eq:(field,value)=>{if(field==='restaurant_id')q.restaurantId=value;return q},
       order:()=>q,limit:()=>q,
       then:(resolve,reject)=>Promise.resolve({data:table==='menu_categories'
-       ?[{id:'cat-veg',name:'Main Course',sort_order:1}]
+       ?[{id:'cat-veg',name:'Main Course',sort_order:1},{id:'cat-breakfast',name:'Breakfast',sort_order:2}]
        :q.restaurantId==='262aaba7-f48b-4fa5-9ff6-b334ededca84'
          ?[{id:'dish-1',name:'Paneer Butter Masala',description:'Fresh paneer',
             price:window.__qrMenuPrice,image_url:null,is_vegetarian:true,category_id:'cat-veg'},
            {id:'dish-2',name:'Veg Sandwich',description:'Fresh vegetables',price:120,
-            image_url:null,is_vegetarian:true,category_id:'cat-veg'}]
+            image_url:null,is_vegetarian:true,category_id:'cat-breakfast'}]
          :[{id:'dish-1',name:'Paneer Butter Masala',description:'Fresh paneer',price:180,
              image_url:null,is_vegetarian:true,category_id:'cat-veg'},
            {id:'dish-3',name:'Chicken Curry',description:'Spiced',price:250,
@@ -67,6 +68,8 @@ try:
    page.goto(f'http://127.0.0.1:4189/menu-qr.html?restaurant={RID}',wait_until='load')
    page.wait_for_function("document.getElementById('restaurantName').textContent==='Hotel Maharani Palace'",timeout=8000)
    check(page.locator('.item').count()==2,f'Pure Veg menu shows two available items at {width}px')
+   check(page.locator('.hero-photo img').is_visible() and 'assets/food/meal-1100.jpg' in page.locator('#restaurantCoverImage').get_attribute('src'),f'QR hero matches customer cover at {width}px')
+   check(page.locator('.brand img').get_attribute('src')=='assets/bite-menu-brand-mark.svg',f'New Bite logo in header at {width}px')
    check('Pure Veg Restaurant' in page.locator('#restaurantDescription').inner_text(),f'Correct restaurant details at {width}px')
    check(page.locator('#vegSwitch').is_hidden() and page.locator('#pureVegLabel').is_visible(),
          f'Pure Veg restaurant hides redundant vegetarian checkbox at {width}px')
@@ -76,6 +79,18 @@ try:
    check(page.locator('.item').count()==1 and 'Paneer Butter Masala' in page.locator('#menu').inner_text(),
          f'Dish search works for Pure Veg menu at {width}px')
    page.locator('#dishSearch').fill('')
+   page.locator('#jumpToMenuBtn').click()
+   page.wait_for_function('window.scrollY>40',timeout=8000)
+   page.wait_for_function("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80",timeout=8000)
+   check(page.evaluate("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80"),
+     f'Jump button makes dish cards visible at {width}px')
+   page.locator('#categories [data-category="cat-breakfast"]').click()
+   page.wait_for_function("document.getElementById('selectedCategoryTitle').textContent==='Breakfast'",timeout=8000)
+   check(page.locator('.item').count()==1 and 'Veg Sandwich' in page.locator('#menu').inner_text(),f'Breakfast filters dishes at {width}px')
+   page.wait_for_function("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80",timeout=8000)
+   check(page.evaluate("document.querySelector('#menu .item').getBoundingClientRect().top<innerHeight-80"),
+     f'Breakfast tap displays matching dish cards in the viewport at {width}px')
+   page.locator('#categories [data-category="all"]').click()
    check('₹180' in page.locator('#menu').inner_text(),f'Original menu price appears at {width}px')
    page.evaluate("window.__qrMenuPrice=240")
    page.locator('#refreshMenuBtn').click()
@@ -105,6 +120,7 @@ try:
   check(page.locator('#code canvas, #code img').count()>0,'Restaurant QR generated from bundled local library')
   check(f'restaurant={RID}' in page.locator('#menuLink').inner_text(),'QR links to same restaurant read-only menu')
   check(page.locator('#downloadBtn').is_enabled() and page.locator('#copyBtn').is_enabled(),'QR can be printed, saved or linked')
+  check(page.locator('#biteBrandLogo').get_attribute('src')=='assets/bite-menu-brand-mark.svg','QR card uses the new Bite mark')
   check(page.locator('.qr-brand-block').is_visible()
      and page.locator('#biteBrandLogo').is_visible()
      and page.locator('.qr-brand-text strong').inner_text()=='Bite'
@@ -120,9 +136,9 @@ try:
     }
     return null;
   }""")
-  check(qr_ink is not None and abs(qr_ink[0]-175)<12
-      and abs(qr_ink[1]-69)<12 and abs(qr_ink[2]-10)<12,
-      'QR matrix uses scan-friendly dark orange modules, not purple')
+  check(qr_ink is not None and abs(qr_ink[0]-53)<12
+      and abs(qr_ink[1]-22)<12 and abs(qr_ink[2]-110)<12,
+      'QR matrix uses Bite purple modules on white')
   with page.expect_download(timeout=12000) as transfer:
     page.locator('#downloadBtn').click()
   downloaded=transfer.value

@@ -53,15 +53,22 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 @media(max-width:640px){main{width:min(100% - 22px,560px);margin-top:13px}.hero{padding:19px 15px}.filters{grid-template-columns:1fr}.veg-switch{justify-content:flex-start}.menu{grid-template-columns:1fr}.item{padding:10px;gap:11px}.item img,.item .placeholder{width:93px;height:93px}.item{min-height:112px}.item-name{font-size:15px}.brand{font-size:17px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style>
+<link rel="stylesheet" href="assets/qr-menu-premium.css?v=20261114-hero1">
 </head>
 <body>
-<header><div class="brand"><img src="assets/bite-logo.svg" alt="Bite"><span>Digital Menu <small>· Eat. Repeat.</small></span></div></header>
+<header><div class="brand"><img src="assets/bite-menu-brand-mark.svg" alt="Bite logo"><div class="brand-copy"><strong>Bite</strong><span>Eat. Repeat.</span></div><span class="header-separator" aria-hidden="true"></span><span class="header-menu-label">DIGITAL MENU</span></div></header>
 <main>
 <section class="hero" aria-labelledby="restaurantName">
+<div class="hero-photo"><img id="restaurantCoverImage" src="assets/food/meal-1100.jpg" alt="Restaurant food thumbnail" fetchpriority="high" decoding="async"><span id="restaurantCoverLabel" class="cover-label">Bite suggested photo</span></div>
+<div class="hero-body">
+<div class="restaurant-kicker">Welcome to our table</div>
 <h1 id="restaurantName">Restaurant menu</h1>
-<p id="restaurantDescription">Menu load ho raha hai...</p>
 <div id="pureVegLabel" class="pure-veg-label" hidden>● 100% Pure Vegetarian</div>
-<div class="menu-note" role="note"><span aria-hidden="true">🍽️</span><span>Menu dekhein aur order waiter ko batayein. Payment aur bill restaurant counter par hoga. QR se online order ya payment nahi hota.</span></div>
+<p id="restaurantDescription">Menu load ho raha hai...</p>
+<button id="descriptionToggle" type="button" aria-expanded="false" hidden>Read more</button>
+<div class="menu-note" role="note"><span class="note-icon" aria-hidden="true">🍽️</span><span>Menu dekhein, order waiter ko batayein. Bill aur payment restaurant counter par hoga.</span></div>
+<div class="hero-actions"><button id="jumpToMenuBtn" type="button" disabled>Menu dekhein <span aria-hidden="true">↓</span></button><span class="scroll-hint">Neeche dishes aur prices dekhein ↓</span></div>
+</div>
 </section>
 <div id="message" role="status" aria-live="polite">Menu load ho raha hai...</div>
 <section id="filters" class="filters" hidden aria-label="Menu filters">
@@ -69,10 +76,11 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 <label id="vegSwitch" class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label>
 </section>
 <nav id="categories" class="categories" hidden aria-label="Menu categories"></nav>
-<div id="summary" class="summary" hidden><strong>Hamare dishes</strong><div class="menu-freshness"><span id="itemCount"></span><button id="refreshMenuBtn" type="button" aria-label="Refresh menu and current prices">↻ Refresh rates</button><span id="menuFreshness" role="status" aria-live="polite"></span></div></div>
+<div id="summary" class="summary" hidden><strong id="selectedCategoryTitle">Hamare dishes</strong><div class="menu-freshness"><span id="itemCount"></span><button id="refreshMenuBtn" type="button" aria-label="Refresh menu and current prices">↻ Refresh rates</button><span id="menuFreshness" role="status" aria-live="polite"></span></div></div>
 <div id="menu" class="menu" hidden aria-live="polite"></div>
 </main>
 <footer>Bite — Eat. Repeat. · Menu only. Prices/availability restaurant se confirm karein.</footer>
+<script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
@@ -101,6 +109,8 @@ function draw(){
    &&(!search||String(item.name||'').toLocaleLowerCase().includes(search)
     ||String(item.description||'').toLocaleLowerCase().includes(search)));
  $('itemCount').textContent=visible.length+' dishes';
+ const selected=categories.find(c=>c.id===category);
+ $('selectedCategoryTitle').textContent=selected?selected.name:'Hamare dishes';
  const menu=$('menu');menu.replaceChildren();
  if(!visible.length){const p=document.createElement('p');p.textContent='Is filter mein koi dish nahi. Search ya category badlein.';p.style.color='#726b7c';menu.append(p);return}
  for(const item of visible){
@@ -117,7 +127,8 @@ function draw(){
   const price=document.createElement('span');price.className='price';price.textContent=money(item.price);
   const mark=document.createElement('span');mark.className='mark'+(item.is_vegetarian===false?' nonveg':'');
   mark.textContent=item.is_vegetarian===true?'● Veg':item.is_vegetarian===false?'● Non-veg':'';
-  content.append(name,desc,price,mark);card.append(content);menu.append(card);
+  const meta=document.createElement('div');meta.className='item-meta';meta.append(price,mark);
+  content.append(name,desc,meta);card.append(content);menu.append(card);
  }
 }
 function pureVegMenu(restaurant,availableItems){
@@ -127,6 +138,34 @@ function pureVegMenu(restaurant,availableItems){
  // currently available dish is verified vegetarian. Never hide if any non-veg.
  return availableItems.length>0&&!availableItems.some(item=>item.is_vegetarian===false)
    &&(taggedPureVeg||availableItems.every(item=>item.is_vegetarian===true));
+}
+function scrollToDishes(){
+ const section=$('summary');
+ if(!section||section.hidden)return;
+ section.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+function applyHeroImage(restaurant,menuRows){
+ const helper=window.BiteRestaurantCovers;
+ const photo=helper?.choose?.(restaurant,(menuRows||[]).map(item=>({...item,restaurant_id:restaurant.id})),'https://wedbgpybbgsszcmffoha.supabase.co');
+ if(!photo)return;
+ const hero=$('restaurantCoverImage'),label=$('restaurantCoverLabel');
+ const fallback=photo.fallback||'assets/food/meal-1100.jpg';
+ hero.onerror=()=>{hero.onerror=null;hero.src=fallback;label.textContent='Bite suggested photo';};
+ hero.alt=photo.alt||'Restaurant food thumbnail';
+ label.textContent=photo.label||'Restaurant photo';
+ if(hero.getAttribute('src')!==photo.src)hero.src=photo.src;
+}
+async function syncHeroCover(client,restaurant,menuRows){
+ applyHeroImage(restaurant,menuRows);
+ try{
+  // Mirror the same publicly published cover metadata that Customer Website
+  // uses; no anonymous read of private restaurant table or photo upload.
+  const {data,error}=await client.rpc('bite_storefront',{p_postal_code:null});
+  if(error||!Array.isArray(data?.restaurants))return;
+  const live=data.restaurants.find(r=>r.id===restaurant.id);
+  if(live)applyHeroImage({...restaurant,cover_image_path:live.cover_image_path,
+    cover_image_updated_at:live.cover_image_updated_at},menuRows);
+ }catch(error){console.warn('Optional QR restaurant cover refresh:',error)}
 }
 function drawCategories(){
  const nav=$('categories');nav.replaceChildren();
@@ -138,6 +177,7 @@ function drawCategories(){
    category=c.id;
    nav.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===button)));
    draw();
+   window.requestAnimationFrame(scrollToDishes);
   });
   nav.append(button);
  }
@@ -187,7 +227,15 @@ async function loadMenu({quiet=false}={}){
   $('pureVegLabel').hidden=!isPureVeg;
   if(isPureVeg)$('vegOnly').checked=false;
   $('restaurantName').textContent=restaurant.name||'Restaurant menu';
-  $('restaurantDescription').textContent=(restaurant.public_description||restaurant.address||'')+' · Apna order waiter ko batayein.';
+  const description=String(restaurant.public_description||restaurant.address||'')
+   .trim().replace(/^["“]|["”]$/g,'').trim();
+  $('restaurantDescription').classList.remove('expanded');
+  $('restaurantDescription').textContent=description;
+  $('descriptionToggle').hidden=description.length<125;
+  $('descriptionToggle').textContent='Read more';
+  $('descriptionToggle').setAttribute('aria-expanded','false');
+  void syncHeroCover(client,restaurant,newItems);
+  $('jumpToMenuBtn').disabled=!newItems.length;
   document.title=(restaurant.name||'Restaurant')+' · Menu Only | Bite';
   lastLoadedAt=Date.now();
   if(!items.length){hideMenu();status('Is restaurant mein abhi menu items available nahi hain. Waiter se poochhein.');return}
@@ -205,6 +253,13 @@ async function loadMenu({quiet=false}={}){
   $('refreshMenuBtn').disabled=false;
  }
 }
+$('jumpToMenuBtn').addEventListener('click',scrollToDishes);
+$('descriptionToggle').addEventListener('click',()=>{
+ const desc=$('restaurantDescription');
+ const expanded=desc.classList.toggle('expanded');
+ $('descriptionToggle').setAttribute('aria-expanded',String(expanded));
+ $('descriptionToggle').textContent=expanded?'Show less':'Read more';
+});
 $('dishSearch').addEventListener('input',draw);
 $('vegOnly').addEventListener('change',draw);
 $('refreshMenuBtn').addEventListener('click',()=>loadMenu());

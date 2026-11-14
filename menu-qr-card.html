@@ -55,6 +55,7 @@ button:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
  .qr-bite-logo{width:63px;height:63px}
 }
 </style>
+<link rel="stylesheet" href="assets/qr-card-premium.css?v=20261114-brand1">
 </head>
 <body>
 <main>
@@ -68,7 +69,7 @@ button:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
 </div>
 <div class="qr-frame"><div id="code" aria-label="Restaurant menu QR code"></div></div>
 <div class="qr-brand-block">
-  <img id="biteBrandLogo" class="qr-bite-logo" src="assets/bite-app-icon.svg" alt="Bite logo">
+  <img id="biteBrandLogo" class="qr-bite-logo" src="assets/bite-menu-brand-mark.svg" alt="Bite new menu logo">
   <div class="qr-brand-text"><strong>Bite</strong><span>Eat. Repeat.</span></div>
 </div>
 <div class="menu-tagline">Menu only · Order waiter ko batayein</div>
@@ -105,8 +106,8 @@ async function start(){
   const url=menuUrl.href;
   $('restaurantName').textContent=r.name||'Restaurant';
   $('menuLink').textContent=url;
-  // Dark orange modules maintain stronger scan contrast than bright orange on white.
-  new QRCode($('code'),{text:url,width:260,height:260,colorDark:'#af450a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  // Bite-purple modules match the storefront; white quiet zone ensures clear scan contrast.
+  new QRCode($('code'),{text:url,width:260,height:260,colorDark:'#35166e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   $('printBtn').disabled=false;$('downloadBtn').disabled=false;$('copyBtn').disabled=false;
   $('printBtn').addEventListener('click',()=>window.print());
   $('downloadBtn').addEventListener('click',async()=>{
@@ -119,9 +120,10 @@ async function start(){
       const canvas=document.createElement('canvas');canvas.width=900;canvas.height=1200;
       const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas unavailable');
       ctx.fillStyle='#ffffff';ctx.fillRect(0,0,900,1200);
-      ctx.fillStyle='#fc8019';ctx.fillRect(0,0,900,32);ctx.fillRect(0,1178,900,22);
-      ctx.fillStyle='#fff1e2';ctx.fillRect(0,32,900,245);
-      ctx.textAlign='center';ctx.fillStyle='#af450a';ctx.font='900 25px system-ui,sans-serif';
+      ctx.fillStyle='#35166e';ctx.fillRect(0,0,900,32);ctx.fillRect(0,1178,900,22);
+      ctx.fillStyle='#f77b1a';ctx.fillRect(0,30,900,6);
+      ctx.fillStyle='#f4effb';ctx.fillRect(0,36,900,241);
+      ctx.textAlign='center';ctx.fillStyle='#35166e';ctx.font='900 25px system-ui,sans-serif';
       ctx.fillText('SCAN  •  VIEW MENU',450,107);
       ctx.fillStyle='#30253b';ctx.font='900 47px system-ui,sans-serif';
       const name=r.name||'Restaurant';
@@ -132,18 +134,18 @@ async function start(){
       }
       if(line)lines.push(line);
       lines.slice(0,2).forEach((text,index)=>ctx.fillText(text.length>34?text.slice(0,33)+'…':text,450,170+index*52));
-      ctx.font='700 26px system-ui,sans-serif';ctx.fillStyle='#80512e';
+      ctx.font='700 26px system-ui,sans-serif';ctx.fillStyle='#664582';
       ctx.fillText('Scan karein  •  Menu dekhein',450,255);
       // White quiet zone protects scanning, especially when printed.
       ctx.fillStyle='#ffffff';ctx.fillRect(179,300,542,542);
-      ctx.strokeStyle='#ffd1aa';ctx.lineWidth=4;ctx.strokeRect(179,300,542,542);
+      ctx.strokeStyle='#d5c5ea';ctx.lineWidth=4;ctx.strokeRect(179,300,542,542);
       ctx.drawImage(qrCanvas||qrImage,210,331,480,480);
       const logo=$('biteBrandLogo');
       if(logo&&!logo.complete){try{await logo.decode()}catch(e){/* Text brand still exports. */}}
       if(logo?.naturalWidth)ctx.drawImage(logo,270,891,94,94);
-      ctx.fillStyle='#af450a';ctx.textAlign='left';ctx.font='900 67px system-ui,sans-serif';ctx.fillText('Bite',382,944);
+      ctx.fillStyle='#35166e';ctx.textAlign='left';ctx.font='900 67px system-ui,sans-serif';ctx.fillText('Bite',382,944);
       ctx.fillStyle='#49354f';ctx.font='800 27px system-ui,sans-serif';ctx.fillText('Eat. Repeat.',385,982);
-      ctx.textAlign='center';ctx.fillStyle='#744e32';ctx.font='700 22px system-ui,sans-serif';
+      ctx.textAlign='center';ctx.fillStyle='#5f4277';ctx.font='700 22px system-ui,sans-serif';
       ctx.fillText('Menu only  •  Order waiter ko batayein',450,1061);
       ctx.fillStyle='#918391';ctx.font='19px system-ui,sans-serif';ctx.fillText('Bite Digital Menu',450,1113);
       const a=document.createElement('a');a.href=canvas.toDataURL('image/png');

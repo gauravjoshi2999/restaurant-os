@@ -73,12 +73,12 @@ test('Printed permanent QR stays unchanged when live menu prices are updated',()
 });
 
 test('Printable QR card uses orange scan-friendly modules and full Bite branding under QR',()=>{
- assert.match(card,/colorDark:'#af450a'/);
+ assert.match(card,/colorDark:'#35166e'/);
  assert.match(card,/colorLight:'#ffffff'/);
  assert.match(card,/--orange:#fc8019/);
  assert.match(card,/class="qr-frame"/);
  assert.match(card,/class="qr-brand-block"/);
- assert.match(card,/id="biteBrandLogo" class="qr-bite-logo" src="assets\/bite-app-icon\.svg" alt="Bite logo"/);
+ assert.match(card,/id="biteBrandLogo" class="qr-bite-logo" src="assets\/bite-menu-brand-mark\.svg" alt="Bite new menu logo"/);
  assert.match(card,/<strong>Bite<\/strong><span>Eat\. Repeat\.<\/span>/);
  assert.ok(card.indexOf('id="code"')<card.indexOf('class="qr-brand-block"'),
    'Bite logo and name must be below QR, not above it');
@@ -90,4 +90,29 @@ test('Printable QR card uses orange scan-friendly modules and full Bite branding
  assert.match(card,/ctx\.drawImage\(logo,270,891,94,94\)/);
  assert.match(card,/bite-branded-menu-qr-/);
  assert.doesNotMatch(card,/colorDark:'#1e1337'/);
+});
+
+test('QR customer menu uses new Bite visual identity and same cover selector as website',()=>{
+ const module=fs.readFileSync('assets/bite-restaurant-covers.js','utf8');
+ assert.match(menu,/assets\/bite-menu-brand-mark\.svg/);
+ assert.match(menu,/assets\/bite-restaurant-covers\.js/);
+ assert.match(menu,/id="restaurantCoverImage"/);
+ assert.match(menu,/id="jumpToMenuBtn"/);
+ assert.match(menu,/id="descriptionToggle"/);
+ assert.match(menu,/async function syncHeroCover\(client,restaurant,menuRows\)/);
+ assert.match(menu,/client\.rpc\('bite_storefront',\{p_postal_code:null\}\)/);
+ assert.match(menu,/BiteRestaurantCovers/);
+ assert.match(menu,/function scrollToDishes\(\)/);
+ assert.match(menu,/window\.requestAnimationFrame\(scrollToDishes\)/);
+ assert.match(menu,/id="selectedCategoryTitle"/);
+ assert.match(menu,/className='item-meta'/);
+ assert.match(module,/function choose\(r,items=/);
+ assert.match(fs.readFileSync('assets/qr-menu-premium.css','utf8'),/\.categories\{position:sticky/);
+ const logo=fs.readFileSync('assets/bite-menu-brand.svg','utf8');
+ const mark=fs.readFileSync('assets/bite-menu-brand-mark.svg','utf8');
+ assert.match(logo,/<svg/);assert.match(logo,/EAT\. REPEAT\./);
+ assert.match(mark,/rounded B emblem/);
+ assert.match(card,/assets\/bite-menu-brand-mark\.svg/);
+ assert.match(card,/assets\/qr-card-premium\.css/);
+ assert.doesNotMatch(menu,/\.insert\(|\.upsert\(|\.update\(|\.delete\(/);
 });
