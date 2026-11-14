@@ -97,7 +97,7 @@ try:
   check(page.locator('.item').count()==1 and 'Paneer Butter Masala' in page.locator('#menu').inner_text(),
         'Mixed-menu Veg filter excludes non-veg dishes')
   page.close()
-  page=browser.new_page(viewport={'width':390,'height':820})
+  page=browser.new_page(viewport={'width':390,'height':820},accept_downloads=True)
   page.route('**/supabase.min.js',lambda route:route.fulfill(status=200,
    content_type='application/javascript',body=SUPABASE_MOCK))
   page.goto(f'http://127.0.0.1:4189/menu-qr-card.html?restaurant={RID}',wait_until='load')
@@ -105,6 +105,37 @@ try:
   check(page.locator('#code canvas, #code img').count()>0,'Restaurant QR generated from bundled local library')
   check(f'restaurant={RID}' in page.locator('#menuLink').inner_text(),'QR links to same restaurant read-only menu')
   check(page.locator('#downloadBtn').is_enabled() and page.locator('#copyBtn').is_enabled(),'QR can be printed, saved or linked')
+  check(page.locator('.qr-brand-block').is_visible()
+     and page.locator('#biteBrandLogo').is_visible()
+     and page.locator('.qr-brand-text strong').inner_text()=='Bite'
+     and page.locator('.qr-brand-text span').inner_text()=='Eat. Repeat.',
+     'Brand logo, Bite name and Eat. Repeat. are visible under QR')
+  qr_ink=page.evaluate("""() => {
+    const c=document.querySelector('#code canvas');
+    if(!c)return null;
+    const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    for(let i=0;i<d.length;i+=4){
+      if(d[i]<220&&d[i+1]<180&&d[i+2]<150&&d[i+3]>200)
+        return [d[i],d[i+1],d[i+2]];
+    }
+    return null;
+  }""")
+  check(qr_ink is not None and abs(qr_ink[0]-175)<12
+      and abs(qr_ink[1]-69)<12 and abs(qr_ink[2]-10)<12,
+      'QR matrix uses scan-friendly dark orange modules, not purple')
+  with page.expect_download(timeout=12000) as transfer:
+    page.locator('#downloadBtn').click()
+  downloaded=transfer.value
+  check(downloaded.suggested_filename.startswith('bite-branded-menu-qr-')
+      and downloaded.suggested_filename.endswith('.png'),
+      'Download saves a fully branded card PNG')
+  check(Path(downloaded.path()).read_bytes()[:8]==b'\\x89PNG\\r\\n\\x1a\\n',
+      'Branded QR download is a genuine PNG')
+  page.emulate_media(media='print')
+  check(page.locator('#biteBrandLogo').is_visible()
+      and page.locator('.qr-brand-block').is_visible()
+      and page.locator('.toolbar').is_hidden(),
+      'Print card keeps Bite logo and tagline while hiding toolbar')
   check(page.evaluate('window.__qrTestWrites.length===0'),'Printing menu QR requires no order/payment write')
   page.close()
   browser.close()
