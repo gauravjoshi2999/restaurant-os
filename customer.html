@@ -1402,8 +1402,11 @@ $('undoClearCartBtn').addEventListener('click',()=>{
 document.addEventListener('visibilitychange',()=>{
  if(document.visibilityState==='visible'&&!$('cartModal').classList.contains('hidden'))renderCartModal();
 });
+let biteCartCheckoutOpening=false;
 $('cartCheckoutBtn').addEventListener('click',async()=>{
- if(!cartEntries().length||biteCartHoursBusy)return;
+ if(biteCartCheckoutOpening||!cartEntries().length||biteCartHoursBusy)return;
+ biteCartCheckoutOpening=true;
+ try{
  if(cartInstructionSnapshot().tooLong){updateCartInstructionsStatus();return;}
  // Revalidate immediately before checkout even when the cart was opened earlier.
  // Never trust the hours cached on initial page load.
@@ -1424,6 +1427,7 @@ $('cartCheckoutBtn').addEventListener('click',async()=>{
   $('cartModalTotal').appendChild(warning);
   console.warn('Customer checkout setup failed',e);
  }
+ }finally{biteCartCheckoutOpening=false;}
 });
 function closeCheckoutAndReturnToMenu(){++biteCheckoutOpenSequence;if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
 $('checkoutEditItems').addEventListener('click',()=>{
