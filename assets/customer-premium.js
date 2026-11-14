@@ -117,7 +117,7 @@
   function hideSuggestions(){suggestions.hidden=true;search.setAttribute('aria-expanded','false');}
   function showSuggestions(){
     const query=search.value.trim();
-    if(query.length<2||byId('homeView')?.classList.contains('hidden')){
+    if(window.biteStorefrontLoading||query.length<2||byId('homeView')?.classList.contains('hidden')){
       hideSuggestions();return;
     }
     if(typeof BiteDiscovery==='undefined'||typeof restaurants==='undefined'||typeof publicMenuSearch==='undefined'){
