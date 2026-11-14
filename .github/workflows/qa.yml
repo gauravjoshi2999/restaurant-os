@@ -79,5 +79,6 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113212500_cashbook_day_serialization.sql
           psql -v ON_ERROR_STOP=1 -f scripts/cashbook_closing_db_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/cashbook_production_view_parity.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/cashbook_release_preflight_readonly.sql
           bash scripts/cashbook_concurrency_smoke.sh
           bash scripts/cashbook_close_vs_write_smoke.sh
