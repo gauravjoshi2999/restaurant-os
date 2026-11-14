@@ -1,0 +1,169 @@
+/* Bite Premium UX — scoped customer theme. Keeps transaction flows unchanged. */
+body[data-bite-app="customer"]{--bite-primary:#087b4d;--bite-primary-hover:#05643e;--bite-focus:#087b4d;--bite-canvas:#fffefa;--bite-surface:#fff;--bite-field:#f7faf7;--bite-border:#e2ebe4;--bite-ink:#20362a;--bite-muted:#5a6e60;--bite-tint:#eaf8ee;--bite-tint-border:#c5e5ce;--brand:#087b4d;--primary:#087b4d;--green:#087b4d;--bg:#fffefa;--ink:#20362a;--muted:#5a6e60;--line:#e2ebe4;background:#fffefa;color:#20362a;font-size:15px;line-height:1.5}
+body[data-bite-app="customer"] button:focus-visible,body[data-bite-app="customer"] a:focus-visible,body[data-bite-app="customer"] input:focus-visible,body[data-bite-app="customer"] select:focus-visible{outline:3px solid #087b4d;outline-offset:3px}
+body[data-bite-app="customer"] .wrap{width:min(1180px,calc(100% - 40px))}
+body[data-bite-app="customer"] .header{background:#ffffffed;border-bottom:1px solid #e2ebe4;box-shadow:0 4px 22px #173c220d;backdrop-filter:blur(16px)}
+body[data-bite-app="customer"] .storefront-header{min-height:84px;gap:25px}
+body[data-bite-app="customer"] .location-pin{color:#087b4d}
+body[data-bite-app="customer"] .header-location>div{display:flex;flex-direction:column;gap:1px;align-items:flex-start;min-width:0;flex:1}
+body[data-bite-app="customer"] .location-kicker{font-size:10px;letter-spacing:.09em;color:#4f6b57;font-weight:800}
+body[data-bite-app="customer"] .location-sub{color:#66776b;font-size:12px;max-width:260px}
+body[data-bite-app="customer"] .bite-location-opener{display:flex;align-items:center;gap:6px;max-width:100%;padding:0;background:transparent;border:0;box-shadow:none;font-size:16px;font-weight:850;color:#20362a;text-align:left}
+body[data-bite-app="customer"] .bite-location-opener span:first-child{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body[data-bite-app="customer"] .bite-location-opener svg{width:15px;height:15px;flex-shrink:0;color:#087b4d}
+body[data-bite-app="customer"] .nearby-btn{color:#087b4d;border-color:#b7dbc1;font-size:12px;font-weight:750}
+body[data-bite-app="customer"] .header .login{background:#eaf8ee;color:#087048;border-radius:100px;font-size:12px;font-weight:850;padding:10px 16px}
+body[data-bite-app="customer"] .home-account{color:#087b4d;border-color:#cde4d4}
+body[data-bite-app="customer"] .content{padding-top:24px}
+body[data-bite-app="customer"] .food-hero{min-height:380px;border:1px solid #dbeadf;border-radius:24px;background:linear-gradient(120deg,#eaf8ee,#faf8eb);box-shadow:0 14px 35px #0d442215}
+body[data-bite-app="customer"] .food-hero-copy{padding:43px 0 38px 44px;position:relative}
+body[data-bite-app="customer"] .food-hero h1{font-size:clamp(36px,4.3vw,53px);line-height:1.08;font-weight:880;color:#20362a;letter-spacing:-1.7px}
+body[data-bite-app="customer"] .food-hero h1 em{font-family:inherit;font-style:normal;color:#087b4d;font-weight:900}
+body[data-bite-app="customer"] .food-hero .food-eyebrow{color:#167049;font-size:10px;font-weight:800;letter-spacing:.11em}
+body[data-bite-app="customer"] .food-hero p{color:#526356;font-size:14px;line-height:1.7}
+body[data-bite-app="customer"] .bite-search-container{position:relative;z-index:7;width:min(100%,540px)}
+body[data-bite-app="customer"] .search.home-searchrow{border:1px solid #d7e7dc;border-radius:16px;background:#fff;box-shadow:0 7px 24px #1545231c;min-height:58px;padding:6px}
+body[data-bite-app="customer"] .search.home-searchrow svg{color:#087b4d}
+body[data-bite-app="customer"] .search.home-searchrow input{font-size:15px!important;color:#20362a;min-width:0}
+body[data-bite-app="customer"] .search.home-searchrow input::placeholder{color:#78887c;opacity:1}
+body[data-bite-app="customer"] .search.home-searchrow>button{border-radius:11px;background:#087b4d;color:#fff;min-height:44px;font-size:13px;font-weight:800;padding:9px 16px}
+body[data-bite-app="customer"] .food-hero-notes{color:#376d4a;font-size:11px;font-weight:680}
+body[data-bite-app="customer"] .food-hero-art:after{background:linear-gradient(90deg,#eaf8ee,#eaf8ee33 45%,transparent)}
+body[data-bite-app="customer"] .food-hero-art>img{filter:saturate(1.06);mix-blend-mode:normal}
+body[data-bite-app="customer"] .food-hero-stamp{border-color:#d9e9d7;background:#ecf8ee;color:#087b4d}
+body[data-bite-app="customer"] .food-discovery{border-color:#e5ece6;padding-top:34px}
+body[data-bite-app="customer"] .food-section-heading h2{color:#20362a;font-size:clamp(21px,2.5vw,27px);font-weight:850}
+body[data-bite-app="customer"] .food-eyebrow{color:#278051;font-weight:750}
+body[data-bite-app="customer"] .food-scroll-hint,body[data-bite-app="customer"] #resultCount{color:#66766a;font-size:12px}
+body[data-bite-app="customer"] .home-categories{justify-content:flex-start;gap:18px}
+body[data-bite-app="customer"] .home-category{font-size:13px;color:#395243;font-weight:760;min-height:112px;gap:9px}
+body[data-bite-app="customer"] .category-photo{border-radius:21px;padding:6px;border-color:#dfe9df;background:#f0f7ed}
+body[data-bite-app="customer"] .category-photo>img{border-radius:16px;filter:none}
+body[data-bite-app="customer"] .home-category.active{color:#087b4d}
+body[data-bite-app="customer"] .home-category.active .category-photo{border-color:#9ed7ae;background:#ecf8ee;box-shadow:0 6px 18px #087b4d17}
+body[data-bite-app="customer"] .tool-chip{font-size:12px;font-weight:760;min-height:44px;padding:11px 16px;border-radius:100px;border-color:#dbe8df;background:#fff;color:#354d3f;box-shadow:0 2px 12px #1545230a}
+body[data-bite-app="customer"] .tool-chip.active{border-color:#a9d8b7;background:#eaf8ee;color:#087b4d}
+body[data-bite-app="customer"] .discovery-tools{gap:9px}
+body[data-bite-app="customer"] .bite-filter-label{font-size:12px;color:#395044;min-height:44px}
+body[data-bite-app="customer"] .restaurants{gap:23px}
+body[data-bite-app="customer"] .restaurant{border-radius:20px;border-color:#dfe9e2;background:#fff;box-shadow:0 8px 24px #143c2010}
+body[data-bite-app="customer"] .restaurant:hover{box-shadow:0 14px 30px #143c2021;border-color:#b6d4bf}
+body[data-bite-app="customer"] .cover{height:207px;background:#edf3eb}
+body[data-bite-app="customer"] .cover>img{filter:none}
+body[data-bite-app="customer"] .covertag{font-size:11px;font-weight:760;padding:7px 11px;border-radius:100px}
+body[data-bite-app="customer"] .rbody{padding:16px}
+body[data-bite-app="customer"] .rname{font-size:17px;font-weight:850;color:#20362a}
+body[data-bite-app="customer"] .rating{font-size:12px;font-weight:850;color:#086a41;background:#e5f7eb;border-radius:9px;padding:4px 8px}
+body[data-bite-app="customer"] .desc{font-size:13px;color:#647369}
+body[data-bite-app="customer"] .meta,body[data-bite-app="customer"] .restaurant-service{font-size:12px;color:#546859}
+body[data-bite-app="customer"] .dish-match{font-size:12px;color:#087b4d}
+body[data-bite-app="customer"] .restauranthead{border:1px solid #e1ebe3;border-radius:20px;background:#fff;box-shadow:0 8px 22px #11391d0d}
+body[data-bite-app="customer"] .restauranthead h1{font-weight:880;color:#20362a}
+body[data-bite-app="customer"] .bite-restaurant-hero{border-radius:20px}
+body[data-bite-app="customer"] .categorybar{background:#fffefaf0}
+body[data-bite-app="customer"] .categorybar .chip.active,body[data-bite-app="customer"] .primary,body[data-bite-app="customer"] .cart-floating{background:#087b4d;border-color:#087b4d;color:#fff}
+body[data-bite-app="customer"] .primary:hover{background:#05643e}
+body[data-bite-app="customer"] .cart-floating{border-radius:17px;box-shadow:0 11px 27px #087b4d40}
+body[data-bite-app="customer"] .cart-floating strong{font-size:15px}
+body[data-bite-app="customer"] #floatingCartTotal{font-size:13px}
+body[data-bite-app="customer"] .cart-floating button{min-height:44px;border-radius:12px;background:#ffffff20;border:1px solid #ffffff70;color:#fff;font-size:13px;font-weight:850}
+body[data-bite-app="customer"] .cart-floating button:hover{background:#ffffff35}
+body[data-bite-app="customer"] #menuItems .itemname{font-size:17px;color:#20362a}
+body[data-bite-app="customer"] #menuItems .itemdesc{font-size:13px;color:#637369}
+body[data-bite-app="customer"] #menuItems .price{font-size:16px;font-weight:850}
+body[data-bite-app="customer"] #menuItems .menuphoto{border-radius:16px!important;box-shadow:0 5px 17px #143c2014}
+body[data-bite-app="customer"] .cart-qty,body[data-bite-app="customer"] .cart-qty button,body[data-bite-app="customer"] .item-quantity{background:#e6f7eb;color:#086a41;border-color:#b2dfbe}
+body[data-bite-app="customer"] .cart{background:#fff;border:1px solid #e1ebe3;border-radius:20px}
+body[data-bite-app="customer"] .cart h3{color:#20362a}
+body[data-bite-app="customer"] .cart-modal-box,body[data-bite-app="customer"] .checkoutbox,body[data-bite-app="customer"] .authbox{border-radius:21px;background:#fff;border-color:#dfe9df}
+body[data-bite-app="customer"] .cart-modal-head h2,body[data-bite-app="customer"] .checkoutbox h2,body[data-bite-app="customer"] .authbox h2{color:#20362a}
+body[data-bite-app="customer"] .home-bottom-nav{background:#ffffffed;border-top-color:#dce9df;box-shadow:0 -7px 24px #14321c16}
+body[data-bite-app="customer"] .home-bottom-nav button{font-size:12px;font-weight:750;color:#617363}
+body[data-bite-app="customer"] .home-bottom-nav button.active{color:#087b4d}
+body[data-bite-app="customer"] .footer{background:#f5f9f3;border-color:#e3eae1}
+body[data-bite-app="customer"] .customer-footer p,body[data-bite-app="customer"] .customer-footer a,body[data-bite-app="customer"] .customer-footer>div:last-child{color:#526655;font-size:12px}
+/* Search autocomplete from real public restaurant and dish results. */
+body[data-bite-app="customer"] .bite-search-suggestions{position:absolute;left:0;right:0;top:calc(100% + 7px);z-index:45;max-height:min(380px,60dvh);overflow:auto;padding:9px;background:#fff;border:1px solid #d8e8dc;border-radius:16px;box-shadow:0 18px 40px #183b2450}
+body[data-bite-app="customer"] .bite-search-suggestions[hidden]{display:none!important}
+body[data-bite-app="customer"] .bite-search-suggestions h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#657968;margin:6px 10px 4px}
+body[data-bite-app="customer"] .bite-search-suggestions button{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;border:0;border-radius:10px;text-align:left;padding:10px 12px;background:#fff;color:#20362a;font-size:14px;font-weight:700}
+body[data-bite-app="customer"] .bite-search-suggestions button:hover,body[data-bite-app="customer"] .bite-search-suggestions button:focus-visible{background:#eaf8ee}
+body[data-bite-app="customer"] .bite-search-kind{flex:none;background:#e8f6eb;color:#087b4d;border-radius:100px;padding:4px 8px;font-size:10px;font-weight:800}
+/* Accessible PIN/address bottom sheet. */
+body.bite-location-locked{overflow:hidden}
+body[data-bite-app="customer"] .bite-location-overlay[hidden]{display:none!important}
+body[data-bite-app="customer"] .bite-location-overlay{position:fixed;inset:0;z-index:150;background:#0b1c15aa;display:grid;place-items:end center;overscroll-behavior:contain}
+body[data-bite-app="customer"] .bite-location-sheet{box-sizing:border-box;width:min(100%,520px);max-height:92dvh;overflow-y:auto;background:#fbfdfb;border-radius:25px 25px 0 0;padding:19px 21px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -15px 60px #09200b50}
+body[data-bite-app="customer"] .bite-sheet-grip{width:46px;height:5px;border-radius:100px;background:#cbdacb;margin:0 auto 21px}
+body[data-bite-app="customer"] .bite-sheet-title{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin-bottom:18px}
+body[data-bite-app="customer"] .bite-sheet-title h2{font-size:23px;line-height:1.2;letter-spacing:-.7px;color:#20362a;margin:0}
+body[data-bite-app="customer"] .bite-sheet-title p{font-size:13px;color:#5f7163;margin:6px 0 0}
+body[data-bite-app="customer"] .bite-sheet-close{width:44px;height:44px;flex:none;border:1px solid #dce8df;border-radius:50%;background:#fff;color:#314a38;font-size:22px}
+body[data-bite-app="customer"] .bite-location-form{display:flex;gap:9px;padding:9px;background:#fff;border:1px solid #e0e9e0;border-radius:15px}
+body[data-bite-app="customer"] .bite-location-form input{min-width:0;flex:1;background:#fff!important;border:0;padding:10px;font-size:16px!important;color:#20362a}
+body[data-bite-app="customer"] .bite-location-form button{min-height:44px;background:#087b4d;color:#fff;border:0;border-radius:11px;padding:10px 16px;font-weight:850}
+body[data-bite-app="customer"] .bite-location-status{font-size:13px;color:#b42332;min-height:21px;margin:7px 0}
+body[data-bite-app="customer"] .bite-saved-addresses{display:grid;gap:9px;margin:15px 0}
+body[data-bite-app="customer"] .bite-saved-addresses button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:13px;border:1px solid #e0eae2;border-radius:14px;background:#fff;color:#20362a;min-height:60px}
+body[data-bite-app="customer"] .bite-saved-addresses button:hover{border-color:#96c8a4;background:#f1faf3}
+body[data-bite-app="customer"] .bite-saved-addresses strong{font-size:14px}
+body[data-bite-app="customer"] .bite-saved-addresses span,body[data-bite-app="customer"] .bite-saved-addresses p{font-size:12px;color:#5c7161;margin:4px}
+body[data-bite-app="customer"] .bite-location-divider{height:1px;background:#e3ebe3;margin:14px 0}
+body[data-bite-app="customer"] .bite-geo-button{width:100%;min-height:48px;border:1px solid #baddc4;background:#eaf8ee;color:#087046;border-radius:12px;font-size:14px;font-weight:800}
+body[data-bite-app="customer"] .bite-sheet-hint{font-size:12px;line-height:1.5;color:#627666;margin:9px 0}
+@media(min-width:800px){body[data-bite-app="customer"] .bite-location-overlay{place-items:center}body[data-bite-app="customer"] .bite-location-sheet{border-radius:25px}}
+@media(max-width:850px){body[data-bite-app="customer"] .restaurants{grid-template-columns:repeat(2,minmax(0,1fr))}body[data-bite-app="customer"] .wrap{width:calc(100% - 34px)}}
+@media(max-width:760px){
+ body[data-bite-app="customer"] .wrap{width:calc(100% - 32px)}
+ body[data-bite-app="customer"] .storefront-header{min-height:72px;gap:8px;flex-wrap:nowrap;padding:10px 0}
+ body[data-bite-app="customer"] .customer-brand .bite-logo{width:90px!important;max-width:25vw!important}
+ body[data-bite-app="customer"] .header-location{min-width:0;gap:4px;flex:1}
+ body[data-bite-app="customer"] .location-pin{display:none}
+ body[data-bite-app="customer"] .location-kicker{font-size:9px}
+ body[data-bite-app="customer"] .bite-location-opener{font-size:14px}
+ body[data-bite-app="customer"] .location-sub{font-size:10px;max-width:100%}
+ body[data-bite-app="customer"] .nearby-btn{display:none}
+ body[data-bite-app="customer"] .headright{gap:5px}
+ body[data-bite-app="customer"] .header .login{font-size:11px;min-height:38px;padding:8px 10px}
+ body[data-bite-app="customer"] .content{padding:14px 0 95px}
+ body[data-bite-app="customer"] .food-hero{min-height:0;border-radius:19px}
+ body[data-bite-app="customer"] .food-hero-copy{display:flex;flex-direction:column;padding:20px 17px 23px}
+ body[data-bite-app="customer"] .bite-search-container{order:0;margin-bottom:22px;width:100%}
+ body[data-bite-app="customer"] .food-hero .food-eyebrow{order:1;font-size:9px}
+ body[data-bite-app="customer"] .food-hero h1{order:2;font-size:clamp(30px,8vw,38px);letter-spacing:-1.2px;margin:9px 0}
+ body[data-bite-app="customer"] .food-hero p{order:3;font-size:12px;line-height:1.55;max-width:70%;margin:0 0 13px}
+ body[data-bite-app="customer"] .food-hero-notes{order:4;font-size:10px}
+ body[data-bite-app="customer"] .food-hero-art{inset:48px 0 0 52%;z-index:-1;opacity:.5}
+ body[data-bite-app="customer"] .food-hero-art:after{background:linear-gradient(90deg,#eef8ed,#eef8ed50,transparent)}
+ body[data-bite-app="customer"] .search.home-searchrow{border-radius:14px;min-height:54px;padding:5px}
+ body[data-bite-app="customer"] .search.home-searchrow input{font-size:15px!important;min-height:42px}
+ body[data-bite-app="customer"] .search.home-searchrow>button{font-size:12px;min-height:43px}
+ body[data-bite-app="customer"] .food-discovery{padding:25px 0 19px}
+ body[data-bite-app="customer"] .food-section-heading h2{font-size:21px}
+ body[data-bite-app="customer"] .home-categories{gap:13px;margin-right:-16px;padding-right:16px}
+ body[data-bite-app="customer"] .home-category{flex:0 0 79px;font-size:12px;min-height:100px;gap:8px}
+ body[data-bite-app="customer"] .category-photo{width:74px;height:74px;border-radius:18px}
+ body[data-bite-app="customer"] .category-photo>img{border-radius:13px}
+ body[data-bite-app="customer"] .food-results .food-section-heading h2{max-width:none}
+ body[data-bite-app="customer"] #resultCount{font-size:11px;max-width:130px}
+ body[data-bite-app="customer"] .discovery-tools{margin-right:-16px;padding-right:16px}
+ body[data-bite-app="customer"] .tool-chip{min-height:44px;font-size:12px}
+ body[data-bite-app="customer"] .restaurants{gap:14px}
+ body[data-bite-app="customer"] .home-bottom-nav{padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:8px}
+ body[data-bite-app="customer"] .home-bottom-nav button{min-height:52px;gap:3px;font-size:12px;border-radius:15px}
+ body[data-bite-app="customer"] .home-bottom-nav button.active{background:#eaf8ee}
+ body[data-bite-app="customer"] .home-bottom-nav strong{font-size:23px}
+ body[data-bite-app="customer"] .cart-floating{left:16px;right:16px;bottom:calc(82px + env(safe-area-inset-bottom));border-radius:16px;padding:10px 12px}
+ body[data-bite-app="customer"] .categorybar{top:72px}
+ body[data-bite-app="customer"] .restauranthead{padding:20px 18px}
+ body[data-bite-app="customer"] .restauranthead h1{font-size:26px}
+ body[data-bite-app="customer"] .restauranthead .muted{font-size:12px}
+ body[data-bite-app="customer"] #menuItems .itemname{font-size:15px}
+ body[data-bite-app="customer"] #menuItems .itemdesc{font-size:12px}
+ body[data-bite-app="customer"] #menuItems .price{font-size:15px}
+ body[data-bite-app="customer"] .menu-search input{font-size:16px!important}
+ body[data-bite-app="customer"] .cart-modal-actions button{font-size:13px;min-height:44px}
+}
+@media(max-width:480px){body[data-bite-app="customer"] .restaurants{grid-template-columns:1fr}body[data-bite-app="customer"] .cover{height:190px}body[data-bite-app="customer"] .restaurant .rbody{padding:15px 16px}body[data-bite-app="customer"] .rname{font-size:17px}body[data-bite-app="customer"] .rating{font-size:12px}body[data-bite-app="customer"] .meta,body[data-bite-app="customer"] .restaurant-service{font-size:12px}}
+@media(max-width:350px){body[data-bite-app="customer"] .customer-brand .bite-logo{width:74px!important;max-width:24vw!important}body[data-bite-app="customer"] .bite-location-opener{font-size:12px}body[data-bite-app="customer"] .location-sub{font-size:9px}body[data-bite-app="customer"] .header .login{font-size:10px;padding:8px}body[data-bite-app="customer"] .search.home-searchrow>button{padding:8px 10px}}
+@media(prefers-reduced-motion:reduce){body[data-bite-app="customer"] *,body[data-bite-app="customer"] *::before,body[data-bite-app="customer"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
