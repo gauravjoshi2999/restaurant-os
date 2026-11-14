@@ -46,3 +46,28 @@ test('Static build includes both QR pages and local QR generator with its licens
  assert.match(owner,/owner-menu-qr\.css\?v=20261114-viewonly1/);
  assert.match(fs.readFileSync('assets/owner-menu-qr.css','utf8'),/body:not\(\[data-role="owner"\]\) #printMenuQrBtn/);
 });
+
+test('Pure Veg restaurants hide redundant vegetarian filter without hiding it for mixed menus',()=>{
+ assert.match(menu,/id="vegSwitch"/);
+ assert.match(menu,/id="pureVegLabel"/);
+ assert.match(menu,/function pureVegMenu\(restaurant,availableItems\)/);
+ assert.match(menu,/restaurant\.cuisine_tags/);
+ assert.match(menu,/availableItems\.every\(item=>item\.is_vegetarian===true\)/);
+ assert.match(menu,/availableItems\.some\(item=>item\.is_vegetarian===false\)/);
+ assert.match(menu,/\$\('vegSwitch'\)\.hidden=isPureVeg/);
+ assert.match(menu,/\$\('pureVegLabel'\)\.hidden=!isPureVeg/);
+ assert.match(menu,/\.veg-switch\[hidden\]\{display:none!important\}/);
+});
+test('Printed permanent QR stays unchanged when live menu prices are updated',()=>{
+ assert.match(card,/menuUrl\.searchParams\.set\('restaurant',restaurantId\)/);
+ assert.doesNotMatch(card,/price|menu_version|updated_at/);
+ assert.match(menu,/cache:'no-store'/);
+ assert.match(menu,/id="refreshMenuBtn"/);
+ assert.match(menu,/function loadMenu\(\{quiet=false\}=\{\}\)/);
+ assert.match(menu,/document\.addEventListener\('visibilitychange'/);
+ assert.match(menu,/setInterval\(\(\)=>/);
+ assert.match(menu,/REFRESH_INTERVAL_MS=120000/);
+ assert.match(menu,/\.select\('id,category_id,name,description,price,image_url,is_vegetarian'\)/);
+ assert.match(menu,/\.textContent=money\(item\.price\)/);
+ assert.match(menu,/\$\('refreshMenuBtn'\)\.addEventListener\('click',\(\)=>loadMenu\(\)\)/);
+});
