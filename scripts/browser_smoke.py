@@ -131,6 +131,30 @@ def check_account_layout(page, width):
     check(all(c not in ['rgb(255, 255, 255)','rgba(0, 0, 0, 0)'] for c in colors.values()), f"Account canvas, card and fields use neutral marketplace surfaces at {width}px")
     page.locator('#addrSave').click()
     check(bool(page.locator('#addrError').inner_text().strip()), f"Address validation feedback is visible before any authenticated write at {width}px")
+    # In-memory fixture for Edit navigation; never touches customer addresses in Supabase.
+    page.evaluate("""() => {
+        accountAddressRows=[{
+          id:'qa-address',label:'Home',recipient_name:'QA Guest',
+          recipient_phone:'9999999999',address_line:'QA Test Lane',
+          landmark:'',city:'Rajsamand',state:'Rajasthan',postal_code:'313324',is_default:true
+        }];
+        document.getElementById('accountAddresses').innerHTML=
+          '<div class="account-address"><button type="button" data-aedit="qa-address">Edit</button></div>';
+    }""")
+    page.locator('[data-aedit="qa-address"]').click()
+    check(page.locator('#addrFormTitle').inner_text() == 'Edit delivery address'
+          and page.locator('#addrName').input_value() == 'QA Guest'
+          and page.locator('#addrLine').input_value() == 'QA Test Lane'
+          and page.locator('#addrCancel').is_visible(),
+          f"Edit saved address opens populated form and Cancel action at {width}px")
+    page.locator('#addrCancel').click()
+    check(page.locator('#addrFormTitle').inner_text() == 'Add a delivery address'
+          and page.locator('#addrId').input_value() == '',
+          f"Cancel edit clears stale address ID and resets the form at {width}px")
+    page.evaluate("""() => {
+      accountAddressRows=[];
+      document.getElementById('accountAddresses').textContent='No saved address yet.';
+    }""")
 
 try:
     with sync_playwright() as p:
