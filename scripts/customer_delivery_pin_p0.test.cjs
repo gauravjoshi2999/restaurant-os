@@ -93,12 +93,12 @@ test('previous PIN response cannot overwrite newer selection even after its menu
  const f=fixture({manualMenu:true});
  const old=f.ctx.runStorefront();
  f.rpcCalls[0].resolve(f.result('old menu'));
- await Promise.resolve();await Promise.resolve();
+ await new Promise(resolve=>setImmediate(resolve));
  assert.equal(f.menuCalls.length,1);
  f.ctx.currentDiscoveryPin='313399';
  const latest=f.ctx.runStorefront();
  f.rpcCalls[1].resolve(f.result('new menu'));
- await Promise.resolve();await Promise.resolve();
+ await new Promise(resolve=>setImmediate(resolve));
  assert.equal(f.menuCalls.length,2);
  f.menuCalls[1].resolve({data:[],error:null});
  await latest;
