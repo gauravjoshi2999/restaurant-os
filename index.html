@@ -720,6 +720,8 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
+<link rel="stylesheet" href="assets/admin-cashfree-audit.css?v=20261114-recon1">
+<script src="assets/admin-cashfree-audit.js?v=20261114-recon1" defer></script>
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -822,7 +824,20 @@ body.bite-session-check #biteSessionSplash{
 <div class="card" id="restaurantReviewsCard" data-owner-review-workspace style="margin-top:18px"><div class="section-head"><div><h3>Customer ratings & reviews</h3><p class="muted">Completed-order verified customer reviews dekhein aur reply dein.</p></div><button class="btn secondary" onclick="loadRestaurantReviewsWorkspace()">Refresh reviews</button></div><div id="restaurantReviewsList"><div class="empty">Reviews load ho rahe hain...</div></div></div>
 </section>
 <section class="page" id="reconciliation"><div class="welcome"><div><h1>Payment reconciliation</h1><div class="muted">Compare platform-reported amount with bank payout entered by you.</div></div></div><div class="notice">Zomato/Swiggy payouts continue to the restaurant under its existing agreement. This demo only records and compares figures; it does not collect or transfer money.</div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Platform reported (₹)</th><th>Bank payout (₹)</th><th>Difference (₹)</th><th>Action</th></tr></thead><tbody id="reconRows"></tbody></table><div class="empty" id="reconEmpty">No orders to reconcile yet.</div></div></section>
-<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard अभी केवल financial records दिखाता है। यह payment collect, bank transfer या settlement approve नहीं करता। नए orders के automatic snapshots की जाँच अलग SQL test के बाद होगी।</div><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
+<section class="page" id="financials"><div class="welcome"><div><h1>Financial &amp; settlement overview</h1><div class="muted">Own website orders ki commission aur restaurant settlement records ka read-only overview.</div></div><button class="btn secondary" onclick="loadCloudData()">Refresh</button></div><div class="notice">यह dashboard financial records और provider verification evidence दिखाता है। Cashfree collection, Bite की commission, platform bank settlement और restaurant payout अलग हैं। यहाँ कोई नया payment, refund या bank transfer शुरू नहीं होता।</div>
+<section class="section bite-provider-audit" aria-labelledby="biteProviderAuditHeading">
+ <div class="section-head"><div><h2 id="biteProviderAuditHeading">Cashfree payment verification</h2><p class="small">Super Admin only · Paid own-platform orders · Provider evidence ≠ restaurant bank payout</p></div>
+ <button class="btn secondary" type="button" id="biteProviderAuditRefresh">Refresh verification</button></div>
+ <p class="notice">“Verify with Cashfree” केवल collection और merchant settlement की provider status पढ़ता है और audit record रखता है। इससे refund, vendor split या bank transfer नहीं होगा। Restaurant payout तभी confirmed मानें जब अलग vendor settlement / bank evidence उपलब्ध हो।</p>
+ <div class="grid bite-provider-stats">
+  <div class="card"><div class="metric-label">Needs provider verification</div><div class="metric" id="biteProviderNeedCount">—</div></div>
+  <div class="card"><div class="metric-label">Provider checked: PAID</div><div class="metric" id="biteProviderCheckedCount">—</div></div>
+  <div class="card"><div class="metric-label">Restaurant bank payout</div><div class="bite-provider-payout" id="biteProviderPayoutCount">Not independently verified</div></div>
+ </div>
+ <p id="biteProviderAuditStatus" class="small" role="status" aria-live="polite">Open this page to load recorded provider checks.</p>
+ <div class="card table-wrap"><table><thead><tr><th>Order / restaurant</th><th>Customer paid (recorded)</th><th>Cashfree collection</th><th>Merchant bank settlement</th><th>Restaurant payout</th><th>Safe action</th></tr></thead><tbody id="biteProviderAuditRows"></tbody></table>
+ <div class="empty" id="biteProviderAuditEmpty">No eligible non-demo paid own-platform orders yet.</div></div>
+</section><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
  <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
  <div class="card">
   <div class="notice">यह केवल settlement का draft बनाएगा। कोई payment collect, approve या bank transfer नहीं होगा। Actual gateway fee gateway statement से देखकर ही दर्ज करें। Draft केवल Bite Super Admin बना सकता है।</div>
@@ -2435,7 +2450,13 @@ async function showPage(id){
  const titles={overview:'Overview',restaurants:'Restaurants',orders:'Orders',pos:'POS & Billing',menu:'Menu Management',tables:'Tables',khata:'Customer Khata',cashbook:'Cashbook',expenses:'Expenses',purchases:'Purchases & Suppliers',inventory:'Inventory',hr:'Team & HR',reports:'Business Reports',settings:'Settings',financials:'Financials & Settlements',audit:'Audit Log',support:'Customer Support',moderation:'Review Reports',customers:'Customers',storefront:'Website & offers'};
  document.getElementById('pageTitle').textContent=access.role==='owner'?({overview:'Aaj ka overview',orders:'Orders',pos:'POS & Billing',menu:'Menu & prices',tables:'Tables',khata:'Customer khata',cashbook:'Cashbook / day closing',expenses:'Kharcha',purchases:'Kharid & suppliers',inventory:'Stock',hr:'Staff & attendance',reports:'Reports',settings:'Restaurant settings'}[id]||'Bite'):(titles[id]||'Bite');
  window.scrollTo({top:0,behavior:'instant'});
- const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:()=>renderFinancials()};
+ const loaders={overview:()=>render(),pos:loadPOSWorkspace,menu:loadMenuWorkspace,tables:loadTablesWorkspace,khata:loadKhataWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,settings:()=>Promise.all([loadOwnerSettings(),loadDeliveryZonesWorkspace()]),orders:()=>{setOrderChannel('website');return Promise.all([loadCustomerOrderRequestsWorkspace(),loadRestaurantReviewsWorkspace(),loadSandboxPaidOrders(),loadVerifiedLiveInbox()])},restaurants:()=>Promise.all([loadOwnerMappingWorkspace(),loadRestaurantChangeRequestsWorkspace()]),audit:loadAuditLogWorkspace,support:loadSupportWorkspace,moderation:loadReviewReportsWorkspace,financials:async()=>{
+  renderFinancials();
+  window.BiteCashfreeAudit?.init?.({
+   sb,getAccess:()=>access,getState:()=>state,getUser:()=>currentUser,formatMoney:money
+  });
+  await window.BiteCashfreeAudit?.load?.();
+ }};
  const page=document.getElementById(id);page?.setAttribute('aria-busy','true');
  try{if(loaders[id])await loaders[id]();await window.BiteWorkspaceExtras?.loadPage(id);document.querySelectorAll('#'+id+' select').forEach(select=>{if(select.options.length===1&&/Restaurant|restaurant/.test(select.id)){const field=select.closest('.field');if(field)field.hidden=true}})}
  catch(error){const notice=document.getElementById('workspaceRuntimeNotice');if(notice){notice.textContent='Page load nahi hua: '+(error.message||'Dobara try karein.');notice.style.display='block'}console.error('[Bite workspace]',error)}
@@ -3722,6 +3743,7 @@ async function saveReconciliation(id){const reportedInput=document.getElementByI
 function exportData(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='restaurantos-cloud-export.json';a.click();URL.revokeObjectURL(a.href)}
 async function resetData(){alert('Cloud data ko is demo screen se bulk delete nahi kiya jayega. Supabase dashboard se admin review ke baad hi delete karein.')}
 sb.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){
+ window.BiteCashfreeAudit?.clear?.();
  const nativePush=window.Capacitor?.Plugins?.BiteOwnerPush;
  if(nativePush?.disable)void nativePush.disable().catch(error=>console.warn('FCM token cleanup delayed',error));
  ownerPushToken=null;ownerPushRestaurantId=null;lastOwnerPushSync=0;
