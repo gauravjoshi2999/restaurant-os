@@ -64,11 +64,23 @@
         savedList.append(login);
         return;
       }
+      const customerId=session.data.session.user?.id;
+      if(!customerId){message.textContent='Account verify nahi ho saka. Dobara login karein.';return;}
       const result=await sb.from('customer_addresses')
         .select('id,label,address_line,city,postal_code,is_default')
+        .eq('customer_id',customerId)
         .order('is_default',{ascending:false}).limit(25);
       if(result.error)throw result.error;
       if(serial!==requestNumber||locationSheet.hidden)return;
+      // RLS is authoritative; recheck identity before showing asynchronous private results.
+      const active=await sb.auth.getUser();
+      if(serial!==requestNumber||locationSheet.hidden||active.error||active.data?.user?.id!==customerId){
+        savedList.replaceChildren();
+        const notice=document.createElement('p');
+        notice.textContent='Account change hua hai. Saved addresses ke liye location dobara kholein.';
+        savedList.append(notice);
+        return;
+      }
       savedList.replaceChildren();
       const usable=(result.data||[]).filter(row=>/^\d{6}$/.test(row.postal_code||''));
       if(!usable.length){
@@ -82,6 +94,18 @@
       message.textContent='Saved addresses load nahi ho paaye. PIN manually daal sakte hain.';
     }
   }
+  // Invalidate pending address reads when the signed-in customer changes.
+  sb.auth.onAuthStateChange((event)=>{
+    if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED'){
+      ++requestNumber;
+      if(!locationSheet.hidden){
+        savedList.replaceChildren();
+        const notice=document.createElement('p');
+        notice.textContent='Account update hua hai. Location dobara kholkar address dekhein.';
+        savedList.append(notice);
+      }
+    }
+  });
   function openLocation(){
     focusBeforeSheet=document.activeElement;
     pinInput.value=byId('discoveryPinInput')?.value||'';
