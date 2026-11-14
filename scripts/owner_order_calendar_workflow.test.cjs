@@ -58,5 +58,23 @@ test('More child Back returns to More before original tab, never routes to unrel
  assert.match(navSource,/moreEntryPage\|\|'overview'/);
  assert.match(navSource,/const target=history\.pop\(\)\|\|'overview'/);
  assert.match(html,/owner-mobile-navigation\.js\?v=20261114-more-back2/);
- assert.match(html,/owner-orders-workspace\.js\?v=20261114-calendar2/);
+ assert.match(html,/owner-orders-workspace\.js\?v=20261114-calendar-openfix1/);
+});
+
+test('Choosing a marked calendar day opens its bills instead of trapping user in New (0)',()=>{
+ const calendar=fs.readFileSync('assets/owner-orders-workspace.js','utf8');
+ const dated=[
+  {createdAt:'2026-11-06T12:00:00+05:30',status:'Completed'},
+  {createdAt:'2026-11-12T12:00:00+05:30',status:'Completed'}
+ ];
+ assert.deepEqual(orders.countByDay(dated),{'2026-11-06':1,'2026-11-12':1});
+ assert.equal(orders.counts(dated).new,0);
+ assert.equal(orders.counts(dated).all,2);
+ assert.match(calendar,/calendarOpened=false;\s*notifyDateChange\(doc\)/);
+ assert.match(calendar,/board\.scrollIntoView\(/);
+ assert.match(calendar,/const tally=counts\(dateFilter\(orders\)\)/);
+ assert.match(html,/document\.addEventListener\('bite-owner-order-date-change',\(\)=>\{if\(access\.role==='owner'\)setOrderStatus\('all'\)\}\)/);
+ assert.doesNotMatch(html,/if\(access\.role==='owner'&&typeof activeOrderStatus!=='undefined'&&activeOrderStatus==='all'\)activeOrderStatus='new'/);
+ assert.match(html,/owner-orders-workspace\.js\?v=20261114-calendar-openfix1/);
+ assert.match(html,/Sabhi orders dekhein/);
 });

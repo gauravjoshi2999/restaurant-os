@@ -362,8 +362,39 @@ try:
         'Owner Orders does not repeat actionable orders in inbox and old bar')
   check(owner.locator('#orders .bite-owner-order-disclosure').count()==2,
         'Secondary request/review and payment-verification panels remain accessible')
-  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="new"]').get_attribute('aria-pressed')=='true',
-        'Owner Orders defaults to New with no mixed completed orders')
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').get_attribute('aria-pressed')=='true',
+        'Owner Orders opens All by default so historic bills are visible without another filter')
+  # Reproduce user bug: a completed historical order exists for a day while New=0.
+  # No backend write is made; the fixture stays in the browser's in-memory state.
+  owner.evaluate("""() => {
+    window.__qaCalendarOrderId='00000000-0000-4000-8000-000000000547';
+    state.orders.push({
+      id:window.__qaCalendarOrderId,restaurant:access.restaurantId,
+      channel:'Own Platform',status:'Completed',
+      createdAt:new Date().toISOString(),amount:174,
+      code:'BITE-QA-CALENDAR',customerName:'Date QA',deliveryType:'delivery',
+      isDemo:false
+    });
+    renderOrderBoard();
+  }""")
+  owner.locator('#biteOwnerOrderStages [data-bite-stage="new"]').click()
+  check('BITE-QA-CALENDAR' not in owner.locator('#orderBoard').inner_text(),
+    'New 0 filter excludes a completed historical order, reproducing the bug')
+  owner.locator('#biteOwnerOrderCalendar [data-date-calendar-toggle]').click()
+  today=owner.evaluate("BiteOwnerOrders.dayKey(new Date())")
+  owner.locator(f'#biteOwnerOrderCalendar .bite-date-cell[data-date-select="{today}"]').click()
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').get_attribute('aria-pressed')=='true'
+        and 'BITE-QA-CALENDAR' in owner.locator('#orderBoard').inner_text(),
+        'Tap on a date overrides stale New filter and opens all bills for that day')
+  check(owner.locator('#biteOwnerOrderCalendar .bite-orders-calendar-body').count()==0,
+        'Calendar collapses after selecting a day to make room for order cards')
+  check(owner.locator('#biteOwnerOrderStages [data-bite-stage="all"] [data-bite-stage-count]').inner_text()!='0',
+        'Stage counts reflect selected day instead of misleading all-date badges')
+  owner.evaluate("""() => {
+    state.orders=state.orders.filter(o=>o.id!==window.__qaCalendarOrderId);
+    renderOrderBoard();
+  }""")
+  owner.locator('#biteOwnerOrderCalendar [data-date-select="all"]').click()
   owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').click()
   check(owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').get_attribute('aria-pressed')=='true',
         'Accepted and Preparing orders share a canonical Preparing stage')
