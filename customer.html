@@ -1204,13 +1204,17 @@ async function finishVerifiedCheckout(result,options={}){
  showCustomerView('orders');await loadMyOrders();
 }
 async function verifyPendingLiveCheckout(){
- const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:pendingLiveCheckout.id}});
- if(error){pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Payment status check nahi ho saka. Dobara pay na karein; thodi der baad status check karein.');}
+ const pending=pendingLiveCheckout,accountSequence=bitePaymentAccountSequence;
+ if(!pending?.id)throw new Error('No checkout to verify. Sign in to check your own payment.');
+ const {data,error}=await sb.functions.invoke('bite-live-verify-checkout',{body:{intent_id:pending.id}});
+ if(!bitePaymentContextCurrent(accountSequence,pending.id))throw new Error('Account changed during payment status check.');
+ if(error){pending.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();throw new Error('Payment status check nahi ho saka. Dobara pay na karein; thodi der baad status check karein.');}
  return data;
 }
 async function continueLiveCheckout(){
  if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
- const pending=pendingLiveCheckout;
+ const pending=pendingLiveCheckout,accountSequence=bitePaymentAccountSequence;
+ if(!pending?.id)throw new Error('No current checkout. Sign in to see your orders.');
  const createdMs=Date.parse(pending.intentCreatedAt||'');
  if(Number.isFinite(createdMs)&&Date.now()-createdMs>15*60*1000){
   const last=await verifyPendingLiveCheckout();
@@ -1233,9 +1237,12 @@ async function continueLiveCheckout(){
   pending.verifyOnly=false;
   if(checkOnly){$('checkoutError').textContent='Payment confirm nahi hua. Agar paise kate hain to dobara pay na karein. Status check karein.';return;}
  }
- if(!await refreshCheckoutPaymentReadiness())throw new Error('Online payment gateway abhi available nahi hai. Cancel checkout se naya order shuru kar sakte hain.');
+ const ready=await refreshCheckoutPaymentReadiness();
+ if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
+ if(!ready)throw new Error('Online payment gateway abhi available nahi hai. Cancel checkout se naya order shuru kar sakte hain.');
  if(!pending.session){
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{intent_id:pending.id}});
+  if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
   if(error||!data?.payment_session_id){let detail=null;try{detail=await error?.context?.json?.();}catch{}
    if(detail?.status==='payment_check_required'){
     const last=await verifyPendingLiveCheckout();
@@ -1271,6 +1278,7 @@ async function continueLiveCheckout(){
    $('checkoutError').textContent='Price ya delivery fee update hui hai. Updated total ₹'+data.amount+' review karein. Dobara Pay dabane par hi payment khulega.';return;
   }
  }
+ if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
  const sessionToOpen=pending.session;
  pending.session=null;pending.started=true;pending.verifyOnly=true;
  window.BiteCustomerExtras?.savePendingCheckout();
@@ -1281,6 +1289,7 @@ async function continueLiveCheckout(){
   const result=await Cashfree({mode:'production'}).checkout({paymentSessionId:sessionToOpen,redirectTarget:'_modal'});
   if(result?.error)sdkProblem=result.error.message||'Payment window did not open';
  }catch(error){sdkProblem=error?.message||'Payment window did not open';}
+ if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
  const verified=await verifyPendingLiveCheckout();
  if(sdkProblem&&verified?.status!=='activated'){
   console.warn('Cashfree checkout did not complete; provider status checked',sdkProblem);
@@ -1299,12 +1308,12 @@ async function continueLiveCheckout(){
 async function checkPendingCustomerPayment(options={}){
  if(!pendingLiveCheckout||checkoutPaymentBusy)return;
  const background=options?.background===true;
- const id=pendingLiveCheckout.id;
+ const id=pendingLiveCheckout.id,accountSequence=bitePaymentAccountSequence;
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();
  if(!background)$('checkoutError').textContent='Checking payment status…';
  try{
   const result=await verifyPendingLiveCheckout();
-  if(!pendingLiveCheckout||pendingLiveCheckout.id!==id)return;
+  if(!bitePaymentContextCurrent(accountSequence,id))return;
   if(result?.status==='activated'){await finishVerifiedCheckout(result,{background});return;}
   if(result?.status==='expired'||result?.status==='failed'){
    pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
@@ -1322,12 +1331,16 @@ async function checkPendingCustomerPayment(options={}){
   pendingLiveCheckout.verifyOnly=true;window.BiteCustomerExtras?.savePendingCheckout();
   if(!background)$('checkoutError').textContent='Payment status is still being checked. Please do not pay again.';
  }catch(e){
+  if(!bitePaymentContextCurrent(accountSequence,id))return;
   if(!background)$('checkoutError').textContent='We could not check payment status. Please try again.';
   else console.warn('Background payment status check unavailable',e);
  }
- finally{checkoutPaymentBusy=false;syncCheckoutPaymentButton();
-  if(!background)window.BiteCheckoutUX?.setPendingMessage?.($('checkoutError').textContent);
-  window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
+ finally{
+  if(accountSequence===bitePaymentAccountSequence){
+   checkoutPaymentBusy=false;syncCheckoutPaymentButton();
+   if(!background)window.BiteCheckoutUX?.setPendingMessage?.($('checkoutError').textContent);
+   window.BiteCustomerExtras?.renderPendingPaymentBanner?.();
+  }
  }
 }
 function startNewOrderFromPending(){
