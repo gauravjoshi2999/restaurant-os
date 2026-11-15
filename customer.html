@@ -1121,7 +1121,7 @@ async function reverseGeocodeAddress(lat,lon){
     $('addressState').value=a.state||$('addressState').value||'Rajasthan';
     // Map reverse-geocoding may return a nearby delivery office PIN instead of
     // the exact customer's PIN (e.g. 313300 instead of their confirmed 313324).
-    const guessedPIN=/^\\d{6}$/.test(String(a.postcode||''))?String(a.postcode):'';
+    const guessedPIN=/^\d{6}$/.test(String(a.postcode||''))?String(a.postcode):'';
     const confirmedPIN=$('addressPostal').value.trim();
     if(guessedPIN&&!confirmedPIN){
       $('addressPostal').value=guessedPIN;
