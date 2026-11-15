@@ -45,6 +45,7 @@ function setup({existingMarkup='',slowOrders=false}={}){
   activeCustomerId:'customer1',customerOrderViewSequence:0,customerOrders:[],
   biteRefundByOrder:new Map(),biteCancellationByOrder:new Map(),
   biteRefundLookupUnavailable:false,biteOrderDetailCache:new Map(),
+  customerPaymentByOrder:new Map(),customerPaymentLookupUnavailable:false,customerPaymentResolved:false,
   biteOrderCardsFingerprint:null,biteOrderCardsCustomer:null,
   expandedOrderId:null,biteOrderDetailSequence:0,
   sb:{auth:{getSession:async()=>{calls.push('session');return {data:{session:{user:{id:'customer1'}}}}}},
