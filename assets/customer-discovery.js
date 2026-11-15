@@ -45,8 +45,12 @@
           // unavailable future slots. Require owner opt-in and published hours.
           if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused===true
              ||!r.opening_time||!r.closing_time||r.opening_time===r.closing_time)return false;
+          const horizon=Number(r.scheduled_horizon_days??3);
+          const lead=Number(r.scheduled_lead_minutes??90);
+          if(!Number.isInteger(horizon)||horizon<1||horizon>7
+             ||!Number.isInteger(lead)||lead<30||lead>480)return false;
           if(r.is_temporarily_closed===true&&(!r.temporary_closure_until
-             ||Date.parse(r.temporary_closure_until)>Date.now()+7*86400000))return false;
+             ||Date.parse(r.temporary_closure_until)>Date.now()+horizon*86400000))return false;
           if(options.service==='pickup')return false;
           // A supplied PIN must be verified; pickup-only fallback must not leak in.
           if(options.pin&&r.serviceable!==true)return false;
