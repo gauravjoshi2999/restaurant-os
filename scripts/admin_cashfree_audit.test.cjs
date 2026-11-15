@@ -23,7 +23,7 @@ function setup(options={}){
  vm.runInNewContext(code,{window,document,console});
  const calls=[],read=[];
  let user=options.userId??'admin-a',role=options.role??'super_admin',isAdmin=options.isAdmin??true;
- let checks=options.checks||[],error=null;
+ let checks=options.checks||[],refunds=options.refunds||[],error=null,table='';
  const orders=[
   {id:'order-paid',order_code:'BITE-123',is_demo:false,channel:'Own Platform'},
   {id:'order-demo',order_code:'DEMO',is_demo:true,channel:'Own Platform'},
@@ -34,8 +34,14 @@ function setup(options={}){
   {order_id:'order-pos',restaurant_id:'restaurant-a',channel:'POS - Counter',is_demo:false,payment_status:'paid',customer_payable_amount:100}
  ];
  const state={orders,financials:fin,restaurants:[{id:'restaurant-a',name:'Test Restaurant'}]};
- const query={select(...args){read.push({type:'select',args});return this;},order(){return this;},async limit(){return {data:checks,error};}};
- const sb={from(name){read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
+ const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},order(){return this;},async limit(){return {data:table==='bite_refund_jobs'?refunds:checks,error};}};
+ const sb={from(name){table=name;read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
+    if(payload.body?.action==='inspect_refund'){
+     calls.push({name,payload});
+     return {data:{status:options.providerRefundFound?'PROVIDER_REFUND_RECORD_FOUND':'NO_PROVIDER_REFUND_RECORD',
+       provider_refund_status:options.providerRefundStatus||null,
+       recorded_refund_status:'pending_approval',amount:1,approved:false,no_action_taken:true},error:null};
+    }
     calls.push({name,payload});
     if(payload.body?.action==='inspect_vendor_recon'){
       return {data:{vendor_reconciliation:{
@@ -61,7 +67,7 @@ function setup(options={}){
     }
     checks=[{order_id:'order-paid',collection_status:'PAID',collection_amount:174,settlement_evidence:{settlement:{status:'SUCCESS',settlement_utr:'some-utr'}},checked_at:'2026-11-14T10:00:00Z'}];return {data:{collection:{status:'PAID',amount:174,currency:'INR'},restaurant_payout:'NOT_VERIFIED_BY_PG_COLLECTION'},error:null};}}};
  window.BiteCashfreeAudit.init({sb,getState:()=>state,getAccess:()=>({role,isPlatformAdmin:isAdmin}),getUser:()=>user?{id:user}:null,formatMoney:n=>'₹'+Number(n).toFixed(2)});
- return {audit:window.BiteCashfreeAudit,find,calls,read,state,setUser(x){user=x;},setRole(x){role=x;},setChecks(x){checks=x;},setError(x){error=x;}};
+ return {audit:window.BiteCashfreeAudit,find,calls,read,state,setUser(x){user=x;},setRole(x){role=x;},setChecks(x){checks=x;},setRefunds(x){refunds=x;},setError(x){error=x;}};
 }
 test('classification never confuses provider collection or merchant evidence with vendor payout',()=>{
  const a=setup();
@@ -223,7 +229,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-payment-mismatches1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -399,8 +405,65 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-payment-mismatches1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
+});
+
+
+const REFUND_ID='11111111-1111-4111-8111-111111111111';
+test('pending refund queue is loaded only after Super Admin manually clicks load',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
+ await a.audit.load();
+ assert.equal(a.read.filter(x=>x.name==='bite_refund_jobs').length,0);
+ assert.equal(a.calls.length,0);
+ await a.audit.loadRefundReview();
+ assert.equal(a.read.filter(x=>x.name==='bite_refund_jobs').length,1);
+ assert.equal(a.find('biteRefundReviewCount').textContent,'1');
+ assert.equal(a.find('biteRefundReviewRows').children.length,1);
+ assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/not checked/);
+ assert.equal(a.calls.length,0,'loading the refund queue does not call Cashfree');
+});
+
+test('provider refund GET preview never creates or approves a refund',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
+ await a.audit.loadRefundReview();
+ await a.audit.inspectRefund(REFUND_ID);
+ assert.equal(a.calls.length,1);
+ assert.equal(a.calls[0].name,'bite-cashfree-operations');
+ assert.deepEqual(JSON.parse(JSON.stringify(a.calls[0].payload.body)),
+  {action:'inspect_refund',refund_id:REFUND_ID});
+ assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/No refund record found/);
+ assert.doesNotMatch(a.find('biteRefundReviewStatus').textContent,/refund was created/i);
+ assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'pending_approval');
+});
+
+test('existing provider refund record gives STOP warning instead of a duplicate refund',async()=>{
+ const a=setup({providerRefundFound:true,providerRefundStatus:'SUCCESS',
+  refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
+ await a.audit.loadRefundReview();await a.audit.inspectRefund(REFUND_ID);
+ assert.match(a.find('biteRefundReviewStatus').textContent,/Cashfree reports SUCCESS/);
+ assert.match(a.find('biteRefundReviewStatus').textContent,/STOP/);
+ assert.equal(a.calls.length,1);
+});
+
+test('account switch, owner role and sign out cannot expose saved refund evidence',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
+ await a.audit.loadRefundReview();
+ a.setRole('owner');await a.audit.loadRefundReview();await a.audit.inspectRefund(REFUND_ID);
+ assert.equal(a.calls.length,0);
+ assert.equal(a.find('biteRefundReviewRows').children.length,0);
+ a.setRole('super_admin');a.setUser(null);
+ await a.audit.loadRefundReview();
+ assert.equal(a.find('biteRefundReviewRows').children.length,0);
+});
+
+test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
+ assert.match(html,/id="biteRefundReviewRows"/);
+ assert.match(html,/id="biteRefundReviewLoad"/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(code,/action:'inspect_refund'/);
+ assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
+ assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
 });
