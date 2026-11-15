@@ -995,9 +995,8 @@ function biteOrderCardMarkup(o){
 async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
  if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
  const box=$('ordersList');
- // A cancellation alone is not evidence of payment. The refund tracker renders
- // only jobs created from the server's trusted paid-payment ledger.
- for(const order of customerOrders)if(biteRefundByOrder.has(order.id))order.payment_status='paid';
+ // A refund-review job is not independently verified payment evidence.
+ // Do not mutate the order's payment status based only on refund existence.
  const nextFingerprint=JSON.stringify([customerOrders,[...biteOrderItemsPreview.entries()],[...biteRefundByOrder.entries()],[...biteCancellationByOrder.entries()],biteRefundLookupUnavailable,[...customerPaymentByOrder.entries()],customerPaymentLookupUnavailable,customerPaymentResolved]);
  const unchanged=biteOrderCardsCustomer===requestedCustomerId&&biteOrderCardsFingerprint===nextFingerprint;
  if(unchanged&&box.querySelector?.('.ordercard, .orders-empty')){
