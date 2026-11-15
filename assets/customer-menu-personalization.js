@@ -64,7 +64,7 @@
   for(const item of suggestions){
    const article=document.createElement('article');article.className='bite-recommendation';
    const image=document.createElement('img');image.alt='';image.loading='lazy';image.decoding='async';
-   image.src=root.BiteDiscovery?.safeImage?.(item.image_url,'assets/food-placeholder.svg')||'assets/food-placeholder.svg';
+   image.src=window.BiteDiscovery?.safeImage?.(item.image_url,'assets/food-placeholder.svg')||'assets/food-placeholder.svg';
    image.addEventListener('error',()=>{if(!image.src.endsWith('food-placeholder.svg'))image.src='assets/food-placeholder.svg';},{once:true});
    const info=document.createElement('div');info.className='bite-recommendation-info';
    const name=document.createElement('strong');name.textContent=item.name;
