@@ -38,7 +38,7 @@ test('approved but not initiated is still a waiting state',()=>{
  assert.equal(info.title,'Refund approved');
  assert.equal(info.stage,0);
  const detail=refund.details(old(),{amount:1,status:'approved'});
- assert.doesNotMatch(detail,/<li class="is-done"[^>]*>.*?<span>Initiated<\/span>/s);
+ assert.match(detail, /<li class="is-upcoming"><span class="bite-refund-step-marker"[^>]*>2<\/span><span>Initiated<\/span>/);
 });
 test('processing/submitted are not misrepresented as bank credited',()=>{
  const cases=[
