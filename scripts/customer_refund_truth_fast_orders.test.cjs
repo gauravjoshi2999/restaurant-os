@@ -29,9 +29,9 @@ test('customer details are expanded without reloading entire order list',async()
  const snippet=html.slice(start,end);
  assert.doesNotMatch(snippet,/await loadMyOrders\(/);
  const events={},nodes=new Map(),calls=[];
- const button={dataset:{orderDetail:'order1'},textContent:'View details',
-  addEventListener(type,cb){events[type]=cb},closest(){return card}};
- const card={appendChild(el){calls.push('append');nodes.set(el.id,el)}};
+ const button={dataset:{orderDetail:'order1'},textContent:'Order details',
+  addEventListener(type,cb){events[type]=cb},setAttribute(){},closest(){return card}};
+ const card={insertBefore(el){calls.push('append');nodes.set(el.id,el)},querySelector(){return null},classList:{add(){},remove(){}}};
  const document={
   querySelectorAll(selector){return selector==='[data-order-detail]'?[button]:[]},
   createElement(){return {setAttribute(){},remove(){nodes.delete(this.id)}}}
@@ -42,12 +42,12 @@ test('customer details are expanded without reloading entire order list',async()
  vm.runInContext(snippet,ctx);
  events.click();
  assert.equal(ctx.expandedOrderId,'order1');
- assert.equal(button.textContent,'Hide details');
- assert.equal(nodes.get('detail-order1').textContent,'Order details load ho rahe hain...');
+ assert.equal(button.textContent,'Close details');
+ assert.match(nodes.get('detail-order1').innerHTML,/bite-order-detail-skeleton/);
  assert.deepEqual(calls,['append','detail-fetch']);
  events.click();
  assert.equal(ctx.expandedOrderId,null);
- assert.equal(button.textContent,'View details');
+ assert.equal(button.textContent,'Order details');
 });
 test('refresh keeps existing cards in place and skips unchanged render',()=>{
  assert.match(html,/!box\.querySelector\?\.\('\.ordercard'\)/);
