@@ -90,3 +90,6 @@ body[data-bite-app="customer"] #orderDetailsView .bite-detail-page-error button{
  body[data-bite-app="customer"] #ordersView .ordercard,
  body[data-bite-app="customer"] #orderDetailsView *{scroll-behavior:auto!important;transition:none!important}
 }
+
+body[data-bite-app="customer"] #ordersView .bite-order-avatar img,
+body[data-bite-app="customer"] #orderDetailsView .bite-detail-avatar img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
