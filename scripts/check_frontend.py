@@ -202,8 +202,14 @@ check("restaurant_customer_order_requests_one_pending_cancel" in cancellation_mi
       "A customer cannot create duplicate pending cancellation requests for one order")
 check("canDecideCancellation=access.role==='owner'" in owner and "(isCancel?canDecideCancellation:canRespond)" in owner,
       "Owner dashboard exposes cancellation decisions only to Owner; managers retain complaint handling")
-check("Refund is not shown as completed" in customer and "payment-provider confirmation" in customer,
-      "Customer cancellation timeline never claims a refund without provider confirmation")
+refund_tracker = Path("assets/customer-refund-tracker.js").read_text(encoding="utf-8")
+check("BiteRefundTracker?.details" in customer
+      and "target.innerHTML=refundCard+itemCard+activity" in customer
+      and "provider==='SUCCESS'&&confirmed" in refund_tracker
+      and "provider_checked_at" in refund_tracker
+      and "Bank UTR" in refund_tracker
+      and "Refund processed" in refund_tracker,
+      "Customer refund is provider-verified before SUCCESS and never claims bank credit")
 check("Refund is not marked paid: provider confirmation is required" in owner,
       "Owner cancellation response does not claim refund success")
 
