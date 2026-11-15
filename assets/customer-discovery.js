@@ -40,7 +40,17 @@
           if(!(options.service==='all'&&options.geo&&r.accepts_pickup===true))return false;
         }
         if(options.openNow&&isClosed(r))return false;
-        if(options.scheduledOnly&&(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused||isClosed(r)))return false;
+        if(options.scheduledOnly){
+          // Scheduling is for future deliveries; being closed *now* does not imply
+          // unavailable future slots. Require owner opt-in and published hours.
+          if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused===true
+             ||!r.opening_time||!r.closing_time||r.opening_time===r.closing_time)return false;
+          if(r.is_temporarily_closed===true&&(!r.temporary_closure_until
+             ||Date.parse(r.temporary_closure_until)>Date.now()+7*86400000))return false;
+          if(options.service==='pickup')return false;
+          // A supplied PIN must be verified; pickup-only fallback must not leak in.
+          if(options.pin&&r.serviceable!==true)return false;
+        }
         if(Number(r.average_rating||0)<Number(options.minRating||0))return false;
         if(options.favourites&&!options.favourites.has(r.id))return false;
         if(options.diet==='veg'&&!r.has_veg)return false;
