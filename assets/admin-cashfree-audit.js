@@ -203,7 +203,7 @@
    const result=data.status==='PROVIDER_REFUND_RECORD_FOUND'?
     'Cashfree reports '+String(data.provider_refund_status||'UNKNOWN').slice(0,40)+
     '. STOP: check this existing provider record before considering another refund.':
-    'Cashfree reports no refund for this reference. Bite status is '+selected.status+
+    'No refund record found for this reference in Cashfree. Bite status is '+selected.status+
     '. This read-only check did not send a refund. Independently reconcile before any refund execution.';
    refundEvidence.set(refundId,{message:result});
    if(status)status.textContent=result;
