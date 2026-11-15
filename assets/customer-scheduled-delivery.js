@@ -101,6 +101,7 @@
   byId('biteScheduleSelection').textContent=scheduled
     ?'Preferred time: '+new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(selected))+' · Subject to restaurant acceptance'
     :closedNow?'Restaurant closed now. Select a future delivery slot to continue.':'ASAP delivery selected';
+  if(typeof syncCheckoutPaymentButton==='function')syncCheckoutPaymentButton();
  }
  function close(){
   if(!open)return;
