@@ -392,21 +392,25 @@ try:
   check(order_card.locator('.orderactions > button').count()==2
     and order_card.locator('.order-badges .order-mode').is_visible(),
     'Order History shows two primary actions plus real status and fulfilment badges')
-  check(order_card.locator('.order-more summary').is_hidden()
-    and order_card.locator('[data-invoice]').is_hidden(),
-    'Bill and support stay out of the compact order list until details are opened')
-  order_card.locator('[data-order-detail]').click()
   check(order_card.locator('.order-more summary').is_visible()
-    and order_card.locator('[data-order-detail]').get_attribute('aria-expanded')=='true',
-    'Order details expands in place without navigating or reloading the list')
+    and order_card.locator('[data-invoice]').is_hidden(),
+    'Compact three-dot order menu exposes secondary actions on demand')
   order_card.locator('.order-more summary').click()
   check(order_card.locator('[data-invoice]').is_visible()
     and order_card.locator('.order-more').get_attribute('open') is not None,
-    'More options reveals Download bill without navigating away')
+    'Order menu shows the verified invoice action without leaving History')
   customer.screenshot(path=str(OUT/'ui-orders-compact.png'),full_page=False)
   with customer.expect_download(timeout=20000) as download:order_card.locator('[data-invoice]').click()
   receipt=OUT/'receipt.pdf';download.value.save_as(receipt)
   check(receipt.read_bytes().startswith(b'%PDF-1.4'),'Customer bill downloads as an actual PDF file')
+  order_card.locator('.order-more summary').click()
+  order_card.locator('[data-order-detail]').click()
+  customer.locator('#orderDetailsView').wait_for(state='visible')
+  check(customer.locator('#biteDetailHeading').inner_text()=='Order Details'
+    and customer.locator('#biteDetailSupport').is_visible(),
+    'Dedicated mobile order details page opens with visible support and back navigation')
+  customer.locator('#biteDetailBack').click()
+  order_card.wait_for(state='visible')
   customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
   check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),'Reorder opens a reviewable cart with current available items')
   check(customer.locator('#cartModalLines [data-cart-inc]').first.get_attribute('aria-label').startswith('Add one')

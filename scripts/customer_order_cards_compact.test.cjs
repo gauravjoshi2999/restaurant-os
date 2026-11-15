@@ -17,7 +17,7 @@ const orderActionsMarkup=vm.runInNewContext(snippet+';orderActionsMarkup',{
 const sample={id:'00000000-0000-4000-8000-000000000006',order_code:'BITE-QA-006',status:'Completed',review_id:null};
 const render=patch=>orderActionsMarkup({...sample,...patch});
 const mainButtons=markup=>{
- const first=markup.slice(0,markup.indexOf('<details class="order-more">'));
+ const first=markup.slice(0,markup.indexOf('<details class="order-more bite-order-ellipsis">'));
  return [...first.matchAll(/<button\b/g)].length;
 };
 const extras=markup=>markup.slice(markup.indexOf('<div class="order-more-items">'));
@@ -26,10 +26,10 @@ test('only two instantly scannable actions and one accessible native disclosure'
  const markup=render({});
  assert.equal(mainButtons(markup),2);
  assert.match(markup,/class="orderactions" role="group" aria-label="Actions for order BITE-QA-006"/);
- assert.match(markup,/data-order-detail="[^"]+" aria-expanded="false"/);
+ assert.match(markup,/data-order-detail="[^"]+"/);
  assert.match(markup,/Order details/);
  assert.doesNotMatch(markup,/More options/);
- assert.match(markup,/<details class="order-more"><summary>Help &amp; receipt<\/summary>/);
+ assert.match(markup,/<details class="order-more bite-order-ellipsis"><summary aria-label="More actions for order/);
  assert.match(markup,/<button[^>]+data-reorder=/);
  assert.match(markup,/<button[^>]+data-order-detail=/);
  assert.match(extras(markup),/data-invoice=/);
@@ -40,7 +40,7 @@ test('only two instantly scannable actions and one accessible native disclosure'
 
 test('cancel remains immediately accessible for a newly received order',()=>{
  const markup=render({status:'Received'});
- const top=markup.slice(0,markup.indexOf('<details class="order-more">'));
+ const top=markup.slice(0,markup.indexOf('<details class="order-more bite-order-ellipsis">'));
  assert.equal(mainButtons(markup),2);
  assert.match(top,/data-order-detail=/);
  assert.match(top,/data-customer-order-action="cancel"/);
@@ -52,7 +52,7 @@ test('cancel remains immediately accessible for a newly received order',()=>{
 test('cancellation request remains immediately visible during preparation',()=>{
  for(const status of ['Accepted','Preparing','Ready']){
   const markup=render({status});
-  const top=markup.slice(0,markup.indexOf('<details class="order-more">'));
+  const top=markup.slice(0,markup.indexOf('<details class="order-more bite-order-ellipsis">'));
   assert.equal(mainButtons(markup),2,status);
   assert.match(top,/data-customer-order-action="cancel_request"/,status);
   assert.doesNotMatch(markup,/data-customer-order-action="cancel"/,status);
@@ -70,7 +70,7 @@ test('reviews remain truthful and past orders remain usable',()=>{
   assert.match(markup,/data-order-detail=/,status);
   assert.match(markup,/data-reorder=/,status);
   assert.match(extras(markup),/data-invoice=/,status);
-  assert.doesNotMatch(markup,/data-customer-order-action=/,status);
+  assert.doesNotMatch(markup,/data-customer-order-action="cancel"/,status);
  }
 });
 

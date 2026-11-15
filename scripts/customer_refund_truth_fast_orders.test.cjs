@@ -22,32 +22,16 @@ test('real cancellation requests remain distinct from actual refund jobs',()=>{
  assert.match(refund.summary({...order,status:'Cancelled'},paidJob,null),/Refund under review/);
  assert.match(refund.details({...order,status:'Cancelled'},paidJob,null),/₹567/);
 });
-test('customer details are expanded without reloading entire order list',async()=>{
- const start=html.indexOf("document.querySelectorAll('[data-order-detail]').forEach(b=>b.addEventListener('click',()=>{");
- const end=html.indexOf('if(expandedOrderId)await loadOrderDetail(expandedOrderId);',start);
- assert.ok(start>0&&end>start);
- const snippet=html.slice(start,end);
- assert.doesNotMatch(snippet,/await loadMyOrders\(/);
- const events={},nodes=new Map(),calls=[];
- const button={dataset:{orderDetail:'order1'},textContent:'Order details',
-  addEventListener(type,cb){events[type]=cb},setAttribute(){},closest(){return card}};
- const card={insertBefore(el){calls.push('append');nodes.set(el.id,el)},querySelector(){return null},classList:{add(){},remove(){}}};
- const document={
-  querySelectorAll(selector){return selector==='[data-order-detail]'?[button]:[]},
-  createElement(){return {setAttribute(){},remove(){nodes.delete(this.id)}}}
- };
- let expandedOrderId=null,biteOrderDetailSequence=0;
- const ctx=vm.createContext({document,expandedOrderId,biteOrderDetailSequence,
-  $:id=>nodes.get(id),loadOrderDetail:async()=>{calls.push('detail-fetch')},loadMyOrders:async()=>{throw Error('should not reload list')}});
- vm.runInContext(snippet,ctx);
- events.click();
- assert.equal(ctx.expandedOrderId,'order1');
- assert.equal(button.textContent,'Close details');
- assert.match(nodes.get('detail-order1').innerHTML,/bite-order-detail-skeleton/);
- assert.deepEqual(calls,['append','detail-fetch']);
- events.click();
- assert.equal(ctx.expandedOrderId,null);
- assert.equal(button.textContent,'Order details');
+test('Order details navigates to separate customer-owned view without reloading My Orders',()=>{
+ const a=html.indexOf("document.querySelectorAll('[data-order-detail]').forEach(b=>b.addEventListener('click',()=>{");
+ const b=html.indexOf("document.querySelectorAll('[data-bite-share-restaurant]')",a);
+ assert.ok(a>0&&b>a);
+ const snippet=html.slice(a,b);
+ assert.doesNotMatch(snippet,/loadMyOrders/);
+ assert.match(snippet,/biteOpenFullOrderDetails\(b\.dataset\.orderDetail\)/);
+ assert.match(html,/showCustomerView\('order-details'\)/);
+ assert.match(html,/function biteLeaveFullOrderDetails\(/);
+ assert.match(html,/\.eq\('id',orderId\)\.eq\('customer_id',customerId\)\.maybeSingle\(\)/);
 });
 test('refresh keeps existing cards in place and skips unchanged render',()=>{
  assert.match(html,/!box\.querySelector\?\.\('\.ordercard'\)/);

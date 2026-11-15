@@ -8,6 +8,7 @@ const css=fs.readFileSync('assets/customer-orders-20261115.css','utf8');
 const a=html.indexOf('async function loadMyOrders(){');
 const b=html.indexOf('function biteBindRefundRefresh(',a);
 assert.ok(a>0&&b>a);
+const helpers=html.slice(html.indexOf('function biteOrderAvatar('),a);
 const loader=html.slice(a,b);
 const orderId='11111111-1111-4111-8111-111111111111';
 const row={id:orderId,order_code:'BITE-QA-1',restaurant_id:'restaurant-1',
@@ -16,7 +17,7 @@ const row={id:orderId,order_code:'BITE-QA-1',restaurant_id:'restaurant-1',
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function setup({existingMarkup='',slowOrders=false}={}){
  const calls=[],nodes={},deferred={};
- for(const name of ['orders','refunds','requests']){
+ for(const name of ['orders','refunds','requests','items']){
   let resolve;
   const promise=new Promise(r=>resolve=r);
   deferred[name]={promise,resolve};
@@ -34,11 +35,12 @@ function setup({existingMarkup='',slowOrders=false}={}){
  nodes.refreshOrdersBtn={classList:{add(c){calls.push('loading '+c)},remove(c){calls.push('done '+c)}}};
  const $=id=>nodes[id]??(nodes[id]={textContent:'',innerHTML:''});
  const dbQuery={select(){return this},eq(){return this},in(){return this},order(){return this},
-  limit(){return deferred[this.table==='bite_refund_jobs'?'refunds':'requests'].promise}};
+  limit(){return deferred[this.table==='bite_refund_jobs'?'refunds':this.table==='order_items'?'items':'requests'].promise}};
  const ctx={
   $,
   document:{querySelectorAll:()=>[]},
   window:{BiteHistoryPremium:{applyFilters(){}}},
+  restaurants:[],SUPABASE_URL:'https://project.supabase.co',biteOrderItemsPreview:new Map(),
   BITE_SANDBOX_CHECKOUT:false,BITE_DIRECT_MODE:false,BITE_DIRECT_RESTAURANT_ID:null,
   activeCustomerId:'customer1',customerOrderViewSequence:0,customerOrders:[],
   biteRefundByOrder:new Map(),biteCancellationByOrder:new Map(),
@@ -56,7 +58,7 @@ function setup({existingMarkup='',slowOrders=false}={}){
   console,Date,JSON,Number,Map,Promise
  };
  vm.createContext(ctx);
- vm.runInContext(loader+';globalThis.loadFast=loadMyOrders;',ctx);
+ vm.runInContext(helpers+loader+';globalThis.loadFast=loadMyOrders;',ctx);
  return{ctx,nodes,calls,deferred,load:()=>ctx.loadFast()};
 }
 test('My Orders renders real cards before slower refund and cancellation queries resolve',async()=>{
@@ -70,6 +72,7 @@ test('My Orders renders real cards before slower refund and cancellation queries
  assert.ok(t.calls.includes('session'));
  t.deferred.refunds.resolve({data:[],error:null});
  t.deferred.requests.resolve({data:[],error:null});
+ t.deferred.items.resolve({data:[],error:null});
  await loading;
  assert.equal(t.ctx.customerOrders.length,1);
 });
@@ -82,15 +85,17 @@ test('revisiting orders keeps the same-user cards visible while fetching latest 
  t.deferred.orders.resolve({data:[row],error:null});
  t.deferred.refunds.resolve({data:[],error:null});
  t.deferred.requests.resolve({data:[],error:null});
+ t.deferred.items.resolve({data:[],error:null});
  await job;
  assert.match(t.nodes.ordersList.innerHTML,/Hotel Maharani Palace/);
 });
-test('history is compact and receipt/help are revealed within expanded order details',()=>{
+test('history uses compact cards, separate details and discreet overflow actions',()=>{
  assert.match(html,/class="secondary bite-order-detail-action"/);
  assert.match(html,/Order details/);
- assert.match(html,/Help &amp; receipt/);
+ assert.match(html,/bite-order-ellipsis/);
+ assert.match(html,/id="orderDetailsView"/);
  assert.match(css,/\.order-more\{display:none/);
- assert.match(css,/\.ordercard\.bite-order-expanded \.order-more\{display:block/);
+ assert.match(html,/data-bite-share-restaurant/);
  assert.match(html,/if\(b\.dataset\.nav==='orders'\)[\s\S]{0,180}showCustomerView\('orders'\);void loadMyOrders\(\)/);
  assert.doesNotMatch(html,/showCustomerView\('orders'\);\$\('ordersList'\)\.innerHTML/);
  assert.match(html,/biteOrdersSkeletonMarkup|bite-orders-skeleton/);

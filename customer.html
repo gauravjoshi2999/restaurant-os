@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261110-mobile-menu-fix">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1"><link rel="stylesheet" href="assets/customer-premium.css?v=20261114-premium1"><link rel="stylesheet" href="assets/customer-history-premium.css?v=20261114-history1"><link rel="stylesheet" href="assets/customer-ui-cleanup.css?v=20261114-header1"><link rel="stylesheet" href="assets/customer-order-cards.css?v=20261114-ordercards1"><link rel="stylesheet" href="assets/customer-checkout-polish.css?v=20261114-checkout1"><link rel="stylesheet" href="assets/customer-menu-navigation.css?v=20261114-menujump1">
-<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-orders-20261115.css?v=1"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"><link rel="stylesheet" href="assets/customer-min-order-quick-add.css?v=20261115-quickadd1"><style>
+<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-orders-20261115.css?v=1"><link rel="stylesheet" href="assets/customer-orders-reference-20261115.css?v=1"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"><link rel="stylesheet" href="assets/customer-min-order-quick-add.css?v=20261115-quickadd1"><style>
 #checkoutModal [aria-invalid="true"]{border-color:#c52f36!important;outline:2px solid rgba(197,47,54,.14);outline-offset:1px}
 .bite-checkout-field-issue{color:#b42318;font-size:12px;line-height:1.4;font-weight:650;margin:5px 0 10px}
 </style><link rel="stylesheet" href="assets/customer-filter-sheet.css?v=20261115-sheet1"><link rel="stylesheet" href="assets/customer-restaurant-experience.css?v=20261115-details1"></head>
@@ -25,6 +25,10 @@
 <div class="bite-restaurant-hero" id="biteRestaurantHero"><img id="biteRestaurantHeroImage" src="assets/food/meal-1100.jpg" alt="Bite food serving suggestion" width="1100" height="600" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='assets/food/meal-1100.jpg'"><span id="biteRestaurantCoverLabel" class="bite-cover-label" aria-hidden="true">Bite suggested photo</span></div>
 <div class="restauranthead"><div class="eyebrow" id="restaurantCuisine">Restaurant</div><h1 id="restaurantName">Menu</h1><div class="muted" id="restaurantInfo"></div><p class="muted" id="restaurantDescription"></p><button id="biteMenuInlineCTA" class="bite-menu-inline-cta" type="button" aria-controls="biteMenuBrowseStart">🍽️ Menu देखें <span aria-hidden="true">↓</span><small>अपनी पसंद का खाना चुनें</small></button></div><div class="menu-layout"><div><div class="menu-browse-tools" id="biteMenuBrowseStart"><div class="menu-search"><span aria-hidden="true">⌕</span><input id="menuSearchInput" type="search" placeholder="Search dishes in this menu" aria-label="Search this menu"><button type="button" class="menu-search-clear" id="menuClearSearch" aria-label="Clear menu search" hidden>×</button></div><label class="menu-veg"><input id="menuVegToggle" type="checkbox">Veg only</label></div><div class="categorybar" id="categoryBar" role="group" aria-label="Menu categories"></div><div class="menu-results-summary"><div><h2 id="menuCategoryHeading" class="bite-menu-category-heading">All dishes</h2><div id="menuResultCount" class="menu-result-count" role="status" aria-live="polite"></div></div><button id="menuResetFilters" class="menu-reset" type="button" hidden>Clear filters ×</button></div><div class="bite-direct-explore"><a id="biteExploreCityLink" href="customer.html?source=restaurant-direct-explore" aria-label="Browse other restaurants in your city on Bite">Explore food in your city <span aria-hidden="true">↗</span></a></div><div id="menuItems"></div></div><aside class="cart"><h3>Your cart <span class="muted" id="cartCount">(0)</span></h3><div id="cartLines" class="muted">Add items to start your order.</div><div class="carttotal"><span>Subtotal</span><span id="cartTotal">₹0</span></div><div class="muted" id="cartNote">Delivery fee and final checkout will be shown in the next step.</div><button class="primary" style="width:100%;margin-top:14px" id="continueBtn" disabled>Continue</button></aside></div><div class="review-section" style="margin-top:24px"><h2>Customer reviews</h2><div id="restaurantReviews"><div class="muted">Reviews load ho rahe hain…</div></div></div></section>
 <section id="ordersView" class="hidden"><button class="back" id="ordersBackBtn">← Restaurants</button><div class="ordersbar"><div><h2 style="margin:0">My Orders</h2><small class="muted" id="ordersSubtitle">Aapke sabhi orders yahan dikhte hain.</small></div><button class="secondary" id="refreshOrdersBtn">Refresh</button></div><section class="bite-history-toolbar" id="biteHistoryToolbar" aria-label="Find your orders"><label class="bite-history-search" for="biteHistorySearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg><input type="search" id="biteHistorySearch" autocomplete="off" placeholder="Search restaurant or order ID" aria-label="Search restaurant or order ID"></label><div class="bite-history-chips" role="group" aria-label="Filter orders by status"><button type="button" data-bite-history-filter="all" aria-pressed="true">All orders</button><button type="button" data-bite-history-filter="active" aria-pressed="false">Ongoing</button><button type="button" data-bite-history-filter="completed" aria-pressed="false">Delivered</button><button type="button" data-bite-history-filter="cancelled" aria-pressed="false">Cancelled</button></div><p id="biteHistoryCount" class="bite-history-count" role="status" aria-live="polite"></p></section><div id="biteHistoryNoMatches" class="bite-history-no-matches" hidden><h3>No matching orders</h3><p>Try another restaurant, order ID or status.</p><button type="button">Clear search &amp; filters</button></div><div id="ordersList" aria-live="polite"><div class="bite-orders-skeleton" role="status" aria-label="Loading your orders"><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div></div></div></section>
+<section id="orderDetailsView" class="hidden" aria-labelledby="biteDetailHeading">
+ <div class="bite-detail-topbar"><button type="button" id="biteDetailBack" aria-label="Back to My Orders">←</button><h2 id="biteDetailHeading">Order Details</h2><button type="button" id="biteDetailSupport">Support</button></div>
+ <div id="biteDetailPageContent" aria-live="polite"><div class="bite-detail-page-skeleton" role="status">Loading order details…</div></div>
+</section>
 <section id="accountView" class="hidden" aria-labelledby="accountPageTitle">
 <button class="back" id="accountBackBtn" type="button">← Restaurants</button>
 <header class="account-page-heading"><div class="eyebrow">YOUR BITE ACCOUNT</div><h1 id="accountPageTitle">Your account</h1><p>Apne addresses aur support ko ek jagah manage karein.</p></header>
@@ -665,13 +669,15 @@ $('backBtn').addEventListener('click',()=>{if(BITE_DIRECT_MODE){showCustomerView
 let customerOrderViewSequence=0;
 let biteRefundByOrder=new Map(),biteCancellationByOrder=new Map(),biteRefundLookupUnavailable=false;
 let biteOrderCardsFingerprint=null,biteOrderCardsCustomer=null,biteOrderDetailSequence=0;
+let biteFullOrderRequest=0,biteFullOrderId=null;
+const biteOrderItemsPreview=new Map();
 const biteOrderDetailCache=new Map(),BITE_ORDER_DETAIL_CACHE_MS=60000;
 let biteCheckoutOpenSequence=0;
 function biteCurrentOrderRequest(requestId,userId){
  return !!userId&&requestId===customerOrderViewSequence&&
    (!activeCustomerId||activeCustomerId===userId);
 }
-function showCustomerView(view){if(BITE_DIRECT_MODE&&view==='home')view='menu';document.body.dataset.view=view;$('homeView').classList.toggle('hidden',view!=='home');$('menuView').classList.toggle('hidden',view!=='menu');$('ordersView').classList.toggle('hidden',view!=='orders');$('accountView').classList.toggle('hidden',view!=='account');document.querySelectorAll('#homeBottomNav [data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===(view==='menu'?'home':view)));$('cartFloating').classList.toggle('show',view==='menu'&&cartEntries().length>0);}
+function showCustomerView(view){if(BITE_DIRECT_MODE&&view==='home')view='menu';document.body.dataset.view=view;$('homeView').classList.toggle('hidden',view!=='home');$('menuView').classList.toggle('hidden',view!=='menu');$('ordersView').classList.toggle('hidden',view!=='orders');$('orderDetailsView').classList.toggle('hidden',view!=='order-details');$('accountView').classList.toggle('hidden',view!=='account');document.querySelectorAll('#homeBottomNav [data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===(view==='menu'?'home':view)));$('cartFloating').classList.toggle('show',view==='menu'&&cartEntries().length>0);}
 let accountAddressRows=[];
 let customerAccountViewSequence=0;
 function biteAccountRequestActive(sequence,userId){
@@ -856,21 +862,34 @@ $('accountBackBtn').addEventListener('click',()=>showCustomerView('home'));
 $('accountLogoutBtn').addEventListener('click',async()=>{const {error}=await sb.auth.signOut();if(error){$('accountProfile').textContent='Logout nahi ho paaya: '+error.message;return;}setCustomerSession(null);showCustomerView('home');});
 function formatOrderDate(value){try{return new Date(value).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return value||''}}
 function statusClass(status){return ['Cancelled','Rejected'].includes(status)?'cancelled':String(status||'').toLowerCase().replace(/[^a-z]+/g,'-')}
+function biteOrderAvatar(o,large=false){
+ const restaurant=restaurants.find(r=>r.id===o.restaurant_id)||{id:o.restaurant_id,name:o.restaurant_name||'Restaurant'};
+ const photo=window.BiteRestaurantCovers?.choose(restaurant,[],SUPABASE_URL);
+ const src=photo?.src||'assets/food/meal-1100.jpg';
+ return '<div class="'+(large?'bite-detail-avatar':'bite-order-avatar')+'"><img src="'+safe(src)+'" alt="'+safe(photo?.alt||'Bite food serving suggestion')+'" loading="lazy" decoding="async"></div>';
+}
+function biteOrderItemPreview(id){
+ const items=biteOrderItemsPreview.get(id)||[];
+ if(!items.length)return '';
+ const preview=items.slice(0,2).map(i=>safe(Number(i.quantity)||1)+' × '+safe(i.item_name||'Item')).join(' · ');
+ return '<div class="bite-history-items">'+preview+(items.length>2?'<span> +'+(items.length-2)+' more</span>':'')+'</div>';
+}
 function orderActionsMarkup(o){
  const id=safe(o.id),code=safe(o.order_code||'');
- const details='<button type="button" class="secondary bite-order-detail-action" data-order-detail="'+id+'" aria-expanded="'+(expandedOrderId===o.id?'true':'false')+'" aria-controls="detail-'+id+'">'+(expandedOrderId===o.id?'Close details':'Order details')+'</button>';
+ const details='<button type="button" class="secondary bite-order-detail-action" data-order-detail="'+id+'">Order details <span aria-hidden="true">›</span></button>';
  const reorder='<button type="button" class="secondary bite-order-reorder" data-reorder="'+id+'">Reorder</button>';
  const invoice='<button type="button" class="secondary" data-invoice="'+id+'">Download bill</button>';
  const cancel='<button type="button" class="secondary" data-customer-order-action="cancel" data-order-id="'+id+'">Cancel order</button>';
  const request='<button type="button" class="secondary" data-customer-order-action="cancel_request" data-order-id="'+id+'">Request cancellation</button>';
  const review='<button type="button" class="secondary" data-customer-order-action="review" data-order-id="'+id+'">Rate restaurant</button>';
  const complaint='<button type="button" class="secondary" data-customer-order-action="complaint" data-order-id="'+id+'">Report issue</button>';
- let primary=[details,reorder],secondary=[invoice];
- if(o.status==='Received'){primary=[details,cancel];secondary=[invoice,reorder];}
- else if(['Accepted','Preparing','Ready'].includes(o.status)){primary=[details,request];secondary=[invoice,reorder];}
- else if(o.status==='Completed'){primary=[reorder,details];secondary=[invoice];if(!o.review_id)secondary.push(review);secondary.push(complaint);}
- return '<div class="orderactions" role="group" aria-label="Actions for order '+code+'">'+primary.join('')
-  +'<details class="order-more"><summary>Help &amp; receipt</summary><div class="order-more-items">'+secondary.join('')+'</div></details></div>';
+ const share='<button type="button" data-bite-share-restaurant="'+safe(o.restaurant_id)+'">Share restaurant</button>';
+ let primary=[details,reorder],secondary=[invoice,complaint,share];
+ if(o.status==='Received'){primary=[details,cancel];secondary=[invoice,reorder,share,complaint];}
+ else if(['Accepted','Preparing','Ready'].includes(o.status)){primary=[details,request];secondary=[invoice,reorder,share,complaint];}
+ else if(o.status==='Completed'){primary=[details,reorder];secondary=[invoice,share,complaint];if(!o.review_id)secondary.unshift(review);}
+ return '<div class="orderactions" role="group" aria-label="Actions for order '+code+'">'+primary.join('')+
+  '<details class="order-more bite-order-ellipsis"><summary aria-label="More actions for order '+code+'" title="More actions">⋮</summary><div class="order-more-items">'+secondary.join('')+'</div></details></div>';
 }
 async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;if(BITE_SANDBOX_CHECKOUT)biteRefreshSandboxStatus();
  // Supabase RPC and session hydration run concurrently; RLS still gates rows.
@@ -892,17 +911,24 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
  // Row-level security enforces the customer again on the server.
  const ids=customerOrders.map(o=>o.id).filter(id=>/^[0-9a-f-]{36}$/i.test(id));
  if(ids.length){
-  const [refunds,requests]=await Promise.all([
+  const [refunds,requests,itemsResult]=await Promise.all([
    sb.from('bite_refund_jobs')
     .select('order_id,customer_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at,created_at,updated_at')
     .eq('customer_id',requestedCustomerId).in('order_id',ids).limit(500),
    sb.from('restaurant_customer_order_requests')
     .select('order_id,customer_id,request_type,status,created_at,responded_at')
     .eq('customer_id',requestedCustomerId).eq('request_type','cancel_request')
-    .in('order_id',ids).order('created_at',{ascending:false}).limit(500)
+    .in('order_id',ids).order('created_at',{ascending:false}).limit(500),
+   sb.from('order_items').select('order_id,item_name,quantity').in('order_id',ids).limit(500)
   ]);
   if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
   biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=!!refunds.error;
+  biteOrderItemsPreview.clear();
+  if(!itemsResult.error)for(const item of itemsResult.data||[]){
+   if(!ids.includes(item.order_id))continue;
+   if(!biteOrderItemsPreview.has(item.order_id))biteOrderItemsPreview.set(item.order_id,[]);
+   biteOrderItemsPreview.get(item.order_id).push(item);
+  }
   if(refunds.error)console.warn('Customer refund lookup temporarily unavailable');
   else for(const r of refunds.data||[])if(r.customer_id===requestedCustomerId)biteRefundByOrder.set(r.order_id,r);
   if(requests.error)console.warn('Customer cancellation lookup temporarily unavailable');
@@ -922,7 +948,7 @@ async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
  // A cancellation alone is not evidence of payment. The refund tracker renders
  // only jobs created from the server's trusted paid-payment ledger.
  for(const order of customerOrders)if(biteRefundByOrder.has(order.id))order.payment_status='paid';
- const nextFingerprint=JSON.stringify([customerOrders,[...biteRefundByOrder.entries()],[...biteCancellationByOrder.entries()],biteRefundLookupUnavailable]);
+ const nextFingerprint=JSON.stringify([customerOrders,[...biteOrderItemsPreview.entries()],[...biteRefundByOrder.entries()],[...biteCancellationByOrder.entries()],biteRefundLookupUnavailable]);
  const unchanged=biteOrderCardsCustomer===requestedCustomerId&&biteOrderCardsFingerprint===nextFingerprint;
  if(unchanged&&box.querySelector?.('.ordercard, .orders-empty')){
   $('ordersSubtitle').textContent=customerOrders.length+' orders • Status updates automatically refresh';
@@ -930,25 +956,9 @@ async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
  }
  if(biteOrderCardsCustomer===requestedCustomerId&&biteOrderCardsFingerprint!==null)biteOrderDetailCache.clear();
  biteOrderCardsCustomer=requestedCustomerId;biteOrderCardsFingerprint=nextFingerprint;
- $('ordersSubtitle').textContent=customerOrders.length+' orders • Status updates automatically refresh';if(!customerOrders.length){box.innerHTML='<div class="orders-empty"><div class="orders-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14l1 12H4L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg></div><strong>Abhi koi order nahi hai</strong><p>Restaurant se apna pehla order place karne ke baad woh yahan dikhega.</p><button class="primary" id="browseRestaurantsBtn">Restaurants dekhein</button></div>';$('browseRestaurantsBtn').addEventListener('click',()=>showCustomerView(BITE_DIRECT_MODE?'menu':'home'));window.BiteHistoryPremium?.applyFilters();return;}box.innerHTML=customerOrders.map(o=>'<article class="ordercard'+(expandedOrderId===o.id?' bite-order-expanded':'')+'"><div class="orderhead"><div><div class="orderrestaurant">'+safe(o.restaurant_name||'Restaurant')+'</div><div class="ordercode">'+safe(o.order_code)+' · '+formatOrderDate(o.order_date)+'</div></div><div class="orderamount">'+money(o.amount)+'</div></div><div class="order-badges"><span class="orderstatus '+statusClass(o.status)+'">'+safe(o.status)+'</span><span class="order-mode '+(o.delivery_type==='pickup'?'pickup':o.delivery_type==='delivery'?'delivery':'unknown')+'">'+(o.delivery_type==='pickup'?'Pickup':o.delivery_type==='delivery'?'Delivery':'Method unavailable')+'</span></div>'+(window.BiteRefundTracker?.summary(o,biteRefundByOrder.get(o.id),biteCancellationByOrder.get(o.id),biteRefundLookupUnavailable)||'')+(o.delivery_otp&&['Ready','Handed Over'].includes(o.status)?'<div class="order-otp"><strong>Delivery OTP: '+safe(o.delivery_otp)+'</strong><small>Delivery person ko order pahunchne par hi OTP batayein.</small></div>':'')+(o.review_id?'<div class="review-status">Your review · '+safe(o.review_rating)+'★ · '+safe(o.review_status)+'</div>':'')+orderActionsMarkup(o)+(expandedOrderId===o.id?'<div class="orderdetail" id="detail-'+o.id+'">Details load ho rahe hain...</div>':'')+'</article>').join('');window.BiteHistoryPremium?.applyFilters();document.querySelectorAll('[data-order-detail]').forEach(b=>b.addEventListener('click',()=>{
-  const orderId=b.dataset.orderDetail;
-  if(expandedOrderId===orderId){
-   expandedOrderId=null;++biteOrderDetailSequence;
-   $('detail-'+orderId)?.remove();b.textContent='Order details';b.setAttribute('aria-expanded','false');b.closest('.ordercard')?.classList.remove('bite-order-expanded');return;
-  }
-  if(expandedOrderId){
-   $('detail-'+expandedOrderId)?.remove();
-   document.querySelectorAll('[data-order-detail]').forEach(button=>{button.textContent='Order details';button.setAttribute('aria-expanded','false');button.closest('.ordercard')?.classList.remove('bite-order-expanded');});
-  }
-  const card=b.closest('.ordercard');if(!card)return;
-  expandedOrderId=orderId;++biteOrderDetailSequence;
-  const detail=document.createElement('div');detail.className='orderdetail';detail.id='detail-'+orderId;
-  detail.setAttribute('role','region');detail.setAttribute('aria-label','Order details');
-  detail.innerHTML='<div class="bite-order-detail-skeleton" role="status" aria-label="Loading order information"><span></span><span></span><span></span></div>';
-  card.insertBefore(detail,card.querySelector('.orderactions'));
-  card.classList.add('bite-order-expanded');b.setAttribute('aria-expanded','true');
-  b.textContent='Close details';void loadOrderDetail(orderId);
- }));if(expandedOrderId)await loadOrderDetail(expandedOrderId);document.querySelectorAll('[data-customer-order-action]').forEach(b=>b.addEventListener('click',async()=>{const orderId=b.dataset.orderId,action=b.dataset.customerOrderAction;const result=await openOrderActionDialog(action);if(!result)return;try{if(action==='cancel'){const {error}=await sb.rpc('customer_cancel_order',{p_order_id:orderId});if(error)throw error;
+ $('ordersSubtitle').textContent=customerOrders.length+' orders • Status updates automatically refresh';if(!customerOrders.length){box.innerHTML='<div class="orders-empty"><div class="orders-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 8h14l1 12H4L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg></div><strong>Abhi koi order nahi hai</strong><p>Restaurant se apna pehla order place karne ke baad woh yahan dikhega.</p><button class="primary" id="browseRestaurantsBtn">Restaurants dekhein</button></div>';$('browseRestaurantsBtn').addEventListener('click',()=>showCustomerView(BITE_DIRECT_MODE?'menu':'home'));window.BiteHistoryPremium?.applyFilters();return;}box.innerHTML=customerOrders.map(o=>'<article class="ordercard'+(expandedOrderId===o.id?' bite-order-expanded':'')+'"><div class="orderhead">'+biteOrderAvatar(o)+'<div><div class="orderrestaurant">'+safe(o.restaurant_name||'Restaurant')+'</div><div class="ordercode">'+safe(o.order_code)+' · '+formatOrderDate(o.order_date)+'</div></div><div class="orderamount">'+money(o.amount)+'</div></div><div class="order-badges"><span class="orderstatus '+statusClass(o.status)+'">'+safe(o.status)+'</span><span class="order-mode '+(o.delivery_type==='pickup'?'pickup':o.delivery_type==='delivery'?'delivery':'unknown')+'">'+(o.delivery_type==='pickup'?'Pickup':o.delivery_type==='delivery'?'Delivery':'Method unavailable')+'</span></div>'+biteOrderItemPreview(o.id)+(window.BiteRefundTracker?.summary(o,biteRefundByOrder.get(o.id),biteCancellationByOrder.get(o.id),biteRefundLookupUnavailable)||'')+(o.delivery_otp&&['Ready','Handed Over'].includes(o.status)?'<div class="order-otp"><strong>Delivery OTP: '+safe(o.delivery_otp)+'</strong><small>Delivery person ko order pahunchne par hi OTP batayein.</small></div>':'')+(o.review_id?'<div class="review-status">Your review · '+safe(o.review_rating)+'★ · '+safe(o.review_status)+'</div>':'')+orderActionsMarkup(o)+(expandedOrderId===o.id?'<div class="orderdetail" id="detail-'+o.id+'">Details load ho rahe hain...</div>':'')+'</article>').join('');window.BiteHistoryPremium?.applyFilters();document.querySelectorAll('[data-order-detail]').forEach(b=>b.addEventListener('click',()=>{void biteOpenFullOrderDetails(b.dataset.orderDetail);}));
+ document.querySelectorAll('[data-bite-share-restaurant]').forEach(b=>b.addEventListener('click',()=>void biteShareRestaurant(b.dataset.biteShareRestaurant)));
+ document.querySelectorAll('[data-customer-order-action]').forEach(b=>b.addEventListener('click',async()=>{const orderId=b.dataset.orderId,action=b.dataset.customerOrderAction;const result=await openOrderActionDialog(action);if(!result)return;try{if(action==='cancel'){const {error}=await sb.rpc('customer_cancel_order',{p_order_id:orderId});if(error)throw error;
  showOrderActionResult('Order cancel ho gaya. Refund sirf verified paid order par Cashfree confirmation ke baad hi dikhega. Agar paisa nahi kata hai, refund nahi banta.');
  // The server, not the browser, decides eligibility, verifies the payment
  // and protects against duplicate refunds. Never claim a bank credit here.
@@ -966,6 +976,114 @@ async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
   .catch(()=>{});
  await loadMyOrders();return;}if(action==='review'){const {error}=await sb.rpc('create_customer_restaurant_review',{p_order_id:orderId,p_rating:result.rating,p_review:result.message.trim()});if(error)throw error;showOrderActionResult('Review publish ho gaya. Restaurant Owner ab iska reply de sakta hai.');}else{const {error}=await sb.rpc('create_customer_order_request',{p_order_id:orderId,p_request_type:action,p_message:result.message.trim()});if(error)throw error;showOrderActionResult(action==='cancel_request'?'Cancellation request restaurant ko bhej di gayi.':'Complaint restaurant ko bhej di gayi.');}await loadMyOrders();}catch(e){showOrderActionResult(e.message||'Request submit nahi hui.','error');}}));
 }
+
+function biteMaskOrderPhone(phone){
+ const digits=String(phone||'').replace(/\D/g,'');
+ return digits.length>=4?'•••• ••'+digits.slice(-4):'';
+}
+function biteOrderAddress(snapshot){
+ if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return '';
+ const parts=[snapshot.address_line,snapshot.landmark,snapshot.city,snapshot.state,snapshot.postal_code].filter(v=>typeof v==='string'&&v.trim());
+ return parts.join(', ');
+}
+function biteBuildFullOrderMarkup(order,items,history,details,refund){
+ const status=String(order.status||'Received');
+ const statusLabel=status==='Completed'?'Order was delivered':status==='Cancelled'?'Order was cancelled':status==='Rejected'?'Order was declined':'Order status: '+status;
+ const address=biteOrderAddress(details?.delivery_address_snapshot);
+ const name=details?.customer_name||order.customer_name||'';
+ const phone=biteMaskOrderPhone(details?.customer_phone);
+ const itemsTotal=items.reduce((sum,item)=>sum+(Number(item.line_total)||0),0);
+ const amount=Number(order.amount)||0;
+ const lineItems=items.length?items.map(item=>'<div class="bite-detail-item"><div><span class="bite-detail-veg-mark" aria-hidden="true">●</span><span>'+safe(item.quantity)+' × '+safe(item.item_name)+'</span></div><strong>'+money(item.line_total)+'</strong></div>').join(''):
+  '<p class="bite-detail-muted">Item details are not available for this order.</p>';
+ // The customer-safe order amount is real, but the platform financials table is
+ // intentionally not exposed to customer RLS. Never fabricate tax/discount/paid.
+ const summary=items.length?'<div class="bite-detail-moneyline"><span>Items total</span><strong>'+money(itemsTotal)+'</strong></div>':'';
+ const reconciliation=items.length&&Math.abs(itemsTotal-amount)>.009?
+  '<p class="bite-detail-footnote">The final amount may include discounts, tax or delivery charges. Their individual amounts are not available on this screen.</p>':'';
+ const refundCard=window.BiteRefundTracker?.details(order,refund,biteCancellationByOrder.get(order.id),false)||'';
+ const historyText=(history||[]).map(x=>'<li><strong>'+safe(x.to_status)+'</strong><span>'+formatOrderDate(x.changed_at)+'</span></li>').join('');
+ return '<div class="bite-detail-status"><span class="bite-detail-status-icon" aria-hidden="true">'+(status==='Completed'?'✓':status==='Cancelled'||status==='Rejected'?'×':'◷')+'</span><div><strong>'+safe(statusLabel)+'</strong><small>'+formatOrderDate(order.order_date)+'</small></div></div>'+
+  '<section class="bite-detail-panel"><div class="bite-detail-restaurant">'+biteOrderAvatar(order,true)+'<div><h3>'+safe(order.restaurant_name||'Restaurant')+'</h3><p>'+safe(order.delivery_type==='pickup'?'Pickup order':'Delivery order')+'</p></div></div>'+
+  '<div class="bite-detail-id"><span>Order ID: '+safe(order.order_code)+'</span><button type="button" data-bite-copy-order="'+safe(order.order_code)+'" aria-label="Copy order ID">Copy</button></div>'+
+  '<div class="bite-detail-itemlist">'+lineItems+'</div></section>'+
+  '<section class="bite-detail-panel"><div class="bite-detail-panel-title"><h3>Bill Summary</h3><button type="button" data-bite-detail-invoice="'+safe(order.id)+'" aria-label="Download receipt">↓ Download bill</button></div>'+
+  '<div class="bite-detail-bill">'+summary+'<div class="bite-detail-moneyline bite-detail-grandtotal"><span>Order total</span><strong>'+money(amount)+'</strong></div>'+reconciliation+'</div></section>'+
+  (refundCard?'<section class="bite-detail-panel bite-detail-refund">'+refundCard+'</section>':'')+
+  '<section class="bite-detail-panel"><div class="bite-detail-panel-title"><h3>Delivery details</h3></div><div class="bite-detail-customer">'+(name?'<strong>'+safe(name)+'</strong>':'')+(phone?'<span>'+safe(phone)+'</span>':'')+'</div>'+
+  (order.delivery_type==='pickup'?'<div class="bite-detail-address">Self pickup at the restaurant</div>':address?'<div class="bite-detail-address"><span aria-hidden="true">⌖</span> '+safe(address)+'</div>':'<div class="bite-detail-address">Delivery address not available for this order.</div>')+'</section>'+
+  (historyText?'<section class="bite-detail-panel"><details class="bite-detail-activity"><summary>Order activity</summary><ol>'+historyText+'</ol></details></section>':'')+
+  '<div class="bite-detail-footer">Bite · Eat. Repeat.</div>';
+}
+async function biteShareRestaurant(restaurantId){
+ if(!/^[0-9a-f-]{36}$/i.test(String(restaurantId||'')))return;
+ const restaurant=customerOrders.find(o=>o.restaurant_id===restaurantId);
+ const link=new URL('customer.html?direct=1&restaurant='+encodeURIComponent(restaurantId),location.href).href;
+ const title=restaurant?.restaurant_name||'Bite restaurant';
+ try{
+  if(navigator.share){await navigator.share({title,url:link});return;}
+  if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(link);alert('Restaurant link copied.');return;}
+  prompt('Share restaurant link',link);
+ }catch(error){if(error?.name!=='AbortError')console.warn('Restaurant sharing was unavailable',error);}
+}
+function biteLeaveFullOrderDetails(){
+ ++biteFullOrderRequest;biteFullOrderId=null;
+ showCustomerView('orders');window.scrollTo({top:0,behavior:'instant'});
+}
+async function biteOpenFullOrderDetails(orderId){
+ const customerId=activeCustomerId,order=customerOrders.find(o=>o.id===orderId);
+ if(!customerId||!order)return;
+ const requestId=++biteFullOrderRequest;biteFullOrderId=orderId;
+ showCustomerView('order-details');
+ $('biteDetailPageContent').innerHTML='<div class="bite-detail-page-skeleton" role="status"><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div></div>';
+ window.scrollTo({top:0,behavior:'instant'});
+ const current=()=>requestId===biteFullOrderRequest&&biteFullOrderId===orderId&&activeCustomerId===customerId&&document.body.dataset.view==='order-details';
+ try{
+  const [itemsResult,orderResult,historyResult,refundResult]=await Promise.all([
+   sb.from('order_items').select('item_name,quantity,unit_price,line_total').eq('order_id',orderId).order('created_at'),
+   sb.from('orders').select('id,customer_id,customer_name,customer_phone,delivery_address_snapshot,delivery_type').eq('id',orderId).eq('customer_id',customerId).maybeSingle(),
+   sb.from('order_status_history').select('to_status,changed_at').eq('order_id',orderId).order('changed_at'),
+   sb.from('bite_refund_jobs').select('order_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at').eq('order_id',orderId).eq('customer_id',customerId).maybeSingle()
+  ]);
+  if(!current())return;
+  if(itemsResult.error)throw itemsResult.error;
+  if(orderResult.error||!orderResult.data||orderResult.data.customer_id!==customerId)throw new Error('Order details not available for this account.');
+  $('biteDetailPageContent').innerHTML=biteBuildFullOrderMarkup(order,itemsResult.data||[],historyResult.data||[],orderResult.data,refundResult.error?null:refundResult.data);
+ }catch(error){
+  if(current())$('biteDetailPageContent').innerHTML='<div class="bite-detail-page-error"><strong>Order details could not be loaded.</strong><p>'+safe(error.message||'Please try again.')+'</p><button type="button" id="biteDetailRetry">Try again</button></div>';
+ }
+}
+$('biteDetailBack')?.addEventListener?.('click',biteLeaveFullOrderDetails);
+$('biteDetailPageContent')?.addEventListener?.('click',async event=>{
+ const bill=event.target.closest('[data-bite-detail-invoice]');
+ const copy=event.target.closest('[data-bite-copy-order]');
+ const retry=event.target.closest('#biteDetailRetry');
+ if(retry){void biteOpenFullOrderDetails(biteFullOrderId);return;}
+ if(copy&&biteFullOrderId){
+  try{await navigator.clipboard.writeText(copy.dataset.biteCopyOrder);copy.textContent='Copied';}
+  catch{prompt('Copy order ID',copy.dataset.biteCopyOrder);}
+ }
+ if(bill&&biteFullOrderId){
+  const button=bill;button.disabled=true;
+  try{
+   const {data,error}=await sb.rpc('bite_customer_invoice',{p_order_id:biteFullOrderId});
+   if(error)throw error;
+   await BiteInvoice.download(data);
+  }catch(error){alert(error.message||'Bill not available.');}
+  finally{button.disabled=false;}
+ }
+});
+$('biteDetailSupport')?.addEventListener?.('click',async()=>{
+ if(!biteFullOrderId||!activeCustomerId)return;
+ const selectedId=biteFullOrderId,accountId=activeCustomerId;
+ const form=await openOrderActionDialog('complaint');
+ if(!form||selectedId!==biteFullOrderId||accountId!==activeCustomerId)return;
+ try{
+  const {error}=await sb.rpc('create_customer_order_request',{p_order_id:selectedId,p_request_type:'complaint',p_message:form.message.trim()});
+  if(error)throw error;
+  showOrderActionResult('Support request sent for this order.');
+ }catch(error){showOrderActionResult(error.message||'Support request could not be sent.','error');}
+});
 function biteBindRefundRefresh(target,orderId,requestedCustomerId){
  target.querySelector('[data-refresh-refund-id]')?.addEventListener('click',async event=>{
   const button=event.currentTarget;button.disabled=true;button.textContent='Refreshing status…';
@@ -1187,6 +1305,9 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
   ++biteCheckoutOpenSequence;
   ++customerOrderViewSequence;customerOrders=[];expandedOrderId=null;
    if(typeof biteOrderDetailSequence!=='undefined')++biteOrderDetailSequence;
+   if(typeof biteFullOrderRequest!=='undefined')++biteFullOrderRequest;
+   if(typeof biteFullOrderId!=='undefined')biteFullOrderId=null;
+   if(typeof biteOrderItemsPreview!=='undefined')biteOrderItemsPreview.clear();
    if(typeof biteOrderDetailCache!=='undefined')biteOrderDetailCache.clear();
    if(typeof biteOrderCardsFingerprint!=='undefined')biteOrderCardsFingerprint=null;
    if(typeof biteOrderCardsCustomer!=='undefined')biteOrderCardsCustomer=null;
