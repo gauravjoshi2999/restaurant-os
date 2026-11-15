@@ -52,6 +52,8 @@
           if(r.is_temporarily_closed===true&&(!r.temporary_closure_until
              ||Date.parse(r.temporary_closure_until)>Date.now()+horizon*86400000))return false;
           if(options.service==='pickup')return false;
+          // Public schedule picker applies the exact forward-slot calculation.
+          if(root.BiteSchedule?.canSchedule && !root.BiteSchedule.canSchedule(r))return false;
           // A supplied PIN must be verified; pickup-only fallback must not leak in.
           if(options.pin&&r.serviceable!==true)return false;
         }
