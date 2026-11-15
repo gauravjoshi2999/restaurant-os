@@ -17,7 +17,7 @@ const row={id:orderId,order_code:'BITE-QA-1',restaurant_id:'restaurant-1',
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function setup({existingMarkup='',slowOrders=false}={}){
  const calls=[],nodes={},deferred={};
- for(const name of ['orders','refunds','requests','items']){
+ for(const name of ['orders','refunds','requests','items','payments']){
   let resolve;
   const promise=new Promise(r=>resolve=r);
   deferred[name]={promise,resolve};
@@ -35,7 +35,7 @@ function setup({existingMarkup='',slowOrders=false}={}){
  nodes.refreshOrdersBtn={classList:{add(c){calls.push('loading '+c)},remove(c){calls.push('done '+c)}}};
  const $=id=>nodes[id]??(nodes[id]={textContent:'',innerHTML:''});
  const dbQuery={select(){return this},eq(){return this},in(){return this},order(){return this},
-  limit(){return deferred[this.table==='bite_refund_jobs'?'refunds':this.table==='order_items'?'items':'requests'].promise}};
+  limit(){return deferred[this.table==='bite_refund_jobs'?'refunds':this.table==='order_items'?'items':this.table==='bite_live_checkout_intents'?'payments':'requests'].promise}};
  const ctx={
   $,
   document:{querySelectorAll:()=>[]},
@@ -45,6 +45,7 @@ function setup({existingMarkup='',slowOrders=false}={}){
   activeCustomerId:'customer1',customerOrderViewSequence:0,customerOrders:[],
   biteRefundByOrder:new Map(),biteCancellationByOrder:new Map(),
   biteRefundLookupUnavailable:false,biteOrderDetailCache:new Map(),
+  customerPaymentByOrder:new Map(),customerPaymentLookupUnavailable:false,customerPaymentResolved:false,
   biteOrderCardsFingerprint:null,biteOrderCardsCustomer:null,
   expandedOrderId:null,biteOrderDetailSequence:0,
   sb:{auth:{getSession:async()=>{calls.push('session');return {data:{session:{user:{id:'customer1'}}}}}},
@@ -72,6 +73,7 @@ test('My Orders renders real cards before slower refund and cancellation queries
  assert.ok(t.calls.includes('session'));
  t.deferred.refunds.resolve({data:[],error:null});
  t.deferred.requests.resolve({data:[],error:null});
+ t.deferred.payments.resolve({data:[],error:null});
  t.deferred.items.resolve({data:[],error:null});
  await loading;
  assert.equal(t.ctx.customerOrders.length,1);
@@ -85,9 +87,30 @@ test('revisiting orders keeps the same-user cards visible while fetching latest 
  t.deferred.orders.resolve({data:[row],error:null});
  t.deferred.refunds.resolve({data:[],error:null});
  t.deferred.requests.resolve({data:[],error:null});
+ t.deferred.payments.resolve({data:[],error:null});
  t.deferred.items.resolve({data:[],error:null});
  await job;
  assert.match(t.nodes.ordersList.innerHTML,/Hotel Maharani Palace/);
+});
+test('verified activated payment becomes visible only after independent customer-scoped lookup',async()=>{
+ const t=setup();
+ const job=t.load();
+ t.deferred.orders.resolve({data:[row],error:null});
+ await tick();await tick();
+ assert.doesNotMatch(t.nodes.ordersList.innerHTML,/Payment recorded/);
+ t.ctx.window.BiteCustomerPaymentTracker={
+  summary:(order,receipt)=>receipt&&receipt.status==='activated'&&receipt.amount===order.amount?'Payment recorded by Bite':'Payment not verified'
+ };
+ t.deferred.refunds.resolve({data:[],error:null});
+ t.deferred.requests.resolve({data:[],error:null});
+ t.deferred.items.resolve({data:[],error:null});
+ t.deferred.payments.resolve({data:[{
+  activated_order_id:orderId,customer_id:'customer1',restaurant_id:'restaurant-1',
+  amount:150,currency:'INR',status:'activated'
+ }],error:null});
+ await job;
+ assert.match(t.nodes.ordersList.innerHTML,/Payment recorded by Bite/);
+ assert.equal(t.ctx.customerPaymentByOrder.size,1);
 });
 test('history uses compact cards, separate details and discreet overflow actions',()=>{
  assert.match(html,/class="secondary bite-order-detail-action"/);
