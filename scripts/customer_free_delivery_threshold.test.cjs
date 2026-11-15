@@ -11,7 +11,7 @@ test('owner can opt in or disable food-subtotal free delivery without fake offer
  assert.match(owner,/id="ownerSettingFreeDeliveryAbove"/);
  assert.match(owner,/free_delivery_above:optionalAmount\('ownerSettingFreeDeliveryAbove'\)/);
  assert.match(owner,/set\('ownerSettingFreeDeliveryAbove',r\.free_delivery_above\)/);
- assert.match(owner,/v===''?null:Number\(v\)/);
+ assert.ok(owner.includes("return v===''?null:Number(v)"));
  assert.match(owner,/payload\.free_delivery_above<1/);
 });
 test('checkout estimate only waives delivery fee above configured threshold',()=>{
