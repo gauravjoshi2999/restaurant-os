@@ -348,6 +348,33 @@
    return false;
   }
  }
+ async function safeProviderErrorDetail(error){
+  const response=error?.context;
+  const status=Number(response?.status);
+  if(![400,401,403,404,409,503].includes(status)||typeof response?.json!=='function')return null;
+  try{
+   const payload=await response.json();
+   // Only server-authored, pre-approved error reasons can enter the UI.
+   // Never print raw provider payloads, headers, bank fields or auth details.
+   const messages={
+    'Trusted payment reference missing':'The Bite checkout is missing a trusted payment reference.',
+    'Provider collection lookup unavailable':'Cashfree collection lookup is unavailable.',
+    'Provider collection evidence mismatch':'Cashfree order ID, currency or amount did not match the trusted Bite order.',
+    'Provider settlement evidence mismatch':'Cashfree settlement response did not match the trusted Bite order.',
+    'Could not save provider verification evidence':'The provider check could not be saved to the private audit ledger.',
+    'Server configuration missing':'Verification server configuration is incomplete.',
+    'Provider not configured':'Cashfree provider configuration is incomplete.',
+    'Admin access required':'This session is not authorized to verify payments.',
+    'Invalid session':'Super Admin session is invalid.',
+    'Order database unavailable':'Order lookup failed on the server.',
+    'Payment database unavailable':'Checkout lookup failed on the server.',
+    'Live marketplace order not found':'The paid marketplace order was not found.',
+    'Invalid order ID':'The order identifier was rejected by the server.'
+   };
+   if(typeof payload?.error!=='string'||!Object.prototype.hasOwnProperty.call(messages,payload.error))return null;
+   return 'HTTP '+status+': '+messages[payload.error];
+  }catch{return null;}
+ }
  async function reconcile(orderId){
   if(!authorized()||working)return;
   const selected=loadedOrders.find(row=>row.orderId===orderId);
@@ -365,8 +392,13 @@
    outcome={status,message:'Cashfree reports '+status+'. Restaurant payout remains unverified until separate vendor settlement evidence is checked.',error:false};
    setStatus(outcome.message);
   }catch(error){
+   // Supabase HTTP errors carry an error Response in context; inspect only
+   // a strict allowlist of safe server error reasons and then recheck session.
+   const safeDetail=await safeProviderErrorDetail(error);
    if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
-   outcome={status:'UNAVAILABLE',message:'Provider check unavailable or mismatched for '+selected.orderCode+'. Do not mark this order settled. '+String(error?.message||'Try again later').slice(0,150),error:true};
+   outcome={status:'UNAVAILABLE',message:'Provider check unavailable or mismatched for '+selected.orderCode+'. '+
+    (safeDetail||'Cashfree verification did not complete.')+
+    ' Do not mark the order or restaurant settled.',error:true};
    setStatus(outcome.message,true);
   }finally{
    working=false;
