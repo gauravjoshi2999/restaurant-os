@@ -41,10 +41,23 @@ Deno.serve(async(req:Request)=>{
   const body=await req.json().catch(()=>null);
   if(!body||!["run","drain"].includes(body.action))return json({error:"Invalid action"},400);
   const auth=req.headers.get("authorization")||"";
+  const db=createClient(url,service);
   let actor:string|null=null;
   if(body.action==="drain"){
+   // Optional maintenance secret; the default self-contained scheduler uses
+   // a 90-second Vault HMAC signature checked by a service-only database RPC.
    const maintenanceSecret=Deno.env.get("BITE_MAINTENANCE_SECRET");
-   if(!maintenanceSecret||auth!=="Bearer "+maintenanceSecret)return json({error:"Unauthorized"},401);
+   let trusted=!!maintenanceSecret&&auth==="Bearer "+maintenanceSecret;
+   if(!trusted){
+    const stamp=req.headers.get("x-bite-auto-refund-ts")||"";
+    const signature=req.headers.get("x-bite-auto-refund-signature")||"";
+    if(/^\d{10}$/.test(stamp)&&/^[a-f0-9]{64}$/.test(signature)){
+     const result=await db.rpc("bite_verify_auto_refund_dispatch",{
+      p_timestamp:Number(stamp),p_signature:signature});
+     trusted=!result.error&&result.data===true;
+    }
+   }
+   if(!trusted)return json({error:"Unauthorized"},401);
   }else{
    if(!auth.startsWith("Bearer "))return json({error:"Login required"},401);
    const client=createClient(url,anon,{global:{headers:{Authorization:auth}}});
@@ -53,7 +66,6 @@ Deno.serve(async(req:Request)=>{
    actor=user.id;
    if(!uuid(body.order_id))return json({error:"Invalid order"},400);
   }
-  const db=createClient(url,service);
   const {data:config,error:configError}=await db.from("bite_operations_config")
     .select("auto_refunds_enabled,auto_refund_max_amount").eq("id",true).maybeSingle();
   if(configError||!config)return json({error:"Refund policy unavailable"},503);
@@ -130,7 +142,7 @@ Deno.serve(async(req:Request)=>{
    const {data,error}=await db.from("bite_refund_jobs")
     .select("id,order_id,status,auto_authorized_at,auto_rule,amount,provider_refund_id,attempts,restaurant_id,customer_id")
     .not("auto_authorized_at","is",null).in("status",["approved","processing","submitted"])
-    .order("created_at",{ascending:true}).limit(10);
+    .order("created_at",{ascending:true}).limit(2);
    if(error)return json({error:"Refund queue unavailable"},503);
    jobs=data||[];
   }

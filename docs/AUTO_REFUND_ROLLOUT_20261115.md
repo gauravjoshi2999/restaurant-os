@@ -14,12 +14,12 @@ This code does not retroactively approve or execute any pre-existing refund.
 ## Three rollout gates (must all pass)
 1. PR CI, public page browser QA, and dedicated automatic-refund regression tests.
 2. Apply `supabase/patch_20261115_trusted_auto_refunds.sql` through a reviewed Supabase migration. Deploy `bite-auto-refund` Edge Function with `verify_jwt=false`: the function validates its own user Bearer JWT through Supabase Auth for single-order calls or checks the private maintenance secret for scheduled calls. Confirm this server-only setup; never publish the maintenance secret.
-3. Add exactly the same private `BITE_MAINTENANCE_SECRET` to Supabase Edge Function environment and GitHub Actions repository secrets; the scheduled workflow runs every five minutes. Initially, `auto_refunds_enabled` must be false. After a sandbox/controlled live cancellation and provider check, enable using a privileged migration/SQL:
+3. Apply `supabase/patch_20261115_auto_refund_signed_cron.sql` as a reviewed migration: this creates a private Vault signing key, a service-only signature checker, and a five-minute Supabase Cron job (no manually copied secret). Deploy the updated Edge Function before applying that patch. The existing GitHub Actions worker is manual fallback only. Initially, `auto_refunds_enabled` must be false. After a sandbox/controlled live cancellation and provider check, enable using privileged SQL:
    `update public.bite_operations_config set auto_refunds_enabled=true,updated_at=now() where id=true;`
    Do not activate without a tested provider response, owner policy acceptance, refund fee/settlement reconciliation and correct retry guarantees.
 
 ## Important limitations
-- A customer cancellation immediately triggers a best-effort worker call; the scheduled runner is needed for processing after the customer closes the browser and for restaurant-side cancellations. GitHub Actions scheduled workflows may have minor delays.
+- A customer cancellation immediately triggers a best-effort worker call. The Vault-signed Supabase Cron runner checks existing auto-eligible jobs every five minutes even if the customer's browser closes; processing may be delayed by provider/network conditions. Supabase Cron makes no request while the feature is disabled.
 - Historical approved ₹1 refunds and any ambiguous refunds are **NOT** auto-processed or backfilled by this rollout. Use existing read-only Cashfree verification first.
 - No customer bank credit is promised at the moment of cancellation.
 - Pause promptly if Cashfree evidence is inconsistent, declined, uncertain or a competing refund is detected. Never rotate refund IDs or double-submit.
