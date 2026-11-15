@@ -75,5 +75,5 @@ test('only email-shaped values are removed, never saved customer account credent
  assert.equal(guard.isEmailAutofill('paneer pizza'),false);
  assert.equal(guard.isEmailAutofill('Shreeji@ Thali'),false);
  assert.equal(guard.isEmailAutofill('food@example.com offers'),false);
- assert.match(html,/id="loginEmail"/);
+ assert.match(html,/id="customerEmail"/);
 });
