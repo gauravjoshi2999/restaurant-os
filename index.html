@@ -1336,6 +1336,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
 <script src="assets/owner-orders-workspace.js?v=20261114-calendar-openfix1"></script>
+<script src="assets/owner-order-burst.js?v=20261115-burst1"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -1403,6 +1404,8 @@ async function activateSession(user){if(!user)return;currentUser=user;ownerPushH
 async function loadAccessContext(){const results=await Promise.all([sb.rpc('is_platform_admin'),sb.from('restaurant_members').select('restaurant_id,role').eq('user_id',currentUser.id)]);if(results[0].error)throw results[0].error;if(results[1].error)throw results[1].error;access.isPlatformAdmin=results[0].data===true;access.memberships=results[1].data||[];access.tenantMembershipCount=access.memberships.length;if(access.isPlatformAdmin){access.role='super_admin';access.restaurantId=null;return}const ownerMemberships=access.memberships.filter(m=>m.role==='owner');const restaurantIds=[...new Set(access.memberships.map(m=>m.restaurant_id))];if(ownerMemberships.length>1||restaurantIds.length>1)throw new Error('This account is linked to more than one restaurant. Bite initial version allows one Owner Account for one Restaurant. Please ask the Bite Platform Admin to resolve the restaurant access before login.');if(ownerMemberships.length===1){const {data:assignedOwners,error:ownerListError}=await sb.from('restaurant_members').select('user_id').eq('restaurant_id',ownerMemberships[0].restaurant_id).eq('role','owner');if(ownerListError)throw ownerListError;if((assignedOwners||[]).length!==1||assignedOwners[0].user_id!==currentUser.id)throw new Error('This restaurant has more than one Owner assignment. Platform Admin must resolve the Owner mapping before access is enabled.');access.role='owner';access.restaurantId=ownerMemberships[0].restaurant_id;return}if(access.memberships.length===0){access.role='no_membership';access.restaurantId=null;return}throw new Error('Bite initial version supports one Restaurant Owner account only. Manager and staff logins are not enabled.')}
 function applyRoleUI(){const role=access.role;const appScope=new URLSearchParams(location.search).get('bite_app');if((appScope==='admin'&&role!=='super_admin')||(appScope==='partner'&&role!=='owner')){document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';showAuthError(appScope==='admin'?'This app requires a Super Admin account. Please sign in with your platform administrator account.':'This app requires a Restaurant Owner account.');return;}document.body.dataset.role=role;const labels={super_admin:'SUPER ADMIN',owner:'RESTAURANT OWNER',manager:'MANAGER',staff:'STAFF',no_membership:'NO RESTAURANT ROLE'};document.getElementById('accountRole').textContent=labels[role]||'USER';const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront'];const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];document.querySelectorAll('.nav button').forEach(b=>{const p=b.dataset.page;const ok=role==='super_admin'?platformPages.includes(p):role==='owner'?ownerPages.includes(p):false;b.hidden=!ok;b.style.display=ok?'flex':'none'});document.querySelectorAll('.nav-group').forEach(g=>{const visible=[...g.querySelectorAll('button')].some(b=>!b.hidden);g.hidden=!visible;g.style.display=visible?'':'none'});document.querySelectorAll('[data-owner-up]').forEach(e=>e.style.display=['super_admin','owner'].includes(role)?'':'none');document.querySelectorAll('[data-order-create]').forEach(e=>e.style.display='none');document.querySelectorAll('[data-order-channel]').forEach(e=>{const c=e.dataset.orderChannel;e.style.display=role==='owner'?(['all','website'].includes(c)?'':'none'):role==='super_admin'?(c==='website'?'':'none'):'none'});document.querySelectorAll('[data-admin-only]').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('[data-owner-review-workspace]').forEach(e=>e.style.display=role==='owner'?'':'none');const welcome=document.getElementById('ownerWelcomeTitle'),subtitle=document.getElementById('ownerWelcomeSubtitle');if(welcome&&subtitle){welcome.textContent=role==='super_admin'?'Platform command center':role==='staff'?'Today’s service desk':'Your restaurant, one dashboard';subtitle.textContent=role==='super_admin'?'Manage restaurant partners and the Bite platform.':'Online orders, menu, expenses, reports and restaurant settings — simple and clear.'}document.querySelectorAll('[data-owner-dashboard]').forEach(e=>e.style.setProperty('display',['owner','manager'].includes(role)?'block':'none','important'));document.querySelectorAll('[data-platform-dashboard]').forEach(e=>e.style.display=role==='super_admin'?'block':'none');document.querySelectorAll('.owner-launcher').forEach(e=>e.style.display='none');document.querySelectorAll('.owner-launcher .launch-card').forEach(b=>{const match=(b.getAttribute('onclick')||'').match(/showPage\('([^']+)'\)/);const target=match?match[1]:'';b.style.display=role==='owner'&&['orders','menu','expenses','reports','settings'].includes(target)?'flex':'none'});if(role==='owner'){const ordersLabel=document.querySelector('[data-page="orders"] .nav-text'),menuLabel=document.querySelector('[data-page="menu"] .nav-text');if(ordersLabel)ordersLabel.textContent='Orders';if(menuLabel)menuLabel.textContent='Menu & prices'}if(role==='super_admin'){const a=document.getElementById('metricOrders')?.previousElementSibling,b=document.getElementById('metricSales')?.previousElementSibling,c=document.getElementById('metricPending')?.previousElementSibling;if(a)a.textContent='🌐 Website orders';if(b)b.textContent='💳 Website sales';if(c)c.textContent='↗ Orders awaiting settlement';const orderNav=document.querySelector('[data-page="orders"] .nav-text');if(orderNav)orderNav.textContent='Website Orders';const oh=document.querySelector('#orders .welcome h1'),os=document.querySelector('#orders .welcome .muted'),cn=document.querySelector('.channel-connection-note');if(oh)oh.textContent='Website Orders';if(os)os.textContent='Bite ki apni website se aaye orders aur unka status.';if(cn)cn.style.display='none';const kicker=document.querySelector('[data-platform-dashboard] .owner-home-eyebrow');if(kicker)kicker.textContent='RESTAURANTOS PLATFORM';const banner=document.querySelector('[data-platform-dashboard] .welcome+div div div:last-child');if(banner)banner.textContent='Website Orders · Commission · Settlements'}if(role==='owner'||role==='manager'){showPage('overview');const overview=document.getElementById('overview'),dashboard=document.querySelector('#overview [data-owner-dashboard]');BiteOwner.activatePage(document,'overview');if(overview){overview.style.setProperty('visibility','visible','important')}if(dashboard){dashboard.style.setProperty('display','block','important');dashboard.style.setProperty('visibility','visible','important');dashboard.style.setProperty('opacity','1','important')}}else if(role==='staff')showPage('orders');else showPage('overview')}
 async function logout(){
+ if(orderRefreshTimer){clearTimeout(orderRefreshTimer);orderRefreshTimer=null;}
+ ownerOrderBurstTracker.reset();ownerOrderRefreshRequestedWhileLoading=false;ownerOrderRefreshRetries=0;
  ownerPushHealthRequest++;ownerPushHealthBusy=false;const pushHealthButton=document.getElementById('ownerPushHealthButton');if(pushHealthButton)pushHealthButton.disabled=false;const ph=document.getElementById('ownerPushHealthResult');if(ph)ph.textContent='Phone push status not checked yet.';
  // Revoke local FCM token even if the network is offline, so a logged-out
  // Partner APK cannot keep showing restaurant order notifications.
@@ -3564,7 +3567,66 @@ async function toggleOrderSound(){
   return;
  }
  if(!orderAlertsEnabled){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx){alert('Is browser mein sound alert support nahi hai.');return}try{orderAudioContext=orderAudioContext||new AudioCtx();await orderAudioContext.resume();orderAlertsEnabled=true;try{localStorage.setItem('restaurantos_order_sound','on')}catch(e){}updateOrderSoundButton();void prepareOwnerOrderNotifications();showOrderLiveToast('New order aane par sound alert milega.')}catch(e){alert('Sound alert enable nahi ho paya. Browser sound permission check karein.')}}else{orderAlertsEnabled=false;try{localStorage.setItem('restaurantos_order_sound','off')}catch(e){}updateOrderSoundButton()}}
-function startRealtimeOrderUpdates(){if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}setOrderLiveState('Live updates connecting...','');orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id).on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{const row=payload.new||payload.old;if(!row)return;const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);if(!allowed)return;if(orderRefreshTimer)clearTimeout(orderRefreshTimer);orderRefreshTimer=setTimeout(async()=>{const isNew=payload.eventType==='INSERT'&&!state.orders.some(o=>o.id===row.id);try{await loadCloudData();if(isNew){const order=state.orders.find(o=>o.id===row.id);if(order&&orderChannelKey(order.channel)==='website'&&order.status==='Received'){const rest=state.restaurants.find(r=>r.id===order.restaurant);showOrderLiveToast('🛎️ Naya order mila! '+(rest?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));playOrderAlertSound();sendOwnerOrderNotification(order,rest)}}}catch(e){console.error('Live order refresh failed',e)}},250)}).subscribe(status=>{if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error')})}
+// Per-order arrival IDs survive the UI refresh debounce; a single timer must never drop a burst.
+const ownerOrderBurstTracker=BiteOwnerOrderBurst.createTracker();
+let ownerOrderRefreshActive=false,ownerOrderRefreshRequestedWhileLoading=false,ownerOrderRefreshRetries=0;
+function announceOwnerOrderBurst(orders){
+ if(access.role!=='owner'||!orders.length)return;
+ if(orders.length===1){
+  const order=orders[0],restaurant=state.restaurants.find(r=>r.id===order.restaurant);
+  showOrderLiveToast('🛎️ Naya order mila! '+(restaurant?.name||'Restaurant')+' · '+(order.code||'Order')+' · '+money(order.amount));
+ }else{
+  const codes=orders.slice(0,3).map(o=>'#'+(o.code||String(o.id).slice(0,8)));
+  showOrderLiveToast('🛎️ '+orders.length+' naye Bite orders · '+codes.join(', ')+(orders.length>3?' +'+(orders.length-3)+' more':''));
+ }
+ // One chime per burst avoids dozens of overlapping sounds. Each order gets its own native alert.
+ playOrderAlertSound();
+ for(const order of orders)sendOwnerOrderNotification(order,state.restaurants.find(r=>r.id===order.restaurant));
+}
+function scheduleOwnerOrderRefresh(delay=250){
+ if(orderRefreshTimer)clearTimeout(orderRefreshTimer);
+ orderRefreshTimer=setTimeout(()=>{orderRefreshTimer=null;void refreshOwnerOrderSnapshot();},delay);
+}
+async function refreshOwnerOrderSnapshot(){
+ if(ownerOrderRefreshActive){ownerOrderRefreshRequestedWhileLoading=true;return;}
+ ownerOrderRefreshActive=true;
+ const userId=currentUser?.id,restaurantId=access.restaurantId;
+ try{
+  await loadCloudData();
+  if(userId===currentUser?.id&&restaurantId===access.restaurantId&&access.role==='owner')
+   announceOwnerOrderBurst(ownerOrderBurstTracker.take(state.orders,restaurantId));
+  if(!ownerOrderBurstTracker.pendingCount())ownerOrderRefreshRetries=0;
+ }catch(error){console.error('Live order refresh failed',error);}
+ finally{
+  ownerOrderRefreshActive=false;
+  if(ownerOrderRefreshRequestedWhileLoading){
+   ownerOrderRefreshRequestedWhileLoading=false;
+   scheduleOwnerOrderRefresh();
+  }else if(ownerOrderBurstTracker.pendingCount()&&ownerOrderRefreshRetries<3&&
+           userId===currentUser?.id&&restaurantId===access.restaurantId){
+   ownerOrderRefreshRetries++;
+   scheduleOwnerOrderRefresh(1500);
+  }
+ }
+}
+function startRealtimeOrderUpdates(){
+ if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null;}
+ setOrderLiveState('Live updates connecting...','');
+ orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id)
+ .on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{
+  const row=payload.new||payload.old;if(!row)return;
+  const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);
+  if(!allowed)return;
+  if(payload.eventType==='INSERT'&&access.role==='owner'&&row.restaurant_id===access.restaurantId&&row.status==='Received')
+   ownerOrderBurstTracker.queue(row.id);
+  // One database reload for an entire burst, but retain every distinct inserted order ID.
+  scheduleOwnerOrderRefresh();
+ }).subscribe(status=>{
+  if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');
+  else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');
+  else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error');
+ });
+}
 
 /* Android/WebView can suspend Realtime while the application is backgrounded.
    Reconnect on resume and report only orders that arrived while the page slept.
@@ -3574,19 +3636,15 @@ async function catchUpOwnerLiveOrders(){
  if(ownerResumeRefreshActive||!currentUser||access.role!=='owner'||document.visibilityState==='hidden')return;
  if(Date.now()-ownerLastResumeAt<1500)return;
  ownerLastResumeAt=Date.now();ownerResumeRefreshActive=true;
+ const userId=currentUser.id,restaurantId=access.restaurantId;
  try{
-  const seen=new Set((state.orders||[]).map(order=>order.id));
+  const before=state.orders.slice();
   startRealtimeOrderUpdates();
   await loadCloudData();
-  const latest=(state.orders||[]).filter(order=>
-   !seen.has(order.id)&&order.restaurant===access.restaurantId&&
-   orderChannelKey(order.channel)==='website'&&order.status==='Received'&&
-   Date.now()-Date.parse(order.created_at||order.order_date||0)<30*60*1000);
-  for(const order of latest){
-   const restaurant=state.restaurants.find(item=>item.id===order.restaurant);
-   showOrderLiveToast('🛎️ New order · '+(order.code||'Bite'));
-   playOrderAlertSound();sendOwnerOrderNotification(order,restaurant);
-  }
+  if(currentUser?.id!==userId||access.role!=='owner'||access.restaurantId!==restaurantId)return;
+  // Compare order IDs, not order.created_at: state records use the mapped createdAt field.
+  // The shared tracker deduplicates events arriving during reconnect and announces older missed orders.
+  announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(before,state.orders,restaurantId));
  }catch(error){console.warn('Owner order catch-up postponed',error);}
  finally{ownerResumeRefreshActive=false;}
 }
