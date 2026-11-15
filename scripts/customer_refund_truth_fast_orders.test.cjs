@@ -26,7 +26,7 @@ test('customer details are expanded without reloading entire order list',async()
  const start=html.indexOf("document.querySelectorAll('[data-order-detail]').forEach(b=>b.addEventListener('click',()=>{");
  const end=html.indexOf('if(expandedOrderId)await loadOrderDetail(expandedOrderId);',start);
  assert.ok(start>0&&end>start);
- const snippet=html.slice(start,end)+'if(expandedOrderId)await loadOrderDetail(expandedOrderId);';
+ const snippet=html.slice(start,end);
  assert.doesNotMatch(snippet,/await loadMyOrders\(/);
  const events={},nodes=new Map(),calls=[];
  const button={dataset:{orderDetail:'order1'},textContent:'View details',
@@ -34,7 +34,7 @@ test('customer details are expanded without reloading entire order list',async()
  const card={appendChild(el){calls.push('append');nodes.set(el.id,el)}};
  const document={
   querySelectorAll(selector){return selector==='[data-order-detail]'?[button]:[]},
-  createElement(){return {setAttribute(){}}}
+  createElement(){return {setAttribute(){},remove(){nodes.delete(this.id)}}}
  };
  let expandedOrderId=null,biteOrderDetailSequence=0;
  const ctx=vm.createContext({document,expandedOrderId,biteOrderDetailSequence,
