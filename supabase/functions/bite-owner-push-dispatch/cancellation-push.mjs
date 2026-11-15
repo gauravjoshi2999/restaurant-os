@@ -1,3 +1,4 @@
+import {shouldDisableOwnerFcmToken} from "./fcm-token-policy.mjs";
 /* Server-only FCM sender for real pending customer cancellation requests.
    No direct client entrypoint, no customer PII, no automatic owner decisions. */
 export async function dispatchCancellationPush({db,fetcher,bearer,projectId,clock=()=>new Date()}){
@@ -74,7 +75,7 @@ export async function dispatchCancellationPush({db,fetcher,bearer,projectId,cloc
            body:JSON.stringify({message}),signal:AbortSignal.timeout(12000)});
         if(!response.ok){
          errors++;
-         if([400,404].includes(response.status))
+         if(await shouldDisableOwnerFcmToken(response))
           await db.from("bite_owner_push_devices")
            .update({enabled:false,updated_at:clock().toISOString()})
            .eq("fcm_token",device.fcm_token).eq("restaurant_id",ev.restaurant_id);
