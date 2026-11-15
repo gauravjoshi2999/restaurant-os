@@ -53,7 +53,8 @@ function setup(o={}){
   SUPABASE_URL:'https://project.supabase.co',SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'service',
   CASHFREE_APP_ID:'app',CASHFREE_SECRET_KEY:'secret',BITE_MAINTENANCE_SECRET:'maintenance'
  })[name]}},createClient:(url,key)=>key==='anon'?
-  {auth:{getUser:async()=>({data:{user:o.invalidSession?null:{id:'customer'}},error:null})}}:service,
+  {auth:{getUser:async()=>({data:{user:o.invalidSession?null:{id:'customer'}},error:null})},
+   rpc:async(name)=>({data:name==='is_platform_admin'&&o.isAdmin!==false,error:null})}:service,
   fetch:provider,Response,Request,AbortSignal,URL,Date,JSON,Number,String,Math,Object,Array,RegExp,console,Set};
  vm.createContext(context);
  vm.runInContext(stripTypeScriptTypes(edge.replace(/^import .*;\n/gm,''),{mode:'strip'}),context);
@@ -220,4 +221,27 @@ test('signed preflight of completed or corrupted financial order stops without p
  'x-bite-auto-refund-signature':'a'.repeat(64)},{mode:'preflight',order_id:oid});
  assert.equal(result.data.result,'INTERNAL_MISMATCH_OR_INELIGIBLE');
  assert.equal(t.calls.length,0);
+});
+
+test('Super Admin may inspect a trusted paid cancelled order with GET only while auto refunds OFF',async()=>{
+ const t=setup({enabled:false});
+ const r=await t.run('preflight','Bearer admin',{}, {order_id:oid});
+ assert.equal(r.status,200);
+ assert.equal(r.data.result,'PAID_MATCHES_NO_REFUND');
+ assert.equal(r.data.refund_sent,false);
+ assert.equal(r.data.live_refunds_enabled,false);
+ assert.deepEqual(t.calls.map(x=>x.method),['GET','GET']);
+ assert.equal(t.rpc.filter(x=>x.name==='bite_claim_auto_refund').length,0);
+});
+test('non-admin user cannot call provider preflight even for a valid order',async()=>{
+ const t=setup({isAdmin:false,enabled:false});
+ const r=await t.run('preflight','Bearer session',{}, {order_id:oid});
+ assert.equal(r.status,403);assert.equal(t.calls.length,0);
+});
+test('Super Admin read-only mismatch does not attempt any refund or ledger write',async()=>{
+ const t=setup({enabled:false,providerAmount:173});
+ const r=await t.run('preflight','Bearer admin',{}, {order_id:oid});
+ assert.equal(r.data.result,'CASHFREE_PAYMENT_MISMATCH');
+ assert.equal(t.calls.length,1);assert.equal(t.calls[0].method,'GET');
+ assert.ok(!t.rpc.some(x=>/bite_claim_auto_refund|bite_record_provider_refund/.test(x.name)));
 });
