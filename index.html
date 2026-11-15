@@ -1335,7 +1335,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
-<script src="assets/owner-orders-workspace.js?v=20261114-calendar-openfix1"></script>
+<script src="assets/owner-orders-workspace.js?v=20261115-queue2"></script>
 <script src="assets/owner-order-burst.js?v=20261115-burst1"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
@@ -3100,7 +3100,7 @@ async function acceptAndStartOrder(id){
  try{
   const change=async(from,to)=>{
    const {data,error}=await sb.from('orders').update({status:to,status_note:null})
-    .eq('id',id).eq('status',from).select('id,status').maybeSingle();
+    .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status',from).select('id,status').maybeSingle();
    if(error)throw error;
    if(!data||data.status!==to)throw new Error('Order status changed. Refresh karke check karein.');
   };
@@ -3142,8 +3142,11 @@ async function advanceOrder(id,next){
      if(!note){alert('Reason likhna zaroori hai.');return}
    }
    // Same existing backend mutation and authentication/tenant RLS; no new RPC.
-   const {error}=await sb.from('orders').update({status:next,status_note:note}).eq('id',id);
-   if(error){alert('Status update nahi hua: '+error.message);return}
+   const {data:changed,error}=await sb.from('orders').update({status:next,status_note:note})
+    .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status',o.status)
+    .select('id,status').maybeSingle();
+   if(error){alert('Status update nahi hua: '+error.message);await loadCloudData();return}
+   if(!changed){alert('Ye order kisi aur device se update ho chuka hai. Latest status refresh ho raha hai.');await loadCloudData();return}
    await loadCloudData();
  }finally{
    ownerOrderActionsPending.delete(id);
@@ -3725,7 +3728,7 @@ function renderOrderBoard(){
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
  if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
  const datedOrders=access.role==='owner'?BiteOwnerOrders.dateFilter(channelOrders):channelOrders;
- const orders=(activeOrderStatus==='all'?datedOrders:datedOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus)).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+ const orders=BiteOwnerOrders.sortQueue(activeOrderStatus==='all'?datedOrders:datedOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus),activeOrderStatus,access.role);
  const canManage=access.role==='owner';
  const actions={Received:[['Accepted','Accept order','btn'],['Rejected','Reject','btn danger']],Accepted:[['Preparing','Start preparing','btn']],Preparing:[['Ready','Mark ready','btn']],Ready:[['Handed Over','Hand over / picked up','btn']],'Handed Over':[['Completed','Mark completed','btn']]};
  const board=document.getElementById('orderBoard');if(!board)return;
