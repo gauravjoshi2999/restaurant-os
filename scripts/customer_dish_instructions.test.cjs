@@ -84,8 +84,8 @@ test('owner sees escaped cooking instructions in the order inbox and order board
  assert.match(owner,/const instructions=o\.customerNote\?'<div class="order-cooking-note/);
  assert.match(owner,/const instructionsHtml=o\.customerNote\?'<div class="order-cooking-note/);
  assert.match(owner,/esc\(o\.customerNote\)/);
- assert.match(owner,/\+itemHtml\+instructionsHtml\+/);
- assert.match(owner,/\+extra\+'<\/div>'\+instructions\+/);
+ assert.match(owner,/\+scheduledHtml\+itemHtml\+instructionsHtml\+/);
+ assert.match(owner,/\+extra\+'<\/div>'\+scheduledInbox\+instructions\+/);
  assert.match(owner,/\.order-cooking-note>div\{white-space:pre-wrap\}/);
 });
 
