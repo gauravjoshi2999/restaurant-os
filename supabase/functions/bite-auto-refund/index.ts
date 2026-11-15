@@ -51,7 +51,7 @@ Deno.serve(async(req:Request)=>{
    if(!trusted){
     const stamp=req.headers.get("x-bite-auto-refund-ts")||"";
     const signature=req.headers.get("x-bite-auto-refund-signature")||"";
-    if(/^\\d{10}$/.test(stamp)&&/^[a-f0-9]{64}$/.test(signature)){
+    if(/^\d{10}$/.test(stamp)&&/^[a-f0-9]{64}$/.test(signature)){
      const result=await db.rpc("bite_verify_auto_refund_dispatch",{
       p_timestamp:Number(stamp),p_signature:signature});
      trusted=!result.error&&result.data===true;
