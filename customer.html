@@ -680,7 +680,7 @@ let customerOrderViewSequence=0;
 let biteRefundByOrder=new Map(),biteCancellationByOrder=new Map(),biteRefundLookupUnavailable=false;
 let customerPaymentByOrder=new Map(),customerPaymentLookupUnavailable=false,customerPaymentResolved=false;
 let biteOrderCardsFingerprint=null,biteOrderCardsCustomer=null,biteOrderDetailSequence=0;
-let biteFullOrderRequest=0,biteFullOrderId=null;
+let biteFullOrderRequest=0,biteFullOrderId=null,biteFullOrderLastMarkup=null;
 const biteOrderItemsPreview=new Map();
 const biteOrderDetailCache=new Map(),BITE_ORDER_DETAIL_CACHE_MS=60000;
 let biteCheckoutOpenSequence=0;
@@ -1082,21 +1082,25 @@ async function biteShareRestaurant(restaurantId){
  }catch(error){if(error?.name!=='AbortError')console.warn('Restaurant sharing was unavailable',error);}
 }
 function biteLeaveFullOrderDetails(){
- ++biteFullOrderRequest;biteFullOrderId=null;
+ ++biteFullOrderRequest;biteFullOrderId=null;biteFullOrderLastMarkup=null;
  showCustomerView('orders');window.scrollTo({top:0,behavior:'instant'});
+ void loadMyOrders();
 }
-async function biteOpenFullOrderDetails(orderId){
+async function biteOpenFullOrderDetails(orderId,quiet=false){
  const customerId=activeCustomerId,order=customerOrders.find(o=>o.id===orderId);
  if(!customerId||!order)return;
+ if(quiet&&(biteFullOrderId!==orderId||document.body.dataset.view!=='order-details'))return;
  const requestId=++biteFullOrderRequest;biteFullOrderId=orderId;
- showCustomerView('order-details');
- $('biteDetailPageContent').innerHTML='<div class="bite-detail-page-skeleton" role="status"><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div></div>';
- window.scrollTo({top:0,behavior:'instant'});
+ if(!quiet){
+  showCustomerView('order-details');biteFullOrderLastMarkup=null;
+  $('biteDetailPageContent').innerHTML='<div class="bite-detail-page-skeleton" role="status"><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div></div>';
+  window.scrollTo({top:0,behavior:'instant'});
+ }
  const current=()=>requestId===biteFullOrderRequest&&biteFullOrderId===orderId&&activeCustomerId===customerId&&document.body.dataset.view==='order-details';
  try{
   const [itemsResult,orderResult,historyResult,refundResult,paymentResult]=await Promise.all([
    sb.from('order_items').select('item_name,quantity,unit_price,line_total').eq('order_id',orderId).order('created_at'),
-   sb.from('orders').select('id,customer_id,customer_name,customer_phone,delivery_address_snapshot,delivery_type').eq('id',orderId).eq('customer_id',customerId).maybeSingle(),
+   sb.from('orders').select('id,customer_id,status,amount,order_date,customer_name,customer_phone,delivery_address_snapshot,delivery_type').eq('id',orderId).eq('customer_id',customerId).maybeSingle(),
    sb.from('order_status_history').select('to_status,changed_at').eq('order_id',orderId).order('changed_at'),
    sb.from('bite_refund_jobs').select('order_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at').eq('order_id',orderId).eq('customer_id',customerId).maybeSingle(),
    sb.from('bite_live_checkout_intents').select('activated_order_id,customer_id,restaurant_id,amount,currency,status,updated_at')
@@ -1108,10 +1112,17 @@ async function biteOpenFullOrderDetails(orderId){
   if(orderResult.error||!orderResult.data||orderResult.data.customer_id!==customerId)throw new Error('Order details not available for this account.');
   const matchedPayment=!paymentResult.error&&paymentResult.data?.length===1&&
    paymentResult.data[0].customer_id===customerId?paymentResult.data[0]:null;
-  $('biteDetailPageContent').innerHTML=biteBuildFullOrderMarkup(order,itemsResult.data||[],historyResult.data||[],orderResult.data,
+  // Fresh customer-owned row overrides stale order-list snapshot while details stay open.
+  const freshOrder={...order,status:orderResult.data.status,amount:orderResult.data.amount,order_date:orderResult.data.order_date};
+  const markup=biteBuildFullOrderMarkup(freshOrder,itemsResult.data||[],historyResult.data||[],orderResult.data,
    refundResult.error?null:refundResult.data,matchedPayment,!!paymentResult.error||!!(paymentResult.data?.length>1),!!refundResult.error);
+  if(!quiet||markup!==biteFullOrderLastMarkup){
+   $('biteDetailPageContent').innerHTML=markup;biteFullOrderLastMarkup=markup;
+  }
+  Object.assign(order,{status:freshOrder.status,amount:freshOrder.amount,order_date:freshOrder.order_date});
  }catch(error){
-  if(current())$('biteDetailPageContent').innerHTML='<div class="bite-detail-page-error"><strong>Order details could not be loaded.</strong><p>'+safe(error.message||'Please try again.')+'</p><button type="button" id="biteDetailRetry">Try again</button></div>';
+  if(current()&&!quiet)$('biteDetailPageContent').innerHTML='<div class="bite-detail-page-error"><strong>Order details could not be loaded.</strong><p>'+safe(error.message||'Please try again.')+'</p><button type="button" id="biteDetailRetry">Try again</button></div>';
+  if(current()&&quiet)console.warn('Latest order detail refresh unavailable');
  }
 }
 $('biteDetailBack')?.addEventListener?.('click',biteLeaveFullOrderDetails);
@@ -1120,7 +1131,7 @@ $('biteDetailPageContent')?.addEventListener?.('click',async event=>{
  const copy=event.target.closest('[data-bite-copy-order]');
  const retry=event.target.closest('#biteDetailRetry');
  const paymentRefresh=event.target.closest('[data-bite-refresh-payment]');
- if(paymentRefresh&&biteFullOrderId){paymentRefresh.disabled=true;void biteOpenFullOrderDetails(biteFullOrderId);return;}
+ if(paymentRefresh&&biteFullOrderId){paymentRefresh.disabled=true;void biteOpenFullOrderDetails(biteFullOrderId,true).finally(()=>{paymentRefresh.disabled=false});return;}
   if(event.target.closest('[data-bite-detail-help]')){$('biteDetailSupport')?.click();return;}
  if(retry){void biteOpenFullOrderDetails(biteFullOrderId);return;}
  if(copy&&biteFullOrderId){
@@ -1191,13 +1202,20 @@ async function loadOrderDetail(orderId,force=false){
  }catch(e){if(!target.isConnected||activeCustomerId!==requestedCustomerId||expandedOrderId!==orderId||detailRequestId!==biteOrderDetailSequence)return;target.textContent='Details load nahi ho paaye: '+(e.message||'Please refresh karein.');}}
 // Provider status may change without an order status change.
 setInterval(()=>{
+ if(activeCustomerId&&document.visibilityState==='visible'&&document.body.dataset.view==='order-details'&&biteFullOrderId){
+  void biteOpenFullOrderDetails(biteFullOrderId,true);return;
+ }
  if(activeCustomerId&&document.visibilityState==='visible'&&!$('ordersView').classList.contains('hidden')&&
   (customerOrders.some(o=>['Received','Accepted','Preparing','Ready','Handed Over','Out for Delivery'].includes(o.status))||
    [...biteRefundByOrder.values()].some(job=>!['succeeded','failed','rejected'].includes(job.status))||
    [...biteCancellationByOrder.values()].some(request=>request.status==='Pending')))
   void loadMyOrders();
 },45000);
-function setupOrderRealtime(userId){if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!userId)return;orderChannel=sb.channel('customer-orders-'+userId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:'customer_id=eq.'+userId},()=>{if(!$('ordersView').classList.contains('hidden'))loadMyOrders()}).subscribe();}
+function setupOrderRealtime(userId){if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!userId)return;orderChannel=sb.channel('customer-orders-'+userId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:'customer_id=eq.'+userId},payload=>{
+ if(!$('ordersView').classList.contains('hidden')){void loadMyOrders();return;}
+ if(document.body.dataset.view==='order-details'&&biteFullOrderId&&payload?.new?.id===biteFullOrderId)
+  void biteOpenFullOrderDetails(biteFullOrderId,true);
+}).subscribe();}
 
 let customerGoogleProviderState='unknown',customerGoogleProviderRequest=null;
 function isEmbeddedCustomerWebView(){
@@ -1371,6 +1389,7 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
    if(typeof biteOrderDetailSequence!=='undefined')++biteOrderDetailSequence;
    if(typeof biteFullOrderRequest!=='undefined')++biteFullOrderRequest;
    if(typeof biteFullOrderId!=='undefined')biteFullOrderId=null;
+   if(typeof biteFullOrderLastMarkup!=='undefined')biteFullOrderLastMarkup=null;
    if(typeof biteOrderItemsPreview!=='undefined')biteOrderItemsPreview.clear();
    if(typeof biteOrderDetailCache!=='undefined')biteOrderDetailCache.clear();
    if(typeof biteOrderCardsFingerprint!=='undefined')biteOrderCardsFingerprint=null;
