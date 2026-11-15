@@ -26,6 +26,18 @@
       return diff||String(a.id||'').localeCompare(String(b.id||''));
     });
   }
+  // Backup polling discovers rows whose INSERT event never reached WebView.
+  // Return only unseen IDs from the exact tenant; sorting is deterministic FIFO.
+  function unseenReceivedIds(rows,knownIds,restaurantId){
+    const known=knownIds instanceof Set?knownIds:new Set(knownIds||[]);
+    const seen=new Set();
+    return fifo((rows||[]).filter(order=>{
+      const id=typeof order?.id==='string'?order.id.trim():'';
+      if(!id||known.has(id)||seen.has(id)||!isIncoming(order,restaurantId))return false;
+      seen.add(id);
+      return true;
+    })).map(order=>order.id);
+  }
   function paidOrderIds(financials,restaurantId){
     return new Set((financials||[]).filter(f=>
       f&&f.restaurant_id===restaurantId&&
@@ -80,5 +92,5 @@
     return {queue,take,reconcile,pendingIds:()=>{expire();return [...pending.keys()]},
       pendingCount:()=>{expire();return pending.size},reset:()=>{pending.clear();announced.clear();}};
   }
-  return {createTracker,isIncoming,fifo,paidOrderIds,MAX_PENDING_AGE_MS};
+  return {createTracker,isIncoming,fifo,unseenReceivedIds,paidOrderIds,MAX_PENDING_AGE_MS};
 });
