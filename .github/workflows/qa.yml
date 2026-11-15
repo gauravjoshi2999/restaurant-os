@@ -32,6 +32,7 @@ jobs:
       - name: Run Chromium customer journey smoke tests
         run: |
           python scripts/menu_qr_browser_smoke.py
+          python scripts/owner_feedback_mobile_browser.py
           python scripts/browser_smoke.py
           python scripts/browser_completion.py
           python scripts/owner_cash_closing_smoke.py
@@ -46,6 +47,7 @@ jobs:
           path: |
             dist/launch-qa/browser-evidence.json
             dist/launch-qa/ui-*.png
+            dist/launch-qa/owner-feedback-mobile-evidence.json
             dist/launch-qa/receipt.pdf
           if-no-files-found: ignore
 
