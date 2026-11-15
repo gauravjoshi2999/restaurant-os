@@ -35,15 +35,15 @@ test('customer header and footer show original theme-matched Bite wordmark',()=>
 });
 
 test('delivery and pickup mode render next to order status, outside action buttons',()=>{
-  const start=html.indexOf("box.innerHTML=customerOrders.map(o=>");
-  const end=html.indexOf("window.BiteHistoryPremium?.applyFilters()",start);
+  const start=html.indexOf('function biteOrderCardMarkup(o){');
+  const end=html.indexOf('async function biteRenderLoadedOrders(',start);
   assert.ok(start>=0 && end>start);
   const renderer=html.slice(start,end);
   const badges=renderer.indexOf('class="order-badges"');
   const fulfilment=renderer.indexOf('class="order-mode ');
   const actions=renderer.indexOf('orderActionsMarkup(o)');
   assert.ok(badges>=0&&fulfilment>badges&&actions>fulfilment);
-  assert.match(renderer,/o\.delivery_type==='pickup'\?'Pickup':o\.delivery_type==='delivery'\?'Delivery':'Method unavailable'/);
+  assert.match(renderer,/o\.delivery_type==='pickup'\?'Pickup':o\.delivery_type==='delivery'\?'Delivery':'Order'/);
   assert.doesNotMatch(renderer,/<span class="muted">'\+\(o\.delivery_type/);
   const actionHelper=html.slice(html.indexOf('function orderActionsMarkup(o)'),html.indexOf('async function loadMyOrders()'));
   assert.match(actionHelper,/class="orderactions"/);
