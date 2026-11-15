@@ -209,11 +209,17 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
         !=PackageManager.PERMISSION_GRANTED)return;
     Map<String,String> data=message.getData();
     boolean isOrder="bite_order".equals(data.get("event_type"));
+    boolean isCancellation="bite_cancel_request".equals(data.get("event_type"));
+    String requestId=data.get("request_id");
     String id=data.get("order_id"),restaurant=data.get("restaurant_id");
     // Never show order-action buttons for test pushes or arbitrary payloads.
     if(isOrder&&(id==null||restaurant==null||
        !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
        !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
+    if(isCancellation&&(id==null||restaurant==null||requestId==null||
+       !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !requestId.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
 
     NotificationManager manager=(NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
     if(manager==null)return;
@@ -252,7 +258,12 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
         .setAuthenticationRequired(true).build();
       builder.addAction(accept).addAction(reject);
     }
-    manager.notify(id.hashCode() & 0x7fffffff,builder.build());
+    // Android identifies notifications by (tag,id). Do not use a 32-bit
+    // String.hashCode ID: collisions can replace an unrelated real order.
+    // Cancellation requests for the SAME order need separate notification cards.
+    String notificationTag=isOrder?"bite-order-"+id:
+      isCancellation?"bite-cancel-"+requestId:"bite-general-"+id;
+    manager.notify(notificationTag,0,builder.build());
   }
 }
 '''
