@@ -56,6 +56,18 @@
     });
     return list.sort(newest);
   }
+  // A visual reminder, not an SLA/auto-cancel promise.
+  function waitingInfo(createdAt,now=Date.now()){
+    const created=Date.parse(createdAt||'');
+    const current=Number(now);
+    if(!Number.isFinite(created)||!Number.isFinite(current)||created>current+60000)
+      return {minutes:null,level:'unknown',label:'Waiting for response'};
+    const minutes=Math.max(0,Math.floor((current-created)/60000));
+    const duration=minutes<60?minutes+'m':Math.floor(minutes/60)+'h'+(minutes%60?' '+(minutes%60)+'m':'');
+    const level=minutes>=5?'urgent':minutes>=3?'attention':'normal';
+    const label=minutes<1?'Just received':(level==='urgent'?'Urgent · ':level==='attention'?'Attention · ':'')+duration+' waiting';
+    return {minutes,level,label};
+  }
   // The date is the restaurant's local calendar day, not the browser's UTC day.
   function dayKey(value){
     if(!value)return '';
@@ -313,5 +325,5 @@
       select.focus();
     });
   }
-  return {stages,isFilter,groupForStatus,matches,counts,sortQueue,nextStep,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
+  return {stages,isFilter,groupForStatus,matches,counts,sortQueue,waitingInfo,nextStep,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
 });
