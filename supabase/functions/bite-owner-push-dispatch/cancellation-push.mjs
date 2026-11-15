@@ -1,4 +1,5 @@
 import {shouldDisableOwnerFcmToken} from "./fcm-token-policy.mjs";
+import {awaitingOwnerDevicePolicy} from "./device-retry-policy.mjs";
 /* Server-only FCM sender for real pending customer cancellation requests.
    No direct client entrypoint, no customer PII, no automatic owner decisions. */
 export async function dispatchCancellationPush({db,fetcher,bearer,projectId,clock=()=>new Date()}){
@@ -49,7 +50,10 @@ export async function dispatchCancellationPush({db,fetcher,bearer,projectId,cloc
        .eq("restaurant_id",ev.restaurant_id).eq("enabled",true)
        .eq("user_id",owner.data[0].user_id);
       if(devices.error)throw Error("Owner device lookup unavailable");
-      if(!devices.data?.length){next="no_devices";result.skipped++;}
+      if(!devices.data?.length){
+       const wait=awaitingOwnerDevicePolicy(claimed.data.attempts,ev.created_at,clock().getTime());
+       next=wait.status;errorText=wait.reason;result.skipped++;
+      }
       else{
        let errors=0;
        for(const device of devices.data){

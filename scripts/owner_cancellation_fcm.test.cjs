@@ -11,7 +11,7 @@ const reqId='11111111-1111-4111-8111-111111111111';
 const orderId='22222222-2222-4222-8222-222222222222';
 const restaurantId='33333333-3333-4333-8333-333333333333';
 function fixture(overrides={}){
- const events=[{request_id:reqId,order_id:orderId,restaurant_id:restaurantId,delivery_status:'queued',attempts:0,created_at:'2026-11-15T12:00:00Z'}];
+ const events=[{request_id:reqId,order_id:orderId,restaurant_id:restaurantId,delivery_status:'queued',attempts:0,created_at:'2026-11-15T12:00:00Z',...overrides.event}];
  const request={id:reqId,order_id:orderId,restaurant_id:restaurantId,customer_id:'customer-a',request_type:'cancel_request',status:'Pending',...overrides.request};
  const order={id:orderId,restaurant_id:restaurantId,customer_id:'customer-a',status:'Accepted',channel:'Own Platform',is_demo:false,...overrides.order};
  const rows={
@@ -106,10 +106,35 @@ test('foreign restaurant/customer order is rejected without any FCM send',async(
  const result=await dispatchCancellationPush({db:f.db,fetcher:f.fetcher,bearer:'secret',projectId:'fcm-test'});
  assert.equal(result.skipped,1);assert.equal(f.calls.length,0);
 });
-test('missing enabled owner device never invents a sent push',async()=>{
+test('new cancellation waits briefly for missing Owner device, then sends only while request remains Pending',async()=>{
  const {dispatchCancellationPush}=await import(pathToFileURL(path.resolve('supabase/functions/bite-owner-push-dispatch/cancellation-push.mjs')));
  const f=fixture({noDevices:true});
- const result=await dispatchCancellationPush({db:f.db,fetcher:f.fetcher,bearer:'secret',projectId:'fcm-test'});
- assert.equal(result.skipped,1);assert.equal(result.sent,0);
- assert.equal(f.rows.bite_owner_cancellation_push_events[0].delivery_status,'no_devices');
+ const args={db:f.db,fetcher:f.fetcher,bearer:'secret',projectId:'fcm-test',clock:()=>new Date('2026-11-15T12:01:00Z')};
+ const first=await dispatchCancellationPush(args);
+ assert.equal(first.skipped,1);assert.equal(first.sent,0);
+ assert.equal(f.calls.length,0);
+ assert.equal(f.rows.bite_owner_cancellation_push_events[0].delivery_status,'retry');
+ assert.match(f.rows.bite_owner_cancellation_push_events[0].last_error,/Awaiting Owner Partner device/);
+ f.rows.bite_owner_push_devices.push({restaurant_id:restaurantId,user_id:'owner-a',fcm_token:'late-device-token',enabled:true,supports_order_actions:true});
+ const second=await dispatchCancellationPush(args);
+ assert.equal(second.sent,1);
+ assert.equal(f.calls.length,1);
+ assert.equal(f.rows.bite_owner_cancellation_push_events[0].delivery_status,'sent');
+});
+test('expired missing-device retry fails closed; resolved cancellation is never pushed',async()=>{
+ const {dispatchCancellationPush}=await import(pathToFileURL(path.resolve('supabase/functions/bite-owner-push-dispatch/cancellation-push.mjs')));
+ const expired=fixture({noDevices:true});
+ await dispatchCancellationPush({db:expired.db,fetcher:expired.fetcher,bearer:'secret',projectId:'fcm-test',
+  clock:()=>new Date('2026-11-15T12:26:00Z')});
+ assert.equal(expired.rows.bite_owner_cancellation_push_events[0].delivery_status,'failed');
+ assert.equal(expired.calls.length,0);
+ const resolved=fixture({noDevices:true});
+ const args={db:resolved.db,fetcher:resolved.fetcher,bearer:'secret',projectId:'fcm-test',
+  clock:()=>new Date('2026-11-15T12:01:00Z')};
+ await dispatchCancellationPush(args);
+ resolved.rows.restaurant_customer_order_requests[0].status='Approved';
+ resolved.rows.bite_owner_push_devices.push({restaurant_id:restaurantId,user_id:'owner-a',fcm_token:'late-token',enabled:true,supports_order_actions:true});
+ await dispatchCancellationPush(args);
+ assert.equal(resolved.calls.length,0);
+ assert.equal(resolved.rows.bite_owner_cancellation_push_events[0].delivery_status,'skipped');
 });

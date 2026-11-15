@@ -1,6 +1,7 @@
 import {shouldDisableOwnerFcmToken} from "./fcm-token-policy.mjs";
 import {createClient} from "npm:@supabase/supabase-js@2.95.0";
 import {pendingPaymentRetryPolicy} from "./payment-retry-policy.mjs";
+import {awaitingOwnerDevicePolicy} from "./device-retry-policy.mjs";
 import {dispatchCancellationPush} from "./cancellation-push.mjs";
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
@@ -121,7 +122,10 @@ Deno.serve(async req=>{
     const {data:devices,error:devicesError}=await db.from("bite_owner_push_devices").select("fcm_token,user_id,supports_order_actions")
       .eq("restaurant_id",ev.restaurant_id).eq("enabled",true).in("user_id",ids);
     if(devicesError)throw Error("Device lookup unavailable");
-    if(!devices?.length){state="no_devices";skipped++;}
+    if(!devices?.length){
+     const wait=awaitingOwnerDevicePolicy(claimed.attempts,ev.created_at);
+     state=wait.status;lastError=wait.reason;skipped++;
+    }
     else{
      let errors=0;
      for(const device of devices){
