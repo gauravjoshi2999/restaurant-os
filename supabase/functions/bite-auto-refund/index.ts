@@ -40,6 +40,10 @@ Deno.serve(async(req:Request)=>{
   if(!url||!anon||!service)return json({error:"Server unavailable"},503);
   const body=await req.json().catch(()=>null);
   if(!body||!["run","drain"].includes(body.action))return json({error:"Invalid action"},400);
+  // Signed diagnostic is read-only and valid even while the refund rollout is
+  // OFF. This is not available through the customer's authenticated "run".
+  if(body.mode!==undefined&&!(body.action==="drain"&&body.mode==="preflight"))
+   return json({error:"Invalid mode"},400);
   const auth=req.headers.get("authorization")||"";
   const db=createClient(url,service);
   let actor:string|null=null;
@@ -69,7 +73,11 @@ Deno.serve(async(req:Request)=>{
   const {data:config,error:configError}=await db.from("bite_operations_config")
     .select("auto_refunds_enabled,auto_refund_max_amount").eq("id",true).maybeSingle();
   if(configError||!config)return json({error:"Refund policy unavailable"},503);
-  if(config.auto_refunds_enabled!==true)return json({status:"not_enabled",refund_sent:false});
+  // Do not contact Cashfree unless the switch is enabled OR this is a
+  // separately authenticated, explicitly read-only production preflight.
+  const preflight=body.action==="drain"&&body.mode==="preflight";
+  if(!preflight&&config.auto_refunds_enabled!==true)
+   return json({status:"not_enabled",refund_sent:false});
   const key=Deno.env.get("CASHFREE_APP_ID"),secret=Deno.env.get("CASHFREE_SECRET_KEY");
   if(!key||!secret)return json({error:"Refund provider unavailable"},503);
   const headers={"content-type":"application/json","x-api-version":"2023-08-01",
@@ -79,6 +87,63 @@ Deno.serve(async(req:Request)=>{
     ...options,headers:{...headers,...(options.headers||{})},signal:AbortSignal.timeout(9000)});
    const data=await response.json().catch(()=>null);
    return {response,data};
+  }
+  if(preflight){
+   if(!uuid(body.order_id))return json({error:"Invalid order"},400);
+   // This branch only performs SELECT and Cashfree GET. In particular, it
+   // NEVER claims a job or calls POST /refunds, even when rollout is ON.
+   const [o,i,f,j]=await Promise.all([
+    db.from("orders").select("id,status,restaurant_id,customer_id,channel,is_demo,amount")
+     .eq("id",body.order_id).maybeSingle(),
+    db.from("bite_live_checkout_intents")
+     .select("id,status,provider_order_id,currency,amount,restaurant_id,customer_id")
+     .eq("activated_order_id",body.order_id).maybeSingle(),
+    db.from("order_financials").select("payment_status,currency,customer_payable_amount,refund_amount_actual")
+     .eq("order_id",body.order_id).maybeSingle(),
+    db.from("bite_refund_jobs")
+     .select("order_id,status,amount,provider_refund_id,restaurant_id,customer_id")
+     .eq("order_id",body.order_id).maybeSingle()
+   ]);
+   if(o.error||i.error||f.error||j.error)return json({status:"preflight",result:"DB_UNAVAILABLE",refund_sent:false},503);
+   const order=o.data,intent=i.data,ledger=f.data,job=j.data;
+   const valid=!!order&&!order.is_demo&&order.channel==="Own Platform"&&
+    ["Cancelled","Rejected"].includes(order.status)&&
+    !!intent&&intent.status==="activated"&&intent.currency==="INR"&&
+    intent.provider_order_id==="bite_live_"+String(intent.id).replaceAll("-","")&&
+    intent.customer_id===order.customer_id&&intent.restaurant_id===order.restaurant_id&&
+    !!ledger&&ledger.payment_status==="paid"&&ledger.currency==="INR"&&
+    Number(ledger.refund_amount_actual||0)===0&&
+    !!job&&job.order_id===order.id&&job.customer_id===order.customer_id&&
+    job.restaurant_id===order.restaurant_id&&
+    exactMoney(intent.amount,order.amount)&&
+    exactMoney(ledger.customer_payable_amount,order.amount)&&
+    exactMoney(job.amount,order.amount)&&
+    typeof job.provider_refund_id==="string"&&
+    /^bite_rf_[0-9a-f]{32}$/.test(job.provider_refund_id);
+   if(!valid)return json({status:"preflight",result:"INTERNAL_MISMATCH_OR_INELIGIBLE",refund_sent:false});
+   const id=encodeURIComponent(intent.provider_order_id);
+   const p=await provider("/orders/"+id);
+   if(!p.response.ok)return json({status:"preflight",result:"PROVIDER_LOOKUP_UNAVAILABLE",
+    provider_http_status:p.response.status,refund_sent:false});
+   if(p.data?.order_id!==intent.provider_order_id||p.data?.order_status!=="PAID"||
+      p.data?.order_currency!=="INR"||!exactMoney(p.data?.order_amount,order.amount))
+    return json({status:"preflight",result:"CASHFREE_PAYMENT_MISMATCH",
+     provider_payment_status:typeof p.data?.order_status==="string"?p.data.order_status.slice(0,24):"UNKNOWN",
+     refund_sent:false});
+   const all=await provider("/orders/"+id+"/refunds");
+   if(!all.response.ok||!Array.isArray(all.data))
+    return json({status:"preflight",result:"REFUND_LOOKUP_UNAVAILABLE",
+     provider_http_status:all.response.status,refund_sent:false});
+   const matching=all.data.find((r:any)=>r?.refund_id===job.provider_refund_id);
+   const refundMatch=!matching||(matching.order_id===intent.provider_order_id&&
+     matching.refund_currency==="INR"&&exactMoney(matching.refund_amount,job.amount));
+   return json({status:"preflight",result:!refundMatch?"REFUND_EVIDENCE_MISMATCH":
+    all.data.length?"EXISTING_REFUND_RECORD":"PAID_MATCHES_NO_REFUND",
+    existing_refund_count:all.data.length,
+    existing_refund_status:matching&&typeof matching.refund_status==="string"?
+     matching.refund_status.slice(0,24):null,
+    refund_sent:false,refund_created:false,
+    live_refunds_enabled:config.auto_refunds_enabled===true});
   }
   async function processOne(job:any){
    if(!job?.auto_authorized_at||!approvedRules.has(job.auto_rule))return "review_required";
