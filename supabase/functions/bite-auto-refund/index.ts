@@ -5,7 +5,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.49.8";
 // All eligibility is created by a trusted DB order transition, NEVER by a client.
 // No legacy job is retroactively authorized.
 const cors={"access-control-allow-origin":"https://gauravjoshi2999.github.io",
- "access-control-allow-headers":"authorization, apikey, content-type, x-client-info",
+ "access-control-allow-headers":"authorization, apikey, content-type, x-client-info, x-supabase-api-version",
  "access-control-allow-methods":"POST, OPTIONS"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
  status,headers:{...cors,"content-type":"application/json","cache-control":"no-store"}});
