@@ -349,7 +349,7 @@ async function loadRestaurants(){
    document.title=restaurants[0].name+' | Order Online · Bite';
    await openRestaurant(BITE_DIRECT_RESTAURANT_ID);
   }
-  if(current())await biteRestoreCustomerAuthReturn();
+  if(current()&&typeof biteRestoreCustomerAuthReturn==='function')await biteRestoreCustomerAuthReturn();
  }catch(error){
   if(!current())return;
   window.biteStorefrontLoading=false;
@@ -1123,7 +1123,7 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
   $('ordersList').innerHTML='<div class="empty">Log in to view your orders.</div>';
   $('ordersSubtitle').textContent='Your orders';
  }
- if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden')||!$('accountView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);void biteRestoreCustomerAuthReturn();}}
+ if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden')||!$('accountView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);if(typeof biteRestoreCustomerAuthReturn==='function')void biteRestoreCustomerAuthReturn();}}
 async function sendCustomerPasswordResetLink(){
  const email=$('customerEmail').value.trim().toLowerCase();
  if(!email.includes('@')||email.startsWith('@')||!email.split('@')[1]?.includes('.')){
