@@ -435,7 +435,7 @@ test('provider refund GET preview never creates or approves a refund',async()=>{
  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[0].payload.body)),
   {action:'inspect_refund',refund_id:REFUND_ID});
  assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/No refund record found/);
- assert.doesNotMatch(a.find('biteRefundReviewStatus').textContent,/refund was created/i);
+ assert.match(a.find('biteRefundReviewStatus').textContent,/No refund was created/);
  assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'pending_approval');
 });
 
