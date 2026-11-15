@@ -92,6 +92,25 @@ def inspect_customer(page):
 
 def inspect_owner(page):
     page.locator("#authScreen").wait_for(state="visible", timeout=25000)
+    # The login/splash state can transition after the outer authScreen becomes
+    # visible. Wait for the actual fields, but never weaken the signed-out gate.
+    try:
+        page.locator("#authEmail").wait_for(state="visible", timeout=15000)
+        page.locator("#authPassword").wait_for(state="visible", timeout=15000)
+    except Exception as exc:
+        diagnostic = page.evaluate("""() => ({
+          url: location.pathname,
+          bodyClass: document.body.className,
+          authFormDisplay: getComputedStyle(document.querySelector('#authForm')).display,
+          authEmailDisplay: getComputedStyle(document.querySelector('#authEmail')).display,
+          authEmailVisibility: getComputedStyle(document.querySelector('#authEmail')).visibility,
+          recoveryPanelDisplay: getComputedStyle(document.querySelector('#recoveryPanel')).display,
+          recoveryRequestDisplay: getComputedStyle(document.querySelector('#recoveryRequestPanel')).display,
+          authTitle: document.querySelector('#authTitle')?.textContent?.slice(0,90),
+          authError: document.querySelector('#authError')?.textContent?.slice(0,150)
+        })""")
+        raise AssertionError("Owner sign-in inputs not visible: " +
+                             json.dumps(diagnostic, sort_keys=True)) from exc
     assert_condition(page.locator("#authEmail").is_visible(),
                      "Owner sign-in accepts mobile or email")
     assert_condition(page.locator("#authPassword").is_visible(),
