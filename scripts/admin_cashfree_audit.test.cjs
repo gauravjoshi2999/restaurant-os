@@ -25,7 +25,7 @@ function setup(options={}){
  let user=options.userId??'admin-a',role=options.role??'super_admin',isAdmin=options.isAdmin??true;
  let checks=options.checks||[],refunds=options.refunds||[],error=null,table='';
  const orders=[
-  {id:'order-paid',order_code:'BITE-123',is_demo:false,channel:'Own Platform'},
+  {id:'order-paid',order_code:'BITE-123',status:'Cancelled',is_demo:false,channel:'Own Platform'},
   {id:'order-demo',order_code:'DEMO',is_demo:true,channel:'Own Platform'},
   {id:'order-pos',order_code:'POS',is_demo:false,channel:'POS - Counter'}];
  const fin=[
@@ -36,6 +36,11 @@ function setup(options={}){
  const state={orders,financials:fin,restaurants:[{id:'restaurant-a',name:'Test Restaurant'}]};
  const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},in(column,ids){read.push({type:'in',table,column,ids});return this;},order(){return this;},async limit(){return {data:table==='bite_refund_jobs'?refunds:table==='orders'?(options.lookupOrders||[]):checks,error};}};
  const sb={from(name){table=name;read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
+    if(payload.body?.action==='preflight'){
+      calls.push({name,payload});
+      return {data:{status:'preflight',result:options.preflightResult||'PAID_MATCHES_NO_REFUND',
+       refund_sent:false,live_refunds_enabled:false},error:null};
+    }
     if(payload.body?.action==='inspect_refund'){
      calls.push({name,payload});
      return {data:{status:options.providerRefundFound?'PROVIDER_REFUND_RECORD_FOUND':'NO_PROVIDER_REFUND_RECORD',
@@ -316,7 +321,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-admin-refund-preflight1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -492,7 +497,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-admin-refund-preflight1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -579,7 +584,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-admin-refund-preflight1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
@@ -607,5 +612,35 @@ test('refund review fails to an abbreviated order reference if RLS cannot resolv
  const label=a.find('biteRefundReviewRows').children[0].children[0].textContent;
  assert.match(label,/Order …ba4336b8/);
  assert.ok(!label.includes(orderId),'Never expose raw order UUID when lookup misses');
+ assert.equal(a.calls.length,0);
+});
+
+test('refund preflight button is displayed for cancelled order and only makes read-only request',async()=>{
+ const a=setup();
+ await a.audit.load();
+ const row=a.find('biteProviderAuditRows').children[0];
+ const action=row.children[5];
+ assert.ok(action.children.some(c=>c.dataset.biteRefundPreflightOrder==='order-paid'));
+ await a.audit.preflightRefund('order-paid');
+ assert.equal(a.calls.length,1);
+ assert.equal(a.calls[0].name,'bite-auto-refund');
+ assert.deepEqual(JSON.parse(JSON.stringify(a.calls[0].payload.body)),
+  {action:'preflight',order_id:'order-paid'});
+ assert.match(a.find('biteProviderAuditRows').children[0].children[2].children[0].textContent,/READ-ONLY check/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+test('read-only preflight mismatch remains a visible STOP and never claims collection/refund',async()=>{
+ const a=setup({preflightResult:'CASHFREE_PAYMENT_MISMATCH'});
+ await a.audit.load();
+ await a.audit.preflightRefund('order-paid');
+ const cell=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.match(cell.children[0].className,/is-error/);
+ assert.match(cell.children[0].textContent,/Auto-refunds must remain OFF/);
+ assert.equal(a.find('biteProviderCheckedCount').textContent,'0');
+ assert.equal(a.calls.length,1);
+});
+test('owner role cannot run the admin Cashfree preflight',async()=>{
+ const a=setup({role:'owner',isAdmin:false});
+ await a.audit.load();await a.audit.preflightRefund('order-paid');
  assert.equal(a.calls.length,0);
 });
