@@ -174,6 +174,15 @@ try:
         'Unknown or unpublished direct link cannot fall back to other restaurant listings')
   invalid.close()
 
+  # Location-first enhancement may open a one-time consent/ZIP sheet for the
+  # synthetic logged-in fixture. Dismiss it before unrelated category assertions.
+  customer.wait_for_timeout(1050)
+  if customer.locator('#biteLocationSheet').is_visible():
+    check(customer.locator('#biteSheetGeo').is_visible() and customer.locator('#biteSheetPin').is_visible(),
+          'First-session location sheet offers GPS permission action and manual delivery PIN')
+    customer.locator('#biteSheetClose').click()
+    check(customer.locator('#biteLocationSheet').is_hidden(),
+          'Customer can dismiss location introduction and continue browsing')
   # Category selection must navigate to the actual refreshed restaurant results,
   # not merely toggle the active chip while leaving the hero on screen.
   customer.locator('[data-home-filter="all"]').click()
