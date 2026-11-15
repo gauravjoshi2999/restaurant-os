@@ -25,10 +25,10 @@
   if(unavailable)return {kind:'unknown',title:'Checking refund status',note:'Please try again shortly.',stage:0};
   if(status==='pending_approval')return {kind:'waiting',title:'Refund under review',
    note:'We’ve received your refund request.',stage:0};
-  if(status==='approved')return {kind:'waiting',title:'Refund approved',
-   note:'We’re preparing your refund.',stage:0};
+  if(status==='approved')return {kind:'waiting',title:'Refund request approved',
+   note:'Payment-provider initiation is not confirmed yet.',stage:0};
   if(status==='processing')return {kind:'processing',title:'Refund processing',
-   note:'Your refund is being prepared for the payment provider.',stage:0};
+   note:'We’re checking whether Cashfree has received the refund.',stage:0};
   if(status==='submitted'){
    if(confirmed&&['PENDING','PENDING_APPROVAL','ONHOLD','SUCCESS'].includes(provider))
     return {kind:'processing',title:'Refund initiated',
