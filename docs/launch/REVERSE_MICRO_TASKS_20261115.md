@@ -32,7 +32,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 6.09b Approve exact 21 restored/deleted decisions and verified prices/categories/availability against authoritative menu; do not invent values or perform speculative data writes.
 - [x] 6.10a Read-only evidence: 25 rows currently unavailable and updated in the Nov 15 cluster; 13 categories, Kofta empty. No changes made.
 - [ ] 6.10b Confirm whether 25 disabled items reflect genuine kitchen availability before re-enabling any.
-- [ ] 6.11 Check the 91 image links load, correct dish, vegetarian imagery, and image attribution.
+- [x] 6.11a Read-only media inventory: 91 externally hosted Wikimedia Commons URLs, 1 blank Choklet image, photo licensing documented in 9 repo credit files. See `docs/launch/MAHARANI_MEDIA_SOURCE_AUDIT_20261116.md`.
+- [ ] 6.11b Verify actual image HTTP loading, dish relevance, Pure Veg representation and public-facing credits in an isolated browser; link existence is not image success.
 - [ ] 6.12 Confirm minimum-order and delivery-fee commercial values with restaurant owner (currently ₹1 / ₹0).
 - [ ] 6.13 Check serving PINs, delivery range, pickup details and opening/closing times against real operations.
 - [ ] 6.14 Verify a dedicated, non-conflicted Owner account can control this restaurant from the Partner APK.
@@ -115,4 +116,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**6.11a**: read-only audit of the 91 recorded Maharani image URLs and public attribution/relevance status. Parallel blocked gates: 6.08b needs physical Android + approved live-network survey testing; 6.09b needs an owner-approved price/category list; 6.10b needs an explicit kitchen availability decision. Never conflate documented candidate names with permission to sell.
+**6.11b**: isolated browser image-load and attribution verification for the 91 external Commons links. Keep 6.08b (physical Android), 6.09b (verified commercial menu), and 6.10b (kitchen availability intent) open until confirmed. No production menu writes without verified approval.
