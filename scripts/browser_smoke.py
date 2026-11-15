@@ -160,6 +160,7 @@ try:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1365, "height": 900})
+        page.on('pageerror', lambda err: print('CUSTOMER PAGE ERROR:', str(err)))
         page.goto("http://127.0.0.1:4173/customer.html", wait_until="domcontentloaded")
         page.locator("#resultCount").wait_for(state="visible", timeout=30000)
         page.wait_for_function(
@@ -202,7 +203,9 @@ try:
                restaurant: typeof activeRestaurant !== 'undefined' ? activeRestaurant?.name : null,
                dishes: typeof menuItems !== 'undefined' ? menuItems.length : null,
                kidsOnly: document.querySelector('#biteKidsChoiceOnly')?.checked,
-               tags: typeof menuItems !== 'undefined' ? menuItems[0]?.is_kids_choice : null
+               tags: typeof menuItems !== 'undefined' ? menuItems[0]?.is_kids_choice : null,
+               categories: document.querySelectorAll('#categoryBar [data-cat]').length,
+               cards: document.querySelectorAll('#menuItems .menuitem').length
             })"""))
             raise
         page.locator('#menuSearchInput').fill('BITE-NO-DISH-ZZ-123')
