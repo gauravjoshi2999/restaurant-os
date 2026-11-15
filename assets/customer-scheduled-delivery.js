@@ -20,7 +20,7 @@
   if(opening<closing)return at>=opening&&at+30<=closing;
   return at>=opening&&at+30<=1440+closing||at<closing&&at+30<=closing;
  }
- function generateSlots(restaurant,now=Date.now()){
+ function generateSlots(restaurant,now=Date.now(),maxCount=Infinity){
   if(!restaurant||restaurant.accepts_scheduled_delivery!==true||restaurant.accepts_delivery!==true
      ||restaurant.delivery_paused===true||!Number.isFinite(Number(now)))return [];
   const lead=Number(restaurant.scheduled_lead_minutes??90);
@@ -39,12 +39,13 @@
     timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit',hour12:true
    }).format(new Date(instant));
    slots.push({iso:new Date(at).toISOString(),dayKey:key,label:fmt(at)+' – '+fmt(at+SLOT_MS)});
+   if(slots.length>=maxCount)break;
   }
   return slots;
  }
  const canSchedule=restaurant=>{
   if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
-  return generateSlots(restaurant).length>0;
+  return generateSlots(restaurant,Date.now(),1).length>0;
  };
  const api={withinHours,generateSlots,canSchedule};
  if(typeof document==='undefined')return api;
