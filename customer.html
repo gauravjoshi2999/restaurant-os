@@ -410,7 +410,7 @@ function renderRestaurants(){
  }
  if(BITE_DIRECT_MODE){restaurants=restaurants.filter(r=>r.id===BITE_DIRECT_RESTAURANT_ID);publicMenuSearch=publicMenuSearch.filter(m=>m.restaurant_id===BITE_DIRECT_RESTAURANT_ID);}
  const q=$('homeSearchInput').value.trim();
- const list=BiteDiscovery.selectRestaurants(restaurants,publicMenuSearch,{query:q,category:activeFilter,service:window.restaurantServiceFilter||'all',fast:!!window.restaurantSortFast,geo:customerGeo,pin:currentDiscoveryPin,openNow:$('filterOpenNow')?.getAttribute('aria-pressed')==='true',favourites:$('filterFavourites')?.getAttribute('aria-pressed')==='true'?favouriteRestaurantIds:null,diet:$('discoveryDiet')?.value,minRating:Number($('discoveryRating')?.value||0),sort:$('discoverySort')?.value});
+ const list=BiteDiscovery.selectRestaurants(restaurants,publicMenuSearch,{query:q,category:activeFilter,service:window.restaurantServiceFilter||'all',scheduledOnly:window.BiteScheduleDiscoveryOnly===true,fast:!!window.restaurantSortFast,geo:customerGeo,pin:currentDiscoveryPin,openNow:$('filterOpenNow')?.getAttribute('aria-pressed')==='true',favourites:$('filterFavourites')?.getAttribute('aria-pressed')==='true'?favouriteRestaurantIds:null,diet:$('discoveryDiet')?.value,minRating:Number($('discoveryRating')?.value||0),sort:$('discoverySort')?.value});
  $('resultCount').textContent=list.length+' restaurant'+(list.length===1?'':'s')+(q?' matching “'+q+'”':' to explore');
  $('restaurantGrid').innerHTML=list.length?list.map(({restaurant:r,dishes},i)=>{
   const closed=BiteDiscovery.isClosed(r),closureLabel=r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until)>new Date())?'Temporarily closed':'Closed now',delivery=!!currentDiscoveryPin&&r.serviceable===true&&r.accepts_delivery&&!r.delivery_paused;
@@ -428,7 +428,7 @@ function renderRestaurants(){
  });
 }
 function resetDiscovery(service='all'){
- activeFilter='all';window.restaurantServiceFilter=service;window.restaurantSortFast=false;
+ activeFilter='all';window.restaurantServiceFilter=service;window.restaurantSortFast=false;window.BiteScheduleDiscoveryOnly=false;
  $('homeSearchInput').value='';$('searchInput').value='';
  document.querySelectorAll('[data-home-filter],#filters [data-filter]').forEach(b=>{
   const active=(b.dataset.homeFilter||b.dataset.filter)==='all';
