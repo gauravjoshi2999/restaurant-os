@@ -207,7 +207,7 @@ check("BiteRefundTracker?.details" in customer
       and "target.innerHTML=refundCard+itemCard+activity" in customer
       and "provider==='SUCCESS'&&confirmed" in refund_tracker
       and "provider_checked_at" in refund_tracker
-      and "Bank UTR" in refund_tracker
+      and "Cashfree refund ID (not bank UTR)" in refund_tracker
       and "Refund processed" in refund_tracker,
       "Customer refund is provider-verified before SUCCESS and never claims bank credit")
 check("Refund is not marked paid: provider confirmation is required" in owner,
