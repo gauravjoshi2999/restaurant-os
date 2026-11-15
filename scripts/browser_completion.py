@@ -409,6 +409,8 @@ try:
   check(customer.locator('#biteDetailHeading').inner_text()=='Order Details'
     and customer.locator('#biteDetailSupport').is_visible(),
     'Dedicated mobile order details page opens with visible support and back navigation')
+  customer.locator('#biteDetailPageContent .bite-detail-status').wait_for(state='visible')
+  customer.screenshot(path=str(OUT/'ui-order-details-premium.png'),full_page=True)
   customer.locator('#biteDetailBack').click()
   order_card.wait_for(state='visible')
   customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
