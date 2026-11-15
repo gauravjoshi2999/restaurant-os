@@ -49,8 +49,8 @@ test('health check uses public health endpoint and never submits or retries sign
  assert.match($('authNetworkStatus').textContent,/reachable/);
  assert.equal($('authNetworkCheck').disabled,false);
  const auth=html.slice(end,html.indexOf("setCustomerSession(result.data.session)",end));
- assert.equal((auth.match(/sb\\.auth\\.signUp\\(/g)||[]).length,1);
- assert.doesNotMatch(source,/signUp\\(/);
+ assert.equal((auth.match(/sb\.auth\.signUp\(/g)||[]).length,1);
+ assert.doesNotMatch(source,/signUp\(/);
 });
 test('failed health probe gives device-level next steps without account mutation',async()=>{
  const $=fakeDOM();
