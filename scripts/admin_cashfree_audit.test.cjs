@@ -152,6 +152,43 @@ test('successful Cashfree collection check keeps confirmation visible but never 
  assert.match(a.find('biteProviderAuditStatus').textContent,/Cashfree reports PAID/);
  assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
 });
+test('HTTP 409 remains visible in the affected order collection cell after refresh',async()=>{
+ const a=setup({reconcileError:true,reconcileErrorBody:'Provider collection evidence mismatch'});
+ await a.audit.load();
+ await a.audit.reconcile('order-paid');
+ const collection=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.match(collection.textContent,/Provider check needed/);
+ assert.equal(collection.children.length,1);
+ assert.match(collection.children[0].textContent,/Last manual check \(this session\):/);
+ assert.match(collection.children[0].textContent,/HTTP 409: Cashfree order ID, currency or amount did not match/);
+ assert.match(collection.children[0].className,/is-error/);
+ assert.doesNotMatch(collection.children[0].textContent,/NEVER_SHOW_ME|bank_account_number/);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
+test('provider PAID without a saved audit row remains visibly unverified beside the order',async()=>{
+ const a=setup({reconcileNoAudit:true});
+ await a.audit.load();
+ await a.audit.reconcile('order-paid');
+ const collection=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.match(collection.children[0].textContent,/no matching provider-check audit record was saved/);
+ assert.match(collection.children[0].className,/is-error/);
+ assert.equal(a.find('biteProviderCheckedCount').textContent,'0');
+});
+test('order-scoped manual results survive audit reload but clear at sign out',async()=>{
+ const a=setup();
+ await a.audit.load();
+ await a.audit.reconcile('order-paid');
+ let collection=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.match(collection.children[0].textContent,/Cashfree reports PAID/);
+ await a.audit.load();
+ collection=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.match(collection.children[0].textContent,/Cashfree reports PAID/);
+ a.audit.clear();
+ await a.audit.load();
+ collection=a.find('biteProviderAuditRows').children[0].children[2];
+ assert.equal(collection.children.length,0);
+ assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
+});
 test('owner and signed-out sessions cannot read provider checks or invoke payment operations',async()=>{
  const a=setup({role:'owner',isAdmin:false});
  await a.audit.load();await a.audit.reconcile('order-paid');
@@ -277,7 +314,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-reconcile-http-detail1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -453,7 +490,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-reconcile-http-detail1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -510,7 +547,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-reconcile-http-detail1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
