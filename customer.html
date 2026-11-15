@@ -905,17 +905,24 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
  // Row-level security enforces the customer again on the server.
  const ids=customerOrders.map(o=>o.id).filter(id=>/^[0-9a-f-]{36}$/i.test(id));
  if(ids.length){
-  const [refunds,requests]=await Promise.all([
+  const [refunds,requests,itemsResult]=await Promise.all([
    sb.from('bite_refund_jobs')
     .select('order_id,customer_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at,created_at,updated_at')
     .eq('customer_id',requestedCustomerId).in('order_id',ids).limit(500),
    sb.from('restaurant_customer_order_requests')
     .select('order_id,customer_id,request_type,status,created_at,responded_at')
     .eq('customer_id',requestedCustomerId).eq('request_type','cancel_request')
-    .in('order_id',ids).order('created_at',{ascending:false}).limit(500)
+    .in('order_id',ids).order('created_at',{ascending:false}).limit(500),
+   sb.from('order_items').select('order_id,item_name,quantity').in('order_id',ids).limit(500)
   ]);
   if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
   biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=!!refunds.error;
+  biteOrderItemsPreview.clear();
+  if(!itemsResult.error)for(const item of itemsResult.data||[]){
+   if(!ids.includes(item.order_id))continue;
+   if(!biteOrderItemsPreview.has(item.order_id))biteOrderItemsPreview.set(item.order_id,[]);
+   biteOrderItemsPreview.get(item.order_id).push(item);
+  }
   if(refunds.error)console.warn('Customer refund lookup temporarily unavailable');
   else for(const r of refunds.data||[])if(r.customer_id===requestedCustomerId)biteRefundByOrder.set(r.order_id,r);
   if(requests.error)console.warn('Customer cancellation lookup temporarily unavailable');
@@ -935,7 +942,7 @@ async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
  // A cancellation alone is not evidence of payment. The refund tracker renders
  // only jobs created from the server's trusted paid-payment ledger.
  for(const order of customerOrders)if(biteRefundByOrder.has(order.id))order.payment_status='paid';
- const nextFingerprint=JSON.stringify([customerOrders,[...biteRefundByOrder.entries()],[...biteCancellationByOrder.entries()],biteRefundLookupUnavailable]);
+ const nextFingerprint=JSON.stringify([customerOrders,[...biteOrderItemsPreview.entries()],[...biteRefundByOrder.entries()],[...biteCancellationByOrder.entries()],biteRefundLookupUnavailable]);
  const unchanged=biteOrderCardsCustomer===requestedCustomerId&&biteOrderCardsFingerprint===nextFingerprint;
  if(unchanged&&box.querySelector?.('.ordercard, .orders-empty')){
   $('ordersSubtitle').textContent=customerOrders.length+' orders • Status updates automatically refresh';
@@ -965,7 +972,7 @@ async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
 }
 
 function biteMaskOrderPhone(phone){
- const digits=String(phone||'').replace(/\\D/g,'');
+ const digits=String(phone||'').replace(/\D/g,'');
  return digits.length>=4?'•••• ••'+digits.slice(-4):'';
 }
 function biteOrderAddress(snapshot){
