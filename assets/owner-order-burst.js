@@ -1,5 +1,5 @@
-/* Bite Owner: lossless burst accounting for foreground and resume-time order alerts.
-   Pure, dependency-free tracker; Supabase, sound, push, and money stay in the Owner controller. */
+/* Bite Owner: per-order burst accounting for foreground/reconnect alerts.
+   Pure tracker, no privileged keys, payment writes or network side effects. */
 (function(root,factory){
   'use strict';
   const api=factory();
@@ -8,6 +8,7 @@
 })(typeof window!=='undefined'?window:globalThis,function(){
   'use strict';
   const MAX_ACKNOWLEDGED=2000;
+  const MAX_PENDING_AGE_MS=25*60*1000;
   function isIncoming(order,restaurantId){
     if(!order||!restaurantId)return false;
     const rid=order.restaurant||order.restaurant_id;
@@ -25,37 +26,59 @@
       return diff||String(a.id||'').localeCompare(String(b.id||''));
     });
   }
-  function createTracker(){
-    const pending=new Set();
+  function paidOrderIds(financials,restaurantId){
+    return new Set((financials||[]).filter(f=>
+      f&&f.restaurant_id===restaurantId&&
+      String(f.channel||'').toLowerCase()==='own platform'&&
+      String(f.payment_status||'').toLowerCase()==='paid'
+    ).map(f=>String(f.order_id||'')));
+  }
+  function createTracker(options={}){
+    const now=typeof options.now==='function'?options.now:Date.now;
+    const pending=new Map();
     const announced=new Set();
+    const expire=()=>{
+      for(const [id,queuedAt] of pending){
+        const age=now()-queuedAt;
+        if(!Number.isFinite(age)||age>=MAX_PENDING_AGE_MS||age<0)pending.delete(id);
+      }
+    };
     const queue=id=>{
       const key=String(id||'').trim();
       if(!key||announced.has(key))return false;
-      pending.add(key);
+      expire();
+      if(!pending.has(key))pending.set(key,now());
       return true;
     };
-    const take=(orders,restaurantId)=>{
+    const take=(orders,restaurantId,canAnnounce=()=>true)=>{
+      expire();
       const byId=new Map((orders||[]).filter(o=>o&&o.id).map(o=>[String(o.id),o]));
       const ready=[];
-      for(const id of [...pending]){
+      for(const id of [...pending.keys()]){
         const order=byId.get(id);
-        if(!order)continue; // Load may lag an event; keep the ID for a later refresh.
+        if(!order)continue; // May arrive before a committed row is visible.
+        if(announced.has(id)||!isIncoming(order,restaurantId)){
+          pending.delete(id);
+          continue;
+        }
+        // Keep payment-pending IDs until the trusted financial snapshot confirms paid.
+        if(!canAnnounce(order))continue;
         pending.delete(id);
-        if(announced.has(id)||!isIncoming(order,restaurantId))continue;
         announced.add(id);
         if(announced.size>MAX_ACKNOWLEDGED)announced.delete(announced.values().next().value);
         ready.push(order);
       }
       return fifo(ready);
     };
-    const reconcile=(before,after,restaurantId)=>{
+    const reconcile=(before,after,restaurantId,canAnnounce=()=>true)=>{
       const previous=new Set((before||[]).map(o=>String(o?.id||'')));
       for(const order of after||[]){
         if(order?.id&&!previous.has(String(order.id))&&isIncoming(order,restaurantId))queue(order.id);
       }
-      return take(after,restaurantId);
+      return take(after,restaurantId,canAnnounce);
     };
-    return {queue,take,reconcile,pendingCount:()=>pending.size,reset:()=>{pending.clear();announced.clear();}};
+    return {queue,take,reconcile,pendingIds:()=>{expire();return [...pending.keys()]},
+      pendingCount:()=>{expire();return pending.size},reset:()=>{pending.clear();announced.clear();}};
   }
-  return {createTracker,isIncoming,fifo};
+  return {createTracker,isIncoming,fifo,paidOrderIds,MAX_PENDING_AGE_MS};
 });
