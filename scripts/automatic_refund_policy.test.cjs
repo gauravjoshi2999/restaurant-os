@@ -2,6 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
 const sql=fs.readFileSync('supabase/patch_20261115_trusted_auto_refunds.sql','utf8');
+const signedCron=fs.readFileSync('supabase/patch_20261115_auto_refund_signed_cron.sql','utf8');
 const customer=fs.readFileSync('customer.html','utf8');
 const edge=fs.readFileSync('supabase/functions/bite-auto-refund/index.ts','utf8');
 const oid='22222222-2222-4222-8222-222222222222';
@@ -42,7 +43,8 @@ function setup(o={}){
    limit:async()=>({data:name==='bite_refund_jobs'?(o.list??[job]):[],error:null})};
   rows.push(name);return q;
  },rpc:async(name,args)=>{
-  rpc.push({name,args});if(name==='bite_claim_auto_refund')return{data:o.claimLost?false:true,error:null};
+  rpc.push({name,args});if(name==='bite_verify_auto_refund_dispatch')return{data:o.validSignature===true,error:null};
+  if(name==='bite_claim_auto_refund')return{data:o.claimLost?false:true,error:null};
   if(name==='bite_record_provider_refund')return{data:o.refundStatus==='SUCCESS'?'succeeded':'submitted',error:null};
   return {data:null,error:new Error('Unexpected rpc')};
  }};
@@ -55,9 +57,9 @@ function setup(o={}){
   fetch:provider,Response,Request,AbortSignal,URL,Date,JSON,Number,String,Math,Object,Array,RegExp,console,Set};
  vm.createContext(context);
  vm.runInContext(stripTypeScriptTypes(edge.replace(/^import .*;\n/gm,''),{mode:'strip'}),context);
- const run=async(action='run',key='Bearer session')=>{
+ const run=async(action='run',key='Bearer session',extraHeaders={})=>{
   const res=await handler(new Request('https://project.supabase.co/functions/v1/bite-auto-refund',{
-   method:'POST',headers:{authorization:key,'content-type':'application/json'},
+   method:'POST',headers:{authorization:key,'content-type':'application/json',...extraHeaders},
    body:JSON.stringify(action==='run'?{action,order_id:oid}:{action})}));
   return{status:res.status,data:await res.json()};
  };
@@ -141,4 +143,38 @@ test('unauthenticated and fake cron requests cannot access refunds',async()=>{
  assert.equal((await t.run()).status,401);
  assert.equal((await t.run('drain','Bearer fake')).status,401);
  assert.equal(t.calls.length,0);
+});
+
+test('cron worker accepts only a private Vault-signed request and checks rollout flag',async()=>{
+ const t=setup({validSignature:true,enabled:false});
+ const response=await t.run('drain','',{
+  'x-bite-auto-refund-ts':'1794731234',
+  'x-bite-auto-refund-signature':'a'.repeat(64)});
+ assert.equal(response.status,200);
+ assert.equal(response.data.status,'not_enabled');
+ assert.equal(t.calls.length,0);
+ assert.equal(t.rpc.length,1);
+ assert.equal(t.rpc[0].name,'bite_verify_auto_refund_dispatch');
+});
+test('forged cron headers are rejected before Cashfree and before reading refund jobs',async()=>{
+ const t=setup({validSignature:false});
+ const response=await t.run('drain','',{
+  'x-bite-auto-refund-ts':'1794731234',
+  'x-bite-auto-refund-signature':'f'.repeat(64)});
+ assert.equal(response.status,401);
+ assert.equal(t.calls.length,0);
+ assert.equal(t.rpc.length,1);
+});
+test('Vault scheduler is server signed, service-only and feature-gated',()=>{
+ assert.match(signedCron,/vault\.create_secret/);
+ assert.match(signedCron,/extensions\.gen_random_bytes\(32\)/);
+ assert.match(signedCron,/extensions\.hmac\(/);
+ assert.match(signedCron,/abs\(extract\(epoch from clock_timestamp\(\)\)::bigint-p_timestamp\)>90/);
+ assert.match(signedCron,/service_role/);
+ assert.match(signedCron,/auto_refunds_enabled=true/);
+ assert.match(signedCron,/cron\.schedule\(/);
+ assert.match(signedCron,/bite_private\.dispatch_auto_refund_queue\(\)/);
+ assert.match(edge,/bite_verify_auto_refund_dispatch/);
+ assert.match(edge,/x-bite-auto-refund-signature/);
+ assert.doesNotMatch(signedCron,/CASHFREE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
 });
