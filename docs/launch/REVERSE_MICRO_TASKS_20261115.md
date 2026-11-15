@@ -26,7 +26,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [x] 6.05 Add narrow automated regression assertions and inspect source invariants.
 - [x] 6.06 Read current Hotel Maharani Palace publish/onboarding/Menu snapshot.
 - [x] 6.07 Execute the **deployed Edge handler logic** with isolated POST + mocked readback; verified 201/ok, 400/403/503 rejection, non-consented phone redaction and **0 live survey rows**. This is **not** a live-network Endpoint test. Evidence: `docs/launch/OWNER_FEEDBACK_ISOLATED_EVIDENCE_20261115.md`.
-- [ ] 6.08 Run actual Android browser survey flow and verify genuine submission/confirmation.
+- [x] 6.08a Run actual repository form in Chromium **mobile emulation** (320/390/430px), all 4 steps, validation, retry and fake-ack protection: **GitHub Bite QA #935 PASS**, no real API requests. Evidence: `docs/launch/OWNER_FEEDBACK_MOBILE_QA_GATE_20261116.md`.
+- [ ] 6.08b Verify **physical Android** behavior and real server delivery/readback in an approved test environment (no fake live-research submissions).
 - [ ] 6.09 List the intended 112 dish names against the 92 current rows; identify precise 20 missing without guessing.
 - [ ] 6.10 Determine whether 25 currently unavailable dishes are intentionally sold-out/disabled.
 - [ ] 6.11 Check the 91 image links load, correct dish, vegetarian imagery, and image attribution.
@@ -112,4 +113,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**6.08**: run actual mobile-browser survey interaction with a safe mocked request where available, and separately verify the live endpoint only in an authorized test environment. Do not add fake submissions to live owner research.
+**6.08b**: physical Android Chrome acceptance + genuinely persisted submission in an approved test environment. Automated Chromium mobile emulation has passed; this manual/device and real-network gate is still outstanding. If unavailable, proceed to read-only task 6.09 and keep 6.08b open.
