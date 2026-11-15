@@ -5,7 +5,7 @@ on:
       version_code:
         description: 'Android version code (increase for each installable update)'
         required: false
-        default: '15'
+        default: '16'
         type: string
   push:
     branches: [main]
@@ -54,7 +54,7 @@ jobs:
       - name: Configure selected Bite app
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '15' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '16' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -102,13 +102,14 @@ jobs:
         run: npx cap add android
       - name: Sync Android assets
         run: npx cap sync android
-      - name: Fetch current official Bite icon from main
+      - name: Fetch current Bite icon and approved native FCM fix from main
         uses: actions/checkout@v4
         with:
           ref: main
           path: bite-approved-brand
           sparse-checkout: |
             assets/bite-selected-icon.png
+            android-app/patch_bite_fcm.py
           sparse-checkout-cone-mode: false
       - name: Prepare native Bite launcher icon tools
         uses: actions/setup-python@v5
@@ -161,13 +162,17 @@ jobs:
           BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
           BITE_FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.BITE_FIREBASE_GOOGLE_SERVICES_JSON }}
         run: |
+          # The Android scaffold is deliberately checked out from feature/bite-android-apk;
+          # always use the reviewed, latest native Firebase patch from main.
+          test -s ../bite-approved-brand/android-app/patch_bite_fcm.py
+          cp ../bite-approved-brand/android-app/patch_bite_fcm.py patch_bite_fcm.py
           python3 -m py_compile patch_bite_fcm.py
-          # Partner v15: audible Android notifications and verified single-tap order acceptance.
+          # Partner v16: distinct order/cancellation cards, Android action buttons.
           python3 patch_bite_fcm.py
       - name: Set version code for signed releases
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '15' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '16' }}
         run: |
           node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\s+\d+/, 'versionCode '+v);if(!s.includes('versionCode '+v))throw Error('versionCode update failed');fs.writeFileSync(p,s)"
       - name: Build release APK (unsigned)
