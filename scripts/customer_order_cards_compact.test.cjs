@@ -26,7 +26,10 @@ test('only two instantly scannable actions and one accessible native disclosure'
  const markup=render({});
  assert.equal(mainButtons(markup),2);
  assert.match(markup,/class="orderactions" role="group" aria-label="Actions for order BITE-QA-006"/);
- assert.match(markup,/<details class="order-more"><summary>More options<\/summary>/);
+ assert.match(markup,/data-order-detail="[^"]+" aria-expanded="false"/);
+ assert.match(markup,/Order details/);
+ assert.doesNotMatch(markup,/More options/);
+ assert.match(markup,/<details class="order-more"><summary>Help &amp; receipt<\/summary>/);
  assert.match(markup,/<button[^>]+data-reorder=/);
  assert.match(markup,/<button[^>]+data-order-detail=/);
  assert.match(extras(markup),/data-invoice=/);
