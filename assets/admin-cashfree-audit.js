@@ -3,6 +3,8 @@
 (function(root){
  'use strict';
  let deps=null,requestToken=0,loadedOrders=[],lastChecks=[],working=false,activeUser=null;
+ let refundLoadToken=0,refundBusy=false,refundRows=[];
+ const refundEvidence=new Map();
  const splitResults=new Map(),vendorComparisons=new Map(),vendorBankChecks=new Map(),vendorReconResults=new Map();
  // Candidate matching is deliberately ephemeral. It is NOT an approved
  // restaurant/vendor mapping and must never authorize transfers or paid labels.
@@ -77,6 +79,10 @@
  };
  const money=n=>deps?.formatMoney?deps.formatMoney(n):'₹'+Number(n||0).toFixed(2);
  function wipe(){
+  refundLoadToken++;refundBusy=false;refundRows=[];refundEvidence.clear();
+  byId('biteRefundReviewRows')?.replaceChildren();
+  const refundCount=byId('biteRefundReviewCount');if(refundCount)refundCount.textContent='—';
+  const refundStatus=byId('biteRefundReviewStatus');if(refundStatus)refundStatus.textContent='Sign in as Super Admin to review refund requests.';
   loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();vendorReconResults.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
   byId('bitePaymentMismatchRows')?.replaceChildren();
@@ -101,6 +107,89 @@
       restaurantName:deps?.getState()?.restaurants?.find(r=>r.id===f.restaurant_id)?.name||'Restaurant',
       amount:customerAmount(f),check,verdict:classify(f,check)};
    });
+ }
+ function renderRefundReview(){
+  if(!authorized()){wipe();return;}
+  const body=byId('biteRefundReviewRows'),count=byId('biteRefundReviewCount');
+  if(count)count.textContent=String(refundRows.length);
+  if(!body)return;
+  body.replaceChildren();
+  for(const row of refundRows){
+   const result=refundEvidence.get(row.id);
+   const tr=document.createElement('tr');
+   const action=cell('');
+   const btn=document.createElement('button');
+   btn.type='button';btn.className='btn secondary';
+   btn.textContent='Check Cashfree refund (read-only)';
+   btn.disabled=refundBusy;
+   btn.dataset.biteInspectRefund=row.id;
+   btn.setAttribute('aria-label','Read Cashfree refund status for '+row.code+' without issuing a refund');
+   action.append(btn);
+   tr.append(cell(row.code),cell(money(row.amount)),
+    cell(row.status),
+    cell(result?.message||'Provider status not checked; no refund initiated'),action);
+   body.append(tr);
+  }
+ }
+ async function loadRefundReview(){
+  if(!authorized()){wipe();return;}
+  if(refundBusy)return;
+  const token=++refundLoadToken,userId=deps.getUser().id;
+  if(activeUser&&activeUser!==userId)wipe();
+  activeUser=userId;refundEvidence.clear();refundBusy=true;
+  const status=byId('biteRefundReviewStatus');
+  if(status)status.textContent='Loading pending requests from your admin RLS view…';
+  try{
+   const {data,error}=await deps.sb.from('bite_refund_jobs')
+    .select('id,order_id,amount,status,created_at').eq('status','pending_approval')
+    .order('created_at',{ascending:false}).limit(50);
+   if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(error)throw error;
+   const orders=new Map((deps.getState()?.orders||[]).map(o=>[o.id,o]));
+   const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+   refundRows=(data||[]).filter(r=>uuid.test(r?.id)&&r.status==='pending_approval'&&
+    Number.isFinite(Number(r.amount))&&Number(r.amount)>0).map(r=>({
+     id:r.id,orderId:r.order_id,amount:Number(r.amount),status:r.status,
+     code:String(orders.get(r.order_id)?.order_code||r.order_id||'Order').slice(0,45)
+    }));
+   if(status)status.textContent=refundRows.length+
+    ' pending approval refund(s). Provider lookup requires a separate deliberate click; none was executed.';
+  }catch(error){
+   if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
+   refundRows=[];if(status)status.textContent='Pending refunds could not be loaded. No refund started.';
+  }finally{
+   if(token===refundLoadToken){refundBusy=false;if(authorized()&&deps.getUser()?.id===userId)renderRefundReview();}
+  }
+ }
+ async function inspectRefund(refundId){
+  if(!authorized()||refundBusy)return;
+  const selected=refundRows.find(r=>r.id===refundId);
+  if(!selected)return;
+  const token=refundLoadToken,userId=deps.getUser().id;
+  refundBusy=true;refundEvidence.delete(refundId);renderRefundReview();
+  const status=byId('biteRefundReviewStatus');
+  if(status)status.textContent='Reading existing Cashfree refund record. No refund will be initiated.';
+  try{
+   const {data,error}=await deps.sb.functions.invoke('bite-cashfree-operations',{
+    body:{action:'inspect_refund',refund_id:refundId}});
+   if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(error)throw error;
+   if(!['PROVIDER_REFUND_RECORD_FOUND','NO_PROVIDER_REFUND_RECORD'].includes(data?.status)||
+      data.no_action_taken!==true||data.recorded_refund_status!==selected.status||
+      !validAmount(data.amount)||Math.abs(Number(data.amount)-selected.amount)>0.001)
+    throw Error('Provider refund evidence mismatch');
+   const result=data.status==='PROVIDER_REFUND_RECORD_FOUND'?
+    'Cashfree reports '+String(data.provider_refund_status||'UNKNOWN').slice(0,40)+
+    '. STOP: check this existing provider record before considering another refund.':
+    'No refund record found for this reference. Not approved. No refund was created.';
+   refundEvidence.set(refundId,{message:result});
+   if(status)status.textContent=result;
+  }catch(error){
+   if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(status)status.textContent='Refund provider status unavailable or mismatched. Do not issue another refund.';
+  }finally{
+   if(token===refundLoadToken){refundBusy=false;if(authorized()&&deps.getUser()?.id===userId)renderRefundReview();}
+  }
  }
  function renderPaymentExceptions(){
   if(!authorized())return;
@@ -399,6 +488,11 @@
   if(!button)return;
   button.dataset.auditWired='1';
   button.addEventListener('click',()=>{void load();});
+  byId('biteRefundReviewLoad')?.addEventListener('click',()=>{void loadRefundReview();});
+  byId('biteRefundReviewRows')?.addEventListener('click',event=>{
+   const target=event.target.closest('[data-bite-inspect-refund]');
+   if(target)void inspectRefund(target.dataset.biteInspectRefund);
+  });
   byId('biteProviderAuditRows')?.addEventListener('click',event=>{
    const item=event.target.closest('[data-bite-reconcile-order]');
    if(item)void reconcile(item.dataset.biteReconcileOrder);
@@ -421,5 +515,5 @@
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
+ root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,loadRefundReview,inspectRefund,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
 })(window);
