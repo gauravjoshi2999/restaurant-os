@@ -3659,13 +3659,33 @@ async function refreshOwnerOrderSnapshot(){
   }
  }
 }
-// Payment verification may finish after orders INSERT; financials is not in the
-// Realtime publication. Retry only while the signed-in Owner app is visible.
-window.setInterval(()=>{
- if(currentUser&&access.role==='owner'&&document.visibilityState==='visible'&&
-    navigator.onLine!==false&&ownerOrderBurstTracker.pendingCount())
-  scheduleOwnerOrderRefresh(150);
-},30000);
+// Backup for missed INSERT events while the app is open: realtime and native
+// FCM are independent, and neither guarantees the WebView received every event.
+// Keep this a narrow, tenant-scoped, read-only query. A full financial reload
+// and paid-order check still gate every customer-facing new-order alert.
+let ownerOrderWatchdogBusy=false;
+async function checkOwnerMissedOrders(){
+ if(ownerOrderWatchdogBusy||ownerOrderRefreshActive||ownerResumeRefreshActive||
+    !currentUser||access.role!=='owner'||!access.restaurantId||
+    document.visibilityState!=='visible'||navigator.onLine===false)return;
+ ownerOrderWatchdogBusy=true;
+ const userId=currentUser.id,restaurantId=access.restaurantId;
+ try{
+  const {data,error}=await sb.from('orders')
+   .select('id,restaurant_id,channel,status,is_demo,order_date')
+   .eq('restaurant_id',restaurantId).eq('channel','Own Platform')
+   .eq('status','Received').eq('is_demo',false)
+   .order('order_date',{ascending:false}).limit(200);
+  if(error)throw error;
+  if(currentUser?.id!==userId||access.restaurantId!==restaurantId||access.role!=='owner')return;
+  const knownIds=new Set((state.orders||[]).map(order=>String(order.id)));
+  const missing=BiteOwnerOrderBurst.unseenReceivedIds(data,knownIds,restaurantId);
+  for(const id of missing)ownerOrderBurstTracker.queue(id);
+  if(missing.length||ownerOrderBurstTracker.pendingCount())scheduleOwnerOrderRefresh(150);
+ }catch(error){console.warn('Owner missed-order backup check unavailable',error);}
+ finally{ownerOrderWatchdogBusy=false;}
+}
+window.setInterval(()=>{void checkOwnerMissedOrders();},30000);
 
 let ownerCancelAlertController=null;
 function stopOwnerCancellationAlerts(){
