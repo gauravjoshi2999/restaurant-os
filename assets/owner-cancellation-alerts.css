@@ -1,0 +1,21 @@
+/* Bite Owner: tenant-scoped pending cancellation request alert. */
+.bite-owner-cancel-alert[hidden]{display:none!important}
+.bite-owner-cancel-alert{
+ position:fixed;z-index:2100;left:max(12px,env(safe-area-inset-left));
+ right:max(12px,env(safe-area-inset-right));
+ bottom:calc(14px + env(safe-area-inset-bottom));
+ max-width:530px;margin:0 auto;box-sizing:border-box;
+ display:flex;align-items:center;gap:12px;
+ padding:13px 14px;background:#fffaf2;color:#603d11;
+ border:1px solid #edc890;border-left:5px solid #d08924;
+ border-radius:16px;box-shadow:0 8px 32px rgba(20,30,20,.17)
+}
+.bite-owner-cancel-alert .bite-cancel-alert-copy{font-weight:800;font-size:14px;line-height:1.4;flex:1}
+.bite-owner-cancel-alert .bite-cancel-alert-open{
+ min-height:44px;padding:9px 14px;background:#9b5614;color:#fff;
+ border:0;border-radius:11px;font-size:13px;font-weight:800;cursor:pointer
+}
+@media(max-width:480px){
+ .bite-owner-cancel-alert{gap:9px;align-items:stretch}
+ .bite-owner-cancel-alert .bite-cancel-alert-open{min-width:105px}
+}
