@@ -1,3 +1,4 @@
+import {shouldDisableOwnerFcmToken} from "./fcm-token-policy.mjs";
 import {createClient} from "npm:@supabase/supabase-js@2.95.0";
 import {pendingPaymentRetryPolicy} from "./payment-retry-policy.mjs";
 import {dispatchCancellationPush} from "./cancellation-push.mjs";
@@ -148,7 +149,7 @@ Deno.serve(async req=>{
         body:JSON.stringify(push),signal:AbortSignal.timeout(12000)});
       if(!response.ok){
        errors++;
-       if(response.status===404||response.status===400){
+       if(await shouldDisableOwnerFcmToken(response)){
         // A dead device token is not a reason to keep retrying the same owner device.
         await db.from("bite_owner_push_devices").update({enabled:false,updated_at:new Date().toISOString()})
           .eq("fcm_token",device.fcm_token).eq("restaurant_id",ev.restaurant_id);
