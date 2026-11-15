@@ -966,7 +966,7 @@ function biteOrderCardMarkup(o){
  const refund=window.BiteRefundTracker?.summary(o,biteRefundByOrder.get(o.id),biteCancellationByOrder.get(o.id),biteRefundLookupUnavailable)||'';
  const otp=o.delivery_otp&&['Ready','Handed Over'].includes(status)?'<div class="order-otp"><strong>Delivery OTP: '+safe(o.delivery_otp)+'</strong><small>Share only when the delivery person arrives.</small></div>':'';
  const review=o.review_id?'<div class="review-status">Your review · '+safe(o.review_rating)+'★ · '+safe(o.review_status)+'</div>':'';
- return '<article class="ordercard'+(expandedOrderId===o.id?' bite-order-expanded':'')+'" data-bite-status="'+safe(state)+'">'+
+ return '<article class="ordercard'+(expandedOrderId===o.id?' bite-order-expanded':'')+'" data-bite-status="'+safe(status)+'">'+
   '<div class="orderhead">'+biteOrderAvatar(o)+'<div class="bite-order-identity"><div class="orderrestaurant">'+safe(o.restaurant_name||'Restaurant')+'</div><div class="ordercode">'+safe(o.order_code)+'</div></div></div>'+
   biteOrderItemPreview(o.id)+
   '<div class="bite-order-meta"><div class="bite-order-meta-copy"><span class="bite-order-date">'+safe(date)+'</span><div class="order-badges"><span class="orderstatus '+state+'">'+safe(biteOrderFriendlyStatus(status))+'</span><span class="order-mode '+modeClass+'">'+mode+'</span></div></div><div class="orderamount">'+money(o.amount)+'</div></div>'+
