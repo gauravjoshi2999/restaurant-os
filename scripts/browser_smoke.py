@@ -168,6 +168,10 @@ def check_scheduled_picker_no_charge(page):
         window.__qaScheduleOriginal=activeRestaurant;
         window.__qaScheduleModalClass=modal.className;
         window.__qaSchedulePanelClass=panel.className;
+        const pay=document.getElementById('placeOrderBtn');
+        window.__qaSchedulePayButton={text:pay.textContent,disabled:pay.disabled,
+          aria:pay.getAttribute('aria-disabled')};
+        window.__qaScheduleNote=document.getElementById('checkoutPaymentNote')?.textContent||'';
         window.__qaScheduleDeliveryMode=document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';
         activeRestaurant={...activeRestaurant,
           accepts_scheduled_delivery:true,accepts_delivery:true,delivery_paused:false,
@@ -223,6 +227,18 @@ def check_scheduled_picker_no_charge(page):
             const radio=document.querySelector('input[name="deliveryMode"][value="'+(window.__qaScheduleDeliveryMode||'delivery')+'"]');
             if(radio)radio.checked=true;
             window.BiteSchedule?.reset?.();
+            const pay=document.getElementById('placeOrderBtn');
+            if(pay&&window.__qaSchedulePayButton){
+              pay.textContent=window.__qaSchedulePayButton.text;
+              pay.disabled=window.__qaSchedulePayButton.disabled;
+              const aria=window.__qaSchedulePayButton.aria;
+              if(aria===null)pay.removeAttribute('aria-disabled');
+              else pay.setAttribute('aria-disabled',aria);
+            }
+            const note=document.getElementById('checkoutPaymentNote');
+            if(note&&window.__qaScheduleNote!==undefined)note.textContent=window.__qaScheduleNote;
+            delete window.__qaSchedulePayButton;
+            delete window.__qaScheduleNote;
             document.body.classList.remove('bite-schedule-open');
             document.getElementById('biteScheduleOverlay')?.setAttribute('hidden','');
             delete window.__qaScheduleOriginal;
