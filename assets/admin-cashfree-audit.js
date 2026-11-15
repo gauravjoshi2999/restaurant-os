@@ -142,16 +142,17 @@
   const token=++refundLoadToken;
   activeUser=userId;refundEvidence.clear();refundBusy=true;
   const status=byId('biteRefundReviewStatus');
-  if(status)status.textContent='Loading pending requests from your admin RLS view…';
+  if(status)status.textContent='Loading pending and approved refunds from your admin RLS view…';
   try{
    const {data,error}=await deps.sb.from('bite_refund_jobs')
-    .select('id,order_id,amount,status,created_at').eq('status','pending_approval')
+    .select('id,order_id,amount,status,created_at').in('status',['pending_approval','approved','processing'])
     .order('created_at',{ascending:false}).limit(50);
    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
    if(error)throw error;
    const orders=new Map((deps.getState()?.orders||[]).map(o=>[o.id,o]));
    const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-   const eligible=(data||[]).filter(r=>uuid.test(r?.id)&&r.status==='pending_approval'&&
+   const eligible=(data||[]).filter(r=>uuid.test(r?.id)&&
+    ['pending_approval','approved','processing'].includes(r.status)&&
     Number.isFinite(Number(r.amount))&&Number(r.amount)>0);
    // A refund can reference an order absent from the paginated dashboard state.
    // Look up only its code through the authenticated Super Admin RLS view.
@@ -174,10 +175,10 @@
       ('Order …'+String(r.order_id||'unknown').slice(-8))).slice(0,45)
    }));
    if(status)status.textContent=refundRows.length+
-    ' pending approval refund(s). Provider lookup requires a separate deliberate click; none was executed.';
+    ' pending/approved/processing refund(s) for review. Checking Cashfree requires a separate click. No refund was initiated.';
   }catch(error){
    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
-   refundRows=[];if(status)status.textContent='Pending refunds could not be loaded. No refund started.';
+   refundRows=[];if(status)status.textContent='Refund review could not be loaded. No refund started.';
   }finally{
    if(token===refundLoadToken){refundBusy=false;if(authorized()&&deps.getUser()?.id===userId)renderRefundReview();}
   }
@@ -202,7 +203,8 @@
    const result=data.status==='PROVIDER_REFUND_RECORD_FOUND'?
     'Cashfree reports '+String(data.provider_refund_status||'UNKNOWN').slice(0,40)+
     '. STOP: check this existing provider record before considering another refund.':
-    'No refund record found for this reference. Not approved. No refund was created.';
+    'No refund record found for this reference in Cashfree. Bite status is '+selected.status+
+    '. This read-only check did not send a refund. Independently reconcile before any refund execution.';
    refundEvidence.set(refundId,{message:result});
    if(status)status.textContent=result;
   }catch(error){
