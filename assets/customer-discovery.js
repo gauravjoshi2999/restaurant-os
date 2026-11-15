@@ -34,7 +34,11 @@
     const matches=restaurants.map(restaurant=>({restaurant,dishes:q?items.filter(i=>i.restaurant_id===restaurant.id&&(text(i.name).includes(q)||text(i.description).includes(q))).slice(0,2):[]}))
       .filter(({restaurant:r,dishes})=>{
         const tags=r.cuisine_tags||[];
-        if(options.pin&&options.service!=='pickup'&&r.serviceable!==true)return false;
+        if(options.pin&&options.service!=='pickup'&&r.serviceable!==true){
+          // Only after a customer opts into GPS, show nearby pickup-only alternatives
+          // even when the stored delivery PIN is out of zone. Never advertise delivery.
+          if(!(options.service==='all'&&options.geo&&r.accepts_pickup===true))return false;
+        }
         if(options.openNow&&isClosed(r))return false;
         if(Number(r.average_rating||0)<Number(options.minRating||0))return false;
         if(options.favourites&&!options.favourites.has(r.id))return false;
