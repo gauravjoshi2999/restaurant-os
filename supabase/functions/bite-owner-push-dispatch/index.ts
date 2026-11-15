@@ -1,5 +1,6 @@
 import {createClient} from "npm:@supabase/supabase-js@2.95.0";
 import {pendingPaymentRetryPolicy} from "./payment-retry-policy.mjs";
+import {dispatchCancellationPush} from "./cancellation-push.mjs";
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
 function safeEqual(a:string,b:string){
@@ -164,5 +165,10 @@ Deno.serve(async req=>{
    .update({delivery_status:state,last_error:lastError,sent_at:state==="sent"?new Date().toISOString():null})
    .eq("order_id",ev.order_id).eq("delivery_status","processing");
  }
- return reply({processed:(events||[]).length,sent,failed,skipped});
+ // This queue handles different events and never adds order Accept/Reject
+ // actions to a customer cancellation request notification.
+ const cancellation=await dispatchCancellationPush({
+  db,fetcher:fetch,bearer,projectId:account.project_id
+ });
+ return reply({processed:(events||[]).length,sent,failed,skipped,cancellation});
 });
