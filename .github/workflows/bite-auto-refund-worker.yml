@@ -1,0 +1,43 @@
+name: Bite Automatic Refund Worker
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bite-auto-refund-worker
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      REFUND_WORKER_SECRET: ${{ secrets.BITE_MAINTENANCE_SECRET }}
+    steps:
+      - name: Require secret-protected worker rollout
+        id: gate
+        shell: bash
+        run: |
+          if [ -z "$REFUND_WORKER_SECRET" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Automatic refunds have not been activated: configure BITE_MAINTENANCE_SECRET in GitHub Actions and Supabase Edge secrets."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Drain only trusted auto-authorized refunds
+        if: steps.gate.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 105 \
+            --request POST \
+            --url "https://wedbgpybbgsszcmffoha.supabase.co/functions/v1/bite-auto-refund" \
+            --header "Authorization: Bearer ${REFUND_WORKER_SECRET}" \
+            --header "Content-Type: application/json" \
+            --data '{"action":"drain"}' \
+            | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r.get("status") in ("checked","not_enabled"),"Unexpected automatic refund worker response"; print("Bite refund worker:",r.get("status"),"jobs checked:",r.get("jobs",0))'
