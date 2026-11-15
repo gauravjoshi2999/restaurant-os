@@ -75,7 +75,8 @@ test('reviews remain truthful and past orders remain usable',()=>{
 });
 
 test('existing handlers, status badges and customer-only style scope remain intact',()=>{
- assert.match(html,/\+orderActionsMarkup\(o\)\+\(expandedOrderId===o\.id\?/);
+ assert.match(html,/\+orderActionsMarkup\(o\)\+/);
+ assert.match(html,/customerOrders\.map\(biteOrderCardMarkup\)/);
  assert.match(html,/document\.querySelectorAll\('\[data-order-detail\]'\)/);
  assert.match(html,/document\.querySelectorAll\('\[data-customer-order-action\]'\)/);
  assert.match(html,/data-reorder/);
