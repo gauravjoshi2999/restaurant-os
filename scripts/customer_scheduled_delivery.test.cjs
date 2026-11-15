@@ -75,3 +75,26 @@ test('RLS reads customer-only scheduled rows without blocking the initial order 
  assert.match(customer,/Preferred delivery:/);
  assert.match(customer,/Restaurant confirmation required/);
 });
+
+test('closed-now restaurant can request a future slot but cannot select ASAP without scheduling',()=>{
+ const allDay={...r,opening_time:'00:00',closing_time:'23:59',scheduled_horizon_days:3};
+ assert.equal(schedule.canSchedule(allDay),true);
+ assert.ok(schedule.generateSlots(allDay,Date.now(),1).length===1);
+ assert.equal(schedule.canSchedule({...allDay,accepts_scheduled_delivery:false}),false);
+ assert.equal(schedule.canSchedule({...allDay,delivery_paused:true}),false);
+ assert.match(js,/closedNow\|\|\(typeof pendingLiveCheckout/);
+ assert.match(js,/Restaurant closed now. Select a future delivery slot/);
+ assert.match(customer,/window\.BiteSchedule\?\.canSchedule\?\.\(activeRestaurant\)/);
+ assert.match(customer,/Restaurant abhi closed hai\. Pay karne se pahle Schedule se future delivery time choose karein/);
+ assert.match(customer,/BiteDiscovery\.isClosed\(activeRestaurant\)&&!window\.BiteSchedule\?\.canSchedule/);
+});
+test('future-slot exception is server-only, revalidated, and preserves ASAP closure guards',()=>{
+ const migration=fs.readFileSync('supabase/migrations/20261115213814_bite_scheduled_future_hours_v1.sql','utf8');
+ assert.match(migration,/perform public\.bite_validate_scheduled_delivery_v1/);
+ assert.match(migration,/if v_scheduled_for is null and v_restaurant\.opening_time/);
+ assert.match(migration,/if v_scheduled_for is null and v_restaurant\.is_temporarily_closed/);
+ assert.match(migration,/p_delivery_type<>'delivery'/);
+ assert.match(migration,/set_config\('app\.bite_scheduled_for',p_scheduled_for::text,true\)/);
+ assert.match(migration,/set_config\('app\.bite_scheduled_for','',true\)/);
+ assert.doesNotMatch(migration,/Cashfree|refund_jobs|order_financials|wallet/);
+});
