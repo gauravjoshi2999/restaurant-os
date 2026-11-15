@@ -1,0 +1,52 @@
+/* Customer order refund tracker: truthful Cashfree / bank separation. */
+body[data-bite-app="customer"] .bite-refund-summary{
+ display:flex;gap:10px;align-items:flex-start;margin:12px 0 3px;
+ padding:12px 13px;border-radius:13px;background:#fff8eb;border:1px solid #f0dcba;
+ color:#664a1e;font-size:13px;line-height:1.4
+}
+body[data-bite-app="customer"] .bite-refund-summary strong{display:block;font-size:13px}
+body[data-bite-app="customer"] .bite-refund-summary small{display:block;font-size:12px;margin-top:3px;line-height:1.5}
+body[data-bite-app="customer"] .bite-refund-dot{width:9px;height:9px;border-radius:50%;background:#db9b32;flex:none;margin-top:5px}
+body[data-bite-app="customer"] .bite-refund-expand-hint{display:block;font-size:11px;font-weight:750;margin-top:7px}
+body[data-bite-app="customer"] .bite-refund-processing{background:#eff5ff;border-color:#d3e1fc;color:#244a80}
+body[data-bite-app="customer"] .bite-refund-processing .bite-refund-dot{background:#4687d0}
+body[data-bite-app="customer"] .bite-refund-success{background:#edf9f1;border-color:#ccebd4;color:#145d35}
+body[data-bite-app="customer"] .bite-refund-success .bite-refund-dot{background:#258952}
+body[data-bite-app="customer"] .bite-refund-failed,
+body[data-bite-app="customer"] .bite-refund-unknown{background:#fff3f2;border-color:#f0d5d2;color:#823934}
+body[data-bite-app="customer"] .bite-refund-details{
+ margin:18px 0 5px;padding:15px;border:1px solid #d7e7dc;background:#f9fcf9;
+ border-radius:15px;color:#254230
+}
+body[data-bite-app="customer"] .bite-refund-details-head{display:flex;justify-content:space-between;gap:12px}
+body[data-bite-app="customer"] .bite-refund-details-head>div{min-width:0}
+body[data-bite-app="customer"] .bite-refund-details-head>div>strong{font-size:15px}
+body[data-bite-app="customer"] .bite-refund-details-head p{font-size:12px;margin:4px 0 13px;color:#4e6958}
+body[data-bite-app="customer"] .bite-refund-row{
+ display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+ padding:9px 0;border-bottom:1px solid #e0ebe2;font-size:12px
+}
+body[data-bite-app="customer"] .bite-refund-row span{color:#647669;flex:0 0 42%}
+body[data-bite-app="customer"] .bite-refund-row strong{text-align:right;overflow-wrap:anywhere;max-width:60%}
+body[data-bite-app="customer"] .bite-refund-timeline{list-style:none;padding:0;margin:14px 0}
+body[data-bite-app="customer"] .bite-refund-timeline li{
+ border-left:2px solid #b3d7c0;margin-left:6px;padding:0 0 15px 16px;
+ display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:1.5
+}
+body[data-bite-app="customer"] .bite-refund-timeline li:before{
+ content:'';position:absolute;width:8px;height:8px;border-radius:50%;
+ background:#16844c;transform:translate(-21px,3px)
+}
+body[data-bite-app="customer"] .bite-refund-timeline li span{color:#627769}
+body[data-bite-app="customer"] .bite-refund-timeline li strong{text-align:right;max-width:60%;overflow-wrap:anywhere}
+body[data-bite-app="customer"] .bite-refund-eta{padding:11px 12px;background:#fff5e6;border-radius:10px;color:#695023;font-size:12px;line-height:1.5}
+body[data-bite-app="customer"] .bite-refund-safe-note{color:#66786b;font-size:11px;line-height:1.5}
+body[data-bite-app="customer"] .bite-refund-refresh{
+ min-height:44px;margin-top:8px;width:100%;background:#e5f6e9;
+ color:#096d42;border:1px solid #b9d8c2;border-radius:11px;font-weight:800;font-size:13px
+}
+@media(max-width:390px){
+ body[data-bite-app="customer"] .bite-refund-row{display:block}
+ body[data-bite-app="customer"] .bite-refund-row span{display:block;margin-bottom:4px}
+ body[data-bite-app="customer"] .bite-refund-row strong{display:block;max-width:100%;text-align:left}
+}
