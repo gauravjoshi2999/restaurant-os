@@ -123,8 +123,8 @@
     '<input type="checkbox" id="biteFilterOpenNow" '+(draft.openNow?'checked':'')+'></label>'+
     '<button type="button" class="bite-filter-tile '+(draft.sort==='fast'?'is-active':'')+'" id="biteFilterFast">'+
     '<span aria-hidden="true">◷</span><strong>Fastest preparation</strong><small>Sort by owner-provided prep time</small></button>'+
-    '<div class="bite-filter-coming"><strong>Scheduled delivery</strong><p>Show restaurants currently accepting preferred delivery slot requests. Choose your time at checkout.</p>'+
-    '<label class="bite-filter-switch"><span><strong>Schedule available</strong><small>Choose a preferred 30-minute window at checkout</small></span>'+ 
+    '<div class="bite-filter-coming"><strong>Scheduled delivery</strong><p>See restaurants offering future delivery requests. Confirm your PIN and preferred time at checkout.</p>'+ 
+    '<label class="bite-filter-switch"><span><strong>Schedule available</strong><small>Preferred 30-minute window, subject to restaurant acceptance</small></span>'+ 
     '<input type="checkbox" id="biteFilterScheduleOnly" '+(draft.scheduleOnly?'checked':'')+'></label></div>';
   }else if(section==='rating'){
    panel.innerHTML='<h3>Restaurant rating</h3><p class="bite-filter-help">Only restaurants with real published ratings appear above the selected threshold.</p>'+
@@ -174,10 +174,10 @@
   if(fastBtn){fastBtn.classList.toggle('active',root.restaurantSortFast);
    fastBtn.setAttribute('aria-pressed',String(root.restaurantSortFast));
    fastBtn.textContent=root.restaurantSortFast?'✓ Fastest prep':'Fastest prep ↕';}
-  root.restaurantServiceFilter=next.service;
+  root.restaurantServiceFilter=next.scheduleOnly?'delivery':next.service;
   root.BiteScheduleDiscoveryOnly=next.scheduleOnly;
   document.querySelectorAll('[data-service-filter]').forEach(btn=>{
-   const selected=btn.dataset.serviceFilter===next.service;
+   const selected=btn.dataset.serviceFilter===(next.scheduleOnly?'delivery':next.service);
    btn.classList.toggle('active',selected);btn.setAttribute('aria-pressed',String(selected));
   });
   for(const [id,on] of [['filterOpenNow',next.openNow],['filterFavourites',next.favourites]]){
@@ -207,13 +207,19 @@
  overlay.addEventListener('change',event=>{
   const input=event.target;
   if(input.id==='biteFilterOpenNow')draft.openNow=input.checked;
-  else if(input.id==='biteFilterScheduleOnly')draft.scheduleOnly=input.checked;
+  else if(input.id==='biteFilterScheduleOnly'){
+   draft.scheduleOnly=input.checked;
+   if(input.checked)draft.service='delivery';
+  }
   else if(input.type==='radio'){
    const group=input.name.replace('bite-filter-','');
    if(group==='sort')draft.sort=valid(input.value,SORTS,'recommended');
    if(group==='rating')draft.rating=valid(input.value,RATINGS,'0');
    if(group==='diet')draft.diet=valid(input.value,DIETS,'all');
-   if(group==='service')draft.service=valid(input.value,SERVICES,'all');
+   if(group==='service'){
+    draft.service=valid(input.value,SERVICES,'all');
+    if(draft.service==='pickup')draft.scheduleOnly=false;
+   }
   }
   updateCount();
  });
