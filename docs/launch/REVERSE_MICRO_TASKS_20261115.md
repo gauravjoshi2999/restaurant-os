@@ -25,7 +25,7 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [x] 6.04 Fix survey step-navigation scrolling without initial auto-scroll.
 - [x] 6.05 Add narrow automated regression assertions and inspect source invariants.
 - [x] 6.06 Read current Hotel Maharani Palace publish/onboarding/Menu snapshot.
-- [ ] 6.07 Confirm survey endpoint with isolated **non-production** POST + readback; avoid test rows in live research.
+- [x] 6.07 Execute the **deployed Edge handler logic** with isolated POST + mocked readback; verified 201/ok, 400/403/503 rejection, non-consented phone redaction and **0 live survey rows**. This is **not** a live-network Endpoint test. Evidence: `docs/launch/OWNER_FEEDBACK_ISOLATED_EVIDENCE_20261115.md`.
 - [ ] 6.08 Run actual Android browser survey flow and verify genuine submission/confirmation.
 - [ ] 6.09 List the intended 112 dish names against the 92 current rows; identify precise 20 missing without guessing.
 - [ ] 6.10 Determine whether 25 currently unavailable dishes are intentionally sold-out/disabled.
@@ -112,4 +112,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**6.07**: use a safe isolated form submission/readback test in a non-production environment. Do not add fake/test responses to live owner research.
+**6.08**: run actual mobile-browser survey interaction with a safe mocked request where available, and separately verify the live endpoint only in an authorized test environment. Do not add fake submissions to live owner research.
