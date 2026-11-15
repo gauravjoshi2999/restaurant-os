@@ -193,7 +193,18 @@ try:
         page.locator("#menuView:not(.hidden)").wait_for(state="visible", timeout=20000)
         page.locator("#restaurantName").wait_for(state="visible")
         check(bool(page.locator("#restaurantName").inner_text().strip()), "Customer can open a restaurant menu without login")
-        page.locator('#menuItems [data-add]').first.wait_for(state='visible', timeout=20000)
+        try:
+            page.locator('#menuItems [data-add]').first.wait_for(state='visible', timeout=20000)
+        except Exception:
+            print('MENU DIAGNOSTIC:', page.evaluate("""() => ({
+               menu: document.querySelector('#menuItems')?.innerText?.slice(0,700),
+               suggestions: document.querySelector('#biteMenuRecommendations')?.innerText?.slice(0,250),
+               restaurant: typeof activeRestaurant !== 'undefined' ? activeRestaurant?.name : null,
+               dishes: typeof menuItems !== 'undefined' ? menuItems.length : null,
+               kidsOnly: document.querySelector('#biteKidsChoiceOnly')?.checked,
+               tags: typeof menuItems !== 'undefined' ? menuItems[0]?.is_kids_choice : null
+            })"""))
+            raise
         page.locator('#menuSearchInput').fill('BITE-NO-DISH-ZZ-123')
         page.locator('#menuItems .food-empty').wait_for(state='visible', timeout=4000)
         check(page.locator('#menuItems .menuitem').count() == 0, 'Menu search filters actual dishes after the short typing debounce')
