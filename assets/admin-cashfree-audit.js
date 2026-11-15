@@ -147,7 +147,7 @@
    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
    if(error)throw error;
    const orders=new Map((deps.getState()?.orders||[]).map(o=>[o.id,o]));
-   const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+   const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
    const eligible=(data||[]).filter(r=>uuid.test(r?.id)&&r.status==='pending_approval'&&
     Number.isFinite(Number(r.amount))&&Number(r.amount)>0);
    // A refund can reference an order absent from the paginated dashboard state.
