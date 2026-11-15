@@ -69,6 +69,7 @@
  let restaurantId=null,selected=null,draft=null,day=null,slots=[],lastFocus=null,open=false;
  const eligible=()=>{
   if(typeof activeRestaurant==='undefined'||!activeRestaurant)return false;
+  if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
   if(typeof checkoutMode==='function'&&checkoutMode()!=='delivery')return false;
   const r=activeRestaurant;
   if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused)return false;
@@ -77,6 +78,11 @@
  function getSelectedFor(id){
   if(!eligible()||activeRestaurant.id!==id||restaurantId!==id||!selected)return null;
   return selected;
+ }
+ function clearCheckoutIdempotency(){
+  if(typeof pendingLiveCheckout!=='undefined'&&pendingLiveCheckout)return;
+  if(typeof checkoutRequestKey!=='undefined')checkoutRequestKey=null;
+  window.BiteCustomerExtras?.saveCheckoutKey?.(null);
  }
  function sync(){
   const r=typeof activeRestaurant!=='undefined'?activeRestaurant:null;
@@ -137,7 +143,7 @@
   renderDays();byId('biteScheduleClose').focus({preventScroll:true});
  }
  byId('biteSchedulePick').addEventListener('click',show);
- byId('biteScheduleAsap').addEventListener('click',()=>{selected=null;sync();});
+ byId('biteScheduleAsap').addEventListener('click',()=>{if(selected!==null)clearCheckoutIdempotency();selected=null;sync();});
  byId('biteScheduleClose').addEventListener('click',close);
  overlay.addEventListener('click',event=>{
   if(event.target===overlay){close();return;}
@@ -148,6 +154,7 @@
  });
  byId('biteScheduleConfirm').addEventListener('click',()=>{
   if(!draft||!slots.some(x=>x.iso===draft))return;
+  if(selected!==draft)clearCheckoutIdempotency();
   selected=draft;close();sync();
  });
  overlay.addEventListener('keydown',event=>{
