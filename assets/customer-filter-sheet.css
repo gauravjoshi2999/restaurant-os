@@ -1,0 +1,169 @@
+/* Bite original mobile filters & sorting sheet, shared app-green theme. */
+body[data-bite-app="customer"] .bite-filter-trigger{
+ display:inline-flex;align-items:center;gap:8px;font-weight:800;
+ min-height:46px;color:#087b4d;border:1px solid #cce6d6;background:#f0faf4;
+ border-radius:13px;padding:10px 13px;white-space:nowrap;
+}
+body[data-bite-app="customer"] .bite-filter-trigger>span:first-child{font-size:20px;line-height:1}
+body[data-bite-app="customer"] .bite-filter-trigger-count{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:20px;height:20px;border-radius:999px;background:#087b4d;color:#fff;font-size:11px;
+}
+body[data-bite-app="customer"] .bite-filter-trigger-count[hidden]{display:none}
+body[data-bite-app="customer"].bite-filter-open{overflow:hidden;touch-action:none}
+body[data-bite-app="customer"] .bite-filter-backdrop[hidden]{display:none!important}
+body[data-bite-app="customer"] .bite-filter-backdrop{
+ position:fixed;inset:0;z-index:12000;display:flex;align-items:flex-end;justify-content:center;
+ padding:0;background:rgba(15,32,24,.58);
+}
+body[data-bite-app="customer"] .bite-filter-sheet{
+ width:min(100%,660px);max-height:min(89dvh,860px);min-height:min(68dvh,600px);
+ background:#fff;border-radius:24px 24px 0 0;color:#263b30;
+ box-shadow:0 -12px 40px #18281f33;
+ display:flex;flex-direction:column;overflow:hidden;
+ padding-bottom:env(safe-area-inset-bottom);
+}
+body[data-bite-app="customer"] .bite-filter-grip{
+ height:4px;width:42px;border-radius:999px;background:#d2ded5;
+ margin:12px auto 6px;flex:none;
+}
+body[data-bite-app="customer"] .bite-filter-heading{
+ display:flex;align-items:flex-start;gap:12px;padding:15px 20px 19px;
+ border-bottom:1px solid #e5ede7;flex:none;
+}
+body[data-bite-app="customer"] .bite-filter-heading>div{flex:1;min-width:0}
+body[data-bite-app="customer"] #biteFilterTitle{
+ font-weight:850;letter-spacing:-.045em;color:#20372b;
+ font-size:clamp(21px,4vw,26px);margin:0 0 4px;line-height:1.2;
+}
+body[data-bite-app="customer"] #biteFilterSubtitle{margin:0;color:#6c7e72;font-size:12px}
+body[data-bite-app="customer"] .bite-filter-clear{
+ border:0;background:transparent;color:#087b4d;font-weight:800;
+ padding:10px 4px;min-height:44px;font-size:12px;
+}
+body[data-bite-app="customer"] .bite-filter-icon-close{
+ width:42px;height:42px;border-radius:50%;flex:none;
+ border:1px solid #e3eae4;background:#f7faf8;color:#3e5949;
+ font-size:26px;line-height:1;
+}
+body[data-bite-app="customer"] .bite-filter-body{
+ display:grid;grid-template-columns:128px minmax(0,1fr);
+ flex:1;min-height:0;overflow:hidden;
+}
+body[data-bite-app="customer"] .bite-filter-rail{
+ display:flex;flex-direction:column;align-items:stretch;
+ min-width:0;overflow-y:auto;background:#f8faf8;
+ border-right:1px solid #e4ebe6;
+}
+body[data-bite-app="customer"] .bite-filter-rail>button{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:8px;text-align:center;flex:none;min-height:100px;width:100%;
+ border:0;border-left:4px solid transparent;border-radius:0;
+ background:transparent;color:#647669;padding:12px 5px;
+ font-size:12px;font-weight:750;
+}
+body[data-bite-app="customer"] .bite-filter-rail>button span{
+ color:inherit;font-size:23px;line-height:1;
+}
+body[data-bite-app="customer"] .bite-filter-rail>button.is-selected{
+ background:#edf8f1;border-left-color:#087b4d;color:#096942;
+}
+body[data-bite-app="customer"] .bite-filter-content{
+ min-width:0;min-height:0;overflow:auto;overscroll-behavior:contain;
+ padding:22px 19px 24px;scrollbar-width:thin;
+}
+body[data-bite-app="customer"] .bite-filter-content h3{
+ color:#1e3827;font-size:18px;letter-spacing:-.02em;
+ font-weight:850;line-height:1.25;margin:0 0 6px;
+}
+body[data-bite-app="customer"] .bite-filter-help{
+ color:#77887b;font-size:12px;line-height:1.55;margin:0 0 18px;
+}
+body[data-bite-app="customer"] .bite-filter-option{
+ display:flex;align-items:center;gap:9px;min-height:58px;
+ padding:12px 13px;margin-bottom:9px;background:#f8faf8;
+ border:1px solid #e4ede6;border-radius:13px;
+ color:#314f3c;font-size:13px;font-weight:750;cursor:pointer;
+}
+body[data-bite-app="customer"] .bite-filter-option:has(input:checked){
+ color:#087b4d;background:#eff9f2;border-color:#99ccaa;
+ box-shadow:inset 0 0 0 1px #b0dfbd;
+}
+body[data-bite-app="customer"] .bite-filter-option input{
+ accent-color:#087b4d;width:17px;height:17px;margin:0;flex:none;
+}
+body[data-bite-app="customer"] .bite-filter-option span:nth-child(2){flex:1}
+body[data-bite-app="customer"] .bite-filter-check{opacity:0;font-weight:900}
+body[data-bite-app="customer"] .bite-filter-option:has(input:checked) .bite-filter-check{opacity:1}
+body[data-bite-app="customer"] .bite-filter-switch{
+ display:flex;align-items:center;justify-content:space-between;gap:14px;
+ padding:15px;background:#f4f8f5;border:1px solid #d9e8dc;border-radius:14px;
+}
+body[data-bite-app="customer"] .bite-filter-switch strong,
+body[data-bite-app="customer"] .bite-filter-switch small{display:block}
+body[data-bite-app="customer"] .bite-filter-switch strong{font-size:14px;color:#24422f}
+body[data-bite-app="customer"] .bite-filter-switch small{font-size:11px;color:#77887b;line-height:1.5;margin-top:3px}
+body[data-bite-app="customer"] .bite-filter-switch input{width:22px;height:22px;accent-color:#087b4d;flex:none}
+body[data-bite-app="customer"] .bite-filter-tile{
+ display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;
+ margin-top:13px;padding:16px 12px;border:1px solid #dae8df;
+ border-radius:14px;background:#fff;width:100%;min-height:64px;text-align:left;
+}
+body[data-bite-app="customer"] .bite-filter-tile>span{font-size:22px;color:#087b4d}
+body[data-bite-app="customer"] .bite-filter-tile strong{font-size:13px;color:#345342}
+body[data-bite-app="customer"] .bite-filter-tile small{flex-basis:100%;padding-left:29px;color:#738579;font-size:11px}
+body[data-bite-app="customer"] .bite-filter-tile.is-active{background:#eff9f2;border-color:#87c69e}
+body[data-bite-app="customer"] .bite-filter-coming{
+ padding:15px 12px;margin-top:13px;background:#fafbfa;border:1px dashed #d6e1d8;border-radius:14px;
+}
+body[data-bite-app="customer"] .bite-filter-coming strong{color:#3c5647;font-size:13px}
+body[data-bite-app="customer"] .bite-filter-coming p{color:#708173;font-size:11px;line-height:1.5;margin:6px 0 10px}
+body[data-bite-app="customer"] .bite-filter-coming button{
+ color:#8b988d;background:#eef1ee;border:0;border-radius:9px;
+ font-size:12px;font-weight:750;min-height:40px;padding:9px 14px;cursor:not-allowed;
+}
+body[data-bite-app="customer"] .bite-filter-actions{
+ flex:none;display:grid;grid-template-columns:110px 1fr;gap:12px;
+ align-items:center;background:#fff;border-top:1px solid #e4ebe6;
+ padding:12px 20px max(13px,env(safe-area-inset-bottom));
+}
+body[data-bite-app="customer"] .bite-filter-actions button{
+ min-height:50px;border-radius:13px;font-size:14px;font-weight:850;
+}
+body[data-bite-app="customer"] #biteFilterCancel{
+ color:#5b6e61;border:1px solid #e4ebe6;background:#f8faf8;
+}
+body[data-bite-app="customer"] #biteFilterApply{
+ color:#fff;border:1px solid #087b4d;background:#087b4d;
+}
+body[data-bite-app="customer"] #biteFilterApply:disabled{
+ background:#e4e9e5;color:#85918a;border-color:#e4e9e5;
+}
+body[data-bite-app="customer"] .bite-filter-sheet button:focus-visible,
+body[data-bite-app="customer"] .bite-filter-sheet input:focus-visible{
+ outline:3px solid #75c89b;outline-offset:2px;
+}
+@media(max-width:767px){
+ body[data-bite-app="customer"] .discovery-tools .bite-filter-label,
+ body[data-bite-app="customer"] .discovery-tools #sortFastBtn,
+ body[data-bite-app="customer"] .discovery-tools #filterOpenNow{display:none}
+ body[data-bite-app="customer"] .discovery-tools{gap:7px;overflow-x:auto;scrollbar-width:none}
+ body[data-bite-app="customer"] .discovery-tools .bite-filter-trigger{order:-2}
+ body[data-bite-app="customer"] .bite-filter-sheet{max-height:92dvh;min-height:72dvh}
+ body[data-bite-app="customer"] .bite-filter-heading{padding:13px 14px 15px;gap:7px}
+ body[data-bite-app="customer"] .bite-filter-body{grid-template-columns:100px minmax(0,1fr)}
+ body[data-bite-app="customer"] .bite-filter-rail>button{min-height:88px;font-size:11px}
+ body[data-bite-app="customer"] .bite-filter-content{padding:19px 12px 18px}
+ body[data-bite-app="customer"] .bite-filter-option{min-height:55px;padding:10px}
+ body[data-bite-app="customer"] .bite-filter-actions{padding:12px 14px max(14px,env(safe-area-inset-bottom));grid-template-columns:95px 1fr;gap:10px}
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] #biteFilterTitle{font-size:20px}
+ body[data-bite-app="customer"] .bite-filter-body{grid-template-columns:86px minmax(0,1fr)}
+ body[data-bite-app="customer"] .bite-filter-rail>button{min-height:80px;padding:8px 1px}
+ body[data-bite-app="customer"] .bite-filter-content{padding:15px 9px}
+ body[data-bite-app="customer"] .bite-filter-heading{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-bite-app="customer"] .bite-filter-sheet *{scroll-behavior:auto!important;transition:none!important}
+}
