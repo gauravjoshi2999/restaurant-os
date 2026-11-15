@@ -51,7 +51,8 @@ function harness({sandbox=true,loggedIn=true,livePending=false,verification=true
 
 test('sandbox mode is opt-in, never default production checkout',()=>{
  assert.match(html,/get\('sandbox_checkout'\)==='1'/);
- assert.match(source,/BITE_SANDBOX_CHECKOUT\?'create_bite_sandbox_order_draft':'bite_prepare_checkout_v2'/);
+ assert.match(source,/BITE_SANDBOX_CHECKOUT\?'create_bite_sandbox_order_draft':selectedDeliverySlot\?'bite_prepare_scheduled_checkout_v1':'bite_prepare_checkout_v2'/);
+ assert.match(source,/selectedDeliverySlot=!BITE_SANDBOX_CHECKOUT&&mode==='delivery'/);
  assert.match(source,/Cashfree\(\{mode:'sandbox'\}\)/);
  assert.match(source,/cashfree-sandbox-verify-draft/);
 });
