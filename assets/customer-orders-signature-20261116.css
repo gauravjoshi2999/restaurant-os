@@ -185,3 +185,7 @@ body[data-bite-app="customer"] #ordersView input:focus-visible{outline:3px solid
 @media(prefers-reduced-motion:reduce){
  body[data-bite-app="customer"] #ordersView *,body[data-bite-app="customer"] #orderDetailsView *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+/* App-like history and receipt screens do not inherit the marketing footer. */
+body[data-view="orders"] > .footer,
+body[data-view="order-details"] > .footer{display:none!important}
