@@ -56,4 +56,5 @@ test('customer payment status reads only own activated intent through existing R
  assert.match(html,/customerPaymentLookupUnavailable/);
  assert.match(html,/biteCurrentOrderRequest\(orderRequestId,requestedCustomerId\)/);
  assert.doesNotMatch(html,/from\('order_financials'\)/);
+ assert.doesNotMatch(html,/for\(const order of customerOrders\)if\(biteRefundByOrder\.has\(order\.id\)\)order\.payment_status='paid'/);
 });
