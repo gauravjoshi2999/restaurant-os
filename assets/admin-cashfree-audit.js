@@ -134,8 +134,9 @@
  async function loadRefundReview(){
   if(!authorized()){wipe();return;}
   if(refundBusy)return;
-  const token=++refundLoadToken,userId=deps.getUser().id;
+  const userId=deps.getUser().id;
   if(activeUser&&activeUser!==userId)wipe();
+  const token=++refundLoadToken;
   activeUser=userId;refundEvidence.clear();refundBusy=true;
   const status=byId('biteRefundReviewStatus');
   if(status)status.textContent='Loading pending requests from your admin RLS view…';
