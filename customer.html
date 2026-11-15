@@ -943,7 +943,10 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
   resetAddrForm();
   ++biteCheckoutOpenSequence;
   ++customerOrderViewSequence;customerOrders=[];expandedOrderId=null;
-  biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=false;
+  if(typeof biteRefundByOrder!=='undefined'&&typeof biteCancellationByOrder!=='undefined'){
+   biteRefundByOrder.clear();biteCancellationByOrder.clear();
+  }
+  if(typeof biteRefundLookupUnavailable!=='undefined')biteRefundLookupUnavailable=false;
   $('ordersList').innerHTML='<div class="empty">Log in to view your orders.</div>';
   $('ordersSubtitle').textContent='Your orders';
  }
