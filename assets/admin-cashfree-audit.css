@@ -41,3 +41,55 @@
 #financials #biteProviderAuditRows .bite-audit-check-result.is-pending{
  border-left-color:#7a8694;background:#f3f5f7;color:#4c5968
 }
+
+/* The same provider attempt appears beside its action on narrow screens only. */
+#financials #biteProviderAuditRows .bite-audit-result-action{display:none}
+@media(max-width:760px){
+  /* Only this audit table becomes vertically stacked cards; the other
+     financial tables retain their own behaviour. No 770px horizontal table. */
+  #financials .bite-provider-audit .bite-provider-audit-responsive{
+    width:100%;max-width:100%;box-sizing:border-box;overflow-x:visible;
+    padding:10px
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive table{
+    display:block;min-width:0;width:100%;max-width:100%
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive thead{
+    position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap;border:0
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows{
+    display:block;width:100%;min-width:0
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows tr{
+    display:block;box-sizing:border-box;width:100%;max-width:100%;
+    margin:0 0 14px;padding:12px;border:1px solid #d9e0e8;
+    border-radius:14px;background:#fff
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td{
+    display:block;box-sizing:border-box;width:100%;max-width:none;min-width:0;
+    border:0;border-bottom:1px solid #e9edf2;padding:10px 0;
+    white-space:normal;overflow-wrap:anywhere;font-size:13px
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td::before{
+    content:attr(data-label);display:block;margin-bottom:5px;
+    color:#657182;text-transform:uppercase;letter-spacing:.035em;
+    font-weight:700;font-size:11px
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td:first-child{
+    font-size:15px;font-weight:700
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td:last-child{
+    min-width:0;padding-bottom:0;border-bottom:0
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td:last-child button{
+    display:block;box-sizing:border-box;width:100%;min-width:0;
+    margin:8px 0 0;padding:10px 12px;white-space:normal
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows .bite-audit-result-action{
+    display:block;margin-top:12px;max-width:none
+  }
+  #financials .bite-provider-audit .bite-provider-audit-responsive #biteProviderAuditRows td:nth-child(3) .bite-audit-check-result{
+    display:none
+  }
+}

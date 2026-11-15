@@ -278,9 +278,17 @@
     note.textContent='Last manual check (this session): '+attempt.message;
     collectionCell.append(note);
    }
-   tr.append(cell(row.orderCode+' · '+row.restaurantName),cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
-    collectionCell,cell(row.verdict.merchantSettlement),cell(payoutNote));
+   const auditCells=[
+    cell(row.orderCode+' · '+row.restaurantName),
+    cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
+    collectionCell,cell(row.verdict.merchantSettlement),cell(payoutNote)
+   ];
+   const labels=['Order / restaurant','Customer paid (recorded)','Cashfree collection',
+    'Merchant bank settlement','Restaurant payout'];
+   auditCells.forEach((td,index)=>{td.dataset.label=labels[index];});
+   tr.append(...auditCells);
    const action=cell('');
+   action.dataset.label='Safe actions';
    const btn=document.createElement('button');
    btn.type='button';btn.className='btn secondary';btn.dataset.biteReconcileOrder=row.orderId;
    btn.textContent='Verify with Cashfree';btn.disabled=working;
@@ -340,6 +348,16 @@
       action.append(statementLabel,reconBtn);
      }
     }
+   }
+   if(attempt&&attempt.restaurantId===row.restaurantId){
+    // The mobile card shows the latest result immediately below the pressed
+    // action; desktop keeps the original evidence in the collection column.
+    const actionResult=document.createElement('div');
+    actionResult.className='bite-audit-check-result bite-audit-result-action'+
+     (attempt.error?' is-error':attempt.pending?' is-pending':'');
+    actionResult.setAttribute('role','status');
+    actionResult.textContent='Last manual check (this session): '+attempt.message;
+    action.append(actionResult);
    }
    tr.append(action);body.append(tr);
   }
@@ -412,8 +430,12 @@
    message:'Read-only Cashfree payment/refund checks running. No refund will be initiated.'});
   render();setStatus('Read-only Cashfree preflight running for '+selected.orderCode+'. No refund will be created.');
   try{
+   // A mobile network may hang after the Edge Function responds. Bound only
+   // this read-only call, with no refund creation/retry side effects.
+   const signal=typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?
+    AbortSignal.timeout(30000):undefined;
    const {data,error}=await deps.sb.functions.invoke('bite-auto-refund',{
-    body:{action:'preflight',order_id:orderId}});
+    body:{action:'preflight',order_id:orderId},...(signal?{signal}:{})});
    if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
    if(error)throw error;
    const messages={
