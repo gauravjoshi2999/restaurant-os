@@ -15,7 +15,7 @@
     note:'Restaurant decision is pending. Payment has not been refunded.'};
    if(cancellation?.status==='Rejected')return {kind:'review',title:'Cancellation not approved',
     note:'Order remains active unless its status shows otherwise. No refund confirmed.'};
-   if(cancelled&&paid)return {kind:'waiting',title:'Order cancelled · Refund status pending',
+   if(cancelled)return {kind:'waiting',title:'Order cancelled · Refund status pending',
     note:'No refund record available yet. Contact Bite support if this does not update.'};
    return null;
   }
