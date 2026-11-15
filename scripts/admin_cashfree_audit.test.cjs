@@ -25,7 +25,7 @@ function setup(options={}){
  let user=options.userId??'admin-a',role=options.role??'super_admin',isAdmin=options.isAdmin??true;
  let checks=options.checks||[],refunds=options.refunds||[],error=null,table='';
  const orders=[
-  {id:'order-paid',order_code:'BITE-123',status:'Cancelled',is_demo:false,channel:'Own Platform'},
+  {id:'order-paid',order_code:'BITE-123',status:options.cancelledOrder?'Cancelled':'Received',is_demo:false,channel:'Own Platform'},
   {id:'order-demo',order_code:'DEMO',is_demo:true,channel:'Own Platform'},
   {id:'order-pos',order_code:'POS',is_demo:false,channel:'POS - Counter'}];
  const fin=[
@@ -616,7 +616,7 @@ test('refund review fails to an abbreviated order reference if RLS cannot resolv
 });
 
 test('refund preflight button is displayed for cancelled order and only makes read-only request',async()=>{
- const a=setup();
+ const a=setup({cancelledOrder:true});
  await a.audit.load();
  const row=a.find('biteProviderAuditRows').children[0];
  const action=row.children[5];
@@ -630,7 +630,7 @@ test('refund preflight button is displayed for cancelled order and only makes re
  assert.equal(a.find('biteProviderPayoutCount').textContent,'Not independently verified');
 });
 test('read-only preflight mismatch remains a visible STOP and never claims collection/refund',async()=>{
- const a=setup({preflightResult:'CASHFREE_PAYMENT_MISMATCH'});
+ const a=setup({preflightResult:'CASHFREE_PAYMENT_MISMATCH',cancelledOrder:true});
  await a.audit.load();
  await a.audit.preflightRefund('order-paid');
  const cell=a.find('biteProviderAuditRows').children[0].children[2];
@@ -640,7 +640,7 @@ test('read-only preflight mismatch remains a visible STOP and never claims colle
  assert.equal(a.calls.length,1);
 });
 test('owner role cannot run the admin Cashfree preflight',async()=>{
- const a=setup({role:'owner',isAdmin:false});
+ const a=setup({role:'owner',isAdmin:false,cancelledOrder:true});
  await a.audit.load();await a.audit.preflightRefund('order-paid');
  assert.equal(a.calls.length,0);
 });
