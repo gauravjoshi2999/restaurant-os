@@ -57,10 +57,10 @@ function setup(o={}){
   fetch:provider,Response,Request,AbortSignal,URL,Date,JSON,Number,String,Math,Object,Array,RegExp,console,Set};
  vm.createContext(context);
  vm.runInContext(stripTypeScriptTypes(edge.replace(/^import .*;\n/gm,''),{mode:'strip'}),context);
- const run=async(action='run',key='Bearer session',extraHeaders={})=>{
+ const run=async(action='run',key='Bearer session',extraHeaders={},extraBody={})=>{
   const res=await handler(new Request('https://project.supabase.co/functions/v1/bite-auto-refund',{
    method:'POST',headers:{authorization:key,'content-type':'application/json',...extraHeaders},
-   body:JSON.stringify(action==='run'?{action,order_id:oid}:{action})}));
+   body:JSON.stringify({...((action==='run')?{action,order_id:oid}:{action}),...extraBody})}));
   return{status:res.status,data:await res.json()};
  };
  return {run,calls,rpc,rows};
@@ -177,4 +177,47 @@ test('Vault scheduler is server signed, service-only and feature-gated',()=>{
  assert.match(edge,/bite_verify_auto_refund_dispatch/);
  assert.match(edge,/x-bite-auto-refund-signature/);
  assert.doesNotMatch(signedCron,/CASHFREE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
+});
+
+test('signed preflight checks existing Cashfree PAID and refunds with GET only while rollout OFF',async()=>{
+ const t=setup({enabled:false,validSignature:true});
+ const result=await t.run('drain','',{
+  'x-bite-auto-refund-ts':'1794731234',
+  'x-bite-auto-refund-signature':'a'.repeat(64)},
+  {mode:'preflight',order_id:oid});
+ assert.equal(result.status,200);
+ assert.equal(result.data.result,'PAID_MATCHES_NO_REFUND');
+ assert.equal(result.data.live_refunds_enabled,false);
+ assert.equal(result.data.refund_sent,false);
+ assert.deepEqual(t.calls.map(c=>c.method),['GET','GET']);
+ assert.equal(t.rpc[0].name,'bite_verify_auto_refund_dispatch');
+ assert.ok(!t.rpc.some(x=>x.name==='bite_claim_auto_refund'||x.name==='bite_record_provider_refund'));
+});
+test('preflight refuses mismatched provider paid amount and never issues refunds',async()=>{
+ const t=setup({enabled:false,validSignature:true,providerAmount:173});
+ const result=await t.run('drain','',{
+  'x-bite-auto-refund-ts':'1794731234','x-bite-auto-refund-signature':'a'.repeat(64)},
+  {mode:'preflight',order_id:oid});
+ assert.equal(result.data.result,'CASHFREE_PAYMENT_MISMATCH');
+ assert.equal(result.data.refund_sent,false);
+ assert.equal(t.calls.length,1);
+ assert.equal(t.calls[0].method,'GET');
+});
+test('preflight rejects forged signature and customer mode override without provider access',async()=>{
+ const invalid=setup({enabled:false,validSignature:false});
+ const h={'x-bite-auto-refund-ts':'1794731234',
+  'x-bite-auto-refund-signature':'f'.repeat(64)};
+ assert.equal((await invalid.run('drain','',h,{mode:'preflight',order_id:oid})).status,401);
+ assert.equal(invalid.calls.length,0);
+ const customer=setup({enabled:false});
+ assert.equal((await customer.run('run','Bearer session',{}, {mode:'preflight',order_id:oid})).status,400);
+ assert.equal(customer.calls.length,0);
+});
+test('signed preflight of completed or corrupted financial order stops without provider requests',async()=>{
+ const t=setup({enabled:false,validSignature:true,order:{status:'Completed'}});
+ const result=await t.run('drain','',{
+ 'x-bite-auto-refund-ts':'1794731234',
+ 'x-bite-auto-refund-signature':'a'.repeat(64)},{mode:'preflight',order_id:oid});
+ assert.equal(result.data.result,'INTERNAL_MISMATCH_OR_INELIGIBLE');
+ assert.equal(t.calls.length,0);
 });
