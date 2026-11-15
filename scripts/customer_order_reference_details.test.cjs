@@ -54,7 +54,7 @@ test('payment/refund claims only derive from existing trusted job',()=>{
  assert.match(withRefund,/Refund under review/);
 });
 test('customer detail query checks both order ID and signed-in customer identity, and guards late responses',()=>{
- assert.match(html,/\.from\('orders'\)\.select\('id,customer_id,customer_name,customer_phone,delivery_address_snapshot,delivery_type'\)/);
+ assert.match(html,/\.from\('orders'\)\.select\('id,customer_id,status,amount,order_date,customer_name,customer_phone,delivery_address_snapshot,delivery_type'\)/);
  assert.match(html,/\.eq\('id',orderId\)\.eq\('customer_id',customerId\)\.maybeSingle\(\)/);
  assert.match(html,/orderResult\.data\.customer_id!==customerId/);
  assert.match(html,/biteFullOrderRequest&&biteFullOrderId===orderId&&activeCustomerId===customerId/);
