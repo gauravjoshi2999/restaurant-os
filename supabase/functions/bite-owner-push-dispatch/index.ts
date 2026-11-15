@@ -1,4 +1,5 @@
 import {createClient} from "npm:@supabase/supabase-js@2.95.0";
+import {pendingPaymentRetryPolicy} from "./payment-retry-policy.mjs";
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
 function safeEqual(a:string,b:string){
@@ -86,7 +87,7 @@ Deno.serve(async req=>{
   }
   return reply({test:"partner_push",registered:devices.length,submitted,failed});
  }
- const {data:events,error}=await db.from("bite_owner_push_events").select("order_id,restaurant_id,delivery_status,attempts").in("delivery_status",["queued","retry"]).order("created_at",{ascending:true}).limit(12);
+ const {data:events,error}=await db.from("bite_owner_push_events").select("order_id,restaurant_id,delivery_status,attempts,created_at").in("delivery_status",["queued","retry"]).order("created_at",{ascending:true}).limit(12);
  if(error)return reply({error:"Outbox unavailable"},503);
  let sent=0,failed=0,skipped=0;
  for(const ev of events||[]){
@@ -107,7 +108,8 @@ Deno.serve(async req=>{
     const {data:finance,error:financeError}=await db.from("order_financials")
       .select("payment_status").eq("order_id",ev.order_id).maybeSingle();
     if(financeError||finance?.payment_status!=="paid"){
-      state=claimed.attempts>=4?"failed":"retry";lastError="Awaiting verified payment";failed++;
+      const pending=pendingPaymentRetryPolicy(claimed.attempts,ev.created_at);
+      state=pending.status;lastError=pending.reason;failed++;
     }else{
     const {data:members,error:memberError}=await db.from("restaurant_members").select("user_id")
      .eq("restaurant_id",ev.restaurant_id).eq("role","owner");
