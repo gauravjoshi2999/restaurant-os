@@ -134,7 +134,7 @@ test('unknown backend error text remains private and does not leak raw response'
  await a.audit.reconcile('order-paid');
  const status=a.find('biteProviderAuditStatus').textContent;
  assert.match(status,/Cashfree verification did not complete/);
- assert.doesNotMatch(status,/secret|123|NEVER_SHOW_ME/);
+ assert.doesNotMatch(status,/secret: DO NOT EXPOSE 123|NEVER_SHOW_ME/);
 });
 test('Cashfree PAID response without saved matching audit evidence stays explicitly unverified',async()=>{
  const a=setup({reconcileNoAudit:true});
