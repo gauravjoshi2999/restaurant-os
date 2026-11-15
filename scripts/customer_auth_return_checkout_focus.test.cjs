@@ -93,7 +93,7 @@ test('auth restoration waits for restaurant discovery to finish',async()=>{
 test('checkout validation maps required values to exact customer fields',()=>{
  for(const id of ['checkoutName','checkoutPhone','addressLine','addressCity','addressState','addressPostal','savedAddress'])
   assert.match(html,new RegExp("biteCheckoutFieldError\\('"+id+"'"));
- assert.match(html,/if\(error\.checkoutField\)biteHighlightCheckoutField\(error\.checkoutField,error\.message\)/);
+ assert.match(html,/if\(invalidField\)biteHighlightCheckoutField\(invalidField,error\.message\)/);
  assert.match(html,/placeOrderBtn'\)\.addEventListener\('click'/);
 });
 
