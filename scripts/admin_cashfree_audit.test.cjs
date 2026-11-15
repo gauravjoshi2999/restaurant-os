@@ -223,7 +223,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-vendorrecon1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-payment-mismatches1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -338,4 +338,69 @@ test('vendor recon evidence clears on refresh and bank recheck',async()=>{
  assert.doesNotMatch(a.find('biteProviderAuditRows').children[0].children[4].textContent,/Cashfree reports vendor SETTLED/);
  await a.audit.load();
  assert.equal(a.find('biteProviderAuditRows').children[0].children[5].children.length,2);
+});
+
+
+test('read-only payment exceptions flag completed unpaid/missing and cancelled paid orders',()=>{
+ const a=setup();
+ const orders=[
+  {id:'completed-missing',order_code:'BITE-MISSING',status:'Completed',is_demo:false,channel:'Own Platform'},
+  {id:'completed-pending',order_code:'BITE-PENDING',status:'Completed',is_demo:false,channel:'Own Platform'},
+  {id:'completed-unpaid',order_code:'BITE-UNPAID',status:'Completed',is_demo:false,channel:'Own Platform'},
+  {id:'handover-pending',order_code:'BITE-HANDOVER',status:'Handed Over',is_demo:false,channel:'Own Platform'},
+  {id:'cancelled-paid',order_code:'BITE-CANCELLED',status:'Cancelled',is_demo:false,channel:'Own Platform'},
+  {id:'received-pending',order_code:'BITE-RECEIVED',status:'Received',is_demo:false,channel:'Own Platform'},
+  {id:'completed-paid',order_code:'BITE-OK',status:'Completed',is_demo:false,channel:'Own Platform'},
+  {id:'demo-unpaid',order_code:'BITE-DEMO',status:'Completed',is_demo:true,channel:'Own Platform'},
+  {id:'pos-unpaid',order_code:'BITE-POS',status:'Completed',is_demo:false,channel:'POS - Counter'}
+ ];
+ const financials=[
+  {order_id:'completed-pending',payment_status:'pending'},
+  {order_id:'completed-unpaid',payment_status:'unpaid'},
+  {order_id:'handover-pending',payment_status:'pending'},
+  {order_id:'cancelled-paid',payment_status:'paid'},
+  {order_id:'received-pending',payment_status:'pending'},
+  {order_id:'completed-paid',payment_status:'paid'},
+  {order_id:'demo-unpaid',payment_status:'unpaid'},
+  {order_id:'pos-unpaid',payment_status:'unpaid'}
+ ];
+ const exceptions=a.audit.buildPaymentExceptions(orders,financials);
+ assert.equal(exceptions.length,5);
+ assert.deepEqual(Array.from(exceptions,x=>x.code),
+  ['BITE-MISSING','BITE-PENDING','BITE-UNPAID','BITE-HANDOVER','BITE-CANCELLED']);
+ assert.equal(exceptions[0].recordedPayment,'missing');
+ assert.equal(exceptions[4].issue,'PAID_ORDER_CANCELLED_OR_REJECTED');
+ assert.ok(!JSON.stringify(exceptions).includes('account_number'));
+});
+test('conflicting payments are rendered ONLY to Super Admin without initiating provider calls',async()=>{
+ const a=setup();
+ a.state.orders.push({id:'risk-pending',order_code:'BITE-RISK',status:'Completed',channel:'Own Platform',is_demo:false});
+ a.state.financials.push({order_id:'risk-pending',restaurant_id:'restaurant-a',payment_status:'pending',channel:'Own Platform',is_demo:false});
+ await a.audit.load();
+ assert.equal(a.find('bitePaymentMismatchCount').textContent,'1');
+ assert.equal(a.find('bitePaymentMismatchRows').children.length,1);
+ const first=a.find('bitePaymentMismatchRows').children[0].children;
+ assert.equal(first[0].textContent,'BITE-RISK');
+ assert.match(first[1].textContent,/Completed but payment not recorded as paid/);
+ assert.match(first[3].textContent,/independent reconciliation/);
+ assert.equal(a.calls.length,0,'render does not call provider or mutate financial rows');
+ a.audit.clear();
+ assert.equal(a.find('bitePaymentMismatchRows').children.length,0);
+ assert.equal(a.find('bitePaymentMismatchCount').textContent,'—');
+});
+test('restaurant Owner and signed-out users see no Super Admin payment mismatch records',async()=>{
+ const a=setup({role:'owner',isAdmin:false});
+ a.state.orders.push({id:'risk',order_code:'PRIVATE',status:'Completed',channel:'Own Platform',is_demo:false});
+ await a.audit.load();
+ assert.equal(a.find('bitePaymentMismatchRows').children.length,0);
+ assert.equal(a.find('bitePaymentMismatchCount').textContent,'—');
+ assert.equal(a.read.length,0);
+});
+test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
+ assert.match(html,/id="bitePaymentMismatchRows"/);
+ assert.match(html,/id="bitePaymentMismatchCount"/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-payment-mismatches1/);
+ assert.match(html,/require independent Cashfree and bank reconciliation/i);
+ assert.match(code,/function buildPaymentExceptions\(/);
+ assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
 });

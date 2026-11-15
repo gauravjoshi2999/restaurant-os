@@ -721,7 +721,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
 <link rel="stylesheet" href="assets/admin-cashfree-audit.css?v=20261114-recon1">
-<script src="assets/admin-cashfree-audit.js?v=20261115-vendorrecon1" defer></script>
+<script src="assets/admin-cashfree-audit.js?v=20261115-payment-mismatches1" defer></script>
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -837,6 +837,13 @@ body.bite-session-check #biteSessionSplash{
  <p id="biteProviderAuditStatus" class="small" role="status" aria-live="polite">Open this page to load recorded provider checks.</p>
  <div class="card table-wrap"><table><thead><tr><th>Order / restaurant</th><th>Customer paid (recorded)</th><th>Cashfree collection</th><th>Merchant bank settlement</th><th>Restaurant payout</th><th>Safe action</th></tr></thead><tbody id="biteProviderAuditRows"></tbody></table>
  <div class="empty" id="biteProviderAuditEmpty">No eligible non-demo paid own-platform orders yet.</div></div>
+ <div class="card" style="margin-top:14px" aria-labelledby="bitePaymentMismatchHeading">
+  <div class="section-head"><div><h3 id="bitePaymentMismatchHeading">Order / Payment mismatches <span id="bitePaymentMismatchCount" class="small">—</span></h3>
+   <p class="small">Super Admin only · Internal records, not verified Cashfree or bank statements</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Order code</th><th>Why review</th><th>Recorded payment</th><th>Action</th></tr></thead><tbody id="bitePaymentMismatchRows"></tbody></table></div>
+  <p class="small" id="bitePaymentMismatchEmpty">Refresh verification to review payment-state exceptions.</p>
+  <p class="notice">Completed / handed-over orders with unpaid, pending or missing financial records, and cancelled/rejected orders recorded paid, require independent Cashfree and bank reconciliation. This section NEVER approves payment or triggers refunds.</p>
+ </div>
 </section><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
  <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
  <div class="card">
