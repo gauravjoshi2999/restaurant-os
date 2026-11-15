@@ -96,3 +96,5 @@ body[data-bite-app="customer"] .bite-delivery-schedule button:focus-visible{
  body[data-bite-app="customer"] .bite-schedule-slots{grid-template-columns:1fr;gap:9px}
  body[data-bite-app="customer"] #biteScheduleHeading{font-size:20px}
 }
+
+body[data-bite-app="customer"] .bite-scheduled-order-date{padding:10px 12px;margin:8px 0;background:#f2faf5;border:1px solid #d5e9da;border-radius:11px;color:#215636;font-size:12px;font-weight:750;line-height:1.55}
