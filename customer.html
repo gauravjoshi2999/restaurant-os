@@ -926,7 +926,7 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
   detail.textContent='Order details load ho rahe hain...';card.appendChild(detail);
   b.textContent='Hide details';void loadOrderDetail(orderId);
  }));if(expandedOrderId)await loadOrderDetail(expandedOrderId);document.querySelectorAll('[data-customer-order-action]').forEach(b=>b.addEventListener('click',async()=>{const orderId=b.dataset.orderId,action=b.dataset.customerOrderAction;const result=await openOrderActionDialog(action);if(!result)return;try{if(action==='cancel'){const {error}=await sb.rpc('customer_cancel_order',{p_order_id:orderId});if(error)throw error;
- showOrderActionResult('Order cancel ho gaya. Refund sirf verified paid order ke liye dikhega. Agar paisa nahi kata hai, refund nahi banta.');
+ showOrderActionResult('Order cancel ho gaya. Refund sirf verified paid order par Cashfree confirmation ke baad hi dikhega. Agar paisa nahi kata hai, refund nahi banta.');
  // The server, not the browser, decides eligibility, verifies the payment
  // and protects against duplicate refunds. Never claim a bank credit here.
  void sb.functions.invoke('bite-auto-refund',{body:{action:'run',order_id:orderId}})
