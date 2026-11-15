@@ -34,7 +34,7 @@ test('status names are friendly while preserving actual source data',()=>{
  assert.match(displayed,/₹567/);
  assert.match(displayed,/Hotel Maharani Palace/);
  assert.match(displayed,/1 × Rasgulla/);
- assert.match(displayed,/data-bite-status="completed"/);
+ assert.match(displayed,/data-bite-status="Completed"/);
 });
 test('no fabricated refund or vegetarian claim from an ordinary cancelled order',()=>{
  const rendered=context.draw({...sample,status:'Cancelled',amount:1});
