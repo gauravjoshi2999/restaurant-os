@@ -644,7 +644,7 @@ $('menuSearchInput').addEventListener('keydown',e=>{
 });
 $('menuVegToggle').addEventListener('change',()=>{clearTimeout(biteMenuSearchTimer);renderMenuItems();});
 $('menuResetFilters').addEventListener('click',resetMenuFilters);
-function renderCart(){const nextSignature=JSON.stringify([activeRestaurant?.id,cart]);if(!pendingLiveCheckout&&cartPricingSignature!==nextSignature){cartPricingSignature=nextSignature;appliedCheckoutCoupon=null;checkoutRequestKey=null;window.BiteCustomerExtras?.resetCoupon();}const entries=cartEntries();const count=entries.reduce((s,[,q])=>s+q,0);const total=entries.reduce((sum,[id,q])=>sum+(Number(menuItems.find(x=>x.id===id)?.price||0)*q),0);$('cartCount').textContent='('+count+')';$('cartTotal').textContent=money(total);$('cartLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);return '<div class="cartline"><span>'+safe(i?.name)+' × '+q+'</span><strong>'+money(Number(i?.price||0)*q)+'</strong></div>'}).join(''):'Add items to start your order.';const restaurantClosed=activeRestaurant?BiteDiscovery.isClosed(activeRestaurant):false;$('continueBtn').disabled=!entries.length;$('continueBtn').textContent=restaurantClosed?'Review cart · Closed now':'Continue';$('cartFloating').classList.toggle('show',count>0&&!$('menuView').classList.contains('hidden'));$('floatingCartCount').textContent=count+' item'+(count===1?'':'s');$('floatingCartTotal').textContent=money(total);if(!$('cartModal').classList.contains('hidden'))renderCartModal();saveCustomerCart();window.BiteMenuPersonalization?.renderRecommendations(menuItems,cart,activeRestaurant);}
+function renderCart(){const nextSignature=JSON.stringify([activeRestaurant?.id,cart]);if(!pendingLiveCheckout&&cartPricingSignature!==nextSignature){cartPricingSignature=nextSignature;appliedCheckoutCoupon=null;checkoutRequestKey=null;window.BiteCustomerExtras?.resetCoupon();}const entries=cartEntries();const count=entries.reduce((s,[,q])=>s+q,0);const total=entries.reduce((sum,[id,q])=>sum+(Number(menuItems.find(x=>x.id===id)?.price||0)*q),0);$('cartCount').textContent='('+count+')';$('cartTotal').textContent=money(total);$('cartLines').innerHTML=entries.length?entries.map(([id,q])=>{const i=menuItems.find(x=>x.id===id);return '<div class="cartline"><span>'+safe(i?.name)+' × '+q+'</span><strong>'+money(Number(i?.price||0)*q)+'</strong></div>'}).join(''):'Add items to start your order.';const restaurantClosed=activeRestaurant?BiteDiscovery.isClosed(activeRestaurant):false;const schedulePossible=restaurantClosed&&window.BiteSchedule?.canSchedule?.(activeRestaurant);$('continueBtn').disabled=!entries.length;$('continueBtn').textContent=schedulePossible?'Schedule delivery':restaurantClosed?'Review cart · Closed now':'Continue';$('cartFloating').classList.toggle('show',count>0&&!$('menuView').classList.contains('hidden'));$('floatingCartCount').textContent=count+' item'+(count===1?'':'s');$('floatingCartTotal').textContent=money(total);if(!$('cartModal').classList.contains('hidden'))renderCartModal();saveCustomerCart();window.BiteMenuPersonalization?.renderRecommendations(menuItems,cart,activeRestaurant);}
 $('customerUseLocation').addEventListener('click',enableCustomerLocation);$('searchInput').addEventListener('input',()=>{if($('homeSearchInput'))$('homeSearchInput').value=$('searchInput').value;renderRestaurants()});$('searchBtn').addEventListener('click',renderRestaurants);if($('homeSearchInput')){$('homeSearchInput').addEventListener('input',()=>{$('searchInput').value=$('homeSearchInput').value;renderRestaurants()});$('homeSearchBtn').addEventListener('click',()=>{renderRestaurants();$('restaurantResults').scrollIntoView({behavior:'smooth',block:'start'});})}$('filters').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;activeFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderRestaurants()});
 // "Aaj kya khayenge?" is navigation as well as a category filter.
 function scrollToFilteredRestaurants(){
@@ -1581,11 +1581,11 @@ function renderCartModal(){
   next?.focus({preventScroll:true});
  }
  const closed=!!(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant));
- const closedNotice=biteCartHoursError?biteCartHoursError:closed?cartRestaurantClosedMessage():'';
+ const schedulePossible=closed&&window.BiteSchedule?.canSchedule?.(activeRestaurant);const closedNotice=biteCartHoursError?biteCartHoursError:closed?(schedulePossible?'Restaurant is closed now. You can request a future delivery slot at checkout; ASAP orders are unavailable.':cartRestaurantClosedMessage()):'';
  $('cartModalTotal').innerHTML='<div style="display:flex;justify-content:space-between"><span>Item total</span><strong>'+money(total)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:7px"><span>Delivery fee</span><strong>Shown at checkout</strong></div>'+(closedNotice?'<div id="cartClosedNotice" role="status" style="color:#8a3b22;background:#fff3e9;border:1px solid #efc3a6;border-radius:10px;margin-top:10px;padding:9px 11px;font-size:13px;line-height:1.45">'+safe(closedNotice)+'</div>':'');
  $('cartCheckoutBtn').disabled=!entries.length||biteCartHoursBusy;
  window.BiteMenuCartPremium?.renderAddOns();
-  $('cartCheckoutBtn').textContent=biteCartHoursBusy?'Checking restaurant hours…':biteCartHoursError?'Retry opening hours':closed?'Restaurant closed · View hours':'Proceed to checkout';
+  $('cartCheckoutBtn').textContent=biteCartHoursBusy?'Checking restaurant hours…':biteCartHoursError?'Retry opening hours':closed?(schedulePossible?'Schedule future delivery':'Restaurant closed · View hours'):'Proceed to checkout';
  $('cartCheckoutBtn').setAttribute('aria-label',biteCartHoursBusy?'Checking the latest restaurant opening hours':biteCartHoursError|| (closed?closedNotice:'Proceed to checkout'));
  $('emptyCartBtn').disabled=!entries.length;
  updateCartInstructionsStatus();}
@@ -1679,7 +1679,7 @@ async function openCheckout(){
  const checkoutSequence=++biteCheckoutOpenSequence;
  const checkoutRestaurantId=activeRestaurant?.id||null;
  const checkoutCartSignature=biteCheckoutCartSignature(checkoutRestaurantId,cartEntries());
- if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)){openCartModal();return;}
+ if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&!window.BiteSchedule?.canSchedule?.(activeRestaurant)){openCartModal();return;}
  window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
   if(!activeRestaurant||!cartEntries().length){window.BiteCheckoutUX.showPending('Check earlier payment status or browse the menu.');return;}
   // Allow editing the NEW cart immediately; payment is gated until the old
@@ -2027,6 +2027,10 @@ async function submitCustomerOrder(){
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();$('checkoutError').textContent='';
  try{
   if(pendingLiveCheckout){if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');await continueLiveCheckout();return;}
+  if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&
+     !window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id)){
+   throw new Error('Restaurant abhi closed hai. Pay karne se pahle Schedule se future delivery time choose karein.');
+  }
   if(BITE_SANDBOX_CHECKOUT&&window.BiteCheckoutUX?.sandboxPending){
    const {data:previous,error:statusError}=await sb.functions.invoke('cashfree-sandbox-verify-draft',{body:{draft_id:window.BiteCheckoutUX.sandboxPending}});
    if(statusError)throw new Error('Status check unavailable. Please try again.');
@@ -2252,7 +2256,7 @@ $('cartCheckoutBtn').addEventListener('click',async()=>{
  // Revalidate immediately before checkout even when the cart was opened earlier.
  // Never trust the hours cached on initial page load.
  if(!await refreshActiveRestaurantHoursForCart())return;
- if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)){
+ if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&!window.BiteSchedule?.canSchedule?.(activeRestaurant)){
   renderCartModal();
   $('cartClosedNotice')?.scrollIntoView({behavior:'smooth',block:'nearest'});
   return;
