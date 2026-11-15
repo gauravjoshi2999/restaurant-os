@@ -58,7 +58,7 @@ test('mobile sheet includes proper dialog, keyboard trap, immediate time-only an
 });
 test('mobile filter sheet is scoped to real customer discovery; no checkout or hidden provider writes',()=>{
  assert.match(js,/root\.restaurantSortFast=next\.sort==='fast'/);
- assert.match(js,/root\.restaurantServiceFilter=next\.service/);
+ assert.match(js,/root\.restaurantServiceFilter=next\.scheduleOnly\?'delivery':next\.service/);
  assert.match(js,/if\(typeof renderRestaurants==='function'\)renderRestaurants\(\)/);
  assert.match(js,/root\.biteStorefrontLoading/);
  assert.doesNotMatch(js,/Cashfree\(|sb\.rpc|sb\.from|create_bite|prepare_checkout|insert\(/);
@@ -85,10 +85,10 @@ test('Schedule available filters by owner opt-in, published hours, live PIN serv
  assert.equal(Filter.normalized({scheduleOnly:true}).scheduleOnly,true);
 });
 test('Schedule filter reset and customer discovery use the same state flag without touching Cashfree',()=>{
- assert.match(html,/window\\.BiteScheduleDiscoveryOnly=false/);
- assert.match(html,/scheduledOnly:window\\.BiteScheduleDiscoveryOnly===true/);
- assert.match(js,/root\\.BiteScheduleDiscoveryOnly=next\\.scheduleOnly/);
- assert.match(js,/if\\(input\\.checked\\)draft\\.service='delivery'/);
- assert.match(js,/if\\(draft\\.service==='pickup'\\)draft\\.scheduleOnly=false/);
- assert.doesNotMatch(js,/Cashfree\\(|sb\\.rpc|bite_prepare_checkout/);
+ assert.match(html,/window\.BiteScheduleDiscoveryOnly=false/);
+ assert.match(html,/scheduledOnly:window\.BiteScheduleDiscoveryOnly===true/);
+ assert.match(js,/root\.BiteScheduleDiscoveryOnly=next\.scheduleOnly/);
+ assert.match(js,/if\(input\.checked\)draft\.service='delivery'/);
+ assert.match(js,/if\(draft\.service==='pickup'\)draft\.scheduleOnly=false/);
+ assert.doesNotMatch(js,/Cashfree\(|sb\.rpc|bite_prepare_checkout/);
 });
