@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261110-mobile-menu-fix">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1"><link rel="stylesheet" href="assets/customer-premium.css?v=20261114-premium1"><link rel="stylesheet" href="assets/customer-history-premium.css?v=20261114-history1"><link rel="stylesheet" href="assets/customer-ui-cleanup.css?v=20261114-header1"><link rel="stylesheet" href="assets/customer-order-cards.css?v=20261114-ordercards1"><link rel="stylesheet" href="assets/customer-checkout-polish.css?v=20261114-checkout1"><link rel="stylesheet" href="assets/customer-menu-navigation.css?v=20261114-menujump1">
-<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"></head>
+<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"><link rel="stylesheet" href="assets/customer-min-order-quick-add.css?v=20261115-quickadd1"></head>
 <body data-bite-app="customer">
 <header class="header"><div class="wrap storefront-header"><a href="customer.html?v=20261114-header1" class="customer-brand bite-brand-refined" aria-label="Bite — Eat. Repeat. Home"><img src="assets/bite-premium-mark.svg?v=20261114-header1" alt="" class="bite-premium-icon" width="46" height="46"><span class="bite-brand-copy"><strong>Bite</strong><small>Eat. Repeat.</small></span></a><div class="header-location"><span class="location-pin" aria-hidden="true">⌖</span><div><span class="location-kicker">DELIVERING TO</span><button class="bite-location-opener" type="button" id="biteLocationOpen" aria-haspopup="dialog" aria-controls="biteLocationSheet" aria-label="Choose delivery PIN or saved address"><span id="biteLocationTitle">Choose PIN</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="location-sub" id="customerLocationLabel" role="status" aria-live="polite">Delivery &amp; pickup</span></div><button type="button" class="nearby-btn" id="customerUseLocation">Near me</button></div><div class="headright"><span class="muted" id="sessionLabel">Fresh food, made nearby.</span><button class="secondary hidden" id="myOrdersBtn">My Orders</button><button class="login" id="loginBtn">Login</button><button class="home-account" id="homeAccountBtn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button></div></div></header><section class="hero hidden"><div class="wrap"><div class="eyebrow">Discover local food</div><h1>Good food. Great mood.</h1><p>Apne aas-paas ke restaurants se pasand ka khana order karein.</p><div class="search"><input id="searchInput" name="bite_food_restaurant_query" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Restaurant ya cuisine search karein..." aria-label="Search restaurants"><button id="searchBtn">Search</button></div></div></section>
 <main class="wrap content">
@@ -1353,8 +1353,60 @@ function closeCartModal(){
 }
 function checkoutMode(){return document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';}
 function renderCheckoutSummary(deliveryFee){const delivery=checkoutMode()==='delivery',subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0),fee=delivery?Number(deliveryFee??activeRestaurant?.default_delivery_fee??0):0;checkoutQuotedTotal=subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0);$('checkoutSummary').innerHTML='<div style="display:flex;justify-content:space-between"><span>Food subtotal</span><strong>'+money(subtotal)+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:6px"><span>'+(delivery?'Delivery fee':'Pickup')+'</span><strong>'+(delivery?money(fee):'Free')+'</strong></div><div style="display:flex;justify-content:space-between;margin-top:8px;border-top:1px solid #e9e2dc;padding-top:8px"><strong>Estimated total</strong><strong>'+money(subtotal+fee-Number(appliedCheckoutCoupon?.discount_amount||0))+'</strong></div>'+(appliedCheckoutCoupon?'<div class="summaryrow"><span>Coupon '+safe(appliedCheckoutCoupon.code)+'</span><strong>−'+money(appliedCheckoutCoupon.discount_amount)+'</strong></div>':'');$('checkoutSummary').insertAdjacentHTML('beforeend','<p class="checkout-secure-price-note">Final payable amount is verified securely before payment. If it changes, you can review it first.</p>');renderCheckoutDishInstructions();}
-async function getCheckoutDeliveryZone(){if(checkoutMode()!=='delivery')return null;const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});if(error)throw error;const zone=Array.isArray(data)?data[0]:data;if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);if(subtotal<Number(zone.minimum_order_amount||0))throw new Error('Is delivery zone ka minimum food order '+money(zone.minimum_order_amount)+' hai.');return zone;}
-async function refreshCheckoutZoneEstimate(){if(checkoutMode()!=='delivery'){renderCheckoutSummary(0);$('checkoutError').textContent='';return;}const postal=$('addressPostal').value.trim();if(!/^[0-9]{6}$/.test(postal)){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';return;}try{const zone=await getCheckoutDeliveryZone();renderCheckoutSummary(zone.delivery_fee);$('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);}catch(e){renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);$('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';}}
+function checkoutMinimumError(minimum,subtotal,zone=null){
+ const error=new Error('Add '+money(Math.max(0,minimum-subtotal))+' more to reach the minimum food order.');
+ error.code='BITE_MINIMUM_ORDER';error.minimum=minimum;error.subtotal=subtotal;
+ error.zone=zone;error.deliveryFee=zone?.delivery_fee??0;
+ return error;
+}
+async function getCheckoutDeliveryZone(){
+ if(checkoutMode()!=='delivery')return null;
+ const postal=$('addressPostal').value.trim();
+ if(!/^[0-9]{6}$/.test(postal))throw new Error('Delivery ke liye valid 6-digit PIN code enter karein.');
+ const {data,error}=await sb.rpc('check_restaurant_delivery_area',{p_restaurant_id:activeRestaurant.id,p_postal_code:postal});
+ if(error)throw error;
+ const zone=Array.isArray(data)?data[0]:data;
+ if(!zone||zone.serviceable!==true)throw new Error('Yeh restaurant selected PIN code par delivery nahi karta. Pickup choose karein ya doosra PIN code dalein.');
+ const subtotal=cartEntries().reduce((n,[id,q])=>n+Number(menuItems.find(i=>i.id===id).price)*q,0);
+ // The zone RPC returns the greatest of restaurant and delivery-zone minimums.
+ const minimum=Number(zone.minimum_order_amount||0);
+ if(subtotal<minimum)throw checkoutMinimumError(minimum,subtotal,zone);
+ return zone;
+}
+let biteZoneEstimateSequence=0;
+async function refreshCheckoutZoneEstimate(){
+ const sequence=++biteZoneEstimateSequence,restaurantId=activeRestaurant?.id,mode=checkoutMode(),postal=$('addressPostal').value.trim();
+ const stillCurrent=()=>sequence===biteZoneEstimateSequence&&activeRestaurant?.id===restaurantId&&checkoutMode()===mode&&$('addressPostal').value.trim()===postal;
+ if(mode!=='delivery'){
+  renderCheckoutSummary(0);$('checkoutError').textContent='';
+  const minimum=Number(activeRestaurant?.minimum_order_amount||0);
+  const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
+  if(subtotal<minimum)window.BiteMinOrderQuickAdd?.open(checkoutMinimumError(minimum,subtotal));
+  else window.BiteMinOrderQuickAdd?.hide();
+  return;
+ }
+ if(!/^[0-9]{6}$/.test(postal)){
+  renderCheckoutSummary(activeRestaurant?.default_delivery_fee||0);
+  $('checkoutError').textContent='Delivery fee aur area verify karne ke liye 6-digit PIN code dalein.';
+  window.BiteMinOrderQuickAdd?.hide();return;
+ }
+ try{
+  const zone=await getCheckoutDeliveryZone();if(!stillCurrent())return;
+  renderCheckoutSummary(zone.delivery_fee);
+  $('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);
+  window.BiteMinOrderQuickAdd?.hide();
+ }catch(e){
+  if(!stillCurrent())return;
+  renderCheckoutSummary(e?.zone?.delivery_fee ?? activeRestaurant?.default_delivery_fee ?? 0);
+  if(e?.code==='BITE_MINIMUM_ORDER'){
+   $('checkoutError').textContent='';
+   window.BiteMinOrderQuickAdd?.open(e);
+  }else{
+   window.BiteMinOrderQuickAdd?.hide();
+   $('checkoutError').textContent=e.message||'Delivery area verify nahi hua.';
+  }
+ }
+}
 function toggleCheckoutDelivery(){const delivery=checkoutMode()==='delivery';$('deliveryFields').classList.toggle('hidden',!delivery);renderCheckoutSummary(delivery?activeRestaurant?.default_delivery_fee||0:0);refreshCheckoutZoneEstimate();}
 function biteCheckoutOpenMatches(sequence,restaurantId,cartSignature){
  return sequence===biteCheckoutOpenSequence&&activeRestaurant?.id===restaurantId&&
@@ -1711,6 +1763,11 @@ async function submitCustomerOrder(){
    if(!ready)throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
   }
   if(mode==='delivery')await getCheckoutDeliveryZone();
+  else{
+   const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
+   const minimum=Number(activeRestaurant?.minimum_order_amount||0);
+   if(subtotal<minimum)throw checkoutMinimumError(minimum,subtotal);
+  }
   if(accountSequence!==bitePaymentAccountSequence)return;
   const {data:sessionData}=await sb.auth.getSession();if(accountSequence!==bitePaymentAccountSequence)return;if(!sessionData.session)throw new Error('Please login again.');
   const userId=sessionData.session.user.id;
@@ -1746,7 +1803,14 @@ async function submitCustomerOrder(){
    if(window.BiteCheckoutUX?.showSandboxSuccess)window.BiteCheckoutUX.showSandboxSuccess();
    else $('checkoutError').textContent='Test payment successful. No real charge was made.';
   }else $('checkoutError').textContent='Test payment not confirmed yet. Check status before trying again.';
- }catch(error){if(accountSequence===bitePaymentAccountSequence)$('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';}
+ }catch(error){
+  if(accountSequence===bitePaymentAccountSequence){
+   if(error?.code==='BITE_MINIMUM_ORDER'){
+    $('checkoutError').textContent='';
+    window.BiteMinOrderQuickAdd?.open(error,{focus:true});
+   }else $('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';
+  }
+ }
  finally{if(accountSequence===bitePaymentAccountSequence){checkoutPaymentBusy=false;syncCheckoutPaymentButton();}}
 }
 // BITE CHECKOUT PAYMENT END
@@ -1902,7 +1966,7 @@ $('cartCheckoutBtn').addEventListener('click',async()=>{
  }
  }finally{biteCartCheckoutOpening=false;}
 });
-function closeCheckoutAndReturnToMenu(){++biteCheckoutOpenSequence;if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
+function closeCheckoutAndReturnToMenu(){++biteCheckoutOpenSequence;window.BiteMinOrderQuickAdd?.hide();if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
 $('checkoutEditItems').addEventListener('click',()=>{
  if(checkoutPaymentBusy){
   $('checkoutError').textContent='Payment is opening. Check its status before editing the cart.';
@@ -2064,5 +2128,5 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
 </script>
 <script src="assets/customer-premium.js?v=20261114-location-scope2"></script><script src="assets/customer-menu-cart-premium.js?v=20261114-menu-cart2"></script><script src="assets/customer-refund-tracker.js?v=20261115-compact2"></script>
 <script src="assets/customer-history-premium.js?v=20261114-history1"></script>
-<script src="assets/customer-search-autofill-guard.js?v=20261115-search-autofill1"></script>
+<script src="assets/customer-search-autofill-guard.js?v=20261115-search-autofill1"></script><script src="assets/customer-min-order-quick-add.js?v=20261115-quickadd1"></script>
 </body></html>
