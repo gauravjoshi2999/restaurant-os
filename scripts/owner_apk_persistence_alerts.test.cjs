@@ -33,7 +33,7 @@ test('New live owner order sends native notification only for the current mapped
  assert.match(html,/access\.role!=='owner'/);
  assert.match(html,/notifyOrder\(\{orderId:String\(order\.id\),title,body\}\)/);
  assert.match(html,/function announceOwnerOrderBurst\(orders\)/);
- assert.match(html,/ownerOrderBurstTracker\.take\(state\.orders,restaurantId\)/);
+ assert.match(html,/BiteOwnerOrderBurst\.paidOrderIds\(state\.financials,restaurantId\)/);
  assert.match(html,/for\(const order of orders\)sendOwnerOrderNotification\(order,state\.restaurants\.find\(r=>r\.id===order\.restaurant\)\)/);
 });
 test('Android APK build does not wipe session cookies and installs native notification bridge',()=>{
