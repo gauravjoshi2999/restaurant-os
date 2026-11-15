@@ -40,6 +40,19 @@ body[data-role="owner"] #orders .order-card{
   box-shadow:0 3px 12px #2513450a;margin-bottom:12px
 }
 body[data-role="owner"] #orders .order-card-top{flex-wrap:wrap;gap:8px}
+body[data-role="owner"] #orders .bite-order-wait{
+ display:inline-flex;align-items:center;padding:5px 8px;border-radius:8px;
+ font-size:11px;line-height:1.3;font-weight:750;white-space:nowrap;
+ color:#554963;background:#f4f1f7;border:1px solid #e6e0ed;
+ font-variant-numeric:tabular-nums;
+}
+body[data-role="owner"] #orders .bite-order-wait[data-wait-level="attention"]{
+ color:#89570a;background:#fff7e9;border-color:#f0d4a1;
+}
+body[data-role="owner"] #orders .bite-order-wait[data-wait-level="urgent"]{
+ color:#a52b23;background:#fff1ee;border-color:#eebcb5;
+}
+
 body[data-role="owner"] #orders .order-card-top strong{
   color:#261b3c;overflow-wrap:anywhere;font-size:15px
 }
