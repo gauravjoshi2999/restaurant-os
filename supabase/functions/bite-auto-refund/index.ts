@@ -5,7 +5,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.49.8";
 // All eligibility is created by a trusted DB order transition, NEVER by a client.
 // No legacy job is retroactively authorized.
 const cors={"access-control-allow-origin":"https://gauravjoshi2999.github.io",
- "access-control-allow-headers":"authorization, apikey, content-type, x-client-info",
+ "access-control-allow-headers":"authorization, apikey, content-type, x-client-info, x-supabase-api-version",
  "access-control-allow-methods":"POST, OPTIONS"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
  status,headers:{...cors,"content-type":"application/json","cache-control":"no-store"}});
@@ -39,7 +39,7 @@ Deno.serve(async(req:Request)=>{
    service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if(!url||!anon||!service)return json({error:"Server unavailable"},503);
   const body=await req.json().catch(()=>null);
-  if(!body||!["run","drain"].includes(body.action))return json({error:"Invalid action"},400);
+  if(!body||!["run","drain","preflight"].includes(body.action))return json({error:"Invalid action"},400);
   // Signed diagnostic is read-only and valid even while the refund rollout is
   // OFF. This is not available through the customer's authenticated "run".
   if(body.mode!==undefined&&!(body.action==="drain"&&body.mode==="preflight"))
@@ -69,13 +69,19 @@ Deno.serve(async(req:Request)=>{
    if(error||!user)return json({error:"Invalid session"},401);
    actor=user.id;
    if(!uuid(body.order_id))return json({error:"Invalid order"},400);
+   if(body.action==="preflight"){
+    // Only a genuine Super Admin session can request provider-only diagnostics.
+    // Normal customers cannot use the signed scheduled service path.
+    const {data:admin,error:roleError}=await client.rpc("is_platform_admin");
+    if(roleError||admin!==true)return json({error:"Super Admin required"},403);
+   }
   }
   const {data:config,error:configError}=await db.from("bite_operations_config")
     .select("auto_refunds_enabled,auto_refund_max_amount").eq("id",true).maybeSingle();
   if(configError||!config)return json({error:"Refund policy unavailable"},503);
   // Do not contact Cashfree unless the switch is enabled OR this is a
   // separately authenticated, explicitly read-only production preflight.
-  const preflight=body.action==="drain"&&body.mode==="preflight";
+  const preflight=body.action==="preflight"||(body.action==="drain"&&body.mode==="preflight");
   if(!preflight&&config.auto_refunds_enabled!==true)
    return json({status:"not_enabled",refund_sent:false});
   const key=Deno.env.get("CASHFREE_APP_ID"),secret=Deno.env.get("CASHFREE_SECRET_KEY");
