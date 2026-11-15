@@ -92,3 +92,9 @@ test('Schedule filter reset and customer discovery use the same state flag witho
  assert.match(js,/if\(draft\.service==='pickup'\)draft\.scheduleOnly=false/);
  assert.doesNotMatch(js,/Cashfree\(|sb\.rpc|bite_prepare_checkout/);
 });
+
+test('schedule no-results has an actionable reset, without falsely claiming delivery',()=>{
+ assert.match(html,/Scheduled delivery abhi available nahi hai/);
+ assert.match(html,/data-discovery-reset>Clear scheduling filter/);
+ assert.match(html,/window\.BiteScheduleDiscoveryOnly=false/);
+});
