@@ -23,6 +23,7 @@ test('Owner New is FIFO, handled stages remain newest-first, Admin view unchange
 test('Owner Order board reuses shared FIFO queue and existing independent per-order action lock',()=>{
  const board=html.slice(html.indexOf('function renderOrderBoard(){'),html.indexOf('function ',html.indexOf('function renderOrderBoard(){')+30));
  assert.match(board,/BiteOwnerOrders\.sortQueue\(/);
+ assert.match(html,/const active=BiteOwnerOrders\.sortQueue\(ownerOrders\.filter/);
  assert.match(html,/const ownerOrderActionsPending=new Set\(\)/);
  assert.match(html,/ownerOrderActionsPending\.has\(id\)/);
  assert.match(html,/ownerOrderActionsPending\.delete\(id\)/);
