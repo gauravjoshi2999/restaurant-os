@@ -1,0 +1,64 @@
+/* Bite: menu-based discovery & owner-published Kids' Choice, responsive. */
+body[data-bite-app="customer"] .bite-kids-toggle[hidden],
+body[data-bite-app="customer"] .bite-menu-recommendations[hidden]{display:none!important}
+body[data-bite-app="customer"] .bite-kids-toggle{
+ display:inline-flex;align-items:center;gap:8px;min-height:44px;white-space:nowrap;
+ color:#28533a;background:#f1f9f3;border:1px solid #c6e2cd;border-radius:12px;
+ padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;
+}
+body[data-bite-app="customer"] .bite-kids-toggle input{width:17px;height:17px;accent-color:#087b4d;margin:0}
+body[data-bite-app="customer"] .bite-kids-toggle:has(input:checked){border-color:#70bd8e;background:#e7f7eb;color:#096b42}
+body[data-bite-app="customer"] .bite-kids-tag{
+ display:inline-flex;align-items:center;margin:0 0 4px 6px;vertical-align:middle;
+ padding:3px 6px;border-radius:6px;background:#eaf7ee;color:#167849;
+ font-size:10px;font-weight:850;line-height:1.3;
+}
+body[data-bite-app="customer"] .bite-menu-recommendations{
+ margin:3px 0 18px;padding:15px 13px;background:#fff;
+ border:1px solid #e1ebe5;border-radius:16px;
+ box-shadow:0 4px 14px #193a2410;
+}
+body[data-bite-app="customer"] .bite-menu-recommendations-head h3{
+ font-size:18px;letter-spacing:-.02em;line-height:1.25;margin:0 0 3px;color:#253e2c;
+}
+body[data-bite-app="customer"] .bite-menu-recommendations-head p{
+ color:#6e8173;font-size:11px;margin:0 0 13px;
+}
+body[data-bite-app="customer"] .bite-menu-recommendations-list{
+ display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+ overscroll-behavior-inline:contain;padding:0 0 6px;scrollbar-width:thin;
+}
+body[data-bite-app="customer"] .bite-recommendation{
+ display:grid;grid-template-columns:60px minmax(0,1fr);grid-template-rows:1fr auto;
+ flex:0 0 190px;gap:5px 8px;scroll-snap-align:start;min-width:0;
+ padding:9px;border:1px solid #e3ece6;border-radius:13px;background:#fcfdfc;
+}
+body[data-bite-app="customer"] .bite-recommendation>img{
+ grid-row:1/3;width:60px;height:66px;object-fit:cover;border-radius:9px;
+ background:#f2f5f2;
+}
+body[data-bite-app="customer"] .bite-recommendation-info{min-width:0}
+body[data-bite-app="customer"] .bite-recommendation-info strong{
+ display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+ overflow:hidden;font-size:12px;font-weight:800;line-height:1.35;color:#273c2d;
+}
+body[data-bite-app="customer"] .bite-recommendation-info small{
+ display:block;font-size:11px;font-weight:800;color:#168354;margin-top:3px;
+}
+body[data-bite-app="customer"] .bite-recommendation-kids{
+ display:inline-flex;font-size:9px;color:#12633e;font-weight:800;background:#e3f5e9;
+ padding:2px 5px;border-radius:6px;margin-top:4px;
+}
+body[data-bite-app="customer"] .bite-recommendation button{
+ grid-column:2;min-height:38px;padding:8px;font-size:12px;font-weight:850;
+ background:#ebf8ef;border:1px solid #a5d5b7;color:#087b4d;border-radius:9px;
+}
+body[data-bite-app="customer"] .bite-recommendation button:disabled{background:#f0f3f0;color:#75847a}
+body[data-bite-app="customer"] .bite-recommendation button:focus-visible,
+body[data-bite-app="customer"] .bite-kids-toggle:focus-within{outline:3px solid #8acfa7;outline-offset:2px}
+@media(max-width:600px){
+ body[data-bite-app="customer"] .bite-menu-browse-tools,
+ body[data-bite-app="customer"] #menuView .menu-browse-tools{flex-wrap:wrap;gap:9px}
+ body[data-bite-app="customer"] .bite-menu-recommendations{padding:12px 11px}
+ body[data-bite-app="customer"] .bite-recommendation{flex-basis:185px}
+}

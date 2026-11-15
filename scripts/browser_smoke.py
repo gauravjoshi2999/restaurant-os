@@ -160,6 +160,7 @@ try:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1365, "height": 900})
+        page.on('pageerror', lambda err: print('CUSTOMER PAGE ERROR:', str(err)))
         page.goto("http://127.0.0.1:4173/customer.html", wait_until="domcontentloaded")
         page.locator("#resultCount").wait_for(state="visible", timeout=30000)
         page.wait_for_function(
@@ -193,7 +194,20 @@ try:
         page.locator("#menuView:not(.hidden)").wait_for(state="visible", timeout=20000)
         page.locator("#restaurantName").wait_for(state="visible")
         check(bool(page.locator("#restaurantName").inner_text().strip()), "Customer can open a restaurant menu without login")
-        page.locator('#menuItems [data-add]').first.wait_for(state='visible', timeout=20000)
+        try:
+            page.locator('#menuItems [data-add]').first.wait_for(state='visible', timeout=20000)
+        except Exception:
+            print('MENU DIAGNOSTIC:', page.evaluate("""() => ({
+               menu: document.querySelector('#menuItems')?.innerText?.slice(0,700),
+               suggestions: document.querySelector('#biteMenuRecommendations')?.innerText?.slice(0,250),
+               restaurant: typeof activeRestaurant !== 'undefined' ? activeRestaurant?.name : null,
+               dishes: typeof menuItems !== 'undefined' ? menuItems.length : null,
+               kidsOnly: document.querySelector('#biteKidsChoiceOnly')?.checked,
+               tags: typeof menuItems !== 'undefined' ? menuItems[0]?.is_kids_choice : null,
+               categories: document.querySelectorAll('#categoryBar [data-cat]').length,
+               cards: document.querySelectorAll('#menuItems .menuitem').length
+            })"""))
+            raise
         page.locator('#menuSearchInput').fill('BITE-NO-DISH-ZZ-123')
         page.locator('#menuItems .food-empty').wait_for(state='visible', timeout=4000)
         check(page.locator('#menuItems .menuitem').count() == 0, 'Menu search filters actual dishes after the short typing debounce')
