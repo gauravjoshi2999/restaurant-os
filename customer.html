@@ -1433,6 +1433,30 @@ $('addAnotherAddress').addEventListener('click',()=>{if($('savedAddress').value=
 document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventListener('change',toggleCheckoutDelivery));
 $('addressPostal').addEventListener('input',refreshCheckoutZoneEstimate);
 // BITE CHECKOUT PAYMENT START
+function biteCheckoutFieldError(fieldId,message){
+ const error=new Error(message);error.checkoutField=fieldId;return error;
+}
+function biteClearCheckoutFieldIssue(){
+ $('biteCheckoutFieldIssue')?.remove?.();
+ document.querySelectorAll?.('#checkoutModal [aria-invalid="true"]').forEach(field=>{
+  field.removeAttribute?.('aria-invalid');
+  if(field.getAttribute?.('aria-describedby')==='biteCheckoutFieldIssue')field.removeAttribute('aria-describedby');
+ });
+}
+function biteHighlightCheckoutField(fieldId,message){
+ const field=$(fieldId);if(!field)return;
+ biteClearCheckoutFieldIssue();
+ field.setAttribute('aria-invalid','true');
+ if(typeof document.createElement==='function'&&typeof field.insertAdjacentElement==='function'){
+  const notice=document.createElement('p');
+  notice.id='biteCheckoutFieldIssue';notice.className='bite-checkout-field-issue';
+  notice.setAttribute('role','alert');notice.textContent=message;
+  field.insertAdjacentElement('afterend',notice);
+  field.setAttribute('aria-describedby',notice.id);
+ }
+ field.scrollIntoView?.({behavior:'smooth',block:'center',inline:'nearest'});
+ field.focus?.({preventScroll:true});
+}
 let checkoutPaymentReady=false,checkoutPaymentBusy=false,pendingLiveCheckout=null;
 let bitePaymentAccountSequence=0;
 function bitePaymentContextCurrent(sequence,intentId){
@@ -1753,10 +1777,17 @@ async function submitCustomerOrder(){
    return;
   }
   const name=$('checkoutName').value.trim(),phone=$('checkoutPhone').value.trim(),digits=phone.replace(/[^0-9]/g,''),mode=checkoutMode();
-  if(name.length<2)throw new Error('Apna poora naam dalein.');
-  if(digits.length<10||digits.length>15)throw new Error('Sahi mobile number dalein (10 se 15 digits).');
-  if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw new Error('Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
-  if(mode==='delivery'&&$('savedAddress').value==='new'&&(!$('addressLine').value.trim()||!$('addressCity').value.trim()||!$('addressState').value.trim()))throw new Error('Delivery ke liye address, city aur state zaroori hain.');
+  if(name.length<2)throw biteCheckoutFieldError('checkoutName','Apna poora naam dalein.');
+  if(digits.length<10||digits.length>15)throw biteCheckoutFieldError('checkoutPhone','Sahi mobile number dalein (10 se 15 digits).');
+  if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw biteCheckoutFieldError('savedAddress','Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
+  if(mode==='delivery'){
+   if($('savedAddress').value==='new'){
+    if(!$('addressLine').value.trim())throw biteCheckoutFieldError('addressLine','Delivery address dalein.');
+    if(!$('addressCity').value.trim())throw biteCheckoutFieldError('addressCity','City dalein.');
+    if(!$('addressState').value.trim())throw biteCheckoutFieldError('addressState','State dalein.');
+   }
+   if(!/^[0-9]{6}$/.test($('addressPostal').value.trim()))throw biteCheckoutFieldError('addressPostal','Delivery ke liye valid 6-digit PIN code enter karein.');
+  }
   const entries=cartEntries();if(!entries.length)throw new Error('Cart khaali hai.');
   const instructions=cartInstructionSnapshot();
   if(instructions.tooLong)throw new Error('Cooking requests 500 characters se zyada hain. Cart mein notes chhote karein.');
@@ -1765,7 +1796,13 @@ async function submitCustomerOrder(){
    if(accountSequence!==bitePaymentAccountSequence)return;
    if(!ready)throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
   }
-  if(mode==='delivery')await getCheckoutDeliveryZone();
+  if(mode==='delivery'){
+   try{await getCheckoutDeliveryZone();}
+   catch(zoneError){
+    if(/PIN code|selected PIN|delivery nahi karta/i.test(zoneError.message||''))throw biteCheckoutFieldError('addressPostal',zoneError.message);
+    throw zoneError;
+   }
+  }
   if(accountSequence!==bitePaymentAccountSequence)return;
   const {data:sessionData}=await sb.auth.getSession();if(accountSequence!==bitePaymentAccountSequence)return;if(!sessionData.session)throw new Error('Please login again.');
   const userId=sessionData.session.user.id;
@@ -1801,7 +1838,10 @@ async function submitCustomerOrder(){
    if(window.BiteCheckoutUX?.showSandboxSuccess)window.BiteCheckoutUX.showSandboxSuccess();
    else $('checkoutError').textContent='Test payment successful. No real charge was made.';
   }else $('checkoutError').textContent='Test payment not confirmed yet. Check status before trying again.';
- }catch(error){if(accountSequence===bitePaymentAccountSequence)$('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';}
+ }catch(error){if(accountSequence===bitePaymentAccountSequence){
+  $('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';
+  if(error.checkoutField)biteHighlightCheckoutField(error.checkoutField,error.message);
+ }}
  finally{if(accountSequence===bitePaymentAccountSequence){checkoutPaymentBusy=false;syncCheckoutPaymentButton();}}
 }
 // BITE CHECKOUT PAYMENT END
@@ -1957,7 +1997,7 @@ $('cartCheckoutBtn').addEventListener('click',async()=>{
  }
  }finally{biteCartCheckoutOpening=false;}
 });
-function closeCheckoutAndReturnToMenu(){++biteCheckoutOpenSequence;if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
+function closeCheckoutAndReturnToMenu(){biteClearCheckoutFieldIssue();++biteCheckoutOpenSequence;if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
 $('checkoutEditItems').addEventListener('click',()=>{
  if(checkoutPaymentBusy){
   $('checkoutError').textContent='Payment is opening. Check its status before editing the cart.';
@@ -1970,7 +2010,9 @@ $('checkoutEditItems').addEventListener('click',()=>{
 $('closeCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('cancelCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('checkoutModal').addEventListener('click',e=>{if(e.target===$('checkoutModal'))closeCheckoutAndReturnToMenu();});
-$('placeOrderBtn').addEventListener('click',submitCustomerOrder);
+$('placeOrderBtn').addEventListener('click',()=>{biteClearCheckoutFieldIssue();submitCustomerOrder();});
+$('checkoutModal').addEventListener('input',e=>{if(e.target?.getAttribute?.('aria-invalid')==='true')biteClearCheckoutFieldIssue();});
+$('checkoutModal').addEventListener('change',e=>{if(e.target?.getAttribute?.('aria-invalid')==='true')biteClearCheckoutFieldIssue();});
 $('quickCancelCheckout').addEventListener('click',()=>cancelPendingCustomerCheckout({startFresh:true}));
 $('bitePendingCheck').addEventListener('click',checkPendingCustomerPayment);
 $('bitePendingStartFresh').addEventListener('click',startNewOrderFromPending);
