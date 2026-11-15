@@ -68,7 +68,8 @@ test('Owner HTML wires per-order tracker to both realtime and resume; no timesta
   page.indexOf("document.addEventListener('visibilitychange'",page.indexOf('async function catchUpOwnerLiveOrders(){')));
  assert.match(page,/assets\/owner-order-burst\.js\?v=/);
  assert.match(realtime,/ownerOrderBurstTracker\.queue\(row\.id\)/);
- assert.match(realtime,/ownerOrderBurstTracker\.take\(state\.orders,restaurantId\)/);
+ assert.match(page,/ownerOrderBurstTracker\.take\(state\.orders,restaurantId\)/);
+ assert.match(page,/function announceOwnerOrderBurst\(orders\)/);
  assert.doesNotMatch(realtime,/const isNew=payload\.eventType/);
  assert.match(catchup,/ownerOrderBurstTracker\.reconcile\(before,state\.orders,restaurantId\)/);
  assert.doesNotMatch(catchup,/Date\.parse\(order\.created_at/);
