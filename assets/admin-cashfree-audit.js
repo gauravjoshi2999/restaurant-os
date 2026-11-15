@@ -148,11 +148,28 @@
    if(error)throw error;
    const orders=new Map((deps.getState()?.orders||[]).map(o=>[o.id,o]));
    const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-   refundRows=(data||[]).filter(r=>uuid.test(r?.id)&&r.status==='pending_approval'&&
-    Number.isFinite(Number(r.amount))&&Number(r.amount)>0).map(r=>({
-     id:r.id,orderId:r.order_id,amount:Number(r.amount),status:r.status,
-     code:String(orders.get(r.order_id)?.order_code||r.order_id||'Order').slice(0,45)
-    }));
+   const eligible=(data||[]).filter(r=>uuid.test(r?.id)&&r.status==='pending_approval'&&
+    Number.isFinite(Number(r.amount))&&Number(r.amount)>0);
+   // A refund can reference an order absent from the paginated dashboard state.
+   // Look up only its code through the authenticated Super Admin RLS view.
+   // Do not expose a raw UUID or private order/customer fields in the UI.
+   const missing=[...new Set(eligible.map(r=>r.order_id).filter(id=>
+    uuid.test(id)&&!orders.get(id)?.order_code))].slice(0,50);
+   if(missing.length){
+    const found=await deps.sb.from('orders').select('id,order_code')
+     .in('id',missing).limit(50);
+    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
+    if(!found.error)for(const order of found.data||[]){
+     if(uuid.test(order?.id)&&typeof order.order_code==='string'&&
+        /^[A-Za-z0-9_-]{3,45}$/.test(order.order_code))
+      orders.set(order.id,order);
+    }
+   }
+   refundRows=eligible.map(r=>({
+    id:r.id,orderId:r.order_id,amount:Number(r.amount),status:r.status,
+    code:String(orders.get(r.order_id)?.order_code||
+      ('Order …'+String(r.order_id||'unknown').slice(-8))).slice(0,45)
+   }));
    if(status)status.textContent=refundRows.length+
     ' pending approval refund(s). Provider lookup requires a separate deliberate click; none was executed.';
   }catch(error){

@@ -34,7 +34,7 @@ function setup(options={}){
   {order_id:'order-pos',restaurant_id:'restaurant-a',channel:'POS - Counter',is_demo:false,payment_status:'paid',customer_payable_amount:100}
  ];
  const state={orders,financials:fin,restaurants:[{id:'restaurant-a',name:'Test Restaurant'}]};
- const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},order(){return this;},async limit(){return {data:table==='bite_refund_jobs'?refunds:checks,error};}};
+ const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},in(column,ids){read.push({type:'in',table,column,ids});return this;},order(){return this;},async limit(){return {data:table==='bite_refund_jobs'?refunds:table==='orders'?(options.lookupOrders||[]):checks,error};}};
  const sb={from(name){table=name;read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
     if(payload.body?.action==='inspect_refund'){
      calls.push({name,payload});
@@ -229,7 +229,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -405,7 +405,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -462,8 +462,33 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
+});
+
+test('refund references outside dashboard pagination resolve their actual order codes by RLS lookup',async()=>{
+ const orderId='262b6281-b0a0-46ff-8fea-7e81ba4336b8';
+ const refundId='11111111-1111-4111-8111-111111111111';
+ const a=setup({refunds:[{id:refundId,order_id:orderId,amount:1,status:'pending_approval'}],
+  lookupOrders:[{id:orderId,order_code:'BITE-C80BB5EB3413'}]});
+ await a.audit.loadRefundReview();
+ const lookup=a.read.filter(x=>x.type==='in'&&x.table==='orders');
+ assert.equal(lookup.length,1,'Only missing refund order codes are queried');
+ assert.equal(lookup[0].column,'id');
+ assert.deepEqual(Array.from(lookup[0].ids),[orderId]);
+ assert.equal(a.find('biteRefundReviewRows').children[0].children[0].textContent,'BITE-C80BB5EB3413');
+ assert.equal(a.calls.length,0,'RLS lookup never sends refund or payment request');
+});
+
+test('refund review fails to an abbreviated order reference if RLS cannot resolve order code',async()=>{
+ const orderId='262b6281-b0a0-46ff-8fea-7e81ba4336b8';
+ const a=setup({refunds:[{id:'11111111-1111-4111-8111-111111111111',
+  order_id:orderId,amount:1,status:'pending_approval'}],lookupOrders:[]});
+ await a.audit.loadRefundReview();
+ const label=a.find('biteRefundReviewRows').children[0].children[0].textContent;
+ assert.match(label,/Order …ba4336b8/);
+ assert.ok(!label.includes(orderId),'Never expose raw order UUID when lookup misses');
+ assert.equal(a.calls.length,0);
 });
