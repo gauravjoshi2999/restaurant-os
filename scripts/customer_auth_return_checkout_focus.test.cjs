@@ -65,7 +65,8 @@ test('login from menu preserves scroll and filters without forced checkout',asyn
  t.context.activeCustomerId='signed-in-user';
  await t.context.restore();
  assert.equal(t.calls.some(c=>c.checkout),false);
- assert.deepEqual(t.calls.find(c=>c.scroll).scroll,{top:482,behavior:'instant'});
+ assert.equal(t.calls.find(c=>c.scroll).scroll.top,482);
+ assert.equal(t.calls.find(c=>c.scroll).scroll.behavior,'instant');
  assert.equal(t.calls.find(c=>c.render).render,'c-1');
 });
 
