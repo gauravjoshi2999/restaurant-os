@@ -40,7 +40,9 @@ function setup(options={}){
      calls.push({name,payload});
      return {data:{status:options.providerRefundFound?'PROVIDER_REFUND_RECORD_FOUND':'NO_PROVIDER_REFUND_RECORD',
        provider_refund_status:options.providerRefundStatus||null,
-       recorded_refund_status:'pending_approval',amount:1,approved:false,no_action_taken:true},error:null};
+       recorded_refund_status:(refunds.find(r=>r.id===payload.body.refund_id)||{}).status||'pending_approval',
+       amount:1,approved:!!refunds.find(r=>r.id===payload.body.refund_id)?.approved_at,
+       no_action_taken:true},error:null};
     }
     calls.push({name,payload});
     if(payload.body?.action==='inspect_vendor_recon'){
@@ -314,7 +316,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -490,7 +492,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -511,6 +513,36 @@ test('pending refund queue is loaded only after Super Admin manually clicks load
  assert.equal(a.calls.length,0,'loading the refund queue does not call Cashfree');
 });
 
+test('approved refund remains in review and can be checked without executing payment',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved',approved_at:'2026-11-15T06:56:46Z'}]});
+ await a.audit.loadRefundReview();
+ const rows=a.find('biteRefundReviewRows').children;
+ assert.equal(rows.length,1,'Approved refund must not vanish after approval');
+ assert.equal(rows[0].children[2].textContent,'approved');
+ assert.equal(a.calls.length,0,'Loading approved refund does not touch provider');
+ assert.ok(a.read.some(x=>x.type==='in'&&x.table==='bite_refund_jobs'&&
+  x.column==='status'&&x.ids.includes('approved')));
+ await a.audit.inspectRefund(REFUND_ID);
+ assert.equal(a.calls.length,1);
+ assert.equal(a.calls[0].payload.body.action,'inspect_refund');
+ assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/Bite status is approved/);
+ assert.doesNotMatch(a.find('biteRefundReviewStatus').textContent,/Not approved/);
+});
+test('processing refund stays visible for independent Cashfree record inspection',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'processing'}]});
+ await a.audit.loadRefundReview();
+ assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'processing');
+ assert.equal(a.calls.length,0);
+});
+test('unrelated completed or rejected refund rows are not shown in active refund review',async()=>{
+ const a=setup({refunds:[
+  {id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved'},
+  {id:'11111111-1111-4111-8111-111111111111',order_id:'order-paid',amount:1,status:'succeeded'}
+ ]});
+ await a.audit.loadRefundReview();
+ assert.equal(a.find('biteRefundReviewRows').children.length,1);
+ assert.equal(a.calls.length,0);
+});
 test('provider refund GET preview never creates or approves a refund',async()=>{
  const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
  await a.audit.loadRefundReview();
@@ -520,7 +552,7 @@ test('provider refund GET preview never creates or approves a refund',async()=>{
  assert.deepEqual(JSON.parse(JSON.stringify(a.calls[0].payload.body)),
   {action:'inspect_refund',refund_id:REFUND_ID});
  assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/No refund record found/);
- assert.match(a.find('biteRefundReviewStatus').textContent,/No refund was created/);
+ assert.match(a.find('biteRefundReviewStatus').textContent,/did not send a refund/);
  assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'pending_approval');
 });
 
@@ -547,7 +579,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-per-order-result1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-approved-refund-review1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
