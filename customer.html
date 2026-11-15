@@ -394,6 +394,9 @@ function discoveryEmptyMarkup(){
  const pin=currentDiscoveryPin,service=window.restaurantServiceFilter||'all';
  const hasDelivery=restaurants.some(r=>r.serviceable===true&&r.accepts_delivery===true&&!r.delivery_paused);
  const hasPickup=restaurants.some(r=>r.accepts_pickup===true&&!BiteDiscovery.isClosed(r));
+ if(window.BiteScheduleDiscoveryOnly===true){
+  return '<div class="food-empty"><span aria-hidden="true">◷</span><h3>Scheduled delivery abhi available nahi hai</h3><p>Is area ke restaurants abhi future delivery requests accept nahi kar rahe. Aap normal delivery ya pickup dekh sakte hain.</p><button class="secondary" type="button" data-discovery-reset>Clear scheduling filter</button></div>';
+ }
  if(pin&&service!=='pickup'&&restaurants.length&&!hasDelivery){
   return '<div class="food-empty"><span aria-hidden="true">⌖</span><h3>PIN '+safe(pin)+' par delivery available nahi hai</h3><p>Is PIN par listed restaurants abhi delivery nahi kar rahe. Pickup dekh sakte hain ya delivery PIN badal sakte hain.</p><div class="food-empty-actions">'+(hasPickup?'<button class="primary" type="button" data-discovery-pickup>See pickup restaurants</button>':'')+'<button class="secondary" type="button" data-discovery-pin>Change PIN</button></div></div>';
  }
