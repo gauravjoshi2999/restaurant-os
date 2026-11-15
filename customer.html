@@ -1026,26 +1026,26 @@ function biteBuildFullOrderMarkup(order,items,history,details,refund){
  const phone=biteMaskOrderPhone(details?.customer_phone);
  const itemsTotal=items.reduce((sum,item)=>sum+(Number(item.line_total)||0),0);
  const amount=Number(order.amount)||0;
- const lineItems=items.length?items.map(item=>'<div class="bite-detail-item"><div><span class="bite-detail-veg-mark" aria-hidden="true">●</span><span>'+safe(item.quantity)+' × '+safe(item.item_name)+'</span></div><strong>'+money(item.line_total)+'</strong></div>').join(''):
+ const lineItems=items.length?items.map(item=>'<div class="bite-detail-item"><div><span class="bite-detail-item-marker" aria-hidden="true"></span><span>'+safe(item.quantity)+' × '+safe(item.item_name)+'</span></div><strong>'+money(item.line_total)+'</strong></div>').join(''):
   '<p class="bite-detail-muted">Item details are not available for this order.</p>';
  // The customer-safe order amount is real, but the platform financials table is
  // intentionally not exposed to customer RLS. Never fabricate tax/discount/paid.
  const summary=items.length?'<div class="bite-detail-moneyline"><span>Items total</span><strong>'+money(itemsTotal)+'</strong></div>':'';
  const reconciliation=items.length&&Math.abs(itemsTotal-amount)>.009?
-  '<p class="bite-detail-footnote">The final amount may include discounts, tax or delivery charges. Their individual amounts are not available on this screen.</p>':'';
+  '<p class="bite-detail-footnote">Item total differs from order total. Download the bill to see the available charge details.</p>':'';
  const refundCard=window.BiteRefundTracker?.details(order,refund,biteCancellationByOrder.get(order.id),false)||'';
  const historyText=(history||[]).map(x=>'<li><strong>'+safe(x.to_status)+'</strong><span>'+formatOrderDate(x.changed_at)+'</span></li>').join('');
- return '<div class="bite-detail-status"><span class="bite-detail-status-icon" aria-hidden="true">'+(status==='Completed'?'✓':status==='Cancelled'||status==='Rejected'?'×':'◷')+'</span><div><strong>'+safe(statusLabel)+'</strong><small>'+formatOrderDate(order.order_date)+'</small></div></div>'+
-  '<section class="bite-detail-panel"><div class="bite-detail-restaurant">'+biteOrderAvatar(order,true)+'<div><h3>'+safe(order.restaurant_name||'Restaurant')+'</h3><p>'+safe(order.delivery_type==='pickup'?'Pickup order':'Delivery order')+'</p></div></div>'+
-  '<div class="bite-detail-id"><span>Order ID: '+safe(order.order_code)+'</span><button type="button" data-bite-copy-order="'+safe(order.order_code)+'" aria-label="Copy order ID">Copy</button></div>'+
-  '<div class="bite-detail-itemlist">'+lineItems+'</div></section>'+
-  '<section class="bite-detail-panel"><div class="bite-detail-panel-title"><h3>Bill Summary</h3><button type="button" data-bite-detail-invoice="'+safe(order.id)+'" aria-label="Download receipt">↓ Download bill</button></div>'+
+ return '<div class="bite-detail-status bite-detail-status--'+safe(statusClass(status))+'"><span class="bite-detail-status-icon" aria-hidden="true">'+(status==='Completed'?'✓':status==='Cancelled'||status==='Rejected'?'×':'◷')+'</span><div><span class="bite-detail-status-kicker">ORDER UPDATE</span><strong>'+safe(statusLabel)+'</strong><small>Placed · '+formatOrderDate(order.order_date)+'</small></div></div>'+
+  '<section class="bite-detail-panel"><div class="bite-detail-restaurant">'+biteOrderAvatar(order,true)+'<div class="bite-detail-restaurant-copy"><span class="bite-detail-section-kicker">ORDERED FROM</span><h3>'+safe(order.restaurant_name||'Restaurant')+'</h3><p>'+safe(order.delivery_type==='pickup'?'Pickup order':'Delivery order')+'</p></div></div>'+
+  '<div class="bite-detail-id"><div><small>ORDER ID</small><span>'+safe(order.order_code)+'</span></div><button type="button" data-bite-copy-order="'+safe(order.order_code)+'" aria-label="Copy order ID"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg><span>Copy</span></button></div>'+
+  '<div class="bite-detail-itemlist"><div class="bite-detail-items-heading">Your items</div>'+lineItems+'</div></section>'+
+  '<section class="bite-detail-panel bite-detail-bill-panel"><div class="bite-detail-panel-title"><div class="bite-detail-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 9h6M9 13h6"/></svg></div><h3>Bill Summary</h3><button type="button" data-bite-detail-invoice="'+safe(order.id)+'" aria-label="Download receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg><span>Bill</span></button></div>'+
   '<div class="bite-detail-bill">'+summary+'<div class="bite-detail-moneyline bite-detail-grandtotal"><span>Order total</span><strong>'+money(amount)+'</strong></div>'+reconciliation+'</div></section>'+
   (refundCard?'<section class="bite-detail-panel bite-detail-refund">'+refundCard+'</section>':'')+
-  '<section class="bite-detail-panel"><div class="bite-detail-panel-title"><h3>Delivery details</h3></div><div class="bite-detail-customer">'+(name?'<strong>'+safe(name)+'</strong>':'')+(phone?'<span>'+safe(phone)+'</span>':'')+'</div>'+
+  '<section class="bite-detail-panel"><div class="bite-detail-panel-title"><div class="bite-detail-heading-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Delivery details</h3></div><div class="bite-detail-customer">'+(name?'<strong>'+safe(name)+'</strong>':'')+(phone?'<span>'+safe(phone)+'</span>':'')+'</div>'+
   (order.delivery_type==='pickup'?'<div class="bite-detail-address">Self pickup at the restaurant</div>':address?'<div class="bite-detail-address"><span aria-hidden="true">⌖</span> '+safe(address)+'</div>':'<div class="bite-detail-address">Delivery address not available for this order.</div>')+'</section>'+
   (historyText?'<section class="bite-detail-panel"><details class="bite-detail-activity"><summary>Order activity</summary><ol>'+historyText+'</ol></details></section>':'')+
-  '<div class="bite-detail-footer">Bite · Eat. Repeat.</div>';
+  '<div class="bite-detail-support-footer"><div><strong>Need help with this order?</strong><span>Our support team can review your request.</span></div><button type="button" data-bite-detail-help>Get help <span aria-hidden="true">›</span></button></div><div class="bite-detail-footer">Bite <span>·</span> Eat. Repeat.</div>';
 }
 async function biteShareRestaurant(restaurantId){
  if(!/^[0-9a-f-]{36}$/i.test(String(restaurantId||'')))return;
@@ -1090,6 +1090,7 @@ $('biteDetailPageContent')?.addEventListener?.('click',async event=>{
  const bill=event.target.closest('[data-bite-detail-invoice]');
  const copy=event.target.closest('[data-bite-copy-order]');
  const retry=event.target.closest('#biteDetailRetry');
+  if(event.target.closest('[data-bite-detail-help]')){$('biteDetailSupport')?.click();return;}
  if(retry){void biteOpenFullOrderDetails(biteFullOrderId);return;}
  if(copy&&biteFullOrderId){
   try{await navigator.clipboard.writeText(copy.dataset.biteCopyOrder);copy.textContent='Copied';}
