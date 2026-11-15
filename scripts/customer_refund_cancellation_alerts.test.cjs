@@ -35,10 +35,26 @@ test('pending customer cancellation is distinct from refund submission',()=>{
 });
 test('approved but not initiated is still a waiting state',()=>{
  const info=refund.classify(old(),{amount:1,status:'approved',approved_at:'2026-11-15T11:39:00Z'});
- assert.equal(info.title,'Refund approved');
+ assert.equal(info.title,'Refund request approved');
+ assert.match(info.note,/initiation is not confirmed yet/);
  assert.equal(info.stage,0);
  const detail=refund.details(old(),{amount:1,status:'approved'});
  assert.match(detail, /<li class="is-upcoming"><span class="bite-refund-step-marker"[^>]*>2<\/span><span>Initiated<\/span>/);
+});
+test('approval or processing without Cashfree confirmation cannot claim initiation',()=>{
+ const approved={amount:1,status:'approved',provider_refund_id:'allocated-only',provider_checked_at:null};
+ const approval=refund.classify(old(),approved);
+ assert.equal(approval.stage,0);
+ assert.equal(approval.title,'Refund request approved');
+ assert.match(refund.summary(old(),approved),/Payment-provider initiation is not confirmed yet/);
+ const detail=refund.details(old(),approved);
+ assert.match(detail,/Provider status<\/span><strong>Awaiting verification/);
+ assert.match(detail,/timeframe starts after initiation/);
+ assert.doesNotMatch(detail,/Cashfree refund ID|Refund initiated|Refund processed/);
+ const processing={...approved,status:'processing'};
+ assert.equal(refund.classify(old(),processing).stage,0);
+ assert.match(refund.classify(old(),processing).note,/checking whether Cashfree has received/);
+ assert.doesNotMatch(refund.details(old(),processing),/5–7 working days of initiation|Refund processed/);
 });
 test('processing/submitted are not misrepresented as bank credited',()=>{
  const cases=[
