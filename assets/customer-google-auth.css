@@ -1,0 +1,19 @@
+/* Bite Customer — Google OAuth option. Hidden until Supabase confirms the provider. */
+#authModal .bite-google-auth{margin:19px 0 17px}
+#authModal .bite-google-auth-btn{
+ display:flex;align-items:center;justify-content:center;gap:12px;
+ width:100%;min-height:52px;padding:12px 15px;
+ border:1.5px solid #d5dde3;border-radius:12px;
+ background:#fff;color:#203137;box-shadow:0 1px 3px rgba(21,42,39,.04);
+ font-family:inherit;font-size:15px;font-weight:700;line-height:1.4;
+ cursor:pointer;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+#authModal .bite-google-auth-btn svg{flex:none;width:21px;height:21px}
+#authModal .bite-google-auth-btn:hover{background:#f7faf9;border-color:#bbc9c6}
+#authModal .bite-google-auth-btn:focus-visible{outline:3px solid #3a9d78;outline-offset:2px}
+#authModal .bite-google-auth-btn:disabled{opacity:.65;cursor:progress}
+#authModal .bite-google-divider{display:flex;gap:13px;align-items:center;margin:18px 0 10px;color:#667a7a;font-size:12px}
+#authModal .bite-google-divider:before,#authModal .bite-google-divider:after{content:"";height:1px;background:#e3eae8;flex:1}
+#authModal .bite-google-divider span{white-space:nowrap}
+#authModal .bite-google-auth.hidden{display:none!important}
+@media(max-width:600px){#authModal .bite-google-auth-btn{min-height:54px;font-size:15px}}
