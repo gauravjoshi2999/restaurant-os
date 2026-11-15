@@ -174,7 +174,7 @@ owner_alert_scoped = (
     "orderChannelKey(order.channel)==='website'" in owner
     or (
         "BiteOwnerOrderBurst.createTracker()" in owner
-        and "ownerOrderBurstTracker.take(state.orders,restaurantId)" in owner
+        and "ownerOrderBurstTracker.reconcile(" in owner and "BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId)" in owner
         and "channel.includes('own platform')" in owner_burst
         and "channel.includes('website')" in owner_burst
         and "!channel.includes('zomato')&&!channel.includes('swiggy')" in owner_burst
