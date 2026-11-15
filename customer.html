@@ -872,13 +872,24 @@ function orderActionsMarkup(o){
  return '<div class="orderactions" role="group" aria-label="Actions for order '+code+'">'+primary.join('')
   +'<details class="order-more"><summary>Help &amp; receipt</summary><div class="order-more-items">'+secondary.join('')+'</div></details></div>';
 }
-async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;if(BITE_SANDBOX_CHECKOUT)biteRefreshSandboxStatus();const {data:sessionData}=await sb.auth.getSession();if(orderRequestId!==customerOrderViewSequence)return;if(!sessionData.session){showAuth('login');return;}const requestedCustomerId=sessionData.session.user.id;if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;const box=$('ordersList');
- if(!box.querySelector?.('.ordercard')&&!box.querySelector?.('.orders-empty'))
-  box.innerHTML='<div class="empty">Aapke orders load ho rahe hain...</div>';
- try{const {data,error}=await sb.rpc('list_my_customer_orders');if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;if(error)throw error;customerOrders=(data||[]).filter(order=>!BITE_DIRECT_MODE||order.restaurant_id===BITE_DIRECT_RESTAURANT_ID);
+async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;if(BITE_SANDBOX_CHECKOUT)biteRefreshSandboxStatus();
+ // Supabase RPC and session hydration run concurrently; RLS still gates rows.
+ const orderRpc=sb.rpc('list_my_customer_orders');
+ const {data:sessionData}=await sb.auth.getSession();if(orderRequestId!==customerOrderViewSequence)return;if(!sessionData.session){showAuth('login');return;}const requestedCustomerId=sessionData.session.user.id;if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;const box=$('ordersList');
+ if(!box.querySelector?.('.ordercard')&&!box.querySelector?.('.orders-empty')&&!box.querySelector?.('.bite-orders-skeleton'))
+  box.innerHTML='<div class="bite-orders-skeleton" role="status" aria-label="Loading your orders"><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div><div class="bite-orders-skeleton-card"><span></span><span></span><span></span></div></div>';
+ const loadingControl=$('refreshOrdersBtn');loadingControl?.classList?.add('is-updating');
+ try{const {data,error}=await orderRpc;if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;if(error)throw error;customerOrders=(data||[]).filter(order=>!BITE_DIRECT_MODE||order.restaurant_id===BITE_DIRECT_RESTAURANT_ID);
+ // Render the owned orders as soon as the primary query finishes. Refunds and
+ // cancellation details are independently RLS-scoped; don't hold up cards.
+ const alreadyShowing=biteOrderCardsCustomer===requestedCustomerId&&
+   !!box.querySelector?.('.ordercard, .orders-empty');
+ if(!alreadyShowing){
+  biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=false;
+  await biteRenderLoadedOrders(orderRequestId,requestedCustomerId);
+ }
  // Read only this signed-in customer's financial refund and request statuses.
  // Row-level security enforces the customer again on the server.
- biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=false;
  const ids=customerOrders.map(o=>o.id).filter(id=>/^[0-9a-f-]{36}$/i.test(id));
  if(ids.length){
   const [refunds,requests]=await Promise.all([
@@ -891,13 +902,23 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
     .in('order_id',ids).order('created_at',{ascending:false}).limit(500)
   ]);
   if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
-  biteRefundLookupUnavailable=!!refunds.error;
+  biteRefundByOrder.clear();biteCancellationByOrder.clear();biteRefundLookupUnavailable=!!refunds.error;
   if(refunds.error)console.warn('Customer refund lookup temporarily unavailable');
   else for(const r of refunds.data||[])if(r.customer_id===requestedCustomerId)biteRefundByOrder.set(r.order_id,r);
   if(requests.error)console.warn('Customer cancellation lookup temporarily unavailable');
   else for(const r of requests.data||[])if(r.customer_id===requestedCustomerId&&!biteCancellationByOrder.has(r.order_id))
    biteCancellationByOrder.set(r.order_id,r);
  }
+  await biteRenderLoadedOrders(orderRequestId,requestedCustomerId);
+ }catch(e){
+  if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
+  if(!box.querySelector?.('.ordercard'))box.innerHTML='<div class="empty">Orders load nahi ho paaye: '+safe(e.message||'Please try again.')+' <button type="button" id="biteRetryOrders">Try again</button></div>';
+  $('biteRetryOrders')?.addEventListener?.('click',()=>loadMyOrders());
+  console.error(e);
+ }finally{loadingControl?.classList?.remove('is-updating');}}
+async function biteRenderLoadedOrders(orderRequestId,requestedCustomerId){
+ if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;
+ const box=$('ordersList');
  // A cancellation alone is not evidence of payment. The refund tracker renders
  // only jobs created from the server's trusted paid-payment ledger.
  for(const order of customerOrders)if(biteRefundByOrder.has(order.id))order.payment_status='paid';
@@ -943,7 +964,8 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
     showOrderActionResult('Cashfree ne refund SUCCESS report kiya. Bank credit alag verify hoga.');
   })
   .catch(()=>{});
- await loadMyOrders();return;}if(action==='review'){const {error}=await sb.rpc('create_customer_restaurant_review',{p_order_id:orderId,p_rating:result.rating,p_review:result.message.trim()});if(error)throw error;showOrderActionResult('Review publish ho gaya. Restaurant Owner ab iska reply de sakta hai.');}else{const {error}=await sb.rpc('create_customer_order_request',{p_order_id:orderId,p_request_type:action,p_message:result.message.trim()});if(error)throw error;showOrderActionResult(action==='cancel_request'?'Cancellation request restaurant ko bhej di gayi.':'Complaint restaurant ko bhej di gayi.');}await loadMyOrders();}catch(e){showOrderActionResult(e.message||'Request submit nahi hui.','error');}}));}catch(e){if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;box.innerHTML='<div class="empty">Orders load nahi ho paaye: '+safe(e.message||'Please try again.')+'</div>';console.error(e)}}
+ await loadMyOrders();return;}if(action==='review'){const {error}=await sb.rpc('create_customer_restaurant_review',{p_order_id:orderId,p_rating:result.rating,p_review:result.message.trim()});if(error)throw error;showOrderActionResult('Review publish ho gaya. Restaurant Owner ab iska reply de sakta hai.');}else{const {error}=await sb.rpc('create_customer_order_request',{p_order_id:orderId,p_request_type:action,p_message:result.message.trim()});if(error)throw error;showOrderActionResult(action==='cancel_request'?'Cancellation request restaurant ko bhej di gayi.':'Complaint restaurant ko bhej di gayi.');}await loadMyOrders();}catch(e){showOrderActionResult(e.message||'Request submit nahi hui.','error');}}));
+}
 function biteBindRefundRefresh(target,orderId,requestedCustomerId){
  target.querySelector('[data-refresh-refund-id]')?.addEventListener('click',async event=>{
   const button=event.currentTarget;button.disabled=true;button.textContent='Refreshing status…';
@@ -988,7 +1010,9 @@ async function loadOrderDetail(orderId,force=false){
 // Provider status may change without an order status change.
 setInterval(()=>{
  if(activeCustomerId&&document.visibilityState==='visible'&&!$('ordersView').classList.contains('hidden')&&
-  customerOrders.some(o=>['Cancelled','Rejected'].includes(o.status)||biteRefundByOrder.has(o.id)))
+  (customerOrders.some(o=>['Received','Accepted','Preparing','Ready','Handed Over','Out for Delivery'].includes(o.status))||
+   [...biteRefundByOrder.values()].some(job=>!['succeeded','failed','rejected'].includes(job.status))||
+   [...biteCancellationByOrder.values()].some(request=>request.status==='Pending')))
   void loadMyOrders();
 },45000);
 function setupOrderRealtime(userId){if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!userId)return;orderChannel=sb.channel('customer-orders-'+userId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:'customer_id=eq.'+userId},()=>{if(!$('ordersView').classList.contains('hidden'))loadMyOrders()}).subscribe();}
