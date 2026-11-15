@@ -977,7 +977,7 @@ function renderAuthMode(){
  $('authSwitch').textContent=signup?'Login karein':'Sign up';
  $('authError').textContent='';
  $('authNetworkHelp').classList.toggle('hidden',true);
- renderCustomerGoogleAuth();
+ if(typeof renderCustomerGoogleAuth==='function')renderCustomerGoogleAuth();
 }
 function setCustomerSession(session){const user=session?.user;const nextUserId=user?.id||null;
  if(activeCustomerId!==nextUserId){
