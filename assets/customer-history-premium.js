@@ -26,7 +26,7 @@
   for(const card of cards){
    const code=norm(card.querySelector('.ordercode')?.textContent);
    const restaurant=norm(card.querySelector('.orderrestaurant')?.textContent);
-   const status=card.dataset.biteStatus||card.querySelector('.orderstatus')?.textContent||'';
+   const status=card.dataset?.biteStatus||card.querySelector('.orderstatus')?.textContent||'';
    const matching=(activeFilter==='all'||groupFor(status)===activeFilter)
     &&(!term||code.includes(term)||restaurant.includes(term));
    card.hidden=!matching;
