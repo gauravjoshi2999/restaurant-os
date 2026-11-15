@@ -229,7 +229,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -405,7 +405,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -462,7 +462,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-preview1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261115-refund-order-code1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
