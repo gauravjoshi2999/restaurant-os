@@ -89,7 +89,7 @@ Deno.serve(async(req:Request)=>{
     // Query all refunds before any POST. Any other reference requires manual review.
     const all=await provider("/orders/"+id+"/refunds");
     if(!all.response.ok||!Array.isArray(all.data))return "provider_unavailable";
-    if(all.data.some((r:any)=>r?.refund_id!==job.provider_refund_id))return "review_required";
+    if(all.data.length!==0)return "review_required"; // Never POST while any refund exists, even if exact lookup is lagging.
     const {data:claimed,error:claimError}=await db.rpc("bite_claim_auto_refund",{p_job_id:job.id});
     if(claimError||claimed!==true)return "already_processing";
     // This is the one and only provider creation attempt. Further retries only GET.
