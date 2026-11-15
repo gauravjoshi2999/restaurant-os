@@ -1,0 +1,72 @@
+/* Bite customer orders · compact, accessible one-glance history (2026-11-15).
+   Overrides legacy spacious order cards without affecting Owner/POS. */
+body[data-bite-app="customer"] #ordersView .ordersbar{margin:0 0 12px;gap:12px;align-items:center}
+body[data-bite-app="customer"] #ordersView .ordersbar h2{font-size:clamp(23px,5vw,28px);font-weight:850;letter-spacing:-.7px}
+body[data-bite-app="customer"] #ordersView .ordersbar small{display:block;margin-top:2px;font-size:11px;line-height:1.35;color:#6b7b70}
+body[data-bite-app="customer"] #ordersView #refreshOrdersBtn{min-height:36px;padding:7px 11px;border-radius:10px;font-weight:750;background:#f6faf7;border-color:#d9e8dd;font-size:12px}
+body[data-bite-app="customer"] #ordersView #refreshOrdersBtn.is-updating{opacity:.75;cursor:progress}
+body[data-bite-app="customer"] #ordersView .bite-history-toolbar{padding:10px 12px 8px;margin:0 0 14px;background:#fff;border-radius:15px;box-shadow:0 2px 12px #244a2910;border-color:#e8eee8}
+body[data-bite-app="customer"] #ordersView .bite-history-search{min-height:41px;padding:0 10px;border-radius:10px;background:#f8faf8;border-color:#e5ede6;gap:9px}
+body[data-bite-app="customer"] #ordersView .bite-history-search svg{height:17px;width:17px}
+body[data-bite-app="customer"] #ordersView #biteHistorySearch{min-height:40px;font-size:14px}
+body[data-bite-app="customer"] #ordersView .bite-history-chips{gap:7px;padding:10px 0 2px;scroll-snap-type:x proximity}
+body[data-bite-app="customer"] #ordersView .bite-history-chips button{min-height:35px;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:750;border-color:#e0e9e1}
+body[data-bite-app="customer"] #ordersView .bite-history-count{font-size:11px;margin:7px 1px 0;color:#87968a}
+body[data-bite-app="customer"] #ordersView .ordercard{position:relative;margin-bottom:10px;padding:13px 15px 12px;border:1px solid #e5eee7;border-radius:15px;background:#fff;box-shadow:0 3px 15px #17351d0d;overflow:hidden}
+body[data-bite-app="customer"] #ordersView .ordercard::before{width:3px;left:0;border-radius:3px;opacity:.72}
+body[data-bite-app="customer"] #ordersView .orderhead{gap:12px;align-items:flex-start}
+body[data-bite-app="customer"] #ordersView .orderhead>div:first-child{min-width:0}
+body[data-bite-app="customer"] #ordersView .orderrestaurant{font-size:16px;font-weight:840;color:#193629;line-height:1.3;margin:0;letter-spacing:-.25px}
+body[data-bite-app="customer"] #ordersView .ordercode{font-size:11px;color:#79867b;font-weight:550;letter-spacing:0;line-height:1.5;margin:4px 0 0;overflow-wrap:anywhere}
+body[data-bite-app="customer"] #ordersView .orderamount{background:#f7faf7;border:1px solid #e9f0e9;border-radius:9px;padding:5px 9px;min-width:fit-content;color:#19442d;font-size:15px;box-shadow:none}
+body[data-bite-app="customer"] #ordersView .order-badges{display:flex;align-items:center;gap:7px;margin:9px 0 0;flex-wrap:wrap}
+body[data-bite-app="customer"] #ordersView .orderstatus,
+body[data-bite-app="customer"] #ordersView .order-mode{margin:0;padding:4px 8px;min-height:25px;font-size:11px;font-weight:760;line-height:1.1}
+body[data-bite-app="customer"] #ordersView .order-mode{border-radius:99px}
+body[data-bite-app="customer"] #ordersView .bite-refund-summary{margin:10px 0 0;padding:9px 10px;border-radius:11px}
+body[data-bite-app="customer"] #ordersView .bite-refund-summary strong{font-size:12px}
+body[data-bite-app="customer"] #ordersView .bite-refund-summary small{font-size:11px;line-height:1.35;margin-top:2px}
+body[data-bite-app="customer"] #ordersView .bite-refund-summary-amount{font-size:12px}
+body[data-bite-app="customer"] #ordersView .orderactions{display:flex;align-items:center;gap:10px;margin:12px 0 0;padding:9px 0 0;border-top:1px solid #f0f3f0;flex-wrap:wrap}
+body[data-bite-app="customer"] #ordersView .orderactions>button{flex:0 1 auto;display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:37px;padding:7px 13px;border-radius:10px;font-size:12px;font-weight:780;letter-spacing:0}
+body[data-bite-app="customer"] #ordersView .orderactions>button.bite-order-detail-action{background:transparent!important;border:0!important;color:#176f4c!important;padding-left:3px;padding-right:4px;box-shadow:none!important}
+body[data-bite-app="customer"] #ordersView .orderactions>button.bite-order-detail-action::after{content:'›';font-size:20px;font-weight:500;margin-left:6px;line-height:.5;transition:transform .15s}
+body[data-bite-app="customer"] #ordersView .orderactions>button.bite-order-detail-action[aria-expanded="true"]::after{content:'⌃';font-size:16px}
+body[data-bite-app="customer"] #ordersView .orderactions>button.bite-order-reorder{background:#087b4d;color:#fff;border-color:#087b4d;box-shadow:none}
+body[data-bite-app="customer"] #ordersView .orderactions>button.bite-order-reorder:hover{background:#07623d;border-color:#07623d;color:#fff}
+body[data-bite-app="customer"] #ordersView .order-more{display:none;flex-basis:100%;border:0;border-top:1px solid #f2f3f2;padding-top:1px;margin-top:0}
+body[data-bite-app="customer"] #ordersView .ordercard.bite-order-expanded .order-more{display:block}
+body[data-bite-app="customer"] #ordersView .order-more>summary{justify-content:flex-start;min-height:35px;padding:6px 3px;margin-top:1px;font-size:11px;font-weight:720;gap:8px;color:#60796a}
+body[data-bite-app="customer"] #ordersView .order-more-items{gap:7px;padding:2px 0 8px}
+body[data-bite-app="customer"] #ordersView .order-more-items>button{min-height:36px;padding:7px 9px;font-size:11px;border-radius:9px}
+body[data-bite-app="customer"] #ordersView .orderdetail{margin:13px 0 0;padding:12px 0 0;border-top:1px solid #edf2ee}
+body[data-bite-app="customer"] #ordersView .bite-order-items{border-radius:12px}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton{display:grid;gap:10px;margin:8px 0}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton-card{height:116px;border:1px solid #e8eee9;border-radius:15px;background:#fff;padding:17px 15px;display:flex;flex-direction:column;gap:12px}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton-card span,
+body[data-bite-app="customer"] #ordersView .bite-order-detail-skeleton span{display:block;background:#eef3ef;border-radius:6px;height:12px}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton-card span:nth-child(1){width:61%;height:17px}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton-card span:nth-child(2){width:38%}
+body[data-bite-app="customer"] #ordersView .bite-orders-skeleton-card span:nth-child(3){width:76%;margin-top:auto}
+body[data-bite-app="customer"] #ordersView .bite-order-detail-skeleton{display:grid;gap:9px;padding:5px 0 10px}
+body[data-bite-app="customer"] #ordersView .bite-order-detail-skeleton span:nth-child(1){width:48%}
+body[data-bite-app="customer"] #ordersView .bite-order-detail-skeleton span:nth-child(2){width:92%}
+body[data-bite-app="customer"] #ordersView .bite-order-detail-skeleton span:nth-child(3){width:65%}
+body[data-bite-app="customer"] #ordersView .bite-order-silent-update{font-size:11px;color:#6f8475}
+body[data-bite-app="customer"] #ordersView button:focus-visible{outline:3px solid #087b4d;outline-offset:2px}
+@media(min-width:650px){
+ body[data-bite-app="customer"] #ordersView #ordersList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+ body[data-bite-app="customer"] #ordersView .ordercard{margin:0}
+ body[data-bite-app="customer"] #ordersView .bite-orders-skeleton,
+ body[data-bite-app="customer"] #ordersView .orders-empty{grid-column:1/-1}
+}
+@media(max-width:600px){
+ body[data-bite-app="customer"] #ordersView .ordersbar h2{font-size:24px}
+ body[data-bite-app="customer"] #ordersView .ordercard{padding:12px 13px 11px}
+ body[data-bite-app="customer"] #ordersView .orderrestaurant{font-size:15px}
+ body[data-bite-app="customer"] #ordersView .ordercode{font-size:11px}
+ body[data-bite-app="customer"] #ordersView .orderactions>button{min-height:37px;font-size:12px;padding:7px 11px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-bite-app="customer"] #ordersView .bite-order-detail-action::after{transition:none}
+}
