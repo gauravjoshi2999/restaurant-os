@@ -323,7 +323,7 @@
   byId('biteProviderAuditEmpty').hidden=loadedOrders.length>0;
  }
  async function load(){
-  if(!authorized()){requestToken++;wipe();return;}
+  if(!authorized()){requestToken++;wipe();return false;}
   const token=++requestToken,userId=deps.getUser().id;
   if(activeUser&&activeUser!==userId)wipe();
   // Refresh revokes any temporary vendor candidate evidence.
@@ -336,14 +336,16 @@
     .select('order_id,collection_status,collection_amount,settlement_evidence,checked_at')
     .order('checked_at',{ascending:false}).limit(500);
    if(error)throw error;
-   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return false;
    lastChecks=data||[];
    const state=deps.getState();loadedOrders=buildRows(state.financials||[],state.orders||[],lastChecks);
    render();
    setStatus(loadedOrders.length?'Collection checks are audit evidence, not bank payout confirmations. Orders shown: '+loadedOrders.length:'No eligible non-demo paid own-platform orders in the current view.');
+   return true;
   }catch(error){
-   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return false;
    wipe();setStatus('Unable to read provider-check records. No payment was started. '+String(error?.message||'Please retry').slice(0,140),true);
+   return false;
   }
  }
  async function reconcile(orderId){
@@ -351,6 +353,7 @@
   const selected=loadedOrders.find(row=>row.orderId===orderId);
   if(!selected)return;
   const userId=deps.getUser().id,token=requestToken;
+  let outcome=null;
   working=true;render();
   setStatus('Checking Cashfree collection and settlement evidence. No refund, transfer or new payment is being made.');
   try{
@@ -358,16 +361,26 @@
    if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
    if(error)throw error;
    if(!data?.collection?.status)throw Error('Provider did not return collection status');
-   const status=data.collection.status;
-   setStatus('Cashfree reports '+String(status).slice(0,24)+'. Restaurant payout remains unverified until separate vendor settlement evidence is checked.');
+   const status=String(data.collection.status).slice(0,24);
+   outcome={status,message:'Cashfree reports '+status+'. Restaurant payout remains unverified until separate vendor settlement evidence is checked.',error:false};
+   setStatus(outcome.message);
   }catch(error){
    if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
-   setStatus('Provider check unavailable or mismatched. Do not mark this order settled. '+String(error?.message||'Try again later').slice(0,150),true);
+   outcome={status:'UNAVAILABLE',message:'Provider check unavailable or mismatched for '+selected.orderCode+'. Do not mark this order settled. '+String(error?.message||'Try again later').slice(0,150),error:true};
+   setStatus(outcome.message,true);
   }finally{
    working=false;
    if(token===requestToken&&authorized()&&deps.getUser()?.id===userId){
-    // A fresh RLS read shows only checks actually saved by the server.
-    await load();
+    // Refresh the read-only audit, then restore this attempt's result so an
+    // Edge Function error is not hidden by the generic "Orders shown" status.
+    const refreshing=load(),refreshToken=requestToken;
+    const refreshOk=await refreshing;
+    if(refreshOk&&refreshToken===requestToken&&authorized()&&deps.getUser()?.id===userId&&outcome){
+     const refreshed=loadedOrders.find(row=>row.orderId===orderId);
+     if(outcome.status==='PAID'&&!refreshed?.verdict.verifiedCollection){
+      setStatus('Cashfree reported PAID, but no matching provider-check audit record was saved for '+selected.orderCode+'. Collection is NOT independently verified in Bite. Do not mark settled or retry payment.',true);
+     }else setStatus(outcome.message,outcome.error);
+    }
    }
   }
  }
