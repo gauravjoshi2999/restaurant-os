@@ -48,5 +48,6 @@ test('responsive and payment-independent recommendations',()=>{
  const js=fs.readFileSync('assets/customer-menu-personalization.js','utf8');
  assert.doesNotMatch(js,/Cashfree|service_role|sb\.rpc|checkout|payment_session_id/);
  assert.match(js,/renderCart\(\);refreshMenuQuantityControl\(item\.id\)/);
- assert.match(js,/root\.BiteDiscovery\?\.safeImage/);
+ assert.match(js,/window\.BiteDiscovery\?\.safeImage/);
+ assert.doesNotMatch(js,/[^.]root\.BiteDiscovery/);
 });
