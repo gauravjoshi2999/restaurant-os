@@ -219,10 +219,41 @@ Deno.serve(async req=>{
    return json({collection:{status:data.order_status,amount:Number(data.order_amount),currency:"INR"},platform_bank_settlement:evidence,restaurant_payout:"NOT_VERIFIED_BY_PG_COLLECTION",checked_at:new Date().toISOString()});
   }
   if(job.status==="succeeded")return json({status:"succeeded",provider_status:job.provider_status});
+  if(body.action==="execute_refund"){
+   // Manual live pilot is one-shot, just like trusted automatic refunds.
+   // A timeout/uncertain previous POST may only be reconciled via GET.
+   if(job.status!=="approved"||Number(job.attempts)!==0)
+    return json({error:"Refund already attempted. Use read-only status check; no additional refund request will be sent."},409);
+   if(job.restaurant_id!==order.restaurant_id||job.customer_id!==order.customer_id||
+      !Number.isFinite(Number(job.amount))||Number(job.amount)<=0||
+      Number(job.amount)>Number(intent.amount))
+    return json({error:"Refund beneficiary or amount mismatch. No refund sent."},409);
+   const {data:financial,error:fe}=await db.from("order_financials")
+    .select("payment_status,currency,customer_payable_amount,refund_amount_actual")
+    .eq("order_id",order.id).maybeSingle();
+   if(fe||!financial||financial.payment_status!=="paid"||financial.currency!=="INR"||
+      !exactMoney(financial.customer_payable_amount,intent.amount)||
+      !exactMoney(order.amount,intent.amount)||
+      Number(financial.refund_amount_actual||0)!==0)
+    return json({error:"Trusted paid-order ledger mismatch. No refund sent."},409);
+   const fresh=await provider("/orders/"+cfId);
+   if(!fresh.r.ok)return json({error:"Cashfree PAID verification unavailable. No refund sent."},503);
+   if(fresh.data?.order_id!==intent.provider_order_id||
+      fresh.data?.order_currency!=="INR"||
+      fresh.data?.order_status!=="PAID"||
+      !exactMoney(fresh.data.order_amount,intent.amount))
+    return json({error:"Cashfree PAID verification mismatch. No refund sent."},409);
+  }
   const path="/orders/"+cfId+"/refunds/"+encodeURIComponent(job.provider_refund_id);
   let result=await provider(path);
   if(result.r.status===404&&body.action==="execute_refund"){
-   if(!(job.status==="approved"||(job.status==="processing"&&Date.now()-new Date(job.updated_at).getTime()>30000&&job.attempts<5)))return json({error:"A refund attempt already exists. Check provider status; do not create another refund."},409);
+   // A missing exact reference does not prove that another refund wasn't
+   // issued. Stop on any competing provider refund, including pending ones.
+   const existingRefunds=await provider("/orders/"+cfId+"/refunds");
+   if(!existingRefunds.r.ok||!Array.isArray(existingRefunds.data))
+    return json({error:"Cashfree refund list unavailable. No refund sent."},503);
+   if(existingRefunds.data.length!==0)
+    return json({error:"Cashfree already has refund records for this order. No new refund sent."},409);
    const {data:claim,error:ce}=await db.from("bite_refund_jobs").update({status:"processing",attempts:job.attempts+1,updated_at:new Date().toISOString()}).eq("id",job.id).eq("status",job.status).eq("updated_at",job.updated_at).select("id").maybeSingle();if(ce||!claim)return json({error:"Refund already processing or unavailable"},409);
    result=await provider("/orders/"+cfId+"/refunds",{method:"POST",headers:{"x-idempotency-key":job.id},body:JSON.stringify({refund_id:job.provider_refund_id,refund_amount:Number(job.amount),refund_note:String(job.reason).slice(0,100),refund_speed:"STANDARD"})});
    // Even an accepted create response is re-read from the provider before updating financial totals.
