@@ -14,7 +14,7 @@ This code does not retroactively approve or execute any pre-existing refund.
 ## Three rollout gates (must all pass)
 1. PR CI, public page browser QA, and dedicated automatic-refund regression tests.
 2. Apply `supabase/patch_20261115_trusted_auto_refunds.sql` through a reviewed Supabase migration. Deploy `bite-auto-refund` Edge Function with `verify_jwt=false`: the function validates its own user Bearer JWT through Supabase Auth for single-order calls or checks the private maintenance secret for scheduled calls. Confirm this server-only setup; never publish the maintenance secret.
-3. Add exactly the same private `BITE_MAINTENANCE_SECRET` to Supabase Edge Function environment and GitHub Actions repository secrets; the scheduled workflow runs every five minutes. Initially, `auto_refunds_enabled` must be false. After a sandbox/controlled live cancellation and provider check, enable using a privileged migration/SQL:
+3. Apply `supabase/patch_20261115_auto_refund_signed_cron.sql` as a reviewed migration: this creates a private Vault signing key, a service-only signature checker, and a five-minute Supabase Cron job (no manually copied secret). Deploy the updated Edge Function before applying that patch. The existing GitHub Actions worker is manual fallback only. Initially, `auto_refunds_enabled` must be false. After a sandbox/controlled live cancellation and provider check, enable using privileged SQL:
    `update public.bite_operations_config set auto_refunds_enabled=true,updated_at=now() where id=true;`
    Do not activate without a tested provider response, owner policy acceptance, refund fee/settlement reconciliation and correct retry guarantees.
 
