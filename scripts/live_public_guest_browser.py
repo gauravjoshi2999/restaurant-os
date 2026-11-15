@@ -12,7 +12,6 @@ import json
 import re
 import sys
 from urllib.parse import urlsplit
-from playwright.sync_api import sync_playwright
 
 SITE = "https://gauravjoshi2999.github.io/restaurant-os/"
 READ_ONLY_RPCS = frozenset({
@@ -109,6 +108,7 @@ def main() -> int:
         parser.error("SHA must be exactly the approved 40 lowercase hex characters")
     forbidden = []
     page_errors = []
+    from playwright.sync_api import sync_playwright
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         try:
