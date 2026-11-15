@@ -98,3 +98,12 @@ test('future-slot exception is server-only, revalidated, and preserves ASAP clos
  assert.match(migration,/set_config\('app\.bite_scheduled_for','',true\)/);
  assert.doesNotMatch(migration,/Cashfree|refund_jobs|order_financials|wallet/);
 });
+
+test('closed restaurant cannot pay without an accepted future slot',()=>{
+ assert.match(customer,/const needsScheduleTime=!BITE_SANDBOX_CHECKOUT/);
+ assert.match(customer,/missingSchedule=needsScheduleTime&&!window\.BiteSchedule\?\.getSelectedFor/);
+ assert.match(customer,/checkoutPaymentReady\)\|\|missingSchedule/);
+ assert.match(customer,/missingSchedule\?'Choose delivery time'/);
+ assert.match(customer,/missingSchedule\?'Restaurant is closed now\. Select a preferred delivery slot before paying\.'/);
+ assert.match(js,/if\(typeof syncCheckoutPaymentButton==='function'\)syncCheckoutPaymentButton\(\)/);
+});

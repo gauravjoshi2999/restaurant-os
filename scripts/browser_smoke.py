@@ -168,10 +168,15 @@ def check_scheduled_picker_no_charge(page):
         window.__qaScheduleOriginal=activeRestaurant;
         window.__qaScheduleModalClass=modal.className;
         window.__qaSchedulePanelClass=panel.className;
+        const pay=document.getElementById('placeOrderBtn');
+        window.__qaSchedulePayButton={text:pay.textContent,disabled:pay.disabled,
+          aria:pay.getAttribute('aria-disabled')};
+        window.__qaScheduleNote=document.getElementById('checkoutPaymentNote')?.textContent||'';
         window.__qaScheduleDeliveryMode=document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';
         activeRestaurant={...activeRestaurant,
           accepts_scheduled_delivery:true,accepts_delivery:true,delivery_paused:false,
-          is_temporarily_closed:false,temporary_closure_until:null,
+          is_temporarily_closed:true,
+          temporary_closure_until:new Date(Date.now()+60*60000).toISOString(),
           scheduled_lead_minutes:90,scheduled_horizon_days:3,
           opening_time:'10:00:00',closing_time:'23:00:00'};
         document.querySelector('input[name="deliveryMode"][value="delivery"]').checked=true;
@@ -181,6 +186,10 @@ def check_scheduled_picker_no_charge(page):
     }""")
     try:
         check(page.locator('#biteDeliverySchedule').is_visible(), 'Schedule controls display for opted-in delivery restaurant')
+        check(page.locator('#placeOrderBtn').is_disabled(),
+              'Closed restaurant cannot open payment without a preferred delivery slot')
+        check(page.locator('#placeOrderBtn').inner_text().strip() == 'Choose delivery time',
+              'Pay button clearly requests the missing scheduled time')
         check(page.locator('#biteSchedulePick').is_visible(), 'Preferred date/time selection is accessible')
         page.locator('#biteSchedulePick').click()
         check(page.locator('#biteScheduleOverlay [role="dialog"]').is_visible(),
@@ -194,6 +203,8 @@ def check_scheduled_picker_no_charge(page):
         page.locator('#biteScheduleConfirm').click()
         check(page.evaluate("() => !!BiteSchedule.getSelectedFor(activeRestaurant.id)"),
               'Chosen preferred slot is retained in checkout without creating payment')
+        check(page.locator('#placeOrderBtn').inner_text().strip() != 'Choose delivery time',
+              'Selecting a future time refreshes the payment button state')
         check('Subject to restaurant acceptance' in page.locator('#biteScheduleSelection').inner_text(),
               'Selected time is clearly labelled preferred, not guaranteed')
         page.evaluate("""() => {
@@ -216,6 +227,18 @@ def check_scheduled_picker_no_charge(page):
             const radio=document.querySelector('input[name="deliveryMode"][value="'+(window.__qaScheduleDeliveryMode||'delivery')+'"]');
             if(radio)radio.checked=true;
             window.BiteSchedule?.reset?.();
+            const pay=document.getElementById('placeOrderBtn');
+            if(pay&&window.__qaSchedulePayButton){
+              pay.textContent=window.__qaSchedulePayButton.text;
+              pay.disabled=window.__qaSchedulePayButton.disabled;
+              const aria=window.__qaSchedulePayButton.aria;
+              if(aria===null)pay.removeAttribute('aria-disabled');
+              else pay.setAttribute('aria-disabled',aria);
+            }
+            const note=document.getElementById('checkoutPaymentNote');
+            if(note&&window.__qaScheduleNote!==undefined)note.textContent=window.__qaScheduleNote;
+            delete window.__qaSchedulePayButton;
+            delete window.__qaScheduleNote;
             document.body.classList.remove('bite-schedule-open');
             document.getElementById('biteScheduleOverlay')?.setAttribute('hidden','');
             delete window.__qaScheduleOriginal;
