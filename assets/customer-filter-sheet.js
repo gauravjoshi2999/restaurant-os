@@ -199,7 +199,7 @@
  overlay.addEventListener('click',event=>{
   const tab=event.target.closest('[data-filter-tab]');
   if(tab){changeTab(tab.dataset.filterTab);return;}
-  if(event.target.closest('#biteFilterFast')){draft.sort=draft.sort==='fast'?'recommended':'fast';renderPanel();return;}
+  if(event.target.closest('#biteFilterFast')){draft.sort=draft.sort==='fast'?'recommended':'fast';renderPanel();byId('biteFilterFast')?.focus({preventScroll:true});return;}
  });
  overlay.addEventListener('change',event=>{
   const input=event.target;
@@ -211,7 +211,7 @@
    if(group==='diet')draft.diet=valid(input.value,DIETS,'all');
    if(group==='service')draft.service=valid(input.value,SERVICES,'all');
   }
-  renderPanel();
+  updateCount();
  });
  overlay.addEventListener('keydown',event=>{
   if(event.key==='Escape'){event.preventDefault();close();return;}
