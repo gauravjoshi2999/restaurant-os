@@ -6,6 +6,9 @@
  let refundLoadToken=0,refundBusy=false,refundRows=[];
  const refundEvidence=new Map();
  const splitResults=new Map(),vendorComparisons=new Map(),vendorBankChecks=new Map(),vendorReconResults=new Map();
+ // Temporary only: a manual check's outcome, scoped to the same Super Admin
+ // and order. Never treat this as proof of a restaurant bank payout.
+ const collectionAttempts=new Map();
  // Candidate matching is deliberately ephemeral. It is NOT an approved
  // restaurant/vendor mapping and must never authorize transfers or paid labels.
  function compareVendorCandidate(value,split){
@@ -83,7 +86,7 @@
   byId('biteRefundReviewRows')?.replaceChildren();
   const refundCount=byId('biteRefundReviewCount');if(refundCount)refundCount.textContent='—';
   const refundStatus=byId('biteRefundReviewStatus');if(refundStatus)refundStatus.textContent='Sign in as Super Admin to review refund requests.';
-  loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();vendorReconResults.clear();
+  loadedOrders=[];lastChecks=[];collectionAttempts.clear();splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();vendorReconResults.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
   byId('bitePaymentMismatchRows')?.replaceChildren();
   const mismatch=byId('bitePaymentMismatchCount');if(mismatch)mismatch.textContent='—';
@@ -263,8 +266,17 @@
      }
     }
    }
+   const collectionCell=cell(row.verdict.collection);
+   const attempt=collectionAttempts.get(row.orderId);
+   if(attempt&&attempt.restaurantId===row.restaurantId){
+    const note=document.createElement('div');
+    note.className='bite-audit-check-result'+(attempt.error?' is-error':attempt.pending?' is-pending':'');
+    note.setAttribute('role','status');
+    note.textContent='Last manual check (this session): '+attempt.message;
+    collectionCell.append(note);
+   }
    tr.append(cell(row.orderCode+' · '+row.restaurantName),cell(validAmount(row.amount)?money(row.amount):'Unverified amount'),
-    cell(row.verdict.collection),cell(row.verdict.merchantSettlement),cell(payoutNote));
+    collectionCell,cell(row.verdict.merchantSettlement),cell(payoutNote));
    const action=cell('');
    const btn=document.createElement('button');
    btn.type='button';btn.className='btn secondary';btn.dataset.biteReconcileOrder=row.orderId;
@@ -322,8 +334,11 @@
   }
   byId('biteProviderAuditEmpty').hidden=loadedOrders.length>0;
  }
- async function load(){
+ async function load(keepPending=false){
   if(!authorized()){requestToken++;wipe();return false;}
+  // A manual page refresh cancels an in-flight display attempt.
+  if(!keepPending)for(const [id,attempt] of collectionAttempts)
+   if(attempt.pending)collectionAttempts.delete(id);
   const token=++requestToken,userId=deps.getUser().id;
   if(activeUser&&activeUser!==userId)wipe();
   // Refresh revokes any temporary vendor candidate evidence.
@@ -381,6 +396,8 @@
   if(!selected)return;
   const userId=deps.getUser().id,token=requestToken;
   let outcome=null;
+  collectionAttempts.set(orderId,{restaurantId:selected.restaurantId,pending:true,error:false,
+   message:'Checking Cashfree collection. No new payment, refund or transfer is being made.'});
   working=true;render();
   setStatus('Checking Cashfree collection and settlement evidence. No refund, transfer or new payment is being made.');
   try{
@@ -405,13 +422,19 @@
    if(token===requestToken&&authorized()&&deps.getUser()?.id===userId){
     // Refresh the read-only audit, then restore this attempt's result so an
     // Edge Function error is not hidden by the generic "Orders shown" status.
-    const refreshing=load(),refreshToken=requestToken;
+    const refreshing=load(true),refreshToken=requestToken;
     const refreshOk=await refreshing;
     if(refreshOk&&refreshToken===requestToken&&authorized()&&deps.getUser()?.id===userId&&outcome){
      const refreshed=loadedOrders.find(row=>row.orderId===orderId);
-     if(outcome.status==='PAID'&&!refreshed?.verdict.verifiedCollection){
-      setStatus('Cashfree reported PAID, but no matching provider-check audit record was saved for '+selected.orderCode+'. Collection is NOT independently verified in Bite. Do not mark settled or retry payment.',true);
-     }else setStatus(outcome.message,outcome.error);
+     const missingEvidence=outcome.status==='PAID'&&!refreshed?.verdict.verifiedCollection;
+     const message=missingEvidence?
+      'Cashfree reported PAID, but no matching provider-check audit record was saved for '+selected.orderCode+'. Collection is NOT independently verified in Bite. Do not mark settled or retry payment.':
+      outcome.message;
+     const error=missingEvidence||outcome.error;
+     // Show the result in the same order row as the button that was used.
+     collectionAttempts.set(orderId,{restaurantId:selected.restaurantId,pending:false,error,message});
+     render();
+     setStatus(message,error);
     }
    }
   }
