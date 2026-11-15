@@ -16,6 +16,8 @@
   if(!locationButton||!locationSheet||!closeButton||!savedList||!pinForm||!pinInput||!search||!suggestions)return;
   let focusBeforeSheet=null;
   let requestNumber=0;
+  let locationIntroTimer=null;
+  const locationIntroKey='bite_customer_location_intro_v1';
 
   function updateLocationLabel(pin){
     const target=byId('biteLocationTitle');
@@ -95,7 +97,10 @@
     }
   }
   // Invalidate pending address reads when the signed-in customer changes.
-  sb.auth.onAuthStateChange((event)=>{
+  sb.auth.onAuthStateChange((event,session)=>{
+    if((event==='SIGNED_IN'||event==='INITIAL_SESSION')&&session?.user&&!currentDiscoveryPin){
+      scheduleLocationIntroduction('no-pin');
+    }
     if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED'){
       ++requestNumber;
       if(!locationSheet.hidden){
@@ -116,6 +121,32 @@
     closeButton.focus({preventScroll:true});
     loadSavedAddresses();
   }
+  function scheduleLocationIntroduction(reason){
+    if(BITE_DIRECT_MODE||locationIntroTimer||!locationSheet.hidden)return;
+    try{if(sessionStorage.getItem(locationIntroKey)==='1')return;}catch{}
+    locationIntroTimer=setTimeout(async()=>{
+      locationIntroTimer=null;
+      if(!locationSheet.hidden||document.body.dataset.view!=='home'||BITE_DIRECT_MODE)return;
+      if(byId('authModal')?.classList.contains('show'))return;
+      if(byId('checkoutModal')?.classList.contains('show'))return;
+      try{
+        const result=await sb.auth.getSession();
+        if(!result.data?.session?.user?.id)return;
+      }catch{return;}
+      if(!locationSheet.hidden||document.body.dataset.view!=='home')return;
+      try{sessionStorage.setItem(locationIntroKey,'1');}catch{}
+      openLocation();
+      status.style.color='#385c4e';
+      status.textContent=reason==='no-service'
+        ?'Is PIN par delivery nahi mil rahi. Current location ya sahi 6-digit PIN chunein.'
+        :'Restaurants dekhne ke liye current location use karein ya apna delivery PIN chunein.';
+    },800);
+  }
+  window.BiteLocationExperience={
+    onDiscoveryUpdated({pin,hasDelivery,hasPickup}){
+      if(pin&&!hasDelivery&&hasPickup)scheduleLocationIntroduction('no-service');
+    }
+  };
   locationButton.addEventListener('click',openLocation);
   closeButton.addEventListener('click',closeLocation);
   locationSheet.addEventListener('click',event=>{if(event.target===locationSheet)closeLocation();});
@@ -133,8 +164,28 @@
   if(geoButton)geoButton.addEventListener('click',()=>{
     byId('customerUseLocation')?.click();
     status.style.color='#476956';
-    status.textContent='Location se nearby distance dikhega. Delivery availability ke liye PIN select karein.';
+    status.textContent='Browser se permission milne par nearby restaurants sort honge. Apna sahi delivery PIN confirm karein.';
   });
+  window.addEventListener('bite:location-detected',event=>{
+    if(locationSheet.hidden)openLocation();
+    const accuracy=Math.round(Number(event.detail?.accuracy)||0);
+    status.style.color='#385c4e';
+    status.textContent='Location mil gayi'+(accuracy?' (accuracy lagbhag '+accuracy+'m)':'')+'. Ab apna delivery PIN verify karein; GPS se postal code hamesha sahi nahi milta.';
+    const pin=/^\d{6}$/.test(String(currentDiscoveryPin||''))?currentDiscoveryPin:'';
+    if(pin)pinInput.value=pin;
+    pinInput.focus({preventScroll:true});
+  });
+  window.addEventListener('bite:location-unavailable',event=>{
+    if(locationSheet.hidden)return;
+    status.style.color='#b42332';
+    status.textContent=event.detail?.reason==='denied'
+      ?'Location permission denied. Aap 6-digit delivery PIN manually daal sakte hain.'
+      :'Location nahi mil paayi. Delivery PIN manually daalein.';
+  });
+  // Existing logged-in users may arrive via Google OAuth redirect before this file loads.
+  void sb.auth.getSession().then(({data})=>{
+    if(data?.session?.user&&!/^\d{6}$/.test(String(currentDiscoveryPin||'')))scheduleLocationIntroduction('no-pin');
+  }).catch(()=>{});
   updateLocationLabel(typeof currentDiscoveryPin==='string'?currentDiscoveryPin:'');
 
   /* Read the same public restaurant/menu collections already used by discovery. */

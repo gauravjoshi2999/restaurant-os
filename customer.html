@@ -332,6 +332,13 @@ async function loadRestaurants(){
   publicMenuSearch=nextMenuItems;
   window.biteStorefrontLoading=false;
   renderRestaurants();
+  if(!BITE_DIRECT_MODE){
+   window.BiteLocationExperience?.onDiscoveryUpdated?.({
+    pin,
+    hasDelivery:nextRestaurants.some(r=>r.serviceable===true&&r.accepts_delivery===true&&!r.delivery_paused),
+    hasPickup:nextRestaurants.some(r=>r.accepts_pickup===true)
+   });
+  }
   window.BiteCustomerExtras?.renderCategories();
   coverRefreshLastAt=Date.now();
   if(BITE_DIRECT_MODE){
@@ -347,7 +354,34 @@ async function loadRestaurants(){
  }
 }
 function customerDistanceKm(r){if(!customerGeo||r.latitude==null||r.longitude==null)return null;const rad=x=>x*Math.PI/180,dLat=rad(Number(r.latitude)-customerGeo.latitude),dLon=rad(Number(r.longitude)-customerGeo.longitude),a=Math.sin(dLat/2)**2+Math.cos(rad(customerGeo.latitude))*Math.cos(rad(Number(r.latitude)))*Math.sin(dLon/2)**2;return 6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
-function enableCustomerLocation(){const btn=$('customerUseLocation');if(!navigator.geolocation){$('customerLocationLabel').textContent='Location support available nahi';return}btn.disabled=true;btn.textContent='Location mil rahi hai...';navigator.geolocation.getCurrentPosition(pos=>{customerGeo={latitude:pos.coords.latitude,longitude:pos.coords.longitude};btn.disabled=false;btn.textContent='✓ Near me active';$('customerLocationLabel').textContent='Aapki location ke aas-paas ke restaurants';renderRestaurants()},err=>{btn.disabled=false;btn.textContent='📍 Near me';$('customerLocationLabel').textContent=err.code===1?'Location permission allow karein':'Location nahi mil paayi'}, {enableHighAccuracy:true,timeout:12000,maximumAge:120000})}
+function enableCustomerLocation(){
+ const btn=$('customerUseLocation');
+ if(!navigator.geolocation){
+  $('customerLocationLabel').textContent='Location support nahi hai. Delivery PIN manually chunein.';
+  window.dispatchEvent(new CustomEvent('bite:location-unavailable',{detail:{reason:'unsupported'}}));
+  return;
+ }
+ btn.disabled=true;btn.textContent='Finding location…';
+ navigator.geolocation.getCurrentPosition(pos=>{
+  const {latitude,longitude,accuracy}=pos.coords;
+  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)){
+   btn.disabled=false;btn.textContent='Near me';
+   window.dispatchEvent(new CustomEvent('bite:location-unavailable',{detail:{reason:'invalid'}}));
+   return;
+  }
+  customerGeo={latitude,longitude};
+  btn.disabled=false;btn.textContent='✓ Near me active';
+  $('customerLocationLabel').textContent='GPS located · Delivery PIN confirm karein';
+  // GPS controls ordering by proximity only. A reverse-geocoded postal code is not
+  // evidence of serviceability and must never replace a customer's confirmed PIN.
+  window.dispatchEvent(new CustomEvent('bite:location-detected',{detail:{accuracy:Math.round(Number(accuracy)||0)}}));
+  renderRestaurants();
+ },err=>{
+  btn.disabled=false;btn.textContent='Near me';
+  $('customerLocationLabel').textContent=err.code===1?'Location permission allow karein':'Location nahi mil paayi';
+  window.dispatchEvent(new CustomEvent('bite:location-unavailable',{detail:{reason:err.code===1?'denied':'unavailable'}}));
+ },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+}
 function discoveryEmptyMarkup(){
  const pin=currentDiscoveryPin,service=window.restaurantServiceFilter||'all';
  const hasDelivery=restaurants.some(r=>r.serviceable===true&&r.accepts_delivery===true&&!r.delivery_paused);
@@ -1111,8 +1145,18 @@ async function reverseGeocodeAddress(lat,lon){
     $('addressLandmark').value=a.amenity||a.shop||a.building||$('addressLandmark').value;
     $('addressCity').value=a.city||a.town||a.village||a.municipality||a.county||'';
     $('addressState').value=a.state||$('addressState').value||'Rajasthan';
-    $('addressPostal').value=a.postcode||'';
-    setAddressMapHint('Pin set ho gaya. Address details check karke zarurat ho to edit kar lein.');
+    // Map reverse-geocoding may return a nearby delivery office PIN instead of
+    // the exact customer's PIN (e.g. 313300 instead of their confirmed 313324).
+    const guessedPIN=/^\d{6}$/.test(String(a.postcode||''))?String(a.postcode):'';
+    const confirmedPIN=$('addressPostal').value.trim();
+    if(guessedPIN&&!confirmedPIN){
+      $('addressPostal').value=guessedPIN;
+      setAddressMapHint('Map ne PIN '+guessedPIN+' suggest kiya hai. Order se pehle apna sahi delivery PIN verify karein.',true);
+    }else if(guessedPIN&&confirmedPIN!==guessedPIN){
+      setAddressMapHint('Map ka suggested PIN '+guessedPIN+' hai; aapka PIN '+confirmedPIN+' nahi badla gaya. Delivery PIN confirm karein.',true);
+    }else{
+      setAddressMapHint('Location pin set hua. Delivery PIN check karke hi order karein.');
+    }
   }catch(e){if(token===addressLookupToken)setAddressMapHint('Pin save ho gaya, lekin address automatic nahi mil paaya. Neeche address manually bhar dein.',true);console.warn('Reverse geocoding:',e);}
 }
 function placeAddressPin(lat,lon,lookup=true){
