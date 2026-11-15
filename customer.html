@@ -13,7 +13,10 @@
 <link rel="stylesheet" href="assets/customer-account.css?v=20261109-deepqa">
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261110-mobile-menu-fix">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1"><link rel="stylesheet" href="assets/customer-premium.css?v=20261114-premium1"><link rel="stylesheet" href="assets/customer-history-premium.css?v=20261114-history1"><link rel="stylesheet" href="assets/customer-ui-cleanup.css?v=20261114-header1"><link rel="stylesheet" href="assets/customer-order-cards.css?v=20261114-ordercards1"><link rel="stylesheet" href="assets/customer-checkout-polish.css?v=20261114-checkout1"><link rel="stylesheet" href="assets/customer-menu-navigation.css?v=20261114-menujump1">
-<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"><link rel="stylesheet" href="assets/customer-min-order-quick-add.css?v=20261115-quickadd1"></head>
+<link rel="stylesheet" href="assets/customer-refund-tracker.css?v=20261115-compact2"><link rel="stylesheet" href="assets/customer-google-auth.css?v=20261115-google1"><link rel="stylesheet" href="assets/customer-min-order-quick-add.css?v=20261115-quickadd1"><style>
+#checkoutModal [aria-invalid="true"]{border-color:#c52f36!important;outline:2px solid rgba(197,47,54,.14);outline-offset:1px}
+.bite-checkout-field-issue{color:#b42318;font-size:12px;line-height:1.4;font-weight:650;margin:5px 0 10px}
+</style></head>
 <body data-bite-app="customer">
 <header class="header"><div class="wrap storefront-header"><a href="customer.html?v=20261114-header1" class="customer-brand bite-brand-refined" aria-label="Bite — Eat. Repeat. Home"><img src="assets/bite-premium-mark.svg?v=20261114-header1" alt="" class="bite-premium-icon" width="46" height="46"><span class="bite-brand-copy"><strong>Bite</strong><small>Eat. Repeat.</small></span></a><div class="header-location"><span class="location-pin" aria-hidden="true">⌖</span><div><span class="location-kicker">DELIVERING TO</span><button class="bite-location-opener" type="button" id="biteLocationOpen" aria-haspopup="dialog" aria-controls="biteLocationSheet" aria-label="Choose delivery PIN or saved address"><span id="biteLocationTitle">Choose PIN</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="location-sub" id="customerLocationLabel" role="status" aria-live="polite">Delivery &amp; pickup</span></div><button type="button" class="nearby-btn" id="customerUseLocation">Near me</button></div><div class="headright"><span class="muted" id="sessionLabel">Fresh food, made nearby.</span><button class="secondary hidden" id="myOrdersBtn">My Orders</button><button class="login" id="loginBtn">Login</button><button class="home-account" id="homeAccountBtn" aria-label="Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></svg></button></div></div></header><section class="hero hidden"><div class="wrap"><div class="eyebrow">Discover local food</div><h1>Good food. Great mood.</h1><p>Apne aas-paas ke restaurants se pasand ka khana order karein.</p><div class="search"><input id="searchInput" name="bite_food_restaurant_query" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Restaurant ya cuisine search karein..." aria-label="Search restaurants"><button id="searchBtn">Search</button></div></div></section>
 <main class="wrap content">
@@ -345,6 +348,7 @@ async function loadRestaurants(){
    document.title=restaurants[0].name+' | Order Online · Bite';
    await openRestaurant(BITE_DIRECT_RESTAURANT_ID);
   }
+  if(current()&&typeof biteRestoreCustomerAuthReturn==='function')await biteRestoreCustomerAuthReturn();
  }catch(error){
   if(!current())return;
   window.biteStorefrontLoading=false;
@@ -1005,7 +1009,57 @@ function handleCustomerGoogleRedirectError(){
   ?'Google Login cancel ho gaya. Aap email se bhi login kar sakte hain.'
   :'Google Login complete nahi hua. Google account ya Bite setup check karein; email login available hai.';
 }
-function showAuth(mode='login'){authMode=mode;$('authError').textContent='';$('authError').style.color='#b42318';$('authModal').classList.add('show');renderAuthMode();void checkCustomerGoogleProvider();$(mode==='recovery'?'customerPassword':'customerEmail').focus();}
+// Store only navigation (never credentials or payment data) for this tab's OAuth redirect.
+const BITE_AUTH_RETURN_KEY='bite_customer_auth_return_v1';
+let biteRestoringAuthReturn=false;
+function biteRememberCustomerAuthReturn(){
+ if(!activeRestaurant||document.body.dataset.view!=='menu')return;
+ const flow=resumeCheckoutAfterLogin?'checkout':$('cartModal').classList.contains('show')?'cart':'menu';
+ try{
+  sessionStorage.setItem(BITE_AUTH_RETURN_KEY,JSON.stringify({
+   restaurantId:activeRestaurant.id,flow,scrollY:window.scrollY||0,
+   search:$('menuSearchInput').value||'',category:activeMenuCategory,
+   vegOnly:$('menuVegToggle').checked===true,at:Date.now()
+  }));
+ }catch(error){console.warn('Login return position could not be saved',error);}
+}
+async function biteRestoreCustomerAuthReturn(){
+ if(!activeCustomerId||biteRestoringAuthReturn||window.biteStorefrontLoading)return false;
+ let context=null;
+ try{context=JSON.parse(sessionStorage.getItem(BITE_AUTH_RETURN_KEY)||'null');}catch{}
+ if(!context)return false;
+ if(!context.restaurantId||!Number.isFinite(context.at)||Date.now()-context.at>30*60*1000||
+    (BITE_DIRECT_MODE&&context.restaurantId!==BITE_DIRECT_RESTAURANT_ID)){
+  try{sessionStorage.removeItem(BITE_AUTH_RETURN_KEY);}catch{}
+  resumeCheckoutAfterLogin=false;return false;
+ }
+ if(!restaurants.some(r=>r.id===context.restaurantId))return false;
+ biteRestoringAuthReturn=true;
+ try{
+  sessionStorage.removeItem(BITE_AUTH_RETURN_KEY); // Claim once: auth callbacks can fire twice.
+  if(activeRestaurant?.id!==context.restaurantId||!menuItems.length)await openRestaurant(context.restaurantId);
+  if(activeRestaurant?.id!==context.restaurantId)return false;
+  $('menuSearchInput').value=String(context.search||'').slice(0,120);
+  $('menuVegToggle').checked=context.vegOnly===true;
+  renderMenuItems(typeof context.category==='string'?context.category:'all');
+  showCustomerView('menu');
+  if(context.flow==='checkout'&&cartEntries().length){
+   resumeCheckoutAfterLogin=false;
+   await openCheckout(); // Revalidates menu and server price; never auto-pays.
+  }else if(context.flow==='cart'&&cartEntries().length){
+   resumeCheckoutAfterLogin=false;openCartModal();
+  }else{
+   resumeCheckoutAfterLogin=false;
+   window.scrollTo({top:Math.max(0,Math.min(100000,Number(context.scrollY)||0)),behavior:'instant'});
+  }
+  return true;
+ }catch(error){
+  resumeCheckoutAfterLogin=false;
+  console.warn('Could not restore previous Bite screen after login',error);
+  return false;
+ }finally{biteRestoringAuthReturn=false;}
+}
+function showAuth(mode='login'){if(mode==='login'||mode==='signup')biteRememberCustomerAuthReturn();authMode=mode;$('authError').textContent='';$('authError').style.color='#b42318';$('authModal').classList.add('show');renderAuthMode();void checkCustomerGoogleProvider();$(mode==='recovery'?'customerPassword':'customerEmail').focus();}
 function hideAuth(){ $('authModal').classList.remove('show'); }
 function renderAuthMode(){
  const signup=authMode==='signup',recovery=authMode==='recovery',resetRequest=authMode==='reset-request';
@@ -1068,7 +1122,7 @@ function setCustomerSession(session){const user=session?.user;const nextUserId=u
   $('ordersList').innerHTML='<div class="empty">Log in to view your orders.</div>';
   $('ordersSubtitle').textContent='Your orders';
  }
- if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden')||!$('accountView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);}}
+ if(!user){activeCustomerId=null;favouriteRestaurantIds.clear();window.BiteCustomerExtras?.clearSensitiveState();$('sessionLabel').textContent='Fresh food, delivered by restaurants';$('loginBtn').textContent='Login';$('myOrdersBtn').classList.add('hidden');if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!$('ordersView').classList.contains('hidden')||!$('accountView').classList.contains('hidden'))showCustomerView('home');return;}const display=user.user_metadata?.full_name||user.email||'My Account';$('sessionLabel').textContent=display;$('loginBtn').textContent='Logout';$('myOrdersBtn').classList.remove('hidden');if(activeCustomerId!==user.id){activeCustomerId=user.id;setupOrderRealtime(user.id);window.BiteCustomerExtras?.loadFavourites();window.BiteCustomerExtras?.restorePendingCheckout(user.id);if(typeof biteRestoreCustomerAuthReturn==='function')void biteRestoreCustomerAuthReturn();}}
 async function sendCustomerPasswordResetLink(){
  const email=$('customerEmail').value.trim().toLowerCase();
  if(!email.includes('@')||email.startsWith('@')||!email.split('@')[1]?.includes('.')){
@@ -1127,7 +1181,7 @@ async function checkCustomerAuthConnection(){
   button.disabled=false;
  }
 }
-async function submitCustomerAuth(){if(authMode==='reset-request'){await sendCustomerPasswordResetLink();return;}const email=$('customerEmail').value.trim().toLowerCase(),password=$('customerPassword').value,name=$('customerName').value.trim(),signup=authMode==='signup',recovery=authMode==='recovery';if(!recovery&&(!email.includes('@')||email.startsWith('@')||!email.split('@')[1]?.includes('.'))){$('authError').textContent='Sahi email address dalein.';return;}if(password.length<8){$('authError').textContent='Password kam se kam 8 characters ka hona chahiye.';return;}if(signup&&!name){$('authError').textContent='Apna naam dalein.';return;}if(recovery&&password!==$('customerPasswordConfirm').value){$('authError').textContent='Dono password match nahi kar rahe.';return;}$('authSubmit').disabled=true;$('authSubmit').textContent=recovery?'Updating...':signup?'Creating...':'Logging in...';$('authError').textContent='';try{let result;if(recovery){result=await sb.auth.updateUser({password});if(result.error)throw result.error;authMode='login';$('customerPassword').value='';$('customerPasswordConfirm').value='';renderAuthMode();$('authError').style.color='#16845d';$('authError').textContent='Password successfully update ho gaya. Aap ab login kar sakte hain.';return;}if(signup){result=await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:window.location.origin+window.location.pathname+(BITE_DIRECT_MODE?window.location.search:'')}});if(result.error)throw result.error;if(!result.data.session){$('authError').style.color='#16845d';$('authError').textContent='Account ban gaya. Email inbox mein confirmation link check karein, phir Login karein.';return;}}else{result=await sb.auth.signInWithPassword({email,password});if(result.error)throw result.error;}const user=result.data.user;if(user&&name){const {error:profileError}=await sb.from('profiles').upsert({id:user.id,full_name:name},{onConflict:'id'});if(profileError)throw profileError;}setCustomerSession(result.data.session);hideAuth();if(!signup&&resumeCheckoutAfterLogin){resumeCheckoutAfterLogin=false;await openCheckout();}}catch(e){showCustomerAuthFailure(e);}finally{$('authSubmit').disabled=false;$('authSubmit').textContent=authMode==='recovery'?'Password update karein':authMode==='signup'?'Sign up':'Login';}}
+async function submitCustomerAuth(){if(authMode==='reset-request'){await sendCustomerPasswordResetLink();return;}const email=$('customerEmail').value.trim().toLowerCase(),password=$('customerPassword').value,name=$('customerName').value.trim(),signup=authMode==='signup',recovery=authMode==='recovery';if(!recovery&&(!email.includes('@')||email.startsWith('@')||!email.split('@')[1]?.includes('.'))){$('authError').textContent='Sahi email address dalein.';return;}if(password.length<8){$('authError').textContent='Password kam se kam 8 characters ka hona chahiye.';return;}if(signup&&!name){$('authError').textContent='Apna naam dalein.';return;}if(recovery&&password!==$('customerPasswordConfirm').value){$('authError').textContent='Dono password match nahi kar rahe.';return;}$('authSubmit').disabled=true;$('authSubmit').textContent=recovery?'Updating...':signup?'Creating...':'Logging in...';$('authError').textContent='';try{let result;if(recovery){result=await sb.auth.updateUser({password});if(result.error)throw result.error;authMode='login';$('customerPassword').value='';$('customerPasswordConfirm').value='';renderAuthMode();$('authError').style.color='#16845d';$('authError').textContent='Password successfully update ho gaya. Aap ab login kar sakte hain.';return;}if(signup){result=await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:window.location.origin+window.location.pathname+(BITE_DIRECT_MODE?window.location.search:'')}});if(result.error)throw result.error;if(!result.data.session){$('authError').style.color='#16845d';$('authError').textContent='Account ban gaya. Email inbox mein confirmation link check karein, phir Login karein.';return;}}else{result=await sb.auth.signInWithPassword({email,password});if(result.error)throw result.error;}const user=result.data.user;if(user&&name){const {error:profileError}=await sb.from('profiles').upsert({id:user.id,full_name:name},{onConflict:'id'});if(profileError)throw profileError;}setCustomerSession(result.data.session);hideAuth();await biteRestoreCustomerAuthReturn();}catch(e){showCustomerAuthFailure(e);}finally{$('authSubmit').disabled=false;$('authSubmit').textContent=authMode==='recovery'?'Password update karein':authMode==='signup'?'Sign up':'Login';}}
 $('loginBtn').addEventListener('click',async()=>{const {data}=await sb.auth.getSession();if(data.session){const {error}=await sb.auth.signOut();if(error){showAuth('login');$('authError').textContent=error.message;}else{setCustomerSession(null);hideAuth();}}else{showAuth('login');}});$('myOrdersBtn').addEventListener('click',async()=>{showCustomerView('orders');await loadMyOrders();window.scrollTo({top:0,behavior:'smooth'});});$('refreshOrdersBtn').addEventListener('click',loadMyOrders);$('ordersBackBtn').addEventListener('click',()=>showCustomerView('home'));$('closeAuth').addEventListener('click',hideAuth);$('authModal').addEventListener('click',e=>{if(e.target===$('authModal'))hideAuth();});$('authSubmit').addEventListener('click',submitCustomerAuth);$('googleAuthBtn').addEventListener('click',signInCustomerWithGoogle);$('authNetworkCheck').addEventListener('click',checkCustomerAuthConnection);$('forgotPasswordBtn').addEventListener('click',()=>showAuth('reset-request'));$('authBackToLogin').addEventListener('click',()=>showAuth('login'));$('authSwitch').addEventListener('click',()=>renderAuthModeFlip());function renderAuthModeFlip(){authMode=authMode==='login'?'signup':'login';renderAuthMode();}['customerEmail','customerPassword','customerName'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')submitCustomerAuth()}));sb.auth.onAuthStateChange((event,session)=>{setCustomerSession(session);if(event==='PASSWORD_RECOVERY'){showAuth('recovery');}});sb.auth.getSession().then(({data})=>setCustomerSession(data.session));handleCustomerGoogleRedirectError();let checkoutAddresses=[];
 function setAddressMapHint(message,isError=false){const el=$('addressMapHint');if(el){el.textContent=message;el.style.color=isError?'#b42318':'var(--muted)';}}
 async function reverseGeocodeAddress(lat,lon){
@@ -1432,6 +1486,30 @@ $('addAnotherAddress').addEventListener('click',()=>{if($('savedAddress').value=
 document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventListener('change',toggleCheckoutDelivery));
 $('addressPostal').addEventListener('input',refreshCheckoutZoneEstimate);
 // BITE CHECKOUT PAYMENT START
+function biteCheckoutFieldError(fieldId,message){
+ const error=new Error(message);error.checkoutField=fieldId;return error;
+}
+function biteClearCheckoutFieldIssue(){
+ $('biteCheckoutFieldIssue')?.remove?.();
+ document.querySelectorAll?.('#checkoutModal [aria-invalid="true"]').forEach(field=>{
+  field.removeAttribute?.('aria-invalid');
+  if(field.getAttribute?.('aria-describedby')==='biteCheckoutFieldIssue')field.removeAttribute('aria-describedby');
+ });
+}
+function biteHighlightCheckoutField(fieldId,message){
+ const field=$(fieldId);if(!field)return;
+ biteClearCheckoutFieldIssue();
+ field.setAttribute('aria-invalid','true');
+ if(typeof document.createElement==='function'&&typeof field.insertAdjacentElement==='function'){
+  const notice=document.createElement('p');
+  notice.id='biteCheckoutFieldIssue';notice.className='bite-checkout-field-issue';
+  notice.setAttribute('role','alert');notice.textContent=message;
+  field.insertAdjacentElement('afterend',notice);
+  field.setAttribute('aria-describedby',notice.id);
+ }
+ field.scrollIntoView?.({behavior:'smooth',block:'center',inline:'nearest'});
+ field.focus?.({preventScroll:true});
+}
 let checkoutPaymentReady=false,checkoutPaymentBusy=false,pendingLiveCheckout=null;
 let bitePaymentAccountSequence=0;
 function bitePaymentContextCurrent(sequence,intentId){
@@ -1752,10 +1830,17 @@ async function submitCustomerOrder(){
    return;
   }
   const name=$('checkoutName').value.trim(),phone=$('checkoutPhone').value.trim(),digits=phone.replace(/[^0-9]/g,''),mode=checkoutMode();
-  if(name.length<2)throw new Error('Apna poora naam dalein.');
-  if(digits.length<10||digits.length>15)throw new Error('Sahi mobile number dalein (10 se 15 digits).');
-  if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw new Error('Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
-  if(mode==='delivery'&&$('savedAddress').value==='new'&&(!$('addressLine').value.trim()||!$('addressCity').value.trim()||!$('addressState').value.trim()))throw new Error('Delivery ke liye address, city aur state zaroori hain.');
+  if(name.length<2)throw biteCheckoutFieldError('checkoutName','Apna poora naam dalein.');
+  if(digits.length<10||digits.length>15)throw biteCheckoutFieldError('checkoutPhone','Sahi mobile number dalein (10 se 15 digits).');
+  if(BITE_SANDBOX_CHECKOUT&&mode==='delivery'&&$('savedAddress').value==='new')throw biteCheckoutFieldError('savedAddress','Sandbox delivery ke liye saved address chunein ya Self pickup karein. Test se address book nahi badlegi.');
+  if(mode==='delivery'){
+   if($('savedAddress').value==='new'){
+    if(!$('addressLine').value.trim())throw biteCheckoutFieldError('addressLine','Delivery address dalein.');
+    if(!$('addressCity').value.trim())throw biteCheckoutFieldError('addressCity','City dalein.');
+    if(!$('addressState').value.trim())throw biteCheckoutFieldError('addressState','State dalein.');
+   }
+   if(!/^[0-9]{6}$/.test($('addressPostal').value.trim()))throw biteCheckoutFieldError('addressPostal','Delivery ke liye valid 6-digit PIN code enter karein.');
+  }
   const entries=cartEntries();if(!entries.length)throw new Error('Cart khaali hai.');
   const instructions=cartInstructionSnapshot();
   if(instructions.tooLong)throw new Error('Cooking requests 500 characters se zyada hain. Cart mein notes chhote karein.');
@@ -1812,7 +1897,11 @@ async function submitCustomerOrder(){
    if(error?.code==='BITE_MINIMUM_ORDER'){
     $('checkoutError').textContent='';
     window.BiteMinOrderQuickAdd?.open(error,{focus:true});
-   }else $('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';
+   }else{
+    $('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';
+    const invalidField=error.checkoutField||(/PIN code|selected PIN|delivery nahi karta/i.test(error.message||'')?'addressPostal':null);
+     if(invalidField)biteHighlightCheckoutField(invalidField,error.message);
+   }
   }
  }
  finally{if(accountSequence===bitePaymentAccountSequence){checkoutPaymentBusy=false;syncCheckoutPaymentButton();}}
@@ -1970,7 +2059,7 @@ $('cartCheckoutBtn').addEventListener('click',async()=>{
  }
  }finally{biteCartCheckoutOpening=false;}
 });
-function closeCheckoutAndReturnToMenu(){++biteCheckoutOpenSequence;window.BiteMinOrderQuickAdd?.hide();if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
+function closeCheckoutAndReturnToMenu(){biteClearCheckoutFieldIssue();++biteCheckoutOpenSequence;window.BiteMinOrderQuickAdd?.hide();if(BITE_SANDBOX_CHECKOUT)window.BiteCheckoutUX.sandboxPending=null;window.BiteCheckoutUX?.resetResult?.();const modal=$('checkoutModal');modal.classList.remove('show');modal.classList.add('hidden');$('checkoutError').textContent='';if(activeRestaurant){showCustomerView('menu');}else{showCustomerView('home');}/* Preserve the customer's previous menu scroll position. */}
 $('checkoutEditItems').addEventListener('click',()=>{
  if(checkoutPaymentBusy){
   $('checkoutError').textContent='Payment is opening. Check its status before editing the cart.';
@@ -1983,7 +2072,9 @@ $('checkoutEditItems').addEventListener('click',()=>{
 $('closeCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('cancelCheckout').addEventListener('click',closeCheckoutAndReturnToMenu);
 $('checkoutModal').addEventListener('click',e=>{if(e.target===$('checkoutModal'))closeCheckoutAndReturnToMenu();});
-$('placeOrderBtn').addEventListener('click',submitCustomerOrder);
+$('placeOrderBtn').addEventListener('click',()=>{biteClearCheckoutFieldIssue();submitCustomerOrder();});
+$('checkoutModal').addEventListener('input',e=>{if(e.target?.getAttribute?.('aria-invalid')==='true')biteClearCheckoutFieldIssue();});
+$('checkoutModal').addEventListener('change',e=>{if(e.target?.getAttribute?.('aria-invalid')==='true')biteClearCheckoutFieldIssue();});
 $('quickCancelCheckout').addEventListener('click',()=>cancelPendingCustomerCheckout({startFresh:true}));
 $('bitePendingCheck').addEventListener('click',checkPendingCustomerPayment);
 $('bitePendingStartFresh').addEventListener('click',startNewOrderFromPending);
