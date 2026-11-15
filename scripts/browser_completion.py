@@ -392,9 +392,13 @@ try:
   check(order_card.locator('.orderactions > button').count()==2
     and order_card.locator('.order-badges .order-mode').is_visible(),
     'Order History shows two primary actions plus real status and fulfilment badges')
-  check(order_card.locator('.order-more summary').is_visible()
+  check(order_card.locator('.order-more summary').is_hidden()
     and order_card.locator('[data-invoice]').is_hidden(),
-    'Secondary order actions are available through a collapsed accessible disclosure')
+    'Bill and support stay out of the compact order list until details are opened')
+  order_card.locator('[data-order-detail]').click()
+  check(order_card.locator('.order-more summary').is_visible()
+    and order_card.locator('[data-order-detail]').get_attribute('aria-expanded')=='true',
+    'Order details expands in place without navigating or reloading the list')
   order_card.locator('.order-more summary').click()
   check(order_card.locator('[data-invoice]').is_visible()
     and order_card.locator('.order-more').get_attribute('open') is not None,
