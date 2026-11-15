@@ -12,17 +12,17 @@
   const status=String(refund?.status||'');
   const provider=String(refund?.provider_status||'').toUpperCase();
   const confirmed=!!refund?.provider_checked_at;
-  const cancelled=['Cancelled','Rejected'].includes(order?.status);
-  if(unavailable)return {kind:'unknown',title:'Checking refund status',note:'Please try again shortly.',stage:0};
+  // An order's amount or Cancelled status is not proof of payment or a refund.
+  // Only server-created refund jobs justify a refund claim. A cancellation
+  // request can still be reported independently, without refund wording.
   if(!refund){
    if(cancellation?.status==='Pending')return {kind:'waiting',title:'Cancellation requested',
     note:'Waiting for the restaurant to respond.',stage:0,requestOnly:true};
    if(cancellation?.status==='Rejected')return {kind:'failed',title:'Cancellation declined',
     note:'The restaurant did not approve the request.',stage:0,requestOnly:true};
-   if(cancelled)return {kind:'unknown',title:'Refund update pending',
-    note:'We’re checking your refund details.',stage:0};
    return null;
   }
+  if(unavailable)return {kind:'unknown',title:'Checking refund status',note:'Please try again shortly.',stage:0};
   if(status==='pending_approval')return {kind:'waiting',title:'Refund under review',
    note:'We’ve received your refund request.',stage:0};
   if(status==='approved')return {kind:'waiting',title:'Refund approved',
@@ -56,7 +56,9 @@
  function details(order,refund,cancellation,unavailable=false){
   const info=classify(order,refund,cancellation,unavailable);
   if(!info)return '';
-  const amount=refund&&Number.isFinite(Number(refund.amount))?money(refund.amount):money(order?.amount);
+  // Never display the order price as a refund amount.
+  if(!refund||info.requestOnly)return '';
+  const amount=Number.isFinite(Number(refund.amount))&&Number(refund.amount)>0?money(refund.amount):'';
   const provider=String(refund?.provider_status||'').toUpperCase();
   const checked=!!refund?.provider_checked_at;
   const initiated=checked&&['PENDING','PENDING_APPROVAL','ONHOLD','SUCCESS'].includes(provider)&&
@@ -90,7 +92,7 @@
    '</div></details>');
   return '<section class="bite-refund-details" aria-label="Refund tracking">'+
    '<div class="bite-refund-details-head"><div><span class="bite-refund-eyebrow">REFUND STATUS</span>'+
-   '<strong>'+esc(info.title)+'</strong></div><strong class="bite-refund-amount">'+esc(amount)+'</strong></div>'+
+   '<strong>'+esc(info.title)+'</strong></div>'+(amount?'<strong class="bite-refund-amount">'+esc(amount)+'</strong>':'')+'</div>'+
    '<p class="bite-refund-details-note">'+esc(info.note)+'</p>'+
    '<ol class="bite-refund-steps" aria-label="Refund progress">'+stepMarkup+'</ol>'+
    '<p class="bite-refund-eta">'+esc(expected)+'</p>'+
