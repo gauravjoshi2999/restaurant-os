@@ -1,0 +1,99 @@
+/* Bite original restaurant information and category navigation enhancements. */
+body[data-bite-app="customer"] .bite-restaurant-facts[hidden],
+body[data-bite-app="customer"] .bite-restaurant-facts [hidden],
+body[data-bite-app="customer"] .bite-floating-menu[hidden],
+body[data-bite-app="customer"] .bite-menu-jump-backdrop[hidden]{display:none!important}
+body[data-bite-app="customer"] .bite-restaurant-facts{
+ margin:11px 0 18px;padding:13px 14px;background:#fff;
+ border:1px solid #e1ebe3;border-radius:16px;
+ box-shadow:0 3px 18px #183d2310;
+}
+body[data-bite-app="customer"] .bite-restaurant-facts-chips{
+ display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+}
+body[data-bite-app="customer"] .bite-restaurant-fact{
+ display:inline-flex;align-items:center;min-height:34px;
+ padding:7px 10px;border:1px solid #e4eee6;border-radius:999px;
+ color:#506955;background:#f7faf7;font-size:12px;font-weight:750;line-height:1.4;
+}
+body[data-bite-app="customer"] .bite-restaurant-vegetarian{
+ color:#087b4d;background:#edf9f0;border-color:#bfe3ca;
+}
+body[data-bite-app="customer"] .bite-restaurant-closing{
+ background:#fff7dc;border:1px solid #f2dfaa;color:#755715;
+ border-radius:12px;padding:11px 13px;margin-top:10px;
+ font-weight:760;font-size:13px;line-height:1.45;
+}
+body[data-bite-app="customer"] .bite-restaurant-delivery-info{
+ margin:10px 0 0;padding:8px 3px 2px;
+ color:#486553;font-size:12px;line-height:1.55;font-weight:680;
+}
+body[data-bite-app="customer"] .bite-restaurant-facts-chips[hidden]+.bite-restaurant-closing{margin-top:0}
+body[data-bite-app="customer"] .bite-floating-menu{
+ position:fixed;right:18px;bottom:calc(98px + env(safe-area-inset-bottom));
+ z-index:99;min-width:104px;min-height:49px;padding:11px 17px;
+ background:#25362e;color:#fff;border:1px solid #25362e;
+ border-radius:15px;box-shadow:0 9px 28px #1e332e40;
+ font-size:14px;font-weight:850;line-height:1.2;letter-spacing:.01em;
+}
+body[data-bite-app="customer"] .bite-floating-menu:hover{background:#12241b}
+body[data-bite-app="customer"]:has(#cartFloating.show) .bite-floating-menu{
+ bottom:calc(138px + env(safe-area-inset-bottom));
+}
+body[data-bite-app="customer"].bite-menu-jump-open{overflow:hidden}
+body[data-bite-app="customer"] .bite-menu-jump-backdrop{
+ position:fixed;inset:0;z-index:11500;display:flex;
+ background:#11231a99;align-items:flex-end;justify-content:center;
+}
+body[data-bite-app="customer"] .bite-menu-jump-sheet{
+ width:min(100%,560px);max-height:80dvh;overflow:auto;
+ border-radius:24px 24px 0 0;padding:12px 18px max(22px,env(safe-area-inset-bottom));
+ box-shadow:0 -15px 30px #1c302e22;background:#fff;color:#213a2c;
+}
+body[data-bite-app="customer"] .bite-menu-jump-grip{
+ display:block;width:44px;height:4px;background:#d6e2d9;border-radius:999px;
+ margin:3px auto 16px;
+}
+body[data-bite-app="customer"] .bite-menu-jump-head{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+body[data-bite-app="customer"] #biteMenuJumpHeading{
+ margin:0;color:#173a28;font-size:23px;letter-spacing:-.035em;font-weight:850;
+}
+body[data-bite-app="customer"] #biteMenuJumpClose{
+ border:1px solid #e0e9e2;background:#f9fbf9;color:#284c37;
+ font-size:25px;width:44px;height:44px;border-radius:13px;
+}
+body[data-bite-app="customer"] .bite-menu-jump-help{
+ margin:7px 0 15px;color:#728375;font-size:12px;line-height:1.5;
+}
+body[data-bite-app="customer"] .bite-menu-jump-options{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+body[data-bite-app="customer"] .bite-menu-jump-option{
+ display:flex;align-items:center;justify-content:center;text-align:center;
+ min-height:49px;min-width:0;padding:11px 12px;
+ border:1px solid #e1ebe4;border-radius:12px;background:#f9fbfa;
+ color:#355241;font-size:13px;font-weight:760;overflow-wrap:anywhere;
+}
+body[data-bite-app="customer"] .bite-menu-jump-option.is-active{
+ border-color:#7ec49a;color:#087b4d;background:#ecf9f0;
+}
+body[data-bite-app="customer"] .bite-menu-jump-option:focus-visible,
+body[data-bite-app="customer"] .bite-floating-menu:focus-visible{
+ outline:3px solid #76cda0;outline-offset:2px;
+}
+@media(max-width:600px){
+ body[data-bite-app="customer"] .bite-restaurant-facts{padding:12px;margin:8px 0 14px}
+ body[data-bite-app="customer"] .bite-restaurant-fact{min-height:32px;font-size:11px}
+ body[data-bite-app="customer"] .bite-restaurant-closing{font-size:12px}
+ body[data-bite-app="customer"] .bite-floating-menu{right:12px;bottom:calc(88px + env(safe-area-inset-bottom))}
+ body[data-bite-app="customer"]:has(#cartFloating.show) .bite-floating-menu{
+  bottom:calc(143px + env(safe-area-inset-bottom));
+ }
+ body[data-bite-app="customer"] .bite-menu-jump-sheet{padding:10px 14px max(18px,env(safe-area-inset-bottom))}
+}
+@media(max-width:350px){
+ body[data-bite-app="customer"] .bite-menu-jump-options{grid-template-columns:1fr}
+ body[data-bite-app="customer"] .bite-floating-menu{right:9px}
+}
