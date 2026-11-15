@@ -332,6 +332,13 @@ async function loadRestaurants(){
   publicMenuSearch=nextMenuItems;
   window.biteStorefrontLoading=false;
   renderRestaurants();
+  if(!BITE_DIRECT_MODE){
+   window.BiteLocationExperience?.onDiscoveryUpdated?.({
+    pin,
+    hasDelivery:nextRestaurants.some(r=>r.serviceable===true&&r.accepts_delivery===true&&!r.delivery_paused),
+    hasPickup:nextRestaurants.some(r=>r.accepts_pickup===true)
+   });
+  }
   window.BiteCustomerExtras?.renderCategories();
   coverRefreshLastAt=Date.now();
   if(BITE_DIRECT_MODE){
