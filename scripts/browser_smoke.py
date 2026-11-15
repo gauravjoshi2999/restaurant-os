@@ -156,6 +156,71 @@ def check_account_layout(page, width):
       document.getElementById('accountAddresses').textContent='No saved address yet.';
     }""")
 
+
+def check_scheduled_picker_no_charge(page):
+    """Owner opt-in simulated in browser memory only. Never calls auth, RPC or Cashfree."""
+    check(page.evaluate("() => typeof BiteSchedule !== 'undefined' && typeof activeRestaurant !== 'undefined' && !!activeRestaurant"),
+          "Scheduled picker modules are present on public menu")
+    page.evaluate("""() => {
+        const modal=document.getElementById('checkoutModal');
+        const panel=document.getElementById('checkoutFormPanel');
+        if(!modal || !panel || !activeRestaurant)throw new Error('Missing menu / checkout mount');
+        window.__qaScheduleOriginal=activeRestaurant;
+        window.__qaScheduleModalClass=modal.className;
+        window.__qaSchedulePanelClass=panel.className;
+        window.__qaScheduleDeliveryMode=document.querySelector('input[name="deliveryMode"]:checked')?.value||'delivery';
+        activeRestaurant={...activeRestaurant,
+          accepts_scheduled_delivery:true,accepts_delivery:true,delivery_paused:false,
+          is_temporarily_closed:false,temporary_closure_until:null,
+          scheduled_lead_minutes:90,scheduled_horizon_days:3,
+          opening_time:'10:00:00',closing_time:'23:00:00'};
+        document.querySelector('input[name="deliveryMode"][value="delivery"]').checked=true;
+        modal.classList.remove('hidden');modal.classList.add('show');
+        panel.classList.remove('hidden');
+        BiteSchedule.sync();
+    }""")
+    try:
+        check(page.locator('#biteDeliverySchedule').is_visible(), 'Schedule controls display for opted-in delivery restaurant')
+        check(page.locator('#biteSchedulePick').is_visible(), 'Preferred date/time selection is accessible')
+        page.locator('#biteSchedulePick').click()
+        check(page.locator('#biteScheduleOverlay [role="dialog"]').is_visible(),
+              'Preferred-time picker opens as accessible bottom sheet')
+        check(page.locator('#biteScheduleDays [role="tab"]').count() >= 1,
+              'Date tabs derive from actual scheduling horizon')
+        count=page.locator('#biteScheduleSlots button[data-bite-slot]').count()
+        check(count>0, 'Available 30-minute slots appear from published hours')
+        page.locator('#biteScheduleSlots button[data-bite-slot]').first.click()
+        check(page.locator('#biteScheduleConfirm').is_enabled(), 'Confirm becomes active only after slot selection')
+        page.locator('#biteScheduleConfirm').click()
+        check(page.evaluate("() => !!BiteSchedule.getSelectedFor(activeRestaurant.id)"),
+              'Chosen preferred slot is retained in checkout without creating payment')
+        check('Subject to restaurant acceptance' in page.locator('#biteScheduleSelection').inner_text(),
+              'Selected time is clearly labelled preferred, not guaranteed')
+        page.evaluate("""() => {
+           activeRestaurant.is_temporarily_closed=true;
+           activeRestaurant.temporary_closure_until=new Date(Date.now()+60*60000).toISOString();
+           BiteSchedule.sync();
+        }""")
+        check(page.locator('#biteScheduleAsap').is_disabled(),
+              'ASAP is disabled while restaurant is currently closed')
+        check(page.evaluate("() => !!BiteSchedule.getSelectedFor(activeRestaurant.id)"),
+              'Future selected slot remains available when temporary closure ends before slot')
+    finally:
+        page.evaluate("""() => {
+            if(window.BiteSchedule?.closeJump)window.BiteSchedule.closeJump();
+            if(window.__qaScheduleOriginal)activeRestaurant=window.__qaScheduleOriginal;
+            const modal=document.getElementById('checkoutModal');
+            const panel=document.getElementById('checkoutFormPanel');
+            if(modal && window.__qaScheduleModalClass!==undefined)modal.className=window.__qaScheduleModalClass;
+            if(panel && window.__qaSchedulePanelClass!==undefined)panel.className=window.__qaSchedulePanelClass;
+            const radio=document.querySelector('input[name="deliveryMode"][value="'+(window.__qaScheduleDeliveryMode||'delivery')+'"]');
+            if(radio)radio.checked=true;
+            window.BiteSchedule?.reset?.();
+            document.body.classList.remove('bite-schedule-open');
+            document.getElementById('biteScheduleOverlay')?.setAttribute('hidden','');
+            delete window.__qaScheduleOriginal;
+        }""")
+
 try:
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -229,6 +294,7 @@ try:
                cards: document.querySelectorAll('#menuItems .menuitem').length
             })"""))
             raise
+        check_scheduled_picker_no_charge(page)
         page.locator('#menuSearchInput').fill('BITE-NO-DISH-ZZ-123')
         page.locator('#menuItems .food-empty').wait_for(state='visible', timeout=4000)
         check(page.locator('#menuItems .menuitem').count() == 0, 'Menu search filters actual dishes after the short typing debounce')
