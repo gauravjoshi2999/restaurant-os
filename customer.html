@@ -1053,8 +1053,8 @@ async function biteOpenFullOrderDetails(orderId){
   if(current())$('biteDetailPageContent').innerHTML='<div class="bite-detail-page-error"><strong>Order details could not be loaded.</strong><p>'+safe(error.message||'Please try again.')+'</p><button type="button" id="biteDetailRetry">Try again</button></div>';
  }
 }
-$('biteDetailBack').addEventListener('click',biteLeaveFullOrderDetails);
-$('biteDetailPageContent').addEventListener('click',async event=>{
+$('biteDetailBack')?.addEventListener?.('click',biteLeaveFullOrderDetails);
+$('biteDetailPageContent')?.addEventListener?.('click',async event=>{
  const bill=event.target.closest('[data-bite-detail-invoice]');
  const copy=event.target.closest('[data-bite-copy-order]');
  const retry=event.target.closest('#biteDetailRetry');
@@ -1073,7 +1073,7 @@ $('biteDetailPageContent').addEventListener('click',async event=>{
   finally{button.disabled=false;}
  }
 });
-$('biteDetailSupport').addEventListener('click',async()=>{
+$('biteDetailSupport')?.addEventListener?.('click',async()=>{
  if(!biteFullOrderId||!activeCustomerId)return;
  const selectedId=biteFullOrderId,accountId=activeCustomerId;
  const form=await openOrderActionDialog('complaint');
