@@ -2027,7 +2027,7 @@ async function submitCustomerOrder(){
  checkoutPaymentBusy=true;syncCheckoutPaymentButton();$('checkoutError').textContent='';
  try{
   if(pendingLiveCheckout){if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');await continueLiveCheckout();return;}
-  if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&
+  if(activeRestaurant&&window.BiteDiscovery?.isClosed?.(activeRestaurant)===true&&
      !window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id)){
    throw new Error('Restaurant abhi closed hai. Pay karne se pahle Schedule se future delivery time choose karein.');
   }
