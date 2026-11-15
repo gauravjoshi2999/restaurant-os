@@ -1382,6 +1382,7 @@ async function refreshCheckoutZoneEstimate(){
   const minimum=Number(activeRestaurant?.minimum_order_amount||0);
   const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
   if(subtotal<minimum)window.BiteMinOrderQuickAdd?.open(checkoutMinimumError(minimum,subtotal));
+  else if(window.BiteMinOrderQuickAdd?.isVisible?.())window.BiteMinOrderQuickAdd.render();
   else window.BiteMinOrderQuickAdd?.hide();
   return;
  }
@@ -1394,7 +1395,8 @@ async function refreshCheckoutZoneEstimate(){
   const zone=await getCheckoutDeliveryZone();if(!stillCurrent())return;
   renderCheckoutSummary(zone.delivery_fee);
   $('checkoutError').textContent='Delivery area: '+zone.zone_name+' • Fee '+money(zone.delivery_fee);
-  window.BiteMinOrderQuickAdd?.hide();
+  if(window.BiteMinOrderQuickAdd?.isVisible?.())window.BiteMinOrderQuickAdd.render();
+  else window.BiteMinOrderQuickAdd?.hide();
  }catch(e){
   if(!stillCurrent())return;
   renderCheckoutSummary(e?.zone?.delivery_fee ?? activeRestaurant?.default_delivery_fee ?? 0);
@@ -1764,9 +1766,11 @@ async function submitCustomerOrder(){
   }
   if(mode==='delivery')await getCheckoutDeliveryZone();
   else{
-   const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
    const minimum=Number(activeRestaurant?.minimum_order_amount||0);
-   if(subtotal<minimum)throw checkoutMinimumError(minimum,subtotal);
+   if(minimum>0){
+    const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
+    if(subtotal<minimum)throw checkoutMinimumError(minimum,subtotal);
+   }
   }
   if(accountSequence!==bitePaymentAccountSequence)return;
   const {data:sessionData}=await sb.auth.getSession();if(accountSequence!==bitePaymentAccountSequence)return;if(!sessionData.session)throw new Error('Please login again.');
