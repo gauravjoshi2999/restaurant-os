@@ -17,7 +17,7 @@
  }
  function filterOptions(input,extras={}){
   const s=normalized(input);
-  return {query:extras.query||'',category:s.category,service:s.service,
+  return {query:extras.query||'',category:s.category,service:s.scheduleOnly?'delivery':s.service,
    fast:s.sort==='fast',geo:extras.geo||null,pin:extras.pin||'',
    openNow:s.openNow,scheduledOnly:s.scheduleOnly,favourites:s.favourites?(extras.favouriteIds||new Set()):null,
    diet:s.diet,minRating:Number(s.rating),
