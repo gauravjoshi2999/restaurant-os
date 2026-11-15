@@ -1,0 +1,20 @@
+/* Low-noise, full-width checkout preference; native checkbox remains accessible. */
+body[data-bite-app="customer"] .bite-cutlery-choice{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ box-sizing:border-box;margin:13px 0 15px;padding:13px 14px;
+ border:1px solid #dce9df;border-radius:14px;background:#f7faf7;
+ cursor:pointer;min-height:66px
+}
+body[data-bite-app="customer"] .bite-cutlery-choice span{display:block;min-width:0}
+body[data-bite-app="customer"] .bite-cutlery-choice strong{
+ display:block;color:#1c4230;font-size:14px;font-weight:800;line-height:1.35
+}
+body[data-bite-app="customer"] .bite-cutlery-choice small{
+ display:block;color:#62786a;font-size:11px;line-height:1.5;margin-top:4px
+}
+body[data-bite-app="customer"] .bite-cutlery-choice input{
+ width:20px;height:20px;flex:none;accent-color:#087b4d;cursor:pointer
+}
+body[data-bite-app="customer"] .bite-cutlery-choice:focus-within{
+ outline:2px solid #087b4d;outline-offset:2px
+}
