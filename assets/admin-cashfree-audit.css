@@ -28,3 +28,16 @@
 #financials #biteProviderAuditRows td:last-child label{display:block;font-size:12px;font-weight:650;margin:10px 0 5px;line-height:1.4}
 #financials #biteProviderAuditRows td:last-child input{display:block;box-sizing:border-box;max-width:100%;min-width:140px;min-height:42px;margin-top:5px;padding:9px 10px;border:1px solid #c5ccd2;border-radius:8px;background:#fff;color:#18232d}
 #financials #biteProviderAuditRows td:last-child input:focus-visible{outline:3px solid #166b4d;outline-offset:2px}
+
+/* Show manual provider results alongside their own order, not only at page top. */
+#financials #biteProviderAuditRows .bite-audit-check-result{
+ margin-top:7px;padding:7px 9px;border-left:3px solid #548776;border-radius:4px;
+ background:#f4f8f6;color:#224f43;font-size:12px;line-height:1.5;
+ overflow-wrap:anywhere;max-width:230px
+}
+#financials #biteProviderAuditRows .bite-audit-check-result.is-error{
+ border-left-color:#b5473a;background:#fff7f5;color:#98382d
+}
+#financials #biteProviderAuditRows .bite-audit-check-result.is-pending{
+ border-left-color:#7a8694;background:#f3f5f7;color:#4c5968
+}
