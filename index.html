@@ -1337,7 +1337,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
 <script src="assets/owner-orders-workspace.js?v=20261115-queue2"></script>
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
-<script src="assets/owner-order-burst.js?v=20261115-burst1"></script>
+<script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-menu-options.js?v=20261113-size1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -1410,7 +1410,7 @@ function applyRoleUI(){const role=access.role;const appScope=new URLSearchParams
 async function logout(){
  stopOwnerCancellationAlerts();
  if(orderRefreshTimer){clearTimeout(orderRefreshTimer);orderRefreshTimer=null;}
- ownerOrderBurstTracker.reset();ownerOrderRefreshRequestedWhileLoading=false;ownerOrderRefreshRetries=0;
+ ownerOrderBurstTracker.reset();ownerOrderRefreshRequestedWhileLoading=false;ownerOrderRefreshRetries=0;ownerRealtimeDisconnected=false;
  ownerPushHealthRequest++;ownerPushHealthBusy=false;const pushHealthButton=document.getElementById('ownerPushHealthButton');if(pushHealthButton)pushHealthButton.disabled=false;const ph=document.getElementById('ownerPushHealthResult');if(ph)ph.textContent='Phone push status not checked yet.';
  // Revoke local FCM token even if the network is offline, so a logged-out
  // Partner APK cannot keep showing restaurant order notifications.
@@ -1426,7 +1426,7 @@ async function logout(){
  catch(err){console.warn('Push disable unavailable',err)}
  ownerPushToken=null;ownerPushRestaurantId=null;lastOwnerPushSync=0;
  if(orderRealtimeChannel){await sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}if(orderAudioContext){await orderAudioContext.close();orderAudioContext=null}orderAlertsEnabled=false;await sb.auth.signOut();currentUser=null;state={restaurants:[],orders:[]};access={isPlatformAdmin:false,role:null,memberships:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';document.getElementById('authPassword').value='';setAuthMode(false)}
-async function loadCloudData(){try{const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();render();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err)}}
+async function loadCloudData(options={}){try{const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();render();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){if(!options.silent)alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err);if(options.throwOnError)throw err}}
 
 let expenseRecords=[], editingExpenseId=null;
 function localDateInput(){return BiteOwner.day()}
@@ -3637,11 +3637,16 @@ async function refreshOwnerOrderSnapshot(){
  ownerOrderRefreshActive=true;
  const userId=currentUser?.id,restaurantId=access.restaurantId;
  try{
-  await loadCloudData();
-  if(userId===currentUser?.id&&restaurantId===access.restaurantId&&access.role==='owner')
-   announceOwnerOrderBurst(ownerOrderBurstTracker.take(state.orders,restaurantId));
+  const before=state.orders.slice();
+  // A failed fetch must not consume pending order IDs or reuse stale payment evidence.
+  await loadCloudData({silent:true,throwOnError:true});
+  if(userId===currentUser?.id&&restaurantId===access.restaurantId&&access.role==='owner'){
+   const paid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
+   announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(
+    before,state.orders,restaurantId,order=>paid.has(String(order.id))));
+  }
   if(!ownerOrderBurstTracker.pendingCount())ownerOrderRefreshRetries=0;
- }catch(error){console.error('Live order refresh failed',error);}
+ }catch(error){console.warn('Live order refresh deferred; pending alerts retained',error);}
  finally{
   ownerOrderRefreshActive=false;
   if(ownerOrderRefreshRequestedWhileLoading){
@@ -3654,6 +3659,14 @@ async function refreshOwnerOrderSnapshot(){
   }
  }
 }
+// Payment verification may finish after orders INSERT; financials is not in the
+// Realtime publication. Retry only while the signed-in Owner app is visible.
+window.setInterval(()=>{
+ if(currentUser&&access.role==='owner'&&document.visibilityState==='visible'&&
+    navigator.onLine!==false&&ownerOrderBurstTracker.pendingCount())
+  scheduleOwnerOrderRefresh(150);
+},30000);
+
 let ownerCancelAlertController=null;
 function stopOwnerCancellationAlerts(){
  if(ownerCancelAlertController){ownerCancelAlertController.stop();ownerCancelAlertController=null;}
@@ -3694,6 +3707,7 @@ function startOwnerCancellationAlerts(){
  });
  ownerCancelAlertController.start();
 }
+let ownerRealtimeDisconnected=false;
 function startRealtimeOrderUpdates(){
  if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null;}
  setOrderLiveState('Live updates connecting...','');
@@ -3707,9 +3721,17 @@ function startRealtimeOrderUpdates(){
   // One database reload for an entire burst, but retain every distinct inserted order ID.
   scheduleOwnerOrderRefresh();
  }).subscribe(status=>{
-  if(status==='SUBSCRIBED')setOrderLiveState('Live updates connected','connected');
-  else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setOrderLiveState('Live updates unavailable · refresh karein','error');
-  else if(status==='CLOSED')setOrderLiveState('Live updates disconnected','error');
+  if(status==='SUBSCRIBED'){
+   ownerRealtimeDisconnected=false;
+   setOrderLiveState('Live updates connected','connected');
+   if(access.role==='owner'&&document.visibilityState!=='hidden')void catchUpOwnerLiveOrders();
+  }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+   ownerRealtimeDisconnected=true;
+   setOrderLiveState('Live updates unavailable · refresh karein','error');
+  }else if(status==='CLOSED'){
+   ownerRealtimeDisconnected=true;
+   setOrderLiveState('Live updates disconnected','error');
+  }
  });
 }
 
@@ -3724,17 +3746,26 @@ async function catchUpOwnerLiveOrders(){
  const userId=currentUser.id,restaurantId=access.restaurantId;
  try{
   const before=state.orders.slice();
-  startRealtimeOrderUpdates();
-  await loadCloudData();
+  if(ownerRealtimeDisconnected||!orderRealtimeChannel)startRealtimeOrderUpdates();
+  await loadCloudData({silent:true,throwOnError:true});
   if(currentUser?.id!==userId||access.role!=='owner'||access.restaurantId!==restaurantId)return;
-  // Compare order IDs, not order.created_at: state records use the mapped createdAt field.
-  // The shared tracker deduplicates events arriving during reconnect and announces older missed orders.
-  announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(before,state.orders,restaurantId));
- }catch(error){console.warn('Owner order catch-up postponed',error);}
+  const paid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
+  announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(
+   before,state.orders,restaurantId,order=>paid.has(String(order.id))));
+ }catch(error){console.warn('Owner order catch-up postponed; alerts retained',error);}
  finally{ownerResumeRefreshActive=false;}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void catchUpOwnerLiveOrders();});
 window.addEventListener('pageshow',event=>{if(event.persisted)void catchUpOwnerLiveOrders();});
+window.addEventListener('offline',()=>{
+ if(currentUser&&access.role==='owner'){ownerRealtimeDisconnected=true;setOrderLiveState('Internet offline · orders refresh on reconnect','error');}
+});
+window.addEventListener('online',()=>{
+ if(currentUser&&access.role==='owner'&&document.visibilityState!=='hidden'){
+  ownerRealtimeDisconnected=true;ownerLastResumeAt=0;
+  void catchUpOwnerLiveOrders();
+ }
+});
 function orderChannelKey(channel){const c=String(channel||'').toLowerCase();if(c.includes('bite demo simulation'))return 'website';if(c.includes('zomato'))return 'zomato';if(c.includes('swiggy'))return 'swiggy';if(c.includes('own platform')||c.includes('website')||c.includes('web'))return 'website';if(c.startsWith('pos')||c.includes('counter')||c.includes('takeaway')||c.includes('dine-in')||c.includes('offline'))return 'pos';return 'other'}
 
 function renderPlatformRestaurantDirectory(){
