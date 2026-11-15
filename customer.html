@@ -942,7 +942,24 @@ async function loadMyOrders(){const orderRequestId=++customerOrderViewSequence;i
   })
   .catch(()=>{});
  await loadMyOrders();return;}if(action==='review'){const {error}=await sb.rpc('create_customer_restaurant_review',{p_order_id:orderId,p_rating:result.rating,p_review:result.message.trim()});if(error)throw error;showOrderActionResult('Review publish ho gaya. Restaurant Owner ab iska reply de sakta hai.');}else{const {error}=await sb.rpc('create_customer_order_request',{p_order_id:orderId,p_request_type:action,p_message:result.message.trim()});if(error)throw error;showOrderActionResult(action==='cancel_request'?'Cancellation request restaurant ko bhej di gayi.':'Complaint restaurant ko bhej di gayi.');}await loadMyOrders();if(expandedOrderId)await loadOrderDetail(expandedOrderId);}catch(e){showOrderActionResult(e.message||'Request submit nahi hui.','error');}}));}catch(e){if(!biteCurrentOrderRequest(orderRequestId,requestedCustomerId))return;box.innerHTML='<div class="empty">Orders load nahi ho paaye: '+safe(e.message||'Please try again.')+'</div>';console.error(e)}}
-async function loadOrderDetail(orderId){const target=$('detail-'+orderId),requestedCustomerId=activeCustomerId,detailRequestId=customerOrderViewSequence;if(!target)return;try{const [itemsRes,historyRes,requestsRes,refundRes]=await Promise.all([sb.from('order_items').select('item_name,quantity,unit_price,line_total').eq('order_id',orderId).order('created_at'),sb.from('order_status_history').select('from_status,to_status,note,changed_at').eq('order_id',orderId).order('changed_at'),sb.from('restaurant_customer_order_requests').select('request_type,status,message,response,created_at,responded_at').eq('order_id',orderId).order('created_at'),sb.from('bite_refund_jobs').select('order_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at').eq('order_id',orderId).eq('customer_id',requestedCustomerId).maybeSingle()]);if(!target.isConnected||!biteCurrentOrderRequest(detailRequestId,requestedCustomerId))return;if(itemsRes.error)throw itemsRes.error;if(historyRes.error)throw historyRes.error;if(requestsRes.error)throw requestsRes.error;const items=itemsRes.data||[],history=historyRes.data||[],requests=requestsRes.data||[];const order=customerOrders.find(o=>o.id===orderId);
+function biteBindRefundRefresh(target,orderId,requestedCustomerId){
+ target.querySelector('[data-refresh-refund-id]')?.addEventListener('click',async event=>{
+  const button=event.currentTarget;button.disabled=true;button.textContent='Refreshing status…';
+  if(activeCustomerId!==requestedCustomerId||expandedOrderId!==orderId)return;
+  const previousFingerprint=biteOrderCardsFingerprint;
+  await loadMyOrders();
+  if(activeCustomerId===requestedCustomerId&&expandedOrderId===orderId&&
+     previousFingerprint===biteOrderCardsFingerprint)await loadOrderDetail(orderId,true);
+ });
+}
+async function loadOrderDetail(orderId,force=false){
+ const target=$('detail-'+orderId),requestedCustomerId=activeCustomerId,detailRequestId=biteOrderDetailSequence;
+ if(!target||!requestedCustomerId)return;
+ const key=requestedCustomerId+':'+orderId,cached=biteOrderDetailCache.get(key);
+ if(!force&&cached&&Date.now()-cached.at<BITE_ORDER_DETAIL_CACHE_MS){
+  target.innerHTML=cached.html;biteBindRefundRefresh(target,orderId,requestedCustomerId);return;
+ }
+ try{const [itemsRes,historyRes,requestsRes,refundRes]=await Promise.all([sb.from('order_items').select('item_name,quantity,unit_price,line_total').eq('order_id',orderId).order('created_at'),sb.from('order_status_history').select('from_status,to_status,note,changed_at').eq('order_id',orderId).order('changed_at'),sb.from('restaurant_customer_order_requests').select('request_type,status,message,response,created_at,responded_at').eq('order_id',orderId).order('created_at'),sb.from('bite_refund_jobs').select('order_id,amount,status,provider_status,provider_checked_at,provider_refund_id,approved_at,auto_authorized_at').eq('order_id',orderId).eq('customer_id',requestedCustomerId).maybeSingle()]);if(!target.isConnected||activeCustomerId!==requestedCustomerId||expandedOrderId!==orderId||detailRequestId!==biteOrderDetailSequence)return;if(itemsRes.error)throw itemsRes.error;if(historyRes.error)throw historyRes.error;if(requestsRes.error)throw requestsRes.error;const items=itemsRes.data||[],history=historyRes.data||[],requests=requestsRes.data||[];const order=customerOrders.find(o=>o.id===orderId);
  const cancel=requests.filter(r=>r.request_type==='cancel_request').slice(-1)[0];
  const refundCard=window.BiteRefundTracker?.details(order,refundRes.data,cancel,!!refundRes.error)||'';
  const itemCard='<section class="bite-order-items"><strong class="bite-order-items-title">Order items</strong>'+
@@ -962,11 +979,10 @@ async function loadOrderDetail(orderId){const target=$('detail-'+orderId),reques
    (r.response?'<small>Restaurant response: '+safe(r.response)+'</small>':'')+'</div>').join('')+'</div>':'')+
   '</div></details>':'';
  target.innerHTML=refundCard+itemCard+activity;
- target.querySelector('[data-refresh-refund-id]')?.addEventListener('click',async event=>{
-  event.currentTarget.disabled=true;event.currentTarget.textContent='Refreshing refund status…';
-  if(biteCurrentOrderRequest(detailRequestId,requestedCustomerId))await loadMyOrders();
- });
- }catch(e){if(!target.isConnected||!biteCurrentOrderRequest(detailRequestId,requestedCustomerId))return;target.textContent='Details load nahi ho paaye: '+(e.message||'Please refresh karein.');}}
+ biteOrderDetailCache.set(key,{html:target.innerHTML,at:Date.now()});
+ if(biteOrderDetailCache.size>30)biteOrderDetailCache.delete(biteOrderDetailCache.keys().next().value);
+ biteBindRefundRefresh(target,orderId,requestedCustomerId);
+ }catch(e){if(!target.isConnected||activeCustomerId!==requestedCustomerId||expandedOrderId!==orderId||detailRequestId!==biteOrderDetailSequence)return;target.textContent='Details load nahi ho paaye: '+(e.message||'Please refresh karein.');}}
 // Provider status may change without an order status change.
 setInterval(()=>{
  if(activeCustomerId&&document.visibilityState==='visible'&&!$('ordersView').classList.contains('hidden')&&
