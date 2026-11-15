@@ -1,0 +1,154 @@
+/* Minimum-order rescue: fast, accessible dish additions inside checkout. */
+body[data-bite-app="customer"] #biteMinimumQuickAdd[hidden],
+body[data-bite-app="customer"] #biteMinimumQuickAdd [hidden]{display:none!important}
+body[data-bite-app="customer"] #biteMinimumQuickAdd{
+  margin:14px 0 17px;padding:16px;border:1px solid #d7e6dd;
+  background:#fbfdfb;border-radius:18px;color:#213e30;
+  box-shadow:0 4px 16px rgb(29 72 47 / 5%);scroll-margin:16px;
+}
+body[data-bite-app="customer"] .bite-min-order-top{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+}
+body[data-bite-app="customer"] .bite-min-order-top>div{min-width:0;flex:1}
+body[data-bite-app="customer"] .bite-min-order-eyebrow{
+  display:block;font-size:10px;font-weight:850;letter-spacing:.1em;color:#4d8066;margin-bottom:3px;
+}
+body[data-bite-app="customer"] #biteMinOrderHeading{
+  color:#173c28;font-size:21px;line-height:1.22;letter-spacing:-.45px;
+  margin:0 0 5px;font-weight:850;
+}
+body[data-bite-app="customer"] #biteMinOrderHeading:focus{outline:none}
+body[data-bite-app="customer"] #biteMinOrderMessage{
+  font-size:12px;line-height:1.5;color:#627668;margin:0;
+}
+body[data-bite-app="customer"] .bite-min-order-count{
+  white-space:nowrap;font-size:11px;line-height:1.3;color:#1a6242;
+  border-radius:50px;border:1px solid #cce5d4;background:#ecf8ef;
+  font-weight:800;padding:7px 9px;
+}
+body[data-bite-app="customer"] .bite-min-order-track{
+  width:100%;height:7px;border-radius:999px;overflow:hidden;
+  background:#e2ebe6;margin:15px 0 8px;
+}
+body[data-bite-app="customer"] #biteMinOrderProgressFill{
+  display:block;height:100%;width:0;background:#087b4d;
+  border-radius:inherit;transition:width .18s ease;
+}
+body[data-bite-app="customer"] .bite-min-order-totals{
+  display:flex;justify-content:space-between;gap:8px;
+  font-size:11px;color:#63796a;
+}
+body[data-bite-app="customer"] .bite-min-order-totals strong{color:#234935;font-weight:850}
+body[data-bite-app="customer"] .bite-min-order-chooser{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:9px;margin:19px 0 10px;
+}
+body[data-bite-app="customer"] .bite-min-order-chooser strong{
+  display:block;font-size:13px;line-height:1.35;color:#1f3c2a;
+}
+body[data-bite-app="customer"] .bite-min-order-chooser small{
+  display:block;font-size:11px;color:#6d7e71;margin-top:2px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-search{
+  display:flex;align-items:center;gap:5px;width:140px;max-width:45%;height:42px;
+  padding:0 9px;border:1px solid #d7e4da;border-radius:11px;background:#fff;
+}
+body[data-bite-app="customer"] .bite-min-order-search span{color:#829b89;font-size:20px}
+body[data-bite-app="customer"] #checkoutFormPanel #biteMinOrderSearch{
+  border:0;box-shadow:none;outline:none;background:transparent;border-radius:0;
+  padding:0;width:100%;min-width:0;min-height:37px;height:37px;
+  font-size:13px;color:#23402d;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-search:focus-within{
+  border-color:#087b4d;box-shadow:0 0 0 2px #087b4d22;
+}
+body[data-bite-app="customer"] .bite-min-order-dishes{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;max-height:290px;overflow:auto;
+  overscroll-behavior:contain;scrollbar-width:thin;
+}
+body[data-bite-app="customer"] .bite-min-order-dish{
+  min-width:0;display:grid;grid-template-columns:52px minmax(0,1fr);
+  grid-template-rows:auto auto;gap:8px 9px;align-items:start;
+  padding:9px;border:1px solid #e2eae4;border-radius:13px;
+  background:#fff;box-shadow:0 2px 8px #183d2310;
+}
+body[data-bite-app="customer"] .bite-min-order-dish img{
+  grid-row:1 / 3;width:52px;height:52px;object-fit:cover;
+  border-radius:9px;background:#f0f2ef;
+}
+body[data-bite-app="customer"] .bite-min-order-dish-info{min-width:0}
+body[data-bite-app="customer"] .bite-min-order-dish-info strong{
+  color:#273c2c;font-weight:780;font-size:12px;line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  overflow-wrap:anywhere;
+}
+body[data-bite-app="customer"] .bite-min-order-dish-info small{
+  display:block;margin-top:5px;color:#087b4d;font-weight:850;font-size:12px;
+}
+body[data-bite-app="customer"] .bite-min-order-qty{
+  grid-column:2;display:flex;justify-content:flex-end;align-items:center;gap:6px;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-qty button{
+  flex:none;min-width:42px;height:42px;padding:0 9px;
+  font-size:13px;font-weight:850;color:#087b4d;background:#f0faf3;
+  border:1px solid #b9dfc6;border-radius:10px;white-space:nowrap;
+}
+body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-qty button:hover{
+  background:#e1f5e7;border-color:#83c49a;
+}
+body[data-bite-app="customer"] .bite-min-order-qty span{
+  color:#274f36;font-size:12px;font-weight:850;min-width:14px;text-align:center;
+}
+body[data-bite-app="customer"] .bite-min-order-feedback{
+  min-height:0;font-size:12px;line-height:1.5;color:#306c48;margin:7px 0 0;
+}
+body[data-bite-app="customer"] .bite-min-order-feedback:empty{display:none}
+body[data-bite-app="customer"] .bite-min-order-empty{
+  grid-column:1/-1;margin:0;color:#687a6d;line-height:1.5;
+  font-size:12px;padding:15px 5px;text-align:center;
+}
+body[data-bite-app="customer"] .bite-min-order-footer{
+  margin-top:13px;padding-top:12px;border-top:1px solid #e0eae3;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+body[data-bite-app="customer"] #biteMinOrderFooterTotal{
+  font-size:12px;color:#285139;line-height:1.35;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #biteMinOrderContinue{
+  min-height:44px;padding:10px 12px;color:#fff;background:#087b4d;
+  border:1px solid #087b4d;border-radius:11px;font-size:12px;font-weight:850;
+}
+body[data-bite-app="customer"] #checkoutFormPanel #biteMinOrderContinue:disabled{
+  background:#edf2ee;color:#60776a;border-color:#dce6dd;cursor:default;
+}
+body[data-bite-app="customer"] .bite-min-order.is-complete{
+  background:#f3fbf5;border-color:#add8bb;
+}
+@media(max-width:600px){
+  body[data-bite-app="customer"] #biteMinimumQuickAdd{padding:14px 12px;margin:13px 0 16px;border-radius:15px}
+  body[data-bite-app="customer"] #biteMinOrderHeading{font-size:19px}
+  body[data-bite-app="customer"] .bite-min-order-dishes{grid-template-columns:1fr;max-height:260px}
+  body[data-bite-app="customer"] .bite-min-order-dish{
+    grid-template-columns:56px minmax(0,1fr) auto;grid-template-rows:1fr;
+    align-items:center;gap:9px;
+  }
+  body[data-bite-app="customer"] .bite-min-order-dish img{
+    width:56px;height:56px;grid-row:auto;
+  }
+  body[data-bite-app="customer"] .bite-min-order-qty{grid-column:3}
+  body[data-bite-app="customer"] .bite-min-order-qty span{min-width:11px}
+  body[data-bite-app="customer"] .bite-min-order-chooser{align-items:flex-start}
+  body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-qty button{min-width:38px;height:42px}
+}
+@media(max-width:360px){
+  body[data-bite-app="customer"] .bite-min-order-chooser{display:block}
+  body[data-bite-app="customer"] #checkoutFormPanel .bite-min-order-search{
+    width:100%;max-width:none;margin-top:8px;
+  }
+  body[data-bite-app="customer"] .bite-min-order-footer{flex-wrap:wrap}
+  body[data-bite-app="customer"] #checkoutFormPanel #biteMinOrderContinue{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-bite-app="customer"] #biteMinOrderProgressFill{transition:none}
+}
