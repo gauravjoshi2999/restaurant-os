@@ -40,6 +40,7 @@
           if(!(options.service==='all'&&options.geo&&r.accepts_pickup===true))return false;
         }
         if(options.openNow&&isClosed(r))return false;
+        if(options.scheduledOnly&&(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused||isClosed(r)))return false;
         if(Number(r.average_rating||0)<Number(options.minRating||0))return false;
         if(options.favourites&&!options.favourites.has(r.id))return false;
         if(options.diet==='veg'&&!r.has_veg)return false;
