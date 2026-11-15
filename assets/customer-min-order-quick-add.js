@@ -205,5 +205,5 @@
     if(byId('biteMinOrderContinue').disabled||pendingPayment()||!isCurrent())return;
     byId('placeOrderBtn').click();
   });
-  window.BiteMinOrderQuickAdd={open,hide,render,amountRemaining,recommend};
+  window.BiteMinOrderQuickAdd={open,hide,render,isVisible:()=>state.open,amountRemaining,recommend};
 })();
