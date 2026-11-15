@@ -28,8 +28,10 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [x] 6.07 Execute the **deployed Edge handler logic** with isolated POST + mocked readback; verified 201/ok, 400/403/503 rejection, non-consented phone redaction and **0 live survey rows**. This is **not** a live-network Endpoint test. Evidence: `docs/launch/OWNER_FEEDBACK_ISOLATED_EVIDENCE_20261115.md`.
 - [x] 6.08a Run actual repository form in Chromium **mobile emulation** (320/390/430px), all 4 steps, validation, retry and fake-ack protection: **GitHub Bite QA #935 PASS**, no real API requests. Evidence: `docs/launch/OWNER_FEEDBACK_MOBILE_QA_GATE_20261116.md`.
 - [ ] 6.08b Verify **physical Android** behavior and real server delivery/readback in an approved test environment (no fake live-research submissions).
-- [ ] 6.09 List the intended 112 dish names against the 92 current rows; identify precise 20 missing without guessing.
-- [ ] 6.10 Determine whether 25 currently unavailable dishes are intentionally sold-out/disabled.
+- [x] 6.09a Name-level historical reconciliation: 91 old rows + 1 newly created Choklet; 21 old photo-credit labels no longer match, consistent with 112 earlier names. Read-only log timeline includes many DELETE requests on 15 Nov. See `docs/launch/MAHARANI_MENU_RECONCILIATION_20261116.md`.
+- [ ] 6.09b Approve exact 21 restored/deleted decisions and verified prices/categories/availability against authoritative menu; do not invent values or perform speculative data writes.
+- [x] 6.10a Read-only evidence: 25 rows currently unavailable and updated in the Nov 15 cluster; 13 categories, Kofta empty. No changes made.
+- [ ] 6.10b Confirm whether 25 disabled items reflect genuine kitchen availability before re-enabling any.
 - [ ] 6.11 Check the 91 image links load, correct dish, vegetarian imagery, and image attribution.
 - [ ] 6.12 Confirm minimum-order and delivery-fee commercial values with restaurant owner (currently ₹1 / ₹0).
 - [ ] 6.13 Check serving PINs, delivery range, pickup details and opening/closing times against real operations.
@@ -113,4 +115,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**6.08b**: physical Android Chrome acceptance + genuinely persisted submission in an approved test environment. Automated Chromium mobile emulation has passed; this manual/device and real-network gate is still outstanding. If unavailable, proceed to read-only task 6.09 and keep 6.08b open.
+**6.11a**: read-only audit of the 91 recorded Maharani image URLs and public attribution/relevance status. Parallel blocked gates: 6.08b needs physical Android + approved live-network survey testing; 6.09b needs an owner-approved price/category list; 6.10b needs an explicit kitchen availability decision. Never conflate documented candidate names with permission to sell.
