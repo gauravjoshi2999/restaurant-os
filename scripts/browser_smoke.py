@@ -188,6 +188,27 @@ try:
         check(page.locator('#restaurantGrid .restaurant').count() == 0, 'Unmatched search shows an actionable empty state')
         page.get_by_role('button', name='Reset search & filters', exact=True).click()
         check(page.locator('#restaurantGrid .restaurant').count() > 0, 'Reset restores public restaurant discovery')
+        
+        # Schedule discovery must use owner-published capability, not fake future availability.
+        page.locator('#biteFilterOpen').click()
+        page.locator('#biteFilterTabTime').click()
+        page.locator('#biteFilterScheduleOnly').check()
+        check(page.locator('#biteFilterApply').is_enabled(), 'Schedule filter can be applied without changing payment')
+        page.locator('#biteFilterApply').click()
+        check(page.evaluate("() => window.BiteScheduleDiscoveryOnly === true && window.restaurantServiceFilter === 'delivery'"),
+              'Schedule-only discovery selects delivery and preserves the choice')
+        check(page.evaluate("""() => Array.from(document.querySelectorAll('#restaurantGrid .restaurant')).every(el => {
+            const r=restaurants.find(x=>x.id===el.dataset.id);
+            return !!r && r.accepts_scheduled_delivery===true && r.accepts_delivery===true &&
+               r.delivery_paused!==true && !!r.opening_time && !!r.closing_time &&
+               (!currentDiscoveryPin || r.serviceable===true);
+        })"""), 'Scheduled restaurant results require real owner opt-in and PIN serviceability')
+        page.evaluate("resetDiscovery()")
+        check(page.evaluate("() => window.BiteScheduleDiscoveryOnly !== true"),
+              'Reset search and filters clears scheduled-only discovery')
+        check(page.locator('#restaurantGrid .restaurant').count() > 0,
+              'Normal restaurants return after scheduled-only filter is cleared')
+
 
         # Browse a restaurant and confirm its menu is reachable without login.
         cards.first.click()

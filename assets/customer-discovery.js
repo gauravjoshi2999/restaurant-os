@@ -40,12 +40,29 @@
           if(!(options.service==='all'&&options.geo&&r.accepts_pickup===true))return false;
         }
         if(options.openNow&&isClosed(r))return false;
+        if(options.scheduledOnly){
+          // Scheduling is for future deliveries; being closed *now* does not imply
+          // unavailable future slots. Require owner opt-in and published hours.
+          if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused===true
+             ||!r.opening_time||!r.closing_time||r.opening_time===r.closing_time)return false;
+          const horizon=Number(r.scheduled_horizon_days??3);
+          const lead=Number(r.scheduled_lead_minutes??90);
+          if(!Number.isInteger(horizon)||horizon<1||horizon>7
+             ||!Number.isInteger(lead)||lead<30||lead>480)return false;
+          if(r.is_temporarily_closed===true&&(!r.temporary_closure_until
+             ||Date.parse(r.temporary_closure_until)>Date.now()+horizon*86400000))return false;
+          if(options.service==='pickup')return false;
+          // Public schedule picker applies the exact forward-slot calculation.
+          if(root.BiteSchedule?.canSchedule && !root.BiteSchedule.canSchedule(r))return false;
+          // A supplied PIN must be verified; pickup-only fallback must not leak in.
+          if(options.pin&&r.serviceable!==true)return false;
+        }
         if(Number(r.average_rating||0)<Number(options.minRating||0))return false;
         if(options.favourites&&!options.favourites.has(r.id))return false;
         if(options.diet==='veg'&&!r.has_veg)return false;
         if(options.diet==='nonveg'&&!r.has_nonveg)return false;
         if(category!=='all'&&!tags.some(t=>text(t).includes(category)))return false;
-        if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||isClosed(r)))return false;
+        if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||(!options.scheduledOnly&&isClosed(r))))return false;
         if(options.service==='pickup'&&(!r.accepts_pickup||isClosed(r)))return false;
         return !q||text([r.name,r.city,r.public_description,...tags].join(' ')).includes(q)||dishes.length>0;
       });

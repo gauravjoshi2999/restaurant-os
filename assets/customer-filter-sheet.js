@@ -6,20 +6,20 @@
  const RATINGS=['0','3.5','4','4.5'];
  const DIETS=['all','veg','nonveg'];
  const SERVICES=['all','delivery','pickup'];
- const defaults=()=>({sort:'recommended',rating:'0',diet:'all',service:'all',openNow:false,category:'all',favourites:false});
+ const defaults=()=>({sort:'recommended',rating:'0',diet:'all',service:'all',openNow:false,scheduleOnly:false,category:'all',favourites:false});
  const valid=(value,choices,fallback)=>choices.includes(String(value))?String(value):fallback;
  function normalized(input={}){
   const d=defaults();
   return {sort:valid(input.sort,SORTS,d.sort),rating:valid(input.rating,RATINGS,d.rating),
    diet:valid(input.diet,DIETS,d.diet),service:valid(input.service,SERVICES,d.service),
-   openNow:input.openNow===true,category:String(input.category||'all'),
+   openNow:input.openNow===true,scheduleOnly:input.scheduleOnly===true,category:String(input.category||'all'),
    favourites:input.favourites===true};
  }
  function filterOptions(input,extras={}){
   const s=normalized(input);
-  return {query:extras.query||'',category:s.category,service:s.service,
+  return {query:extras.query||'',category:s.category,service:s.scheduleOnly?'delivery':s.service,
    fast:s.sort==='fast',geo:extras.geo||null,pin:extras.pin||'',
-   openNow:s.openNow,favourites:s.favourites?(extras.favouriteIds||new Set()):null,
+   openNow:s.openNow,scheduledOnly:s.scheduleOnly,favourites:s.favourites?(extras.favouriteIds||new Set()):null,
    diet:s.diet,minRating:Number(s.rating),
    sort:s.sort==='fast'?'recommended':s.sort};
  }
@@ -69,6 +69,7 @@
    rating:byId('discoveryRating')?.value,diet:byId('discoveryDiet')?.value,
    service:root.restaurantServiceFilter||'all',
    openNow:byId('filterOpenNow')?.getAttribute('aria-pressed')==='true',
+   scheduleOnly:root.BiteScheduleDiscoveryOnly===true,
    category:typeof activeFilter!=='undefined'?activeFilter:'all',
    favourites:byId('filterFavourites')?.getAttribute('aria-pressed')==='true'
   });
@@ -91,7 +92,7 @@
  function activeFilters(state=draft){
   const s=normalized(state);
   return Number(s.sort!=='recommended')+Number(s.rating!=='0')+Number(s.diet!=='all')+
-   Number(s.service!=='all')+Number(s.openNow)+Number(s.category!=='all')+Number(s.favourites);
+   Number(s.service!=='all')+Number(s.openNow)+Number(s.scheduleOnly)+Number(s.category!=='all')+Number(s.favourites);
  }
  function updateCount(){
   const count=liveCount();
@@ -122,8 +123,9 @@
     '<input type="checkbox" id="biteFilterOpenNow" '+(draft.openNow?'checked':'')+'></label>'+
     '<button type="button" class="bite-filter-tile '+(draft.sort==='fast'?'is-active':'')+'" id="biteFilterFast">'+
     '<span aria-hidden="true">◷</span><strong>Fastest preparation</strong><small>Sort by owner-provided prep time</small></button>'+
-    '<div class="bite-filter-coming"><strong>Scheduled delivery</strong><p>Coming later. We only offer immediate ordering until restaurants can confirm slots and capacity.</p>'+
-    '<button type="button" disabled aria-disabled="true">Schedule a delivery</button></div>';
+    '<div class="bite-filter-coming"><strong>Scheduled delivery</strong><p>See restaurants offering future delivery requests. Confirm your PIN and preferred time at checkout.</p>'+ 
+    '<label class="bite-filter-switch"><span><strong>Schedule available</strong><small>Preferred 30-minute window, subject to restaurant acceptance</small></span>'+ 
+    '<input type="checkbox" id="biteFilterScheduleOnly" '+(draft.scheduleOnly?'checked':'')+'></label></div>';
   }else if(section==='rating'){
    panel.innerHTML='<h3>Restaurant rating</h3><p class="bite-filter-help">Only restaurants with real published ratings appear above the selected threshold.</p>'+
     selection('Any rating','0',draft.rating==='0','rating')+
@@ -172,9 +174,10 @@
   if(fastBtn){fastBtn.classList.toggle('active',root.restaurantSortFast);
    fastBtn.setAttribute('aria-pressed',String(root.restaurantSortFast));
    fastBtn.textContent=root.restaurantSortFast?'✓ Fastest prep':'Fastest prep ↕';}
-  root.restaurantServiceFilter=next.service;
+  root.restaurantServiceFilter=next.scheduleOnly?'delivery':next.service;
+  root.BiteScheduleDiscoveryOnly=next.scheduleOnly;
   document.querySelectorAll('[data-service-filter]').forEach(btn=>{
-   const selected=btn.dataset.serviceFilter===next.service;
+   const selected=btn.dataset.serviceFilter===(next.scheduleOnly?'delivery':next.service);
    btn.classList.toggle('active',selected);btn.setAttribute('aria-pressed',String(selected));
   });
   for(const [id,on] of [['filterOpenNow',next.openNow],['filterFavourites',next.favourites]]){
@@ -204,12 +207,19 @@
  overlay.addEventListener('change',event=>{
   const input=event.target;
   if(input.id==='biteFilterOpenNow')draft.openNow=input.checked;
+  else if(input.id==='biteFilterScheduleOnly'){
+   draft.scheduleOnly=input.checked;
+   if(input.checked)draft.service='delivery';
+  }
   else if(input.type==='radio'){
    const group=input.name.replace('bite-filter-','');
    if(group==='sort')draft.sort=valid(input.value,SORTS,'recommended');
    if(group==='rating')draft.rating=valid(input.value,RATINGS,'0');
    if(group==='diet')draft.diet=valid(input.value,DIETS,'all');
-   if(group==='service')draft.service=valid(input.value,SERVICES,'all');
+   if(group==='service'){
+    draft.service=valid(input.value,SERVICES,'all');
+    if(draft.service==='pickup')draft.scheduleOnly=false;
+   }
   }
   updateCount();
  });

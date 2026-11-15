@@ -20,7 +20,7 @@
   if(opening<closing)return at>=opening&&at+30<=closing;
   return at>=opening&&at+30<=1440+closing||at<closing&&at+30<=closing;
  }
- function generateSlots(restaurant,now=Date.now()){
+ function generateSlots(restaurant,now=Date.now(),maxCount=Infinity){
   if(!restaurant||restaurant.accepts_scheduled_delivery!==true||restaurant.accepts_delivery!==true
      ||restaurant.delivery_paused===true||!Number.isFinite(Number(now)))return [];
   const lead=Number(restaurant.scheduled_lead_minutes??90);
@@ -39,10 +39,15 @@
     timeZone:'Asia/Kolkata',hour:'numeric',minute:'2-digit',hour12:true
    }).format(new Date(instant));
    slots.push({iso:new Date(at).toISOString(),dayKey:key,label:fmt(at)+' – '+fmt(at+SLOT_MS)});
+   if(slots.length>=maxCount)break;
   }
   return slots;
  }
- const api={withinHours,generateSlots};
+ const canSchedule=restaurant=>{
+  if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
+  return generateSlots(restaurant,Date.now(),1).length>0;
+ };
+ const api={withinHours,generateSlots,canSchedule};
  if(typeof document==='undefined')return api;
  const checkout=document.getElementById('checkoutFormPanel'),summary=document.getElementById('checkoutSummary');
  if(!checkout||!summary)return api;
@@ -69,11 +74,8 @@
  let restaurantId=null,selected=null,draft=null,day=null,slots=[],lastFocus=null,open=false;
  const eligible=()=>{
   if(typeof activeRestaurant==='undefined'||!activeRestaurant)return false;
-  if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
   if(typeof checkoutMode==='function'&&checkoutMode()!=='delivery')return false;
-  const r=activeRestaurant;
-  if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused)return false;
-  return window.BiteDiscovery?.isClosed?.(r)!==true;
+  return canSchedule(activeRestaurant);
  };
  function getSelectedFor(id){
   if(!eligible()||activeRestaurant.id!==id||restaurantId!==id||!selected)return null;
@@ -91,13 +93,14 @@
   panel.hidden=!shown;
   if(!shown)return;
   const scheduled=!!selected;
-  byId('biteScheduleAsap').setAttribute('aria-pressed',String(!scheduled));
+  const closedNow=window.BiteDiscovery?.isClosed?.(r)===true;
+  byId('biteScheduleAsap').setAttribute('aria-pressed',String(!scheduled&&!closedNow));
   byId('biteSchedulePick').setAttribute('aria-pressed',String(scheduled));
   byId('biteSchedulePick').disabled=typeof pendingLiveCheckout!=='undefined'&&!!pendingLiveCheckout;
-  byId('biteScheduleAsap').disabled=typeof pendingLiveCheckout!=='undefined'&&!!pendingLiveCheckout;
+  byId('biteScheduleAsap').disabled=closedNow||(typeof pendingLiveCheckout!=='undefined'&&!!pendingLiveCheckout);
   byId('biteScheduleSelection').textContent=scheduled
     ?'Preferred time: '+new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(selected))+' · Subject to restaurant acceptance'
-    :'ASAP delivery selected';
+    :closedNow?'Restaurant closed now. Select a future delivery slot to continue.':'ASAP delivery selected';
  }
  function close(){
   if(!open)return;
