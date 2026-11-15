@@ -56,7 +56,7 @@
         if(options.diet==='veg'&&!r.has_veg)return false;
         if(options.diet==='nonveg'&&!r.has_nonveg)return false;
         if(category!=='all'&&!tags.some(t=>text(t).includes(category)))return false;
-        if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||isClosed(r)))return false;
+        if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||(!options.scheduledOnly&&isClosed(r))))return false;
         if(options.service==='pickup'&&(!r.accepts_pickup||isClosed(r)))return false;
         return !q||text([r.name,r.city,r.public_description,...tags].join(' ')).includes(q)||dishes.length>0;
       });
