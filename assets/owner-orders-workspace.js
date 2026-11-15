@@ -36,6 +36,26 @@
   const counts=orders=>Object.fromEntries(stages.map(stage=>[
     stage.key,stage.key==='all'?orders.length:orders.filter(order=>matches(stage.key,order.status)).length
   ]));
+  // Priority is a presentation concern: don't mutate data or change order status.
+  // Oldest unanswered orders always come first, including in the default All queue.
+  function sortQueue(orders,filter='all',role='owner'){
+    const time=order=>{
+      const ms=Date.parse(order?.createdAt||order?.order_date||order?.created_at||'');
+      return Number.isFinite(ms)?ms:0;
+    };
+    const tie=(a,b)=>String(a.id||'').localeCompare(String(b.id||''));
+    const oldest=(a,b)=>time(a)-time(b)||tie(a,b);
+    const newest=(a,b)=>time(b)-time(a)||tie(a,b);
+    const list=[...(orders||[])];
+    if(role!=='owner')return list.sort(newest);
+    if(filter==='new')return list.sort(oldest);
+    if(filter==='all')return list.sort((a,b)=>{
+      const an=a.status==='Received',bn=b.status==='Received';
+      if(an!==bn)return an?-1:1;
+      return an?oldest(a,b):newest(a,b);
+    });
+    return list.sort(newest);
+  }
   // The date is the restaurant's local calendar day, not the browser's UTC day.
   function dayKey(value){
     if(!value)return '';
@@ -293,5 +313,5 @@
       select.focus();
     });
   }
-  return {stages,isFilter,groupForStatus,matches,counts,nextStep,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
+  return {stages,isFilter,groupForStatus,matches,counts,sortQueue,nextStep,dayKey,countByDay,dateFilter,formatDay,prepare,update,requestReason,selectedDay:()=>selectedDay};
 });
