@@ -42,7 +42,11 @@
   }
   return slots;
  }
- const api={withinHours,generateSlots};
+ const canSchedule=restaurant=>{
+  if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
+  return generateSlots(restaurant).length>0;
+ };
+ const api={withinHours,generateSlots,canSchedule};
  if(typeof document==='undefined')return api;
  const checkout=document.getElementById('checkoutFormPanel'),summary=document.getElementById('checkoutSummary');
  if(!checkout||!summary)return api;
@@ -69,11 +73,8 @@
  let restaurantId=null,selected=null,draft=null,day=null,slots=[],lastFocus=null,open=false;
  const eligible=()=>{
   if(typeof activeRestaurant==='undefined'||!activeRestaurant)return false;
-  if(typeof BITE_SANDBOX_CHECKOUT!=='undefined'&&BITE_SANDBOX_CHECKOUT)return false;
   if(typeof checkoutMode==='function'&&checkoutMode()!=='delivery')return false;
-  const r=activeRestaurant;
-  if(r.accepts_scheduled_delivery!==true||r.accepts_delivery!==true||r.delivery_paused)return false;
-  return window.BiteDiscovery?.isClosed?.(r)!==true;
+  return canSchedule(activeRestaurant);
  };
  function getSelectedFor(id){
   if(!eligible()||activeRestaurant.id!==id||restaurantId!==id||!selected)return null;
