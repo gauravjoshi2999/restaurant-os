@@ -163,13 +163,13 @@
   var error=document.getElementById('error'),next=document.getElementById('next'),send=document.getElementById('send'),back=document.getElementById('back');
   function choices(id){return Array.from(document.querySelectorAll('#'+id+' input:checked')).map(function(c){return c.value;});}
   function field(id){return document.getElementById(id).value.trim();}
-  function update(){
+  function update(scrollToForm){
     steps.forEach(function(step,i){step.hidden=i!==current;});
     document.getElementById('stepName').textContent=labels[current];
     document.getElementById('stepCounter').textContent=(current+1)+' / '+steps.length;
     document.getElementById('progressFill').style.width=((current+1)/steps.length*100)+'%';
     back.hidden=current===0;next.hidden=current===steps.length-1;send.hidden=current!==steps.length-1;error.textContent='';
-    if(current>0||current===0){document.getElementById('surveyPanel').scrollIntoView({behavior:'smooth',block:'start'});}
+    if(scrollToForm){document.getElementById('surveyPanel').scrollIntoView({behavior:'smooth',block:'start'});}
   }
   function validate(){
     error.textContent='';
@@ -184,8 +184,8 @@
     }
     return true;
   }
-  next.onclick=function(){if(validate()){current=Math.min(steps.length-1,current+1);update();}};
-  back.onclick=function(){current=Math.max(0,current-1);update();};
+  next.onclick=function(){if(validate()){current=Math.min(steps.length-1,current+1);update(true);}};
+  back.onclick=function(){current=Math.max(0,current-1);update(true);};
   send.onclick=async function(){
     if(!validate())return;
     var data={
