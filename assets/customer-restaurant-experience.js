@@ -102,7 +102,7 @@
   loadedItems=Array.isArray(items)?items:[];
   updateFacts(restaurant,loadedItems);
   const categoryCount=view.querySelectorAll('#categoryBar [data-cat]').length;
-  jump.hidden=categoryCount<=1;
+  jump.hidden=loadedItems.length===0||categoryCount<=1;
  }
  function closeJump(){
   if(!jumpOpen)return;
