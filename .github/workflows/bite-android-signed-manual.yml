@@ -167,8 +167,24 @@ jobs:
           test -s ../bite-approved-brand/android-app/patch_bite_fcm.py
           cp ../bite-approved-brand/android-app/patch_bite_fcm.py patch_bite_fcm.py
           python3 -m py_compile patch_bite_fcm.py
+          # Never publish a signed Partner APK silently missing lock-screen FCM.
+          if [ "${{ matrix.app }}" = "partner" ] && [ -z "$BITE_FIREBASE_GOOGLE_SERVICES_JSON_BASE64" ] && [ -z "$BITE_FIREBASE_GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Partner signed release blocked: Firebase Android config secret is missing."
+            exit 1
+          fi
           # Partner v16: distinct order/cancellation cards, Android action buttons.
           python3 patch_bite_fcm.py
+          if [ "${{ matrix.app }}" = "partner" ]; then
+            test -s android/app/google-services.json || { echo "::error::Partner Firebase config file not generated"; exit 1; }
+            SERVICE_FILE="$(find android/app/src/main/java -name BiteFirebaseMessagingService.java -print -quit)"
+            test -n "$SERVICE_FILE" && test -s "$SERVICE_FILE" || { echo "::error::Partner Firebase Messaging Service not generated"; exit 1; }
+            grep -Fq 'manager.notify(notificationTag,0,builder.build());' "$SERVICE_FILE" || { echo "::error::Distinct notification tags not compiled"; exit 1; }
+            grep -Fq 'isCancellation?"bite-cancel-"+requestId' "$SERVICE_FILE" || { echo "::error::Cancellation-specific tag not compiled"; exit 1; }
+            grep -Fq 'activityIntent(id,restaurant,"Accepted")' "$SERVICE_FILE" || { echo "::error::Accept action not compiled"; exit 1; }
+            grep -Fq 'activityIntent(id,restaurant,"Rejected")' "$SERVICE_FILE" || { echo "::error::Reject action not compiled"; exit 1; }
+            grep -Fq '.BiteFirebaseMessagingService' android/app/src/main/AndroidManifest.xml || { echo "::error::FCM service missing from Android manifest"; exit 1; }
+            echo "Verified Partner v16 native FCM, distinct notification tags and order action buttons."
+          fi
       - name: Set version code for signed releases
         shell: bash
         env:
