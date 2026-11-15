@@ -106,7 +106,8 @@
   }).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))
    .slice(0,100).map(f=>{
      const order=byOrder.get(f.order_id),check=latest.get(f.order_id)||null;
-     return {orderId:f.order_id,restaurantId:f.restaurant_id,orderCode:order.order_code||order.code||String(order.id).slice(0,8),
+     return {orderId:f.order_id,restaurantId:f.restaurant_id,orderStatus:order.status,
+      orderCode:order.order_code||order.code||String(order.id).slice(0,8),
       restaurantName:deps?.getState()?.restaurants?.find(r=>r.id===f.restaurant_id)?.name||'Restaurant',
       amount:customerAmount(f),check,verdict:classify(f,check)};
    });
@@ -289,6 +290,14 @@
    splitBtn.textContent='Check vendor split';splitBtn.disabled=working;
    splitBtn.setAttribute('aria-label','Read Cashfree vendor split for order '+row.orderCode+' without initiating a transfer');
    action.append(btn,splitBtn);
+   if(['Cancelled','Rejected'].includes(row.orderStatus)){
+    const preflightBtn=document.createElement('button');
+    preflightBtn.type='button';preflightBtn.className='btn secondary';
+    preflightBtn.textContent='Read-only refund preflight';
+    preflightBtn.disabled=working;preflightBtn.dataset.biteRefundPreflightOrder=row.orderId;
+    preflightBtn.setAttribute('aria-label','Read-only Cashfree refund preflight for '+row.orderCode+' without creating a refund');
+    action.append(preflightBtn);
+   }
    if(split?.status==='PROVIDER_VENDOR_SPLIT_RECORDS'){
     const label=document.createElement('label');
     label.textContent='Cashfree vendor ID (candidate only)';
@@ -391,6 +400,48 @@
    if(typeof payload?.error!=='string'||!Object.prototype.hasOwnProperty.call(messages,payload.error))return null;
    return 'HTTP '+status+': '+messages[payload.error];
   }catch{return null;}
+ }
+ async function preflightRefund(orderId){
+  if(!authorized()||working)return;
+  const selected=loadedOrders.find(row=>row.orderId===orderId&&
+   ['Cancelled','Rejected'].includes(row.orderStatus));
+  if(!selected)return;
+  const token=requestToken,userId=deps.getUser().id;
+  working=true;
+  collectionAttempts.set(orderId,{restaurantId:selected.restaurantId,pending:true,error:false,
+   message:'Read-only Cashfree payment/refund checks running. No refund will be initiated.'});
+  render();setStatus('Read-only Cashfree preflight running for '+selected.orderCode+'. No refund will be created.');
+  try{
+   const {data,error}=await deps.sb.functions.invoke('bite-auto-refund',{
+    body:{action:'preflight',order_id:orderId}});
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   if(error)throw error;
+   const messages={
+    PAID_MATCHES_NO_REFUND:'Cashfree PAID order matches Bite. No existing refund found. This was a READ-ONLY check, not an executed refund.',
+    EXISTING_REFUND_RECORD:'Cashfree already has refund record(s). STOP: verify provider refund status before any further payment action.',
+    CASHFREE_PAYMENT_MISMATCH:'Cashfree order status, amount, currency or reference does NOT match Bite. Auto-refunds must remain OFF.',
+    INTERNAL_MISMATCH_OR_INELIGIBLE:'Bite order/refund details are ineligible or inconsistent. Manual review is required.',
+    PROVIDER_LOOKUP_UNAVAILABLE:'Cashfree order lookup unavailable. Do not enable automatic refunds.',
+    REFUND_LOOKUP_UNAVAILABLE:'Cashfree refund history unavailable. No refund has been initiated.',
+    REFUND_EVIDENCE_MISMATCH:'Existing Cashfree refund evidence conflicts with Bite records. STOP.'
+   };
+   const outcome=typeof data?.result==='string'&&Object.prototype.hasOwnProperty.call(messages,data.result)?
+    data.result:'UNKNOWN';
+   const safeMessage=messages[outcome]||'Cashfree preflight result unavailable. No refund was initiated.';
+   const ok=outcome==='PAID_MATCHES_NO_REFUND';
+   const message=safeMessage+' Auto-refunds: '+(data?.live_refunds_enabled===true?'ENABLED':'Not confirmed enabled')+
+    '. Provider refund confirmation is still required before claiming customer bank credit.';
+   collectionAttempts.set(orderId,{restaurantId:selected.restaurantId,pending:false,error:!ok,message});
+   render();setStatus(message,!ok);
+  }catch{
+   if(token!==requestToken||!authorized()||deps.getUser()?.id!==userId)return;
+   const message='Read-only Cashfree preflight unavailable. No refund has been sent; do not enable automatic refunds.';
+   collectionAttempts.set(orderId,{restaurantId:selected.restaurantId,pending:false,error:true,message});
+   render();setStatus(message,true);
+  }finally{
+   working=false;
+   if(token===requestToken&&authorized()&&deps.getUser()?.id===userId)render();
+  }
  }
  async function reconcile(orderId){
   if(!authorized()||working)return;
@@ -586,6 +637,8 @@
    if(item)void reconcile(item.dataset.biteReconcileOrder);
    const split=event.target.closest('[data-bite-inspect-split]');
    if(split)void inspectSplit(split.dataset.biteInspectSplit);
+   const preflight=event.target.closest('[data-bite-refund-preflight-order]');
+   if(preflight)void preflightRefund(preflight.dataset.biteRefundPreflightOrder);
    const compare=event.target.closest('[data-bite-compare-vendor]');
    if(compare){
     const input=byId('biteProviderAuditRows')?.querySelector(
@@ -603,5 +656,5 @@
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,loadRefundReview,inspectRefund,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
+ root.BiteCashfreeAudit={init,load,reconcile,preflightRefund,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,loadRefundReview,inspectRefund,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
 })(window);
