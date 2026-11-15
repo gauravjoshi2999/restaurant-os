@@ -62,7 +62,8 @@ test('failed live-hours refresh cannot quietly authorize checkout with stale tim
 test('cart opening and checkout each check server hours, while payment continues behind a closed restaurant guard',()=>{
  const openCart=html.slice(html.indexOf('function openCartModal(){'),html.indexOf('function closeCartModal(){'));
  assert.match(openCart,/void refreshActiveRestaurantHoursForCart\(\)/);
- assert.match(html,/async function openCheckout\(\)\{[\s\S]{0,400}if\(activeRestaurant&&BiteDiscovery\.isClosed\(activeRestaurant\)\)/);
+ assert.match(html,/async function openCheckout\(\)\{[\s\S]{0,500}if\(activeRestaurant&&BiteDiscovery\.isClosed\(activeRestaurant\)&&!window\.BiteSchedule\?\.canSchedule\?\.\(activeRestaurant\)\)/);
+ assert.match(html,/Restaurant abhi closed hai\. Pay karne se pahle Schedule se future delivery time choose karein/);
  assert.match(html,/function biteCheckoutOpenMatches\(/);
  assert.match(html,/\$\('cartCheckoutBtn'\)\.disabled=!entries\.length\|\|biteCartHoursBusy/);
 });
