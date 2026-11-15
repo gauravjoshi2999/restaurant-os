@@ -169,7 +169,20 @@ new_order_guard = (
 )
 check(old_order_guard or new_order_guard,
       "Delivery orders cannot bypass OTP completion or handoff-link creation")
-check("orderChannelKey(order.channel)==='website'" in owner and "['website','zomato','swiggy']" not in owner,
+owner_burst = Path("assets/owner-order-burst.js").read_text(encoding="utf-8")
+owner_alert_scoped = (
+    "orderChannelKey(order.channel)==='website'" in owner
+    or (
+        "BiteOwnerOrderBurst.createTracker()" in owner
+        and "ownerOrderBurstTracker.take(state.orders,restaurantId)" in owner
+        and "channel.includes('own platform')" in owner_burst
+        and "channel.includes('website')" in owner_burst
+        and "!channel.includes('zomato')&&!channel.includes('swiggy')" in owner_burst
+        and "order.isDemo!==true" in owner_burst
+        and "rid===restaurantId" in owner_burst
+    )
+)
+check(owner_alert_scoped and "['website','zomato','swiggy']" not in owner,
       "Owner new-order alerts are limited to BITE website orders")
 check("isDemo:!!x.is_demo" in owner and "biteDemoBanner" in owner,
       "Simulated order records are explicitly marked in the Owner workspace")
