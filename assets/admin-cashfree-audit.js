@@ -22,6 +22,35 @@
   return {status:'FOUND_IN_ORDER_ONLY',vendorId:id,amount,
    message:'Vendor ID appears in this paid order split. Restaurant identity, KYC, bank mapping and UTR are NOT verified.'};
  }
+ // Read-only discrepancies in the INTERNAL order/financial ledger.
+ // They do not establish provider collection, chargeback, refund or bank payout.
+ function buildPaymentExceptions(orders,financials){
+  const last=new Map();
+  for(const f of financials||[]){
+   if(!f?.order_id)continue;
+   const previous=last.get(f.order_id);
+   if(!previous||String(f.created_at||'')>=String(previous.created_at||''))last.set(f.order_id,f);
+  }
+  const out=[];
+  for(const order of orders||[]){
+   if(!order||order.is_demo===true||order.isDemo===true||
+      String(order.channel||'').toLowerCase()!=='own platform')continue;
+   const financial=last.get(order.id);
+   const payment=String(financial?.payment_status||'missing').toLowerCase();
+   const status=String(order.status||'');
+   let issue='';
+   if(status==='Completed'&&payment!=='paid')issue='COMPLETED_WITHOUT_RECORDED_PAYMENT';
+   else if(status==='Handed Over'&&payment!=='paid')issue='HANDED_OVER_WITHOUT_RECORDED_PAYMENT';
+   else if((status==='Cancelled'||status==='Rejected')&&payment==='paid')issue='PAID_ORDER_CANCELLED_OR_REJECTED';
+   if(!issue)continue;
+   out.push({
+    orderId:order.id,restaurantId:order.restaurant_id,
+    code:String(order.order_code||order.code||order.id||'Order').slice(0,45),
+    issue,recordedPayment:payment
+   });
+  }
+  return out.slice(0,100);
+ }
  const byId=id=>document.getElementById(id);
  const authorized=()=>!!deps&&deps.getAccess()?.isPlatformAdmin===true&&deps.getAccess()?.role==='super_admin'&&!!deps.getUser()?.id;
  const customerAmount=f=>Number(f?.customer_payable_amount);
@@ -50,6 +79,9 @@
  function wipe(){
   loadedOrders=[];lastChecks=[];splitResults.clear();vendorComparisons.clear();vendorBankChecks.clear();vendorReconResults.clear();
   const body=byId('biteProviderAuditRows');if(body)body.replaceChildren();
+  byId('bitePaymentMismatchRows')?.replaceChildren();
+  const mismatch=byId('bitePaymentMismatchCount');if(mismatch)mismatch.textContent='—';
+  const empty=byId('bitePaymentMismatchEmpty');if(empty)empty.textContent='Sign in as Super Admin to review recorded order/payment mismatches.';
   for(const id of ['biteProviderNeedCount','biteProviderCheckedCount','biteProviderPayoutCount']){
    const el=byId(id);if(el)el.textContent='—';
   }
@@ -70,9 +102,32 @@
       amount:customerAmount(f),check,verdict:classify(f,check)};
    });
  }
+ function renderPaymentExceptions(){
+  if(!authorized())return;
+  const result=buildPaymentExceptions(deps.getState()?.orders||[],deps.getState()?.financials||[]);
+  const count=byId('bitePaymentMismatchCount'),body=byId('bitePaymentMismatchRows');
+  if(count)count.textContent=String(result.length)+(result.length>=100?'+':'');
+  if(body){
+   body.replaceChildren();
+   for(const row of result){
+    const tr=document.createElement('tr');
+    const issue={
+     COMPLETED_WITHOUT_RECORDED_PAYMENT:'Completed but payment not recorded as paid',
+     HANDED_OVER_WITHOUT_RECORDED_PAYMENT:'Handover but payment not recorded as paid',
+     PAID_ORDER_CANCELLED_OR_REJECTED:'Cancelled/rejected while payment recorded paid'
+    }[row.issue]||'Manual review required';
+    tr.append(cell(row.code),cell(issue),cell(row.recordedPayment),cell('Needs independent reconciliation'));
+    body.append(tr);
+   }
+  }
+  const empty=byId('bitePaymentMismatchEmpty');
+  if(empty)empty.textContent=result.length?'Read-only review queue. Do not settle, refund or modify orders from this screen.':
+   'No order/payment state conflicts found in the currently loaded Super Admin records.';
+ }
  function render(){
   if(!authorized()){wipe();return;}
   const body=byId('biteProviderAuditRows');if(!body)return;
+  renderPaymentExceptions();
   body.replaceChildren();
   const needs=loadedOrders.filter(o=>!o.verdict.verifiedCollection).length;
   byId('biteProviderNeedCount').textContent=String(needs);
@@ -366,5 +421,5 @@
   });
  }
  function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
- root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,compareVendorCandidate,clear,classify,buildRows};
+ root.BiteCashfreeAudit={init,load,reconcile,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
 })(window);
