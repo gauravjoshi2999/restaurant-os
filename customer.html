@@ -1197,13 +1197,17 @@ async function refreshCheckoutPaymentReadiness(){
 }
 async function finishVerifiedCheckout(result,options={}){
  if(result?.status!=='activated'||!result.order_id)throw new Error('Payment verification pending. Dobara payment na karein.');
- const preserveNewCheckout=options?.background===true&&window.BiteCheckoutUX?.freshCartRequested===true&&
+ // A late verification belongs to the OLD intent, even when the customer
+ // re-added exactly the same dishes and quantities to a fresh cart.
+ // Cart preservation must not depend on whether the new checkout modal is open.
+ const preserveFreshCart=options?.background===true&&window.BiteCheckoutUX?.freshCartRequested===true;
+ const preserveNewCheckout=preserveFreshCart&&
   !$('checkoutFormPanel').classList.contains('hidden')&&$('checkoutModal').classList.contains('show');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
  const pendingCartSignature=pendingLiveCheckout?.cartSignature||null;
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
  if(window.BiteCheckoutUX)window.BiteCheckoutUX.freshCartRequested=false;
- if(completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};itemNotes={};$('customerNote').value='';$('cartOrderNote').value='';renderCart();}
+ if(!preserveFreshCart&&completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};itemNotes={};$('customerNote').value='';$('cartOrderNote').value='';renderCart();}
  if(preserveNewCheckout){
   syncCheckoutPaymentButton();void refreshCheckoutPaymentReadiness();
   window.BiteCustomerExtras?.showPaymentVerifiedNotice?.();return;
