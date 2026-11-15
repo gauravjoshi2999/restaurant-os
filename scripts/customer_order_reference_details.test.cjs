@@ -14,6 +14,7 @@ const context=vm.createContext({
  money:n=>'₹'+Number(n||0).toFixed(2),
  formatOrderDate:()=> '15 Nov 2026',
  biteOrderAvatar:()=>'<div class="bite-detail-avatar"></div>',
+ statusClass:status=>String(status||'').toLowerCase(),
  biteCancellationByOrder:new Map(),
  window:{BiteRefundTracker:{details:(order,job)=>job?'<p>Refund under review</p>':''}},
  Array,Number,String,Map
@@ -34,7 +35,9 @@ test('detail screen uses real order amount, line items, and customer-owned addre
  assert.match(rendered,/Rajsamand/);
  assert.match(rendered,/•••• ••3210/);
  assert.doesNotMatch(rendered,/9876543210|Refund under review|You saved|GST \(govt\. taxes\)|<span>Paid<\/span>/);
- assert.match(rendered,/individual amounts are not available/);
+ assert.match(rendered,/Item total differs from order total/);
+ assert.match(rendered,/bite-detail-item-marker/);
+ assert.doesNotMatch(rendered,/bite-detail-veg-mark/);
 });
 test('untrusted item and address text is encoded',()=>{
  const rendered=context.renderOrder({...order,amount:200},[
