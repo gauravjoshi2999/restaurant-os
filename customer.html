@@ -1849,13 +1849,8 @@ async function submitCustomerOrder(){
    if(accountSequence!==bitePaymentAccountSequence)return;
    if(!ready)throw new Error('Online payment abhi available nahi hai. Thodi der baad retry karein.');
   }
-  if(mode==='delivery'){
-   try{await getCheckoutDeliveryZone();}
-   catch(zoneError){
-    if(/PIN code|selected PIN|delivery nahi karta/i.test(zoneError.message||''))throw biteCheckoutFieldError('addressPostal',zoneError.message);
-    throw zoneError;
-   }
-  }else{
+  if(mode==='delivery')await getCheckoutDeliveryZone();
+  else{
    const minimum=Number(activeRestaurant?.minimum_order_amount||0);
    if(minimum>0){
     const subtotal=cartEntries().reduce((sum,[id,q])=>sum+Number(menuItems.find(i=>i.id===id).price)*q,0);
@@ -1904,7 +1899,8 @@ async function submitCustomerOrder(){
     window.BiteMinOrderQuickAdd?.open(error,{focus:true});
    }else{
     $('checkoutError').textContent=error.message||'Checkout complete nahi ho paaya. Please retry.';
-    if(error.checkoutField)biteHighlightCheckoutField(error.checkoutField,error.message);
+    const invalidField=error.checkoutField||(/PIN code|selected PIN|delivery nahi karta/i.test(error.message||'')?'addressPostal':null);
+     if(invalidField)biteHighlightCheckoutField(invalidField,error.message);
    }
   }
  }
