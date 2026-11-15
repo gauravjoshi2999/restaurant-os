@@ -92,8 +92,12 @@
   const usable=!!selectedPin&&restaurant?.serviceable===true&&restaurant?.accepts_delivery===true&&
    Number.isFinite(fee)&&fee>=0;
   delivery.hidden=!usable;
-  if(usable)delivery.textContent='Delivery fee at selected PIN: '+money(fee)+
-   ' · Final charge confirmed during checkout.';
+  if(usable){
+   const threshold=Number(restaurant?.free_delivery_above||0);
+   delivery.textContent='Delivery fee at selected PIN: '+money(fee)+
+     (threshold>0?' · Free delivery above '+money(threshold)+' food subtotal':'')+
+     ' · Final charge confirmed during checkout.';
+  }
   facts.hidden=chips.hidden&&notice.hidden&&delivery.hidden;
  }
  function render(restaurant,items=[]){

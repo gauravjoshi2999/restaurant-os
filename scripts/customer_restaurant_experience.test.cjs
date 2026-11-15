@@ -38,7 +38,8 @@ test('restaurant facts and category buttons are integrated without altering chec
  assert.match(js,/closingSoonMinutes\(restaurant\)/);
  assert.match(js,/BiteDiscovery\?\.distance/);
  assert.match(js,/Final charge confirmed during checkout/);
- assert.doesNotMatch(js,/Cashfree|sb\.rpc|checkoutArgs|free delivery above|personalized for you|No packaging charges/i);
+ assert.doesNotMatch(js,/Cashfree|sb\.rpc|checkoutArgs|personalized for you|No packaging charges/i);
+ assert.match(js,/threshold>0\?' · Free delivery above '/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/safe-area-inset-bottom/);
 });
