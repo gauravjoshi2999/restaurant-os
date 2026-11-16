@@ -170,6 +170,7 @@
    if(section.dataset.section!=='profile')renderProfile();
  });
  root.BiteAccountHub={
+   vegOnly(){return getPrefs().veg_only;},
    open({user}){
      if(!user?.id)return;
      if(user.id!==state.userId){state.epoch++;state.profile=null;}
