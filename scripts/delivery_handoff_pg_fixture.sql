@@ -102,7 +102,7 @@ begin
     values(v_order.id,v_order.restaurant_id,v_order.status,'Completed','Delivery confirmed by customer OTP',null);
   return true;
 end;
-$function$
+$function$;
 -- END LIVE RPC confirm_delivery_handoff
 
 -- BEGIN LIVE RPC create_delivery_handoff
@@ -138,7 +138,7 @@ begin
         from public.order_items oi where oi.order_id=p_order_id),'[]'::jsonb)
     from public.restaurants r where r.id=v_order.restaurant_id;
 end;
-$function$
+$function$;
 -- END LIVE RPC create_delivery_handoff
 
 -- BEGIN LIVE RPC get_delivery_handoff
@@ -157,7 +157,7 @@ AS $function$
   where p_token is not null and h.token_hash=extensions.digest(p_token,'sha256')
     and h.is_active and h.expires_at>now() and h.verified_at is null
     and o.status in ('Ready','Handed Over');
-$function$
+$function$;
 -- END LIVE RPC get_delivery_handoff
 
 -- BEGIN LIVE RPC get_my_delivery_otp
@@ -172,7 +172,7 @@ AS $function$
   where auth.uid() is not null and o.customer_id=(select auth.uid()) and o.id=p_order_id
     and o.delivery_type='delivery' and o.status in ('Ready','Handed Over')
     and h.is_active and h.expires_at>now() and h.verified_at is null;
-$function$
+$function$;
 -- END LIVE RPC get_my_delivery_otp
 
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC,anon,authenticated;
