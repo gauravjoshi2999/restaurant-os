@@ -115,3 +115,16 @@ test('account deletion requires consent and records existing server-side authent
  assert.match(source,/sb\.rpc\('bite_request_account_deletion'\)/);
  assert.doesNotMatch(source,/auth\.admin\.deleteUser/);
 });
+
+test('in-app alert preference is saved across logins without erasing existing veggie mode',async()=>{
+ const t=fixture();t.hub.open({user:t.state.user});
+ t.el('biteAccountVeg').checked=true;
+ await t.handlers['biteAccountVeg:change']({currentTarget:t.el('biteAccountVeg')});
+ t.el('biteAccountOrderAlerts').checked=true;
+ await t.handlers['biteAccountOrderAlerts:change']({currentTarget:t.el('biteAccountOrderAlerts')});
+ const latest=t.writes.filter(x=>x.type==='metadata').at(-1);
+ assert.deepEqual(JSON.parse(JSON.stringify(latest.data)),{
+   bite_preferences_v1:{veg_only:true,in_app_updates:true}
+ });
+ assert.match(t.el('biteAccountOrderAlertsMessage').textContent,/enabled/i);
+});
