@@ -54,3 +54,9 @@ test('Owner layer is isolated from payments, customer and admin workspaces',()=>
   assert.match(html,/owner-premium-shell\.js/);
   assert.equal((html.match(/assets\/owner-premium-shell\.js/g)||[]).length,1);
 });
+
+test('Hotel mode does not hide the premium Home while retaining operational front desk',()=>{
+  const hotelCss=fs.readFileSync(path.join(__dirname,'../assets/owner-hospitality.css'),'utf8');
+  assert.match(hotelCss,/body\[data-business-type=hotel\] #overview>:not\(#biteHotelHome\):not\(#bitePremiumHome\)\{display:none!important\}/);
+  assert.doesNotMatch(hotelCss,/body\[data-business-type=hotel\] #overview>:not\(#biteHotelHome\)\{display:none!important\}/);
+});
