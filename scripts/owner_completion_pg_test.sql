@@ -32,6 +32,8 @@ begin
  assert public.bite_property_command(p,'room_pos',args,k)=out;
  assert (select amount-waived_off_amount from public.orders where id=o)=45;
  assert (select amount from public.bite_folio_entries where source_order_id=o)=45;
+ begin update public.orders set waived_off_amount=10 where id=o;raise exception 'Expected forged discount denial';exception when raise_exception then if sqlerrm='Expected forged discount denial' then raise;end if;end;
+ assert not has_function_privilege('authenticated','private.bite_room_pos_update_valid(jsonb,jsonb)','execute');
  assert (public.bite_property_report(p,current_date,current_date)->>'food_revenue')::numeric=before_food+45;
  assert ((select value->'totals' from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios') where value->>'id'=f::text)->>'charges')::numeric=270.06;
  -- Some-night extras and last-minute minibar are itemized manual charges.
