@@ -34,11 +34,11 @@ declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q json
  if public.bite_property_command(p,'reserve',args,k)<>v then raise exception 'Register retry not idempotent';end if;
  perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
  v:=public.bite_property_command(p,'room_pos',jsonb_build_object('folio_id',f,'restaurant_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','items','[{"name":"Thali","quantity":1,"unit_price":300}]'::jsonb,'fulfilment','served','channel','POS - Dine-in','discount',0),gen_random_uuid());
- t:=private.bite_folio_totals(f);if(t->>'charges')::numeric<>1575 then raise exception 'Room 1200 + food 300 + GST 75 failed: %',t;end if;
+ t:=(select x->'totals'from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios')x where x->>'id'=f::text);if(t->>'charges')::numeric<>1575 then raise exception 'Room 1200 + food 300 + GST 75 failed: %',t;end if;
  v:=public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',300,'method','UPI','description','Part food payment','account_note','Owner B'),gen_random_uuid());e:=(v->>'id')::uuid;
  perform pg_temp.accounts_denied(format('select public.bite_property_command(%L,''checkout_collect'',%L,gen_random_uuid())',p,jsonb_build_object('folio_id',f,'amount',1275,'method','Cash')::text));
  perform public.bite_property_command(p,'payment_confirm',jsonb_build_object('folio_id',f,'id',e,'reference','SYNTHETIC-UPI-REF','account_note','Owner B'),gen_random_uuid());
- t:=private.bite_folio_totals(f);if(t->>'balance')::numeric<>975 then raise exception 'Partial payment balance incorrect: %',t;end if;
+ t:=(select x->'totals'from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios')x where x->>'id'=f::text);if(t->>'balance')::numeric<>975 then raise exception 'Partial payment balance incorrect: %',t;end if;
  k:=gen_random_uuid();args:=jsonb_build_object('folio_id',f,'amount',975,'method','Cash');v:=public.bite_property_command(p,'checkout_collect',args,k);inv:=v->'invoice';bill:=inv->>'number';
  if bill!~'^H/[0-9]{2}-[0-9]{2}/000042$'or length(bill)>16 then raise exception 'Invoice sequence invalid: %',bill;end if;
  if public.bite_property_command(p,'checkout_collect',args,k)<>v then raise exception 'Checkout retry changed the bill';end if;
