@@ -40,7 +40,11 @@ do $$declare q document_qa;begin
  assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents');
 end $$;
 select set_config('storage.operation','storage.object.get_authenticated',true);
-do $$begin assert (select count(*) from storage.objects where bucket_id='bite-guest-documents')=1;end $$;
+do $$begin assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents'),'Direct Storage URL remains disabled even for an owner';end $$;
+select set_config('storage.operation','object.get_authenticated_info',true);
+do $$begin assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents'),'No cached Storage metadata read';end $$;
+select set_config('storage.operation','object.head_authenticated_info',true);
+do $$begin assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents'),'No cached Storage HEAD metadata read';end $$;
 select set_config('storage.operation','storage.object.sign',true);
 do $$begin assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents'),'Bearer URL signing must be denied';end $$;
 select set_config('storage.operation','object.list',true);
@@ -61,7 +65,8 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 do $$declare q document_qa;begin
  select * into q from document_qa;assert jsonb_array_length(public.bite_guest_document_list(q.p,q.g))=1;
- assert (select count(*) from storage.objects where bucket_id='bite-guest-documents')=1;
+ assert public.bite_guest_document_read(q.p,q.g,q.d)->>'id'=q.d::text;
+ assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents');
  perform pg_temp.document_denied(format('select public.bite_guest_document_command(%L,%L,%L,''finish'')',q.p,q.g,q.d));
 end $$;
 reset role;
@@ -72,6 +77,7 @@ do $$declare q document_qa;begin
  select * into q from document_qa;
  assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents'),'Revoked membership must invalidate the same JWT';
  perform pg_temp.document_denied(format('select public.bite_guest_document_list(%L,%L)',q.p,q.g));
+  perform pg_temp.document_denied(format('select public.bite_guest_document_read(%L,%L,%L)',q.p,q.g,q.d));
 end $$;
 -- An outsider, platform admin, cashier, housekeeper and accountant cannot read.
 reset role;
@@ -88,6 +94,7 @@ do $$declare u text;q document_qa;begin
   assert not exists(select 1 from storage.objects where bucket_id='bite-guest-documents');
   assert not exists(select 1 from public.bite_guest_documents);
   perform pg_temp.document_denied(format('select public.bite_guest_document_list(%L,%L)',q.p,q.g));
+  perform pg_temp.document_denied(format('select public.bite_guest_document_read(%L,%L,%L)',q.p,q.g,q.d));
   perform pg_temp.document_denied(format('select public.bite_guest_document_command(%L,%L,%L,''forget'')',q.p,q.g,q.d));
  end loop;
 end $$;

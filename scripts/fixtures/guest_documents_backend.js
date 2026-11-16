@@ -34,10 +34,16 @@
      if(objects.has(path))return{error:{message:'Already exists',statusCode:'409'}};
      objects.set(path,new Blob([await file.arrayBuffer()],{type:options.contentType}));return{data:{path},error:null};
     },
-    download:async path=>{q.downloadCalls++;if(q.holdDownload)await new Promise(done=>q.releaseDownload=done);return{data:objects.get(path),error:objects.has(path)?null:{message:'Not found'}}},
+    download:async()=>{throw Error('Direct Storage guest downloads must stay disabled')},
     remove:async paths=>{if(q.failRemove){q.failRemove=false;return{error:{message:'Synthetic deletion not confirmed'}}}for(const path of paths)objects.delete(path);return{data:paths,error:null}},
     createSignedUrl:()=>{throw Error('Guest copies must never receive bearer URLs')}
    };
+  }}});
+  Object.defineProperty(c,'functions',{value:{invoke:async(name,options)=>{
+   if(name!=='guest-document-copy')throw Error('Unexpected document test function');q.downloadCalls++;
+   if(q.holdDownload)await new Promise(done=>q.releaseDownload=done);
+   const row=rows.get(options.body.p_document),blob=row&&objects.get(row.object_path);
+   return{data:blob,error:blob&&!q.deny?null:{message:'Guest document access denied'}};
   }}});
   return c;
  };

@@ -4,7 +4,7 @@
  * uploads a one-pixel PNG and removes all its records in finally. No emails,
  * real identities, orders, payments or provider calls are made.
  */
-import {createClient} from 'npm:@supabase/supabase-js@2.58.0';
+import {createClient} from 'npm:@supabase/supabase-js@2.119.0';
 const CHALLENGE_HASH='__CHALLENGE_HASH__';
 const EXPIRES_AT=Number('__EXPIRES_AT__');
 let used=false;
@@ -26,9 +26,9 @@ Deno.serve(async req=>{
   const r=await client.rpc(name,args);if(r.error)throw Error(name+': '+r.error.code+' '+r.error.message);return r.data;
  };
  const account=async(label)=>{
-  const email='bite-private-copy-qa-'+run+'-'+label+'@example.invalid',password=crypto.randomUUID()+'aA1!'+crypto.randomUUID();
+  const email='bite-doc-qa-'+run.slice(0,16)+'-'+label+'@restaurantos.test',password=crypto.randomUUID()+'aA1!'+crypto.randomUUID().slice(0,12);
   const made=await admin.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{full_name:'Synthetic private-copy probe'}});
-  if(made.error||!made.data.user)throw Error('Synthetic account creation failed');
+  if(made.error||!made.data.user)throw Error('Synthetic account creation failed: '+(made.error?.code||'unknown')+' '+(made.error?.message||''));
   const user={id:made.data.user.id,email};users.push(user);
   const client=createClient(url,key,opts),signed=await client.auth.signInWithPassword({email,password});
   if(signed.error||!signed.data.session)throw Error('Synthetic sign-in failed');return{client,user};
@@ -49,13 +49,20 @@ Deno.serve(async req=>{
   const finish={p_property:property,p_guest:guest,p_document:doc,p_action:'finish'};
   expect((await rpc(owner.client,'bite_guest_document_command',finish)).status==='ready','Actual Storage metadata validates before completion');
   expect((await rpc(owner.client,'bite_guest_document_command',finish)).status==='ready','Repeated completion is safe');
-  const downloaded=await owner.client.storage.from(bucket).download(path);
-  expect(!downloaded.error&&downloaded.data,'Authorized owner downloads its copy');
+  const copy=async client=>client.functions.invoke('guest-document-copy',{body:{p_property:property,p_guest:guest,p_document:doc}});
+  const downloaded=await copy(owner.client);
+  expect(!downloaded.error&&downloaded.data,'Authorized owner downloads through the fresh-access proxy');
   expect(new Uint8Array(await downloaded.data.arrayBuffer()).every((v,i)=>v===body[i])&&downloaded.data.size===body.length,'Actual downloaded bytes match synthetic PNG');
+  const session=(await owner.client.auth.getSession()).data.session;
+  const response=await fetch(url+'/functions/v1/guest-document-copy',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,apikey:key,'Content-Type':'application/json'},body:JSON.stringify({p_property:property,p_guest:guest,p_document:doc})});
+  expect(response.ok&&response.headers.get('Cache-Control')?.includes('no-store'),'Private proxy response is explicitly non-cacheable');await response.arrayBuffer();
+  expect(!!(await owner.client.storage.from(bucket).download(path)).error,'Even an owner cannot bypass the proxy through a raw Storage URL');
   const anon=createClient(url,key,opts);
   expect(!!(await anon.storage.from(bucket).download(path)).error,'Anonymous private URL cannot download known path');
+  expect(!!(await copy(anon)).error,'Anonymous proxy download denied');
   expect(!(await fetch(url+'/storage/v1/object/public/'+bucket+'/'+path)).ok,'Public URL does not serve a private copy');
   expect(!!(await outsider.client.storage.from(bucket).download(path)).error,'Different authenticated owner cannot download known path');
+  expect(!!(await copy(outsider.client)).error,'Different authenticated owner cannot use the proxy');
   const outsiderRows=await outsider.client.from('bite_guest_documents').select('id');
   expect(!outsiderRows.error&&outsiderRows.data?.length===0,'Cross-property metadata is hidden by RLS');
   expect(!!(await anon.from('bite_guest_documents').select('id')).error,'Anonymous document metadata denied');
@@ -64,17 +71,17 @@ Deno.serve(async req=>{
   expect(!!(await owner.client.storage.from(bucket).update(path,body,{contentType:'image/png'})).error,'Storage overwrite denied');
   const member=async(role,active=true)=>rpc(owner.client,'bite_property_command',{p_property:property,p_action:'member',p_payload:{email:staff.user.email,role,active},p_request:crypto.randomUUID()});
   await member('receptionist');
-  expect(!(await staff.client.storage.from(bucket).download(path)).error,'Authorized receptionist downloads within its property');
+  expect(!(await copy(staff.client)).error,'Authorized receptionist downloads within its property');
   await member('receptionist',false);
-  expect(!!(await staff.client.storage.from(bucket).download(path)).error,'Revocation blocks actual download with the same session');
   expect(!!(await staff.client.rpc('bite_guest_document_list',{p_property:property,p_guest:guest})).error,'Revoked session cannot list copies');
+  expect(!!(await copy(staff.client)).error,'Revocation blocks a repeated actual proxy download with the same session');
   for(const role of ['cashier','housekeeping','accountant']){
-   await member(role);expect(!!(await staff.client.storage.from(bucket).download(path)).error,role+' cannot download private guest bytes');
+   await member(role);expect(!!(await copy(staff.client)).error,role+' cannot download private guest bytes');
   }
   const premature=await owner.client.rpc('bite_guest_document_command',{p_property:property,p_guest:guest,p_document:doc,p_action:'forget'});
   expect(!!premature.error,'Metadata cannot retire before actual deletion');
   const removed=await owner.client.storage.from(bucket).remove([path]);expect(!removed.error,'Actual Storage removal succeeds');
-  expect(!!(await owner.client.storage.from(bucket).download(path)).error,'Removed path no longer serves authenticated bytes');
+  expect(!!(await copy(owner.client)).error,'Removed object no longer serves authenticated proxy bytes');
   const forget={p_property:property,p_guest:guest,p_document:doc,p_action:'forget'};
   expect((await rpc(owner.client,'bite_guest_document_command',forget)).status==='deleted','Confirmed deletion retires metadata');
   expect((await rpc(owner.client,'bite_guest_document_command',forget)).status==='deleted','Repeated retirement is safe');

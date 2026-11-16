@@ -88,7 +88,8 @@
    if(action==='download'){
     const list=await call('bite_guest_document_list',guest,{},scope,version);
     if(!list.some(row=>row.id===d.id&&row.status==='ready'))throw Error('Copy no longer available.');
-    const r=await ctx.sb.storage.from(BUCKET).download(d.object_path);guard(scope,version);if(r.error)throw r.error;
+    const r=await ctx.sb.functions.invoke('guest-document-copy',{body:{p_property:property().id,p_guest:guest,p_document:d.id}});guard(scope,version);
+    if(r.error){let message='Could not download this private copy. Recheck your access and retry.';try{message=(await r.error.context.json()).message||message}catch{}throw Error(message)}
     if(r.data.size!==d.byte_size)throw Error('Saved copy size differs. Contact the property owner.');
     await validate(r.data,d.mime_type);guard(scope,version);
     const url=root.URL.createObjectURL(new Blob([r.data],{type:d.mime_type}));urls.add(url);
