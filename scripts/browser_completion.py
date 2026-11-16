@@ -497,7 +497,7 @@ try:
     and customer.locator('.bite-language-row').count()==0
     and customer.evaluate("document.documentElement.lang")=='en',
     'Customer UI no longer has the unwanted Hindi/English language strip')
-  check(customer.locator('#editProfilePhone').input_value()=='9999999999',
+  check(customer.locator('#biteProfilePhone').input_value()=='9999999999',
     'Removing the language switch preserves the customer profile input')
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
   owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html?bite_page=pos&v=qa-pos',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');
