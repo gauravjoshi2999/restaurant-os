@@ -2,7 +2,7 @@
 create schema auth;
 create role authenticated nologin;
 create role anon nologin;
-create table auth.users(id uuid primary key);
+create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
 grant usage on schema auth,public to authenticated,anon;
 grant execute on function auth.uid() to authenticated,anon;
@@ -29,7 +29,7 @@ declare id uuid; total numeric; begin
  select sum((i->>'quantity')::numeric*(i->>'unit_price')::numeric) into total from jsonb_array_elements(p_items) i;
  insert into public.orders(restaurant_id,order_code,channel,amount) values(p_restaurant_id,p_order_code,p_channel,total) returning orders.id into id;return id;
 end $$;
-insert into auth.users values
+insert into auth.users(id) values
  ('11111111-1111-4111-8111-111111111111'), -- owner A
  ('22222222-2222-4222-8222-222222222222'), -- owner B
  ('33333333-3333-4333-8333-333333333333'), -- receptionist
@@ -38,5 +38,6 @@ insert into auth.users values
  ('66666666-6666-4666-8666-666666666666'), -- admin
  ('77777777-7777-4777-8777-777777777777'); -- cashier
 insert into public.platform_admins values('66666666-6666-4666-8666-666666666666');
+update auth.users set email='accountant@example.test' where id='55555555-5555-4555-8555-555555555555';
 insert into public.restaurants values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Synthetic Restaurant A','',''),('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Synthetic Restaurant B','','');
 insert into public.restaurant_members values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','11111111-1111-4111-8111-111111111111','owner'),('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','22222222-2222-4222-8222-222222222222','owner');

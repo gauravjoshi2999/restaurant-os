@@ -40,6 +40,11 @@
     }else if(a==='reserve_group'){
      db.groups.push({id:result.id,name:v.name,payer_guest_id:v.guest_id});const stays=[];
      for(const unit of v.rooms){const s=await client.rpc('bite_property_command',{...args,p_action:'reserve',p_payload:{...unit,guest_id:v.guest_id,arrival:v.arrival,departure:v.departure},p_request:crypto.randomUUID()});if(s.error)return s;db.stays.find(x=>x.id===s.data.id).group_id=result.id;stays.push(s.data)}result.stays=stays;
+    }else if(a==='room_pos'){
+     const amount=v.items.reduce((n,i)=>n+i.quantity*i.unit_price,0),oid=result.id;
+     await client.from('orders').insert({id:oid,restaurant_id:rid,order_code:'SYNTHETIC-ROOM-POS',channel:'POS - Counter',amount,status:'Received',order_date:new Date().toISOString(),is_demo:false});
+     await client.from('order_items').insert(v.items.map(i=>({order_id:oid,item_name:i.name,quantity:i.quantity,unit_price:i.unit_price})));
+     db.entries.push({id:crypto.randomUUID(),folio_id:v.folio_id,kind:'charge',category:'food',source_order_id:oid,amount,tax_amount:0,status:'confirmed',description:'POS SYNTHETIC-ROOM-POS',created_at:new Date().toISOString()});result.order_id=oid;result.folio_id=v.folio_id;
     }else if(a==='checkin'){
      const s=db.stays.find(s=>s.id===v.id),r=db.rooms.find(r=>r.id===s.room_id),f=db.folios.find(f=>f.stay_id===s.id);if(r.housekeeping!=='ready')return {data:null,error:{code:'P0001',message:'Room is not Ready'}};
      if(s.status!=='in_house'){s.status='in_house';const nights=(new Date(s.departure)-new Date(s.arrival))/86400000;db.entries.push({id:crypto.randomUUID(),folio_id:f.id,kind:'charge',category:'room',amount:nights*r.nightly_rate,tax_amount:0,status:'confirmed',description:nights+' room nights',created_at:new Date().toISOString()})}result.folio_id=f.id;
@@ -51,6 +56,7 @@
      const s=db.stays.find(s=>s.id===f.stay_id);s.status='checked_out';db.rooms.find(r=>r.id===s.room_id).housekeeping='dirty';f.status='settled';f.invoice_number='SYNTHETIC-INVOICE';
     }else if(a==='room_status')db.rooms.find(r=>r.id===v.id).housekeeping=v.status;
     else if(a==='room_save')db.rooms.push({...v,id:result.id,active:true,housekeeping:'ready'});
+    else if(a==='member'){const m=db.members.find(m=>m.user_id===v.id||m.email===v.email);if(m)Object.assign(m,v);else db.members.push({...v,user_id:result.id,display_name:v.email})}
     else if(a==='config'){Object.assign(p,v);p.configured_capabilities=[...v.capabilities]}
     else return {data:null,error:{code:'P0001',message:'Synthetic transport does not implement '+a}};
     db.audit.unshift({id:db.audit.length+1,action:a,created_at:new Date().toISOString()});

@@ -2,7 +2,7 @@
 """Click contracts on actual Owner markup/controllers, isolated synthetic transport.
 SQL/security/concurrency are independently exercised by the PostgreSQL CI job.
 """
-import json,os,re,subprocess,sys
+import json,os,re,subprocess,sys,zipfile
 from pathlib import Path
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from threading import Thread
@@ -88,17 +88,33 @@ try:
      check('Review & save' in page.locator('#business-modules').inner_text(),'Four-step module review works without duplicate registration')
      screenshot(page,f'hotel-modules-{width}')
      nav(page,'reservations');page.locator('#reservations [data-hotel-action=group-booking]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=name]').fill('Synthetic family group');ed.locator('[name=guest_id]').select_option(index=1);[box.check() for box in ed.locator('[name=room_ids]').all()];ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check(page.evaluate('window.__BITE_HOTEL_QA.db.groups.length')==1,'Group booking opens linked individual room folios')
+     nav(page,'reports');page.locator('#reports [data-hotel-form=report-filter] button[type=submit]').click()
+     if width==390:
+      with page.expect_download() as download:page.locator('#reports [data-hotel-action=report-export]').click()
+      saved=OUT/'hotel-ledger.xlsx';download.value.save_as(saved)
+      check(b'Laundry' in zipfile.ZipFile(saved).read('xl/worksheets/sheet1.xml'),'Excel export contains actual selected hotel ledger rows')
+      screenshot(page,'hotel-reports-390')
     elif kind=='hybrid' and width<760:
      page.locator('#biteOwnerBottomNav [data-bite-page=more]').click()
      check(all(page.locator(f'#biteOwnerMoreScreen [data-owner-route={r}]').is_visible() for r in ['orders','pos','menu','reports','hr','settings']),'Hybrid More exposes food operations and shared tools')
      screenshot(page,f'hybrid-more-{width}')
+     if width==390:
+      nav(page,'hotel-register');f=page.locator('#bhCheckinForm');f.locator('[name=full_name]').fill('Synthetic Room Diner');f.locator('[name=phone]').fill('8888888888');f.locator('[name=room_id]').select_option('room-a');f.locator('button[type=submit]').click();f.locator('button[type=submit]').click();page.locator('#folios.active [data-hotel-action=entry]').first.wait_for(state='visible')
+      nav(page,'pos');page.locator('#posNewSaleBtn').click();page.locator('#orderModal.show').wait_for(state='visible');page.locator('#posPickerItemName').fill('QA Veg');page.locator('#posMenuSuggestions button').first.click();page.locator('#posItemEntry [onclick="confirmPosItemInline()"]').click();page.locator('[name=bite_tender]').select_option('room');page.wait_for_function('document.querySelector("#biteRoomPOSFolio").options.length>1');page.locator('#biteRoomPOSFolio').select_option(index=1);page.locator('#createOrderBtn').click();page.locator('#orderModal').wait_for(state='hidden')
+      check('Room folio' in page.locator('#posRows').inner_text(),'Existing POS displays room transfer instead of a second collection')
+      nav(page,'folios');entry(page,'charge',100,'Room laundry');entry(page,'payment',1250,'Room checkout cash','Cash');page.locator('#folios [data-hotel-action=checkout]').click();page.wait_for_function("window.__BITE_HOTEL_QA.db.stays[0].status==='checked_out'")
+      check(len(page.evaluate('window.__BITE_HOTEL_QA.db.entries.filter(e=>e.category==="food")'))==1,'Hybrid checkout includes one source POS food charge')
+      with page.expect_popup() as popup:page.locator('#folios [data-hotel-action=preview]').click()
+      check('Synthetic Room Diner' in popup.value.locator('body').inner_text(),'Invoice preview opens the correct guest statement');popup.value.close()
+      screenshot(page,'hybrid-checkout-390')
     nav(page,'overview');screenshot(page,f'{kind}-home-{width}')
     page.close()
   page=browser.new_page(viewport={'width':390,'height':900});page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort())
   page.goto('http://127.0.0.1:4185/qa/new-owner.html',wait_until='domcontentloaded');page.locator('#business-modules.active').wait_for(state='visible')
   page.locator('#business-modules [name=business_type][value=hotel]').check();page.locator('#business-modules button[type=submit]').click();page.locator('#business-modules [name=name]').fill('Synthetic newly created hotel');page.locator('#business-modules button[type=submit]').click();page.locator('#business-modules button[type=submit]').click();screenshot(page,'new-hotel-setup-review-390');page.locator('#business-modules button[type=submit]').click();page.wait_for_function("document.body.dataset.businessType==='hotel'")
   check(page.evaluate('window.__BITE_HOTEL_QA.db.rooms.length')==0,'New hotel onboarding creates no invented rooms')
-  nav(page,'rooms');page.locator('#rooms [data-hotel-action=new-room]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=number]').fill('301');ed.locator('[name=nightly_rate]').fill('1200');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check(page.locator('#rooms .bh-room-title').count()==1,'New hotel owner adds a real room through existing app');page.close()
+  nav(page,'rooms');page.locator('#rooms [data-hotel-action=new-room]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=number]').fill('301');ed.locator('[name=nightly_rate]').fill('1200');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check(page.locator('#rooms .bh-room-title').count()==1,'New hotel owner adds a real room through existing app')
+  nav(page,'hr');staff=page.locator('#hr [data-hotel-form=member]');staff.locator('[name=email]').fill('accountant@example.test');staff.locator('[name=role]').select_option('accountant');staff.locator('button[type=submit]').click();page.wait_for_function("window.__BITE_HOTEL_QA.db.members.length===1");check('accountant@example.test' in page.locator('#hr .bh-record').inner_text(),'Staff account access uses verified email instead of internal identifiers');page.close()
   check(not errors,'Universal Owner browser journeys have no JavaScript page errors')
   browser.close()
 finally:

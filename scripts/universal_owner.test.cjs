@@ -37,12 +37,12 @@ test('folio food is a source reference; deposits and pending payments are not sa
 });
 function client(){
  const store=new Map(),calls=[];let handler=async()=>({data:{id:'saved'},error:null});
- const access={role:'owner',restaurantId:'rest-a',property:property('hotel')};let user={id:'user-a'};
- const w={BiteCapabilities:C,BiteOwner:{day:()=> '2026-11-16'},addEventListener(){},setInterval(){},clearInterval(){},alert(){}};
- const context={window:w,document:{querySelector:()=>null},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},console,Date,Event:class{},navigator:{}};
+ const access={role:'owner',restaurantId:'rest-a',property:property('hotel')};let user={id:'user-a'},state={orders:[],financials:[]};const alert={hidden:true,textContent:''};
+ const w={BiteCapabilities:C,BiteOwner:{day:()=> '2026-11-16'},BiteOwnerOrderBurst:require('../assets/owner-order-burst.js'),addEventListener(){},setInterval(){},clearInterval(){},alert(){}};
+ const context={window:w,document:{querySelector:()=>null,getElementById:id=>id==='biteHotelOrderAlert'?alert:null},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},console,Date,Event:class{},navigator:{}};
  vm.runInNewContext(fs.readFileSync('assets/owner-hospitality.js','utf8'),context);
- w.BiteHospitality.init({sb:{rpc:async(name,args)=>{calls.push({name,args});return handler(name,args)}},getAccess:()=>access,getState:()=>({orders:[]}),getUser:()=>user});
- return {api:w.BiteHospitality,store,calls,access,setHandler:f=>handler=f,setUser:u=>user=u,setOffline:()=>context.navigator.onLine=false};
+ w.BiteHospitality.init({sb:{rpc:async(name,args)=>{calls.push({name,args});return handler(name,args)}},getAccess:()=>access,getState:()=>state,getUser:()=>user});
+ return {api:w.BiteHospitality,store,calls,access,alert,setState:s=>state=s,setHandler:f=>handler=f,setUser:u=>user=u,setOffline:()=>context.navigator.onLine=false};
 }
 test('uncertain ledger response retains the same request UUID and rejects edited retries',async()=>{
  const c=client();c.setHandler(async()=>{throw Error('network interrupted')});
@@ -81,4 +81,18 @@ test('numeric validation rejection can be corrected without an indefinite pendin
 test('pre-arrival advances are collections, not room or food revenue',()=>{
  const t=C.hotelTotals([{kind:'advance',category:'payment',amount:500,status:'confirmed'}]);
  assert.equal(t.collections,500);assert.equal(t.room,0);assert.equal(t.foodOnFolios,0);
+});
+test('hotel header badge includes only paid website orders from the current outlet',()=>{
+ const c=client();c.access.property=property('hybrid');
+ const o=(id,channel,restaurant='rest-a')=>({id,restaurant,channel,status:'Received'});
+ const f=(id,status='paid',restaurant_id='rest-a')=>({order_id:id,restaurant_id,channel:'Own Platform',payment_status:status});
+ c.setState({orders:[o('web-paid','Own Platform'),o('web-pending','Own Platform'),o('room-pos','POS - Counter'),o('other','Own Platform','rest-b')],financials:[f('web-paid'),f('web-pending','pending'),f('room-pos'),f('other','paid','rest-b')]});
+ c.api.syncOrderBadge();assert.equal(c.alert.textContent,'1 new food order');assert.equal(c.alert.hidden,false);
+});
+test('retry signatures tolerate reordered JSON keys while preserving request identity',async()=>{
+ const c=client();c.setHandler(async()=>{throw Error('unknown response')});
+ await assert.rejects(c.api.command('payment',{folio_id:'f',amount:100,method:'Cash'}));
+ c.setHandler(async()=>({data:{id:'same'},error:null}));
+ await c.api.command('payment',{method:'Cash',amount:100,folio_id:'f'});
+ assert.equal(c.calls[0].args.p_request,c.calls[1].args.p_request);
 });

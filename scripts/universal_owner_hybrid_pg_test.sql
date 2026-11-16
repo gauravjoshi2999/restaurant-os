@@ -14,6 +14,8 @@ do $$ declare p uuid;r uuid;g uuid;s uuid;f uuid;e uuid;o uuid;k uuid;args jsonb
  assert public.bite_property_command(p,'room_pos',args,k)=out;
  assert (select count(*) from public.bite_folio_entries where source_order_id=o)=1;
  assert (select amount from public.bite_folio_entries where id=e)=50;
+ select jsonb_agg(value) into caps from jsonb_array_elements(caps) where value<>'"online_food_orders"'::jsonb;
+ perform public.bite_property_command(p,'config',jsonb_build_object('name','Synthetic Hybrid','business_type','hybrid','capabilities',caps),gen_random_uuid());
  assert ((public.bite_hotel_workspace(p)->'folios'->0->'totals')->>'balance')::numeric=550;
  begin perform public.bite_property_command(p,'room_pos',args||jsonb_build_object('restaurant_id','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),gen_random_uuid());raise exception 'Expected tenant denial';exception when insufficient_privilege then null;end;
  begin perform public.bite_property_command(p,'config',jsonb_build_object('name','Synthetic Hybrid','business_type','restaurant','capabilities','["restaurant_pos","restaurant_menu"]'::jsonb),gen_random_uuid());raise exception 'Expected active stay block';exception when raise_exception then if sqlerrm='Expected active stay block' then raise;end if;end;
@@ -32,6 +34,7 @@ do $$ declare o uuid;begin
  assert (select count(*) from public.orders where order_code like 'POS-ROOM-%')=1;
  assert (select status from public.orders where id=o)='Cancelled';
  assert not exists(select 1 from public.restaurant_order_payments where order_id=o);
+ begin insert into public.bite_live_checkout_intents(restaurant_id,status)values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','awaiting_payment');raise exception 'Expected disabled checkout guard';exception when insufficient_privilege then null;end;
  begin insert into public.restaurant_order_payments(order_id,amount)values(o,50);raise exception 'Expected payment guard';exception when raise_exception then if sqlerrm='Expected payment guard' then raise;end if;end;
  begin update public.orders set amount=60 where id=o;raise exception 'Expected amount guard';exception when raise_exception then if sqlerrm='Expected amount guard' then raise;end if;end;
  begin insert into public.order_items(order_id,item_name,quantity,unit_price)values(o,'Late edit',1,60);raise exception 'Expected item guard';exception when raise_exception then if sqlerrm='Expected item guard' then raise;end if;end;

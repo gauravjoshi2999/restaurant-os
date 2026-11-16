@@ -51,6 +51,7 @@ jobs:
             dist/launch-qa/ui-*.png
             dist/launch-qa/owner-feedback-mobile-evidence.json
             dist/launch-qa/universal-owner-browser-evidence.json
+            dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
           if-no-files-found: ignore
 

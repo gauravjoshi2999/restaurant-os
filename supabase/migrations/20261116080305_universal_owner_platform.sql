@@ -283,7 +283,9 @@ begin
    (exists(select 1 from public.bite_stays where property_id=p_property and status in ('reserved','in_house')) or exists(select 1 from public.bite_folios f where f.property_id=p_property and (f.status='open' or (private.bite_folio_totals(f.id)->>'deposit_held')::numeric<>0))) then raise exception 'Active stays, reservations or unsettled folios prevent disabling hotel modules'; end if;
   if not array['restaurant_pos','restaurant_menu','online_food_orders'] <@ caps and exists(
    select 1 from public.bite_property_outlets o join public.orders r on r.restaurant_id=o.restaurant_id
-   where o.property_id=p_property and not r.is_demo and (r.status in ('Received','Accepted','Preparing','Ready','Handed Over') or exists(select 1 from public.bite_refund_jobs j where j.order_id=r.id and j.status not in ('succeeded','cancelled')))) then raise exception 'Resolve active orders/refunds before disabling food modules'; end if;
+   where o.property_id=p_property and not r.is_demo
+   and (not 'restaurant_menu'=any(caps) or (not 'restaurant_pos'=any(caps) and r.channel like 'POS - %') or (not 'online_food_orders'=any(caps) and r.channel not like 'POS - %'))
+   and (r.status in ('Received','Accepted','Preparing','Ready','Handed Over') or exists(select 1 from public.bite_refund_jobs j where j.order_id=r.id and j.status not in ('succeeded','cancelled')))) then raise exception 'Resolve active orders/refunds before disabling food modules'; end if;
   if 'restaurant_pos'=any(prop.capabilities) and not 'restaurant_pos'=any(caps) and exists(
    select 1 from public.bite_property_outlets o join public.restaurant_order_payment_summaries s on s.restaurant_id=o.restaurant_id
    where o.property_id=p_property and s.balance_amount>0) then raise exception 'Resolve unpaid POS balances before disabling POS'; end if;
@@ -303,6 +305,10 @@ begin
   insert into public.bite_property_expenses(property_id,description,amount,expense_date,method,created_by)
   values(p_property,trim(p_payload->>'description'),(p_payload->>'amount')::numeric,(p_payload->>'expense_date')::date,p_payload->>'method',auth.uid()) returning id into entity;
  elsif p_action='member' then
+  if entity is null then
+   if (select count(*) from auth.users u where lower(u.email)=lower(trim(p_payload->>'email')))<>1 then raise exception 'Exactly one registered staff account must match this email'; end if;
+   select u.id into entity from auth.users u where lower(u.email)=lower(trim(p_payload->>'email'));
+  end if;
   if p_payload->>'role' not in ('manager','receptionist','cashier','housekeeping','accountant') then raise exception 'Choose a permitted staff role'; end if;
   if entity=(select owner_id from public.bite_businesses where id=prop.business_id) or exists(select 1 from public.platform_admins where user_id=entity) then raise exception 'Cannot reassign property owner or platform admin'; end if;
   if not exists(select 1 from auth.users where id=entity) then raise exception 'Registered user ID required'; end if;
@@ -424,8 +430,8 @@ begin
    if stay.status<>'in_house' then raise exception 'Only an in-house stay can check out'; end if;
    if (total->>'balance')::numeric<>0 or (total->>'deposit_held')::numeric<>0 or (total->>'pending')::numeric<>0 then raise exception 'Settle balance, pending payments and held deposit before checkout'; end if;
    invoice:=jsonb_build_object('number','BITE-'||replace(folio.id::text,'-',''),'issued_at',now(),'property',jsonb_build_object('name',prop.name,'address',prop.address,'phone',prop.phone),'tax_profile',prop.tax_profile,
-    'guest',(select jsonb_build_object('name',full_name,'address',address) from public.bite_guests where id=stay.guest_id),'stay',to_jsonb(stay),'totals',total,
-    'entries',(select coalesce(jsonb_agg(to_jsonb(e)-'created_by' order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where e.folio_id=folio.id));
+    'guest',(select jsonb_build_object('name',full_name,'address',address) from public.bite_guests where id=stay.guest_id),'stay',to_jsonb(stay)||jsonb_build_object('status','checked_out','checked_out_at',now()),'room',(select jsonb_build_object('number',number,'room_type',room_type) from public.bite_rooms where id=stay.room_id),'totals',total,
+    'entries',(select coalesce(jsonb_agg((to_jsonb(e)-'created_by')||jsonb_build_object('source_items',(select coalesce(jsonb_agg(jsonb_build_object('name',i.item_name,'quantity',i.quantity,'unit_price',i.unit_price)),'[]'::jsonb) from public.order_items i where i.order_id=e.source_order_id)) order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where e.folio_id=folio.id));
    update public.bite_folios set status='settled',settled_at=now(),invoice_number=invoice->>'number',invoice_snapshot=invoice where id=folio.id;
    update public.bite_stays set status='checked_out',checked_out_at=now() where id=stay.id;
    update public.bite_rooms set housekeeping='dirty' where id=stay.room_id;
@@ -517,13 +523,14 @@ declare result jsonb; begin
  if not private.bite_can(p_property,'membership') then raise exception 'Property access denied' using errcode='42501'; end if;
  result:=jsonb_build_object('rooms','[]'::jsonb,'guests','[]'::jsonb,'stays','[]'::jsonb,'folios','[]'::jsonb,'entries','[]'::jsonb,'audit','[]'::jsonb);
  if private.bite_can(p_property,'hotel_rooms') then result:=result||jsonb_build_object('rooms',(select coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('occupied',exists(select 1 from public.bite_stays s where s.room_id=r.id and s.status='in_house')) order by r.number),'[]'::jsonb) from public.bite_rooms r where property_id=p_property)); end if;
- if private.bite_can(p_property,'manage_modules') then result:=result||jsonb_build_object('members',(select coalesce(jsonb_agg(m),'[]'::jsonb) from public.bite_property_members m where property_id=p_property)); end if;
+ if private.bite_can(p_property,'manage_modules') then result:=result||jsonb_build_object('members',(select coalesce(jsonb_agg(jsonb_build_object('user_id',m.user_id,'role',m.role,'active',m.active,'email',u.email,
+ 'display_name',coalesce(nullif(u.raw_user_meta_data->>'full_name',''),u.email,'Staff account'))),'[]'::jsonb) from public.bite_property_members m join auth.users u on u.id=m.user_id where m.property_id=p_property)); end if;
  if private.bite_can(p_property,'expenses') then result:=result||jsonb_build_object('expenses',(select coalesce(jsonb_agg(e order by e.expense_date desc),'[]'::jsonb) from public.bite_property_expenses e where property_id=p_property)); end if;
  if private.bite_can(p_property,'guest_register') then result:=result||jsonb_build_object('guests',(select coalesce(jsonb_agg(g order by g.created_at desc),'[]'::jsonb) from public.bite_guests g where property_id=p_property)); end if;
  if private.bite_can(p_property,'reservations') then result:=result||jsonb_build_object('stays',(select coalesce(jsonb_agg(s order by s.created_at desc),'[]'::jsonb) from public.bite_stays s where property_id=p_property),
  'groups',(select coalesce(jsonb_agg(g),'[]'::jsonb) from public.bite_booking_groups g where property_id=p_property)); end if;
  if private.bite_can(p_property,'folios') then result:=result||jsonb_build_object('folios',(select coalesce(jsonb_agg(to_jsonb(f)||jsonb_build_object('totals',private.bite_folio_totals(f.id))),'[]'::jsonb) from public.bite_folios f where property_id=p_property),
- 'entries',(select coalesce(jsonb_agg(e order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where property_id=p_property)); end if;
+ 'entries',(select coalesce(jsonb_agg(to_jsonb(e)||jsonb_build_object('source_items',(select coalesce(jsonb_agg(jsonb_build_object('name',i.item_name,'quantity',i.quantity,'unit_price',i.unit_price)),'[]'::jsonb) from public.order_items i where i.order_id=e.source_order_id)) order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where property_id=p_property)); end if;
  if private.bite_can(p_property,'reporting') then result:=result||jsonb_build_object('audit',(select coalesce(jsonb_agg(a),'[]'::jsonb) from (select id,action,entity_id,created_at from public.bite_property_audit where property_id=p_property order by id desc limit 100) a)); end if;
  return result;
 end $$;
@@ -573,6 +580,8 @@ declare rid uuid;cap text;begin
  if TG_OP='DELETE' then rid:=old.restaurant_id;else rid:=new.restaurant_id;end if;
  if TG_TABLE_NAME='orders' then
   cap:=case when new.channel like 'POS - %' then 'restaurant_pos' else 'online_food_orders' end;
+  if new.channel='POS - Dine-in' and not private.bite_outlet_enabled(rid,'dine_in') then raise exception 'Dine-in disabled for this outlet' using errcode='42501';end if;
+  if new.channel='POS - Takeaway' and not private.bite_outlet_enabled(rid,'takeaway') then raise exception 'Takeaway disabled for this outlet' using errcode='42501';end if;
  elsif TG_TABLE_NAME='bite_live_checkout_intents' then cap:='online_food_orders';
  else cap:='restaurant_menu';end if;
  if not private.bite_outlet_enabled(rid,cap) then raise exception 'Business module disabled for this outlet' using errcode='42501';end if;

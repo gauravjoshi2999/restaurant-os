@@ -3,6 +3,8 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
 do $$ declare p uuid;g uuid;r1 uuid;r2 uuid;v_group uuid;s uuid;f uuid;e uuid;out jsonb;payload jsonb;k uuid;n integer;begin
  select id into p from public.bite_properties where name='Synthetic Hybrid';
+ perform public.bite_property_command(p,'member','{"email":"accountant@example.test","role":"accountant","active":true}',gen_random_uuid());
+ assert exists(select 1 from public.bite_property_members where property_id=p and user_id='55555555-5555-4555-8555-555555555555' and role='accountant' and active);
  select id into g from public.bite_guests where property_id=p and full_name='Hybrid Test Guest';
  select id into r1 from public.bite_rooms where property_id=p and number='201';
  out:=public.bite_property_command(p,'room_save','{"number":"202","room_type":"Deluxe","nightly_rate":600,"adults":2,"children":1}',gen_random_uuid());r2:=(out->>'id')::uuid;
