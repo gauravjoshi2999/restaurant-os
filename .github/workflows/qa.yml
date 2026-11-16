@@ -90,3 +90,33 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/cashfree_vendor_candidates_fixture.sql
           psql -v ON_ERROR_STOP=1 -f docs/sql/cashfree_vendor_candidates_staging_proposal.sql
           psql -v ON_ERROR_STOP=1 -f scripts/cashfree_vendor_candidates_db_test.sql
+
+  delivery-handoff-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_delivery_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_delivery_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_delivery_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Load the currently deployed delivery RPC logic into an isolated Postgres service
+        run: psql -v ON_ERROR_STOP=1 -f scripts/delivery_handoff_pg_fixture.sql
+      - name: Verify tenant protection, OTP lock, token rotation and expiry
+        run: psql -v ON_ERROR_STOP=1 -f scripts/delivery_handoff_pg_security_test.sql
