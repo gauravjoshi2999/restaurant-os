@@ -50,7 +50,7 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 6.20 Reconcile pilot charge, fee, refund (if any), restaurant payout, support outcome and order completion.
 
 ## Phase 5 — Admin, security and delivery
-- [x] 5.01a Verify static route matrices: Owner has 13 permitted pages, Super Admin has 10, enforced by applyRoleUI/showPage and app-scope guards. Read-only report: `docs/launch/ROLE_ROUTE_AND_RLS_REVIEW_20261116.md`.
+- [x] 5.01a Verify static route matrices: Owner has 13 permitted pages, Super Admin has 10, enforced by applyRoleUI/showPage and app-scope guards; added regression in PR #132, Bite QA passed. See `docs/launch/ROLE_ROUTE_AND_RLS_REVIEW_20261116.md`.
 - [ ] 5.01b Verify signed-in APK role isolation and navigation against authenticated test identities.
 - [x] 5.02 Audit production mappings read-only: 5 memberships, 5 distinct users, 5 restaurants; no multi-restaurant or multiple-owner conflicts; no Admin/Owner membership overlap on inspected rows.
 - [x] 5.03a Verify Maharani has exactly 1 owner membership in database.
@@ -61,7 +61,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 5.06 Test Admin owner reset and role-change authorization negative cases.
 - [ ] 5.07 Review privileged SECURITY DEFINER functions and explicit grants.
 - [ ] 5.08 Review password protection, login recovery and rate limits.
-- [ ] 5.09 Verify delivery link expiry, customer data visibility and OTP attempt limits.
+- [x] 5.09a Read-only server RPC/permissions audit: token SHA-256 hashed; default 24h expiry; five wrong OTP attempts; owner-only link creation; no direct handoff table grants; bearer link exposes customer address until expiry. See `docs/launch/DELIVERY_HANDOFF_SECURITY_REVIEW_20261116.md`.
+- [ ] 5.09b Exercise signed/anonymous, wrong OTP (five tries), expired/reused token and concurrency cases in isolated real test; protect sensitive recipient information.
 - [ ] 5.10 Complete physical delivery OTP success and invalid/expired-link tests.
 - [ ] 5.11 Review refund/commission/settlement audit logs with evidence.
 - [ ] 5.12 Backup and isolated restore rehearsal; record recovery owner.
@@ -124,4 +125,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**5.01b, 5.04b and 5.05**: authenticated role isolation and per-restaurant data negative tests in isolated identities, without mutations to real restaurant/customer accounts. Photo credits static page merged; keep 6.11d license/media verification and the original human/device/payment gates open.
+**5.01b, 5.04b, 5.05 and 5.09b**: authenticated negative tests for tenant isolation and delivery OTP/expiry using safe isolated test identities/data. Photo credit source page is merged but its live GitHub Pages deployment is not independently confirmed; keep 6.11d media/license and human/device/payment gates open.
