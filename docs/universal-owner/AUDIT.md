@@ -20,7 +20,7 @@ Authentication explicitly rejected multiple restaurant memberships and staff log
 | Reports, expenses, staff, settings | REUSE | one shared navigation entry per existing route; hotel report section in Reports |
 | Property/modules/roles | ADD | `business-modules` within the existing app, server-scoped property context |
 | Register, reservations, rooms, guests, folios, housekeeping | ADD | existing `showPage` shell and shared owner assets |
-| Guest identity scans | DO NOT ADD | No public bucket or raw scan storage. Minimal identity type/last four only in this release |
+| Guest supporting copies | OPTIONAL PRIVATE | Guests → Private copies: redacted JPEG/PNG/PDF, scoped front-desk access, no-store server downloads and confirmed removal. No public/bearer URLs or mandatory scan collection |
 | Fake aggregator widgets, mock revenue, repeated billing tiles | REMOVE FROM DESIGN | No new fake integrations or second restaurant billing engine |
 
 ## Eight reference audits
@@ -50,6 +50,6 @@ Tax rates are not copied from images. The older CBIC summary conflicts with the 
 
 ## Protection and rollback
 
-Work on a dedicated feature branch. New tables/RPCs are additive; no existing payment rows, orders, menus, IDs or provider functions are rewritten. Legacy restaurant configurations are backfilled using their current owner mappings. No hotel rooms or guests are seeded in production. No real money test is authorized. A schema/count preflight is evidence only, not a full database backup. Financial test fixtures belong in ephemeral Postgres. Roll back frontend by reverting the release commit; leave new ledger/history intact. Disable unused hotel modules only with no open stays/balances/deposits. Do not drop populated tables to roll back.
+Work on a dedicated feature branch. New tables/RPCs are additive; no existing payment rows, orders, menus, IDs or provider functions are rewritten. Legacy restaurant configurations are backfilled using their current owner mappings. No sample rooms or guests are retained in production. The later private-copy API probe creates and removes its own synthetic property/guest/accounts. No real money test is authorized. A schema/count preflight is evidence only, not a full database backup. Financial test fixtures belong in ephemeral Postgres. Roll back frontend by reverting the release commit; leave new ledger/history intact. Disable unused hotel modules only with no open stays/balances/deposits. Do not drop populated tables to roll back.
 
 Known baseline advisories include leaked-password protection disabled, intentionally private RLS tables with no browser policy and publicly callable guarded/intentional SECURITY DEFINER APIs. Do not remove required delivery/storefront functions to silence advisories. The new functions need their own role/tenant/anonymous tests.

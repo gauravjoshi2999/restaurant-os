@@ -1,0 +1,9 @@
+@media(max-width:760px){
+ body[data-role=owner][data-bh-keyboard=true] #mainApp .bh-form:focus-within>.bh-form-actions{
+  position:sticky!important;bottom:calc(var(--bh-keyboard-bottom,0px) + 8px)!important;
+  z-index:30;background:#fffaf5;padding:10px;border:1px solid #e7d7c6;border-radius:12px;
+  box-shadow:0 -5px 20px #38251812;scroll-margin-bottom:16px;
+ }
+ body[data-role=owner][data-bh-keyboard=true] #biteOwnerBottomNav{visibility:hidden!important;pointer-events:none!important}
+ body[data-role=owner][data-bh-keyboard=true] #mainApp .bh-form{padding-bottom:90px}
+}
