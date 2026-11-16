@@ -20,7 +20,19 @@
  const select=(name,label,options,extra='')=>`<label class="bh-field"><span>${esc(label)}</span><select name="${name}" ${extra}>${options}</select></label>`;
  const option=(value,label,selected=false)=>`<option value="${esc(value)}" ${selected?'selected':''}>${esc(label)}</option>`;
  const notice=()=>'<p class="bh-message" role="status" aria-live="polite"></p>';
- const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`;
+ function hotelSubnav(title){
+  if(prop()?.business_type!=='hybrid'||!has('hotel_rooms'))return '';
+  const byTitle={'Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Housekeeping':'housekeeping','Folios & Bills':'folios'};
+  const page=byTitle[title]||document.querySelector('#mainApp .page.active')?.id;
+  const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios'];
+  if(!routes.includes(page))return '';
+  const labels={rooms:'Room board','hotel-register':'Check-in',reservations:'Reservations',guests:'Guests',housekeeping:'Housekeeping',folios:'Bills'};
+  const pages=new Set(allowed());
+  return '<nav class="bh-hotel-tabs" aria-label="Hotel workspace sections">'+routes.filter(id=>pages.has(id)).map(id=>
+   '<button type="button" data-hotel-action="route" data-id="'+id+'"'+(page===id?' aria-current="page"':'')+'>'+esc(labels[id])+'</button>'
+  ).join('')+'</nav>';
+ }
+ const header=(title,detail,actions='')=>\`<div class="bh-heading"><div><p class="bh-eyebrow">\${esc(prop()?.name||'Bite Partner')}</p><h1>\${esc(title)}</h1><p>\${esc(detail)}</p></div><div class="bh-actions">\${actions}</div></div>\`+hotelSubnav(title);
  const stateCard=(text)=>`<div class="bh-empty">${esc(text)}</div>`;
  function init(context){
   ctx=context;root.BiteOwnerOperations?.init(context);
