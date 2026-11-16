@@ -28,6 +28,13 @@
   const rate=Number(f.nightly_rate);if(!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.abs(Math.round(rate*100)-rate*100)>0.000001)throw Error('Enter the agreed room rent with at most two decimals.');
   return {male,female,adults:male+female,children,arrived_from:String(f.arrived_from).trim(),next_destination:String(f.next_destination).trim(),transport:f.transport,vehicle_number:['Car','Bike'].includes(f.transport)?String(f.vehicle_number).trim().toUpperCase():''};
  }
+ function wireMoneyFields(form,methodName='method',noteName='account_note',verifyName='verified',refName='reference'){
+  const method=form?.elements[methodName];if(!method)return;
+  const update=()=>{const online=['UPI','Card','Bank Transfer'].includes(method.value);
+   for(const name of [noteName,verifyName,refName]){const input=form.elements[name];if(input)input.closest('label')?.toggleAttribute('hidden',!online)}
+   if(!online&&form.elements[verifyName])form.elements[verifyName].checked=false;
+  };method.addEventListener('change',update);update();
+ }
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
   const booking=form.querySelector('#biteRegistrationOperations');booking?.remove();
@@ -54,6 +61,7 @@
    booking.querySelector('h3').textContent='3 · Advance payment · Optional';
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
    form.querySelector('[data-ha-booking]').append(booking);
+   wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
   }
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
@@ -117,6 +125,7 @@
  function decoratePayment(form){
   if(!enabled()||!form||(!form.elements.method&&form.dataset.action!=='payment_confirm')||form.elements.account_note)return;
   form.querySelector('.bh-actions')?.insertAdjacentHTML('beforebegin',field('account_note','Online account · Short note','text',p()?.tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
+  wireMoneyFields(form);
  }
  function billHTML(s){
   const entries=(s.entries||[]).filter(e=>e.status==='confirmed'&&['charge','discount','reversal'].includes(e.kind));
@@ -163,7 +172,7 @@
   const sum=k=>(report.days||[]).reduce((n,d)=>n+Number(d[k]||0),0),last=report.days?.at(-1)||{};
   body.innerHTML='<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('staff_advance','＋ Staff advance')+button('salary','Staff salary')+button('accounts','Opening / transfer'):'')+'</div>'+
    '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
-   '<p class="bh-note">Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
+   '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
    '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Monthly Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
    (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
@@ -200,6 +209,7 @@
    field('description','Reason / detail','text','','required maxlength="250"')+'</div>'+
    (kind==='salary_expense'?'<p class="bh-note">Enter the full earned salary for this month, including advances already paid. This records the expense; it does not pay money again.</p>':kind==='salary_payment'?'<p class="bh-note">Record earned salary first. Pay only the remaining amount after advances; this payout does not add salary expense again.</p>':'')+
    (kind!=='salary_expense'?check('verified','For online entries, I verified this movement in the account.'):'')+message()+'<div class="bh-actions">'+button('close','Cancel')+'<button class="btn" type="submit">Save entry</button></div></form>');
+  wireMoneyFields(document.querySelector('#bhActionEditor form'));
  }
 
  async function click(e){
@@ -227,7 +237,7 @@
     const f=db().folios.find(x=>x.id===id),t=f?.totals;if(!f||!t)return;
     H().editor('<form class="bh-form" data-ha-form="checkout" data-id="'+esc(id)+'"><h2>Checkout</h2><div class="ha-checkout-summary"><span>Total bill <strong>'+money(t.charges)+'</strong></span><span>Already received <strong>'+money(t.paid)+'</strong></span><span>To collect <strong>'+money(t.balance)+'</strong></span></div>'+
      '<input name="amount" type="hidden" value="'+Number(t.balance)+'">'+(Number(t.balance)>0?select('method','Receive payment by',methods())+field('account_note','Online account · Short note','text',p().tax_profile?.primary_account||'','maxlength="80"')+field('reference','Online transaction reference','text','','maxlength="100"')+check('verified','I verified the online payment in the selected account.'):'')+
-     (Number(t.pending)||Number(t.deposit_held)?'<p class="bh-note">Verify pending receipts and resolve the security deposit before checkout.</p>':'')+message()+'<div class="bh-actions">'+button('close','Cancel')+'<button class="btn" type="submit" '+(Number(t.pending)||Number(t.deposit_held)||Number(t.balance)<0?'disabled':'')+'>Confirm checkout & bill</button></div></form>');return;
+     (Number(t.pending)||Number(t.deposit_held)?'<p class="bh-note">Verify pending receipts and resolve the security deposit before checkout.</p>':'')+message()+'<div class="bh-actions">'+button('close','Cancel')+'<button class="btn" type="submit" '+(Number(t.pending)||Number(t.deposit_held)||Number(t.balance)<0?'disabled':'')+'>Confirm checkout & bill</button></div></form>');wireMoneyFields(document.querySelector('[data-ha-form=checkout]'));return;
    }
   }catch(err){const m=document.querySelector('.page.active .bh-message');if(m)m.textContent=err.message;else root.alert(err.message)}
  }

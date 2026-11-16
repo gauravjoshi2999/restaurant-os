@@ -1,3 +1,4 @@
+create table if not exists public.restaurant_cashbook_closings(restaurant_id uuid,close_date date);
 alter table public.restaurant_order_payments add column if not exists created_at timestamptz default now();
 alter table public.restaurant_order_refunds add column if not exists created_at timestamptz default now();
 -- Synthetic richer cashbook view for the NEW account tests only.
