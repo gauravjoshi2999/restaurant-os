@@ -764,7 +764,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   elsif p_action in('payment','payment_confirm','deposit_hold','refund','deposit_return')then
    update public.bite_folio_entries set account_note=left(trim(coalesce(p_payload->>'account_note',nullif(account_note,''),pr.tax_profile->>'primary_account','')),80)where property_id=p_property and id=entity;
   elsif p_action in('room_pos','room_post')and coalesce((pr.tax_profile->>'reviewed')::boolean,false)and nullif(pr.tax_profile->>'gstin','')is not null then
-   update public.bite_folio_entries set tax_amount=round(amount*coalesce((pr.tax_profile->>'food_rate')::numeric,0)/100,2)where property_id=p_property and (id=coalesce(nullif(v->>'entry_id','')::uuid,entity)or source_order_id=nullif(v->>'order_id','')::uuid)and kind='charge'and category='food';
+   update public.bite_folio_entries e set tax_amount=round(e.amount*coalesce((pr.tax_profile->>'food_rate')::numeric,0)/100,2)where e.property_id=p_property and (e.id=coalesce(nullif(v->>'entry_id','')::uuid,entity)or e.source_order_id=nullif(v->>'order_id','')::uuid)and e.kind='charge'and e.category='food';
   elsif p_action='checkout'and not coalesce((v->>'already_complete')::boolean,false)then
    select * into strict f from public.bite_folios where property_id=p_property and id=fid;
    cfg:=f.invoice_snapshot||jsonb_build_object('number',private.bite_next_invoice_number(p_property),'reverse_charge',false,'place_of_supply',left(coalesce(pr.tax_profile->>'gstin',''),2));
