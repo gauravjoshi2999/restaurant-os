@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  const actionCatalog={
-  'hotel-register':{label:'Front Desk',hint:'Check in guests and manage arrivals',icon:'register'},
+  'hotel-register':{label:'Check-in',hint:'Guest entry, room and advance payment',icon:'register'},
   reservations:{label:'Reservations',hint:'Upcoming stays and bookings',icon:'calendar'},
   rooms:{label:'Rooms',hint:'Room board, readiness and occupancy',icon:'bed'},
   guests:{label:'Guests',hint:'Search returning guests',icon:'people'},
@@ -111,7 +111,7 @@
   const preferences=type==='hotel'?['hotel-register','rooms']:type==='restaurant'?['orders','pos']:['hotel-register','orders'];
   for(const page of preferences){
    if(!routes.includes(page))continue;
-   const b=routeButton(page,(page==='hotel-register'?'Open front desk':page==='rooms'?'View room board':page==='orders'?'Live orders':'New POS bill')+'  →','bite-premium-hero-cta');
+   const b=routeButton(page,(page==='hotel-register'?'Check-in':page==='rooms'?'View room board':page==='orders'?'Live orders':'New POS bill')+'  →','bite-premium-hero-cta');
    if(page==='orders')b.classList.add('is-secondary');
    if(page==='pos')b.dataset.billAction='open';
    primary.append(b);
