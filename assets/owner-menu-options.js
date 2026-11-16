@@ -39,6 +39,8 @@
   return choices;
  }
  let deps=null,selected=null,linked=[],groups=[],choices=[],busy=false,sequence=0,focusReturn=null;
+ const previewSelection=new Set();
+ let previewQuoteTicket=0;
  function safeContext(){
   if(!deps||!selected||deps.getRestaurantId()!==selected.restaurantId
      ||!deps.canEditRestaurant(selected.restaurantId)
@@ -107,6 +109,65 @@
     +(active?'Pause for this dish':'Enable for this dish')+'</button>'
     +'<span class="small">Owner setup only · Customer paid checkout abhi OFF hai</span></div></section>';
  }
+
+ function renderPricePreview(){
+  const area=byId('menuOptionsPreviewChoices'),button=byId('menuOptionsPreviewCheck');
+  const previewResult=byId('menuOptionsPreviewResult');
+  if(!area||!button||!previewResult)return;
+  previewQuoteTicket++;
+  previewResult.replaceChildren();
+  const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+  const available=new Set(active.flatMap(group=>group.options.map(c=>c.id)));
+  for(const id of previewSelection)if(!available.has(id))previewSelection.delete(id);
+  if(!active.length){
+   area.innerHTML='<p class="small">Price check ke liye ek Size ya Extras group enable karein.</p>';
+   button.disabled=true;return;
+  }
+  button.disabled=false;
+  const item=deps.getMenuItems().find(m=>m.id===selected?.itemId);
+  const base=Number(item?.price);
+  const baseLabel=Number.isFinite(base)?globalThis.BiteOwnerOptionPreview.amount(base):'Unavailable';
+  area.innerHTML='<p class="bite-options-base">Dish base price: <strong>'+esc(baseLabel)+'</strong></p>'+
+   active.map(group=>{
+    const isSingle=group.max_select===1;
+    return '<fieldset class="bite-options-preview-group" data-option-preview-group="'+esc(group.id)+'">'+
+      '<legend>'+esc(group.name)+'</legend><p class="small">'+
+      (group.min_select>0?'Required':'Optional')+' · Choose '+
+      esc(String(group.min_select))+' to '+esc(String(group.max_select))+'</p>'+
+      '<div class="bite-options-preview-choice-grid">'+group.options.map(choice=>
+        '<label class="bite-options-preview-choice"><input type="'+(isSingle?'radio':'checkbox')+
+        '" name="preview-'+esc(group.id)+'" value="'+esc(choice.id)+'" data-option-preview-choice'+
+        (previewSelection.has(choice.id)?' checked':'')+'>'+
+        '<span>'+esc(choice.name)+'</span><strong>+'+
+        esc(globalThis.BiteOwnerOptionPreview.amount(choice.price_delta))+'</strong></label>').join('')+
+      '</div></fieldset>';
+   }).join('');
+ }
+ async function quotePricePreview(){
+  const ctx=safeContext(),panel=byId('menuOptionsPreviewResult');
+  if(!panel)return;
+  const ticket=++previewQuoteTicket;
+  panel.textContent='Verifying price from Bite server…';
+  const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+  const selectedIds=globalThis.BiteOwnerOptionPreview.validateSelections(active,Array.from(previewSelection));
+  const {data,error}=await deps.sb.rpc('bite_quote_menu_options_v2',{
+   p_restaurant_id:ctx.restaurantId,p_lines:[{
+    menu_item_id:ctx.itemId,quantity:1,option_choice_ids:selectedIds
+   }]
+  });
+  if(ticket!==previewQuoteTicket||!selected||
+    selected.itemId!==ctx.itemId||selected.restaurantId!==ctx.restaurantId)return;
+  if(error)throw error;
+  const priced=globalThis.BiteOwnerOptionPreview.verifyServerQuote(
+   data,ctx.restaurantId,ctx.itemId,selectedIds
+  );
+  panel.innerHTML='<div class="bite-options-verified"><div><small>Verified food price (1 item)</small>'+
+   '<strong>'+esc(globalThis.BiteOwnerOptionPreview.amount(priced.total))+'</strong></div>'+
+   '<span class="pill green">Server quote ✓</span></div>'+
+   '<p class="small">Menu base '+esc(globalThis.BiteOwnerOptionPreview.amount(priced.base))+
+   ' + selected extras '+esc(globalThis.BiteOwnerOptionPreview.amount(priced.extras))+
+   '. Delivery, taxes and discounts are not included. Payment is disabled for this preview.</p>';
+ }
  function render(){
   const area=byId('menuOptionsGroupList');
   if(!area)return;
@@ -115,6 +176,7 @@
   area.innerHTML=attached.length?attached.map(x=>groupMarkup(x.group,x.link)).join('')
     :'<div class="empty">Is dish ke liye abhi koi size ya add-on group nahi hai.</div>';
   byId('menuOptionsGroupCount').textContent=attached.length+' groups';
+  renderPricePreview();
  }
  async function refresh(){
   const ctx=safeContext(),ticket=++sequence;
@@ -147,6 +209,7 @@
   }
   focusReturn=document.activeElement;
   selected={restaurantId:rid,itemId:id};
+  previewSelection.clear();previewQuoteTicket++;
   linked=[];groups=[];choices=[];sequence++;
   byId('menuOptionsItemName').textContent=item.name;
   byId('menuOptionsModal').classList.add('show');
@@ -161,7 +224,7 @@
  }
  function close(){
   if(busy)return;
-  selected=null;sequence++;
+  selected=null;sequence++;previewSelection.clear();previewQuoteTicket++;
   byId('menuOptionsModal')?.classList.remove('show');
   if(focusReturn?.isConnected)focusReturn.focus({preventScroll:true});
  }
@@ -288,6 +351,33 @@
   if(!modal)throw Error('Owner menu options modal missing');
   byId('menuOptionsCloseBtn').addEventListener('click',close);
   byId('menuOptionsAddDraftChoice').addEventListener('click',()=>{if(!busy)addDraftRow();});
+  byId('menuOptionsPreviewForm').addEventListener('change',event=>{
+   if(!event.target.matches('[data-option-preview-choice]'))return;
+   const input=event.target,id=input.value;
+   const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+   const group=active.find(g=>g.options.some(o=>o.id===id));
+   if(!group)return;
+   if(group.max_select===1){
+    group.options.forEach(o=>previewSelection.delete(o.id));
+    if(input.checked)previewSelection.add(id);
+   }else if(input.checked){
+    const count=group.options.filter(o=>previewSelection.has(o.id)).length;
+    if(count>=group.max_select){
+     input.checked=false;
+     feedback(group.name+': maximum '+group.max_select+' choices allowed.',true);
+     return;
+    }
+    previewSelection.add(id);
+   }else previewSelection.delete(id);
+   previewQuoteTicket++;byId('menuOptionsPreviewResult').replaceChildren();
+  });
+  byId('menuOptionsPreviewForm').addEventListener('submit',async event=>{
+   event.preventDefault();
+   if(busy||!selected)return;
+   const panel=byId('menuOptionsPreviewResult');
+   try{await quotePricePreview();}
+   catch(error){if(panel)panel.textContent='Price check failed: '+String(error?.message||error).slice(0,160);}
+  });
   modal.addEventListener('click',event=>{
    const button=event.target.closest('[data-options-action]');
    if(!button||busy)return;

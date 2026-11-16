@@ -49,8 +49,9 @@ test('Owner Menu and Prices contains visible Size/Add-on entry tied to actual di
  assert.match(html,/id="menuOptionsDraftChoices"/);
  assert.match(html,/Owner menu setup/);
  assert.match(html,/paid selection OFF/);
- assert.match(html,/owner-menu-options\.js\?v=20261113-size1/);
- assert.match(html,/owner-menu-options\.css\?v=20261113-size1/);
+ assert.match(html,/owner-menu-options\.js\?v=20261116-preview1/);
+ assert.match(html,/owner-menu-options-preview\.js\?v=20261116-preview1/);
+ assert.match(html,/owner-menu-options\.css\?v=20261116-preview1/);
  assert.match(css,/#menuOptionsModal \.bite-option-choice-row/);
  assert.match(css,/@media\(max-width:700px\)/);
 });
