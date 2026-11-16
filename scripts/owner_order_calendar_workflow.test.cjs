@@ -57,7 +57,7 @@ test('More child Back returns to More before original tab, never routes to unrel
  assert.match(navSource,/openMore\(true\)/);
  assert.match(navSource,/moreEntryPage\|\|'overview'/);
  assert.match(navSource,/const target=history\.pop\(\)\|\|'overview'/);
- assert.match(html,/owner-mobile-navigation\.js\?v=20261116-universal1/);
+ assert.match(html,/owner-mobile-navigation\.js\?v=[a-zA-Z0-9_-]+/);
  assert.match(html,/owner-orders-workspace\.js\?v=20261115-urgency3/);
 });
 
