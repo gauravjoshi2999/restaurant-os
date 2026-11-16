@@ -56,6 +56,7 @@ function setup(opts={}){
   delivered_to_phone:'NOT_VERIFIED'},error:null};
  const sb={functions:{async invoke(name,args){calls.push({name,args});return typeof response==='function'?response():response;}}};
  const ctx={document:{getElementById:id=>nodes[id]||null},sb,
+  window:{Capacitor:{Plugins:opts.native?{BiteOwnerPush:opts.native}:{}}},
   get access(){return {role,restaurantId:restaurant};},
   get currentUser(){return user?{id:user}:null;}
  };
@@ -70,9 +71,23 @@ test('Owner can manually check own devices without mistaking submission for deli
  assert.equal(f.calls.length,1);
  assert.equal(f.calls[0].name,'bite-owner-push-health');
  assert.equal(f.calls[0].args.body.restaurant_id,'restaurant-a');
- assert.match(f.out.textContent,/1 FCM submissions|2 FCM submissions/);
+ assert.match(f.out.textContent,/2 submitted/);
+ assert.match(f.out.textContent,/This device: native push not detected/);
+ assert.match(f.out.textContent,/Server: 1 active device/);
  assert.match(f.out.textContent,/Phone delivery NOT verified/);
  assert.equal(f.button.disabled,false);
+});
+test('Owner push health clearly distinguishes installed native bridge and settings shortcut from server registrations',async()=>{
+ const ready=setup({native:{enable(){},openNotificationSettings(){}}});
+ await ready.check();
+ assert.match(ready.out.textContent,/This device: native push and notification settings available/);
+ assert.match(ready.out.textContent,/Server: 1 active device/);
+ assert.match(ready.out.textContent,/Phone delivery NOT verified/);
+ assert.equal(ready.calls.length,1);
+ const older=setup({native:{enable(){}}});
+ await older.check();
+ assert.match(older.out.textContent,/This device: native push available; notification settings shortcut requires newer APK/);
+ assert.equal(older.calls.length,1);
 });
 test('Non-owner and logged-out sessions cannot request Owner diagnostics',async()=>{
  const f=setup({role:'super_admin'});
