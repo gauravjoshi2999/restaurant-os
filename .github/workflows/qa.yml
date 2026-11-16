@@ -42,6 +42,7 @@ jobs:
           python scripts/universal_owner_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
+          python scripts/hotel_accounts_browser.py
 
       - name: Upload synthetic QA evidence
         if: always()
@@ -55,6 +56,7 @@ jobs:
             dist/launch-qa/universal-owner-browser-evidence.json
             dist/launch-qa/owner-remaining-browser-evidence.json
             dist/launch-qa/guest-documents-browser-evidence.json
+            dist/launch-qa/hotel-accounts-browser-evidence.json
             dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
             dist/launch-qa/guest-hotel-bill.pdf
@@ -152,6 +154,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       PGDATABASE: bite_hotel_ci
+      PGTZ: Asia/Kolkata
     steps:
       - uses: actions/checkout@v4
       - name: Verify hotel ledger, tenant and role boundaries on isolated PostgreSQL 17

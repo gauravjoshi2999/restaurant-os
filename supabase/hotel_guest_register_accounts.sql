@@ -768,6 +768,8 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   elsif p_action='checkout'and not coalesce((v->>'already_complete')::boolean,false)then
    select * into strict f from public.bite_folios where property_id=p_property and id=fid;
    cfg:=f.invoice_snapshot||jsonb_build_object('number',private.bite_next_invoice_number(p_property),'reverse_charge',false,'place_of_supply',left(coalesce(pr.tax_profile->>'gstin',''),2));
+   cfg:=cfg#-'{stay,registration}';
+   cfg:=cfg||jsonb_build_object('entries',(select coalesce(jsonb_agg(e-'account_note'),'[]'::jsonb)from jsonb_array_elements(cfg->'entries')e));
    cfg:=cfg||jsonb_build_object('gst',private.bite_invoice_gst(cfg));
    cfg:=cfg||jsonb_build_object('splits',private.bite_split_invoice(cfg,f.payer_split));
    update public.bite_folios set invoice_number=cfg->>'number',invoice_snapshot=cfg where id=f.id;
