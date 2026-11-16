@@ -10,6 +10,7 @@
   ];
   const icons={
     home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    hotel:'<rect x="3" y="9" width="18" height="10" rx="2"/><path d="M5 9V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M3 19v2m18-2v2M7 12h3m4 0h3"/>',
     orders:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
     pos:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h5M15 13h2M15 17h2"/>',
     menu:'<path d="M5 5h14M5 10h14M5 15h9M5 20h9"/>',
@@ -183,7 +184,14 @@
       if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
       if(doc.body.dataset.role!=='owner'){moreChildPage=null;moreEntryPage=null;moreRestored=false;}
       const state=navigationState(doc.body.dataset.role,page,moreOpen);
-      if(root.BiteHospitality?.prop()&&state.visible)state.active=moreOpen?'more':activeTabs.some(t=>t.page===page)?page:'more';
+      const currentProperty=root.BiteHospitality?.prop();
+      if(currentProperty&&state.visible){
+        state.active=moreOpen?'more':activeTabs.some(t=>t.page===page)?page:'more';
+        // Hybrid Hotel subpages belong to Hotel, not More; the route remains unchanged.
+        if(!moreOpen&&currentProperty.business_type==='hybrid'&&
+           ['rooms','hotel-register','reservations','guests','housekeeping','folios','room-service'].includes(page)&&
+           activeTabs.some(t=>t.page==='rooms'))state.active='rooms';
+      }
       nav.hidden=!state.visible;
       drawerLogout.hidden=!state.visible;
       back.hidden=!state.showBack;

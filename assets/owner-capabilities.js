@@ -18,7 +18,12 @@
  }
  function tabs(property,restaurantAccess=true){
   const allowed=routes(property,restaurantAccess);
-  const source=has(property,'hotel_rooms')?[['overview','Home','home'],['hotel-register','Register','orders'],['rooms','Rooms','pos'],['folios','Folios','menu']]:[['overview','Home','home'],['orders','Orders','orders'],['pos','POS','pos'],['menu','Menu','menu']];
+  const hybrid=property?.business_type==='hybrid'&&restaurantAccess&&has(property,'hotel_rooms')&&has(property,'restaurant_pos');
+  const source=hybrid
+   ?[['overview','Home','home'],['rooms','Hotel','hotel'],['orders','Orders','orders'],['pos','POS','pos']]
+   :has(property,'hotel_rooms')
+    ?[['overview','Home','home'],['hotel-register','Guests','orders'],['rooms','Rooms','pos'],['folios','Bills','menu']]
+    :[['overview','Home','home'],['orders','Orders','orders'],['pos','POS','pos'],['menu','Menu','menu']];
   return [...source.filter(r=>!allowed||allowed.includes(r[0])).map(([page,label,icon])=>({page,label,icon})),{page:'more',label:'More',icon:'more'}];
  }
  function validateModules(caps){

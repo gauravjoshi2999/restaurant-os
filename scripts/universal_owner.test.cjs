@@ -11,7 +11,7 @@ test('restaurant, hotel and hybrid have one adaptive route map and shared tools'
 });
 test('mobile tabs adapt to server capabilities and cloud kitchen settings',()=>{
  assert.deepEqual(C.tabs(property('hotel'),false).map(t=>t.page),['overview','hotel-register','rooms','folios','more']);
- assert.deepEqual(C.tabs(property('hybrid')).map(t=>t.page),['overview','hotel-register','rooms','folios','more']);
+ assert.deepEqual(C.tabs(property('hybrid')).map(t=>t.page),['overview','rooms','orders','pos','more']);
  const r=property('restaurant');r.capabilities=r.capabilities.filter(c=>!['online_food_orders','dine_in'].includes(c));
  assert(!C.routes(r).includes('orders'));assert(!C.routes(r).includes('tables'));
  assert.deepEqual(C.tabs(r).map(t=>t.page),['overview','pos','menu','more']);

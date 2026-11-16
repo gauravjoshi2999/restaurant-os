@@ -316,3 +316,351 @@ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-prem
     transition:none!important;animation:none!important;transform:none!important;
   }
 }
+
+
+/* ---------- Bite Owner V2, November 2026 ----------
+   Canonical premium stylesheet (not a second overlay). Existing controllers still own data.
+   Layout follows the approved Home / Hotel / Orders / POS / More design family.
+*/
+body[data-role="owner"][data-universal-owner="true"]{
+ --op-canvas:#fbf7f3;--op-ink:#31232b;--op-muted:#796c72;
+ --op-line:#eaded5;--op-accent:#e9802a;--op-accent-soft:#fff0e2;--op-deep:#35232c;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp>.main{
+ background:radial-gradient(ellipse at 90% 0,#ffe6d25e,transparent 36%),#fbf7f3!important;
+}
+/* A real command center, not a second menu underneath an already existing menu. */
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome{
+ display:grid;grid-template-columns:minmax(0,1.65fr) minmax(275px,.9fr);
+ gap:20px;margin:0 0 20px;align-items:start;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero{
+ grid-column:1/-1;min-height:196px;
+ background:radial-gradient(circle at 91% 48%,#f6bd7d 0,#e9a77877 25%,transparent 44%),linear-gradient(115deg,#fcf5ef,#f9e2d3 76%,#ecc4a8)!important;
+ border:1px solid #e9cebb!important;box-shadow:0 13px 34px #61392413!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-copy{max-width:720px;padding:26px 34px 27px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero h1{font-size:clamp(24px,2.6vw,37px);max-width:660px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero p{font-size:13px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-actions{
+ display:flex;gap:10px;flex-wrap:wrap;margin-top:14px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta{
+ margin:0;min-height:43px;white-space:normal;
+ background:linear-gradient(115deg,#ef922f,#dc691f);border:1px solid #db6f28;
+ box-shadow:0 8px 18px #c4682630;color:#fff;
+ transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta.is-secondary{
+ background:#3b2632;border-color:#3b2632;box-shadow:0 6px 17px #38242d1f;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta:hover{
+ background:#d76a22;box-shadow:0 10px 22px #ae5d2540;transform:translateY(-1px)
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta.is-secondary:hover{background:#573443}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-motif{opacity:.72}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-section-label{
+ color:#a05e3c;font-size:10px;font-weight:850;letter-spacing:.15em;margin-bottom:7px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-section-heading{
+ display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 1px 13px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-section-heading h2{
+ margin:0;font-size:clamp(18px,1.6vw,23px)!important;letter-spacing:-.035em;
+ color:#35232c!important;line-height:1.2
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-section-heading>span{
+ color:#948185;font-size:11px;line-height:1.3
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric{
+ min-width:0;min-height:123px;display:grid;grid-template-columns:48px 1fr;
+ grid-template-rows:1fr auto;align-items:center;gap:5px 12px;
+ padding:15px 17px;text-align:left;border-radius:17px;
+ border:1px solid #eadfd7;background:linear-gradient(145deg,#fff,#fffbf8);
+ box-shadow:0 5px 17px #51272c0b;cursor:pointer;
+ transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric:hover,
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-item:hover{
+ transform:translateY(-2px);border-color:#dfb394;box-shadow:0 11px 22px #51272c13;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-icon{
+ grid-row:1/3;width:45px;height:45px;display:grid;place-items:center;
+ background:#fff0e6;color:#cf6c30;border-radius:14px;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-icon svg{width:25px;height:25px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric strong{
+ align-self:end;color:#34242d;font-size:clamp(22px,2.4vw,30px);line-height:1.1;
+ font-weight:850;letter-spacing:-.04em;font-variant-numeric:tabular-nums
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric>span:last-child{
+ align-self:start;font-size:12px;font-weight:650;color:#806f76;line-height:1.3
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention{
+ min-width:0;padding:17px;border:1px solid #ebddd2;border-radius:20px;
+ background:#fffdfa;box-shadow:0 8px 24px #51272c08
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-live-label{
+ color:#2a7d58!important;font-size:11px!important;font-weight:750
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-list{display:grid;gap:8px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-item{
+ display:grid;grid-template-columns:42px minmax(0,1fr) 20px;align-items:center;gap:12px;
+ min-height:67px;text-align:left;padding:10px 12px;background:#fff7f0;
+ border:1px solid #f1dfd2;border-radius:13px;color:#3d2932;
+ cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-item:nth-child(even){
+ background:#fff7f5;border-color:#f0e0dd
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-icon{
+ display:grid;place-items:center;width:41px;height:41px;border-radius:12px;background:#ffe9d8;color:#c06836
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-icon svg{width:23px;height:23px}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-text{display:grid;gap:4px;min-width:0}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-text strong{
+ font-size:12px;color:#3b2933;line-height:1.35;overflow-wrap:anywhere
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-text small{font-size:10px;color:#998289;line-height:1.25}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-arrow svg{width:19px;height:19px;color:#be7a53}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-neutral,
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-all-clear{
+ display:flex;gap:10px;align-items:center;margin:0;padding:18px 14px;border-radius:13px;
+ background:#f2f8f3;border:1px solid #ddeadd;color:#487252!important;font-size:12px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-neutral{background:#fff9f4;border-color:#e9ded5;color:#876b5b!important}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-all-clear svg{width:20px;height:20px;flex-shrink:0}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-workspaces{grid-column:1/-1}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-workspaces .bite-premium-actions{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-workspaces .bite-premium-action{
+ min-height:145px;padding:15px;box-shadow:0 6px 16px #51272c0b
+}
+body[data-role="owner"][data-universal-owner="true"].bite-premium-ready #overview #biteHotelHome>.bh-metrics{display:none!important}
+body[data-role="owner"][data-universal-owner="true"].bite-premium-ready #overview .od-outlet{display:none!important}
+body[data-role="owner"][data-universal-owner="true"].bite-premium-ready #overview .od-tools-section{display:none!important}
+/* Retain detailed stays, verified order queue and financial distinctions below the new command center. */
+body[data-role="owner"][data-universal-owner="true"] #overview #biteHotelHome>.bh-home-grid{margin-top:16px}
+body[data-role="owner"][data-universal-owner="true"] #overview #biteHotelHome>.bh-home-grid .bh-panel{
+ border:1px solid var(--op-line)!important;box-shadow:0 6px 21px #51272c09!important
+}
+
+/* Consistent V2 inner pages; presentation only. All original forms and callbacks stay intact. */
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#rooms,#housekeeping,#hotel-register,#reservations,#guests,#folios,#orders,#pos,#menu,#hr,#reports)>.bh-heading,
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#orders,#pos,#menu,#reports)>.welcome{
+ padding:17px 20px;margin-bottom:17px!important;border-radius:18px;
+ border:1px solid #eedacb;background:linear-gradient(110deg,#fffaf5 0%,#f9ecdf 74%,#f0d8c5);
+ box-shadow:0 9px 27px #602d2a0a;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-heading .bh-eyebrow{color:#ae6138}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-heading h1,
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#orders,#pos,#menu,#reports)>.welcome h1{
+ color:#35232c!important;font-weight:850!important;letter-spacing:-.04em;line-height:1.18
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-heading p{color:#7b6e73}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid{
+ grid-template-columns:repeat(auto-fill,minmax(275px,1fr))!important;gap:13px
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-panel,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid .bh-panel{
+ position:relative;border-left:4px solid #b6a5a2!important;padding:17px 16px!important;
+ transition:transform .16s ease,box-shadow .16s ease
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-panel:has(.bh-chip.ready),
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid .bh-panel:has(.bh-chip.ready){border-left-color:#3c9b66!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-panel:has(.bh-chip.occupied),
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid .bh-panel:has(.bh-chip.occupied){border-left-color:#e9802a!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-panel:has(.bh-chip.dirty),
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid .bh-panel:has(.bh-chip.dirty){border-left-color:#e1ad43!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-title h2,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-title h2{
+ font-size:27px!important;color:#35232c!important;font-weight:850;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-panel p,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid .bh-panel p{
+ margin:8px 0;color:#7e6b71;font-size:12px;line-height:1.5
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-chip{font-size:11px!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-chip.ready{background:#e4f4e9;color:#226b42}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-chip.occupied{background:#fff1e1;color:#a7551f}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-chip.dirty{background:#fff3d8;color:#916210}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #hotel-register #bhCheckinForm{
+ max-width:920px;margin-inline:auto!important;padding:clamp(17px,2.4vw,30px)!important;
+ box-shadow:0 13px 35px #4e28280d!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #bhCheckinForm h2{
+ font-size:16px!important;color:#3a2933!important;padding-bottom:10px;
+ border-bottom:1px solid #f0e5de;margin:18px 0 18px
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field{font-size:12px;color:#66565d;font-weight:750}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field :is(input,select,textarea){
+ border:1px solid #ded3cd!important;background:#fffdfa!important;border-radius:12px!important;
+ box-shadow:0 2px 9px #45292905!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field :is(input,select,textarea):focus{
+ border-color:#d77e3f!important;outline:3px solid #f1b37642!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-ledger .bh-record,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #reservations .bh-record,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #guests .bh-record{
+ border:1px solid #e9ded7!important;padding:16px!important;box-shadow:0 5px 16px #51272c0a!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-metric{
+ border-top:3px solid #c67e55!important;background:#fff9f3!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stages{
+ background:#fff9f4!important;border-bottom:1px solid #ecdcd1!important;top:69px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stage{
+ background:#fffdfb!important;color:#593d45!important;border:1px solid #e8d8cf!important;
+ border-radius:999px!important;font-weight:800!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stage.active{
+ background:linear-gradient(110deg,#f58a2a,#e86b17)!important;color:#fff!important;
+ border-color:#ea7623!important;box-shadow:0 6px 18px #df802a2c!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stage b{color:#825844!important;background:#fdf0e4!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stage.active b{background:#fff!important;color:#c25c29!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders :is(.order-card,.bite-owner-order-disclosure){
+ border:1px solid #ecdfd6!important;border-radius:17px!important;
+ background:#fffdfb!important;box-shadow:0 8px 24px #4c292c0c!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders :is(.order-card-top strong,.order-card-total,#orderStatusTitle){
+ color:#432b34!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-order-reason-modal{border-radius:18px;background:#fffdfb}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #pos #posDraftWorkspace{
+ border:1px solid #ebdcd2!important;border-radius:17px!important;
+ background:#fffdfb!important;box-shadow:0 8px 23px #51272c0a!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #menu .bite-qr-menu-note,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #pos>.notice{
+ border:1px solid #efddc7;border-radius:13px;background:#fff6ec;color:#7c5b47
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #menu :is(#menuCategoryChips button,#addMenuItemBtn),
+body[data-role="owner"][data-universal-owner="true"] #mainApp #pos #posNewSaleBtn{
+ border-radius:12px!important;min-height:46px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #menu :is(#menuSearchInput,#menuCategoryFilter){
+ border-radius:12px!important;border:1px solid #e6d6ce!important;background:#fff!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #reports .card{
+ border:1px solid #eadecf!important;border-radius:17px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page :is(.table-wrap,.bh-ledger){
+ border-radius:14px;scrollbar-color:#ce986d #fff6ef
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page :is(.table-wrap,.bh-ledger) table thead{
+ background:#fff2e7
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page .btn{
+ transition:transform .17s ease,box-shadow .17s ease
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .page .btn:active{transform:scale(.985)}
+/* The existing More page becomes a structured, one-column premium operations directory. */
+@media(max-width:760px){
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome{
+  display:flex;flex-direction:column;gap:16px;margin:0 0 17px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome :is(.bite-premium-today,.bite-premium-attention){width:100%}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero{min-height:182px;width:100%}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-copy{padding:20px 18px;max-width:100%}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero h1{font-size:24px!important;max-width:280px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero p{font-size:11px;max-width:250px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta{min-height:44px;font-size:11px;padding:10px 12px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-motif{opacity:.24;right:-70px;top:-30px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-today{order:3}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention{order:2;padding:14px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-workspaces{display:none!important}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-grid{gap:9px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric{
+  min-height:107px;padding:11px;grid-template-columns:36px 1fr;gap:4px 8px;border-radius:15px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-icon{
+  width:35px;height:35px;border-radius:11px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-icon svg{height:20px;width:20px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric strong{font-size:22px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric>span:last-child{font-size:10px}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-section-heading h2{font-size:18px!important}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-item{min-height:60px}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #housekeeping .bh-room-grid{grid-template-columns:minmax(0,1fr)!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #orders .bite-owner-order-stages{top:67px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#orders,#pos,#menu,#reports)>.welcome,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#rooms,#housekeeping,#hotel-register,#reservations,#folios,#guests)>.bh-heading{
+  padding:14px!important;border-radius:15px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .page:is(#orders,#pos,#menu,#reports)>.welcome h1,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-heading h1{font-size:23px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-head{
+  padding:17px!important;background:linear-gradient(110deg,#fff9f2,#f6e6db)!important;
+  border:1px solid #ead7cb!important;border-radius:18px!important;margin:3px 0 16px!important
+ }
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-head h1{color:#38272e!important;font-weight:850!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-group{margin-bottom:17px}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-group h2{color:#966349!important;font-size:12px!important;letter-spacing:.05em}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-grid{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-item{
+  display:flex!important;flex-direction:row!important;justify-content:flex-start!important;
+  align-items:center!important;min-height:65px!important;gap:12px!important;
+  padding:12px!important;background:#fffdfa!important;border-radius:13px!important;
+  border:1px solid #eaddd5!important;box-shadow:0 4px 15px #51272c07!important;
+ }
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-item-icon{
+  flex:none;width:41px;height:41px;background:#fff0e4!important;color:#c76a2f!important;border-radius:12px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-item-copy strong{color:#35252d;font-size:13px}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-item-copy small{color:#94838a;font-size:11px}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bite-more-item-arrow{top:auto!important;right:14px;color:#bb8e79}
+}
+@media(max-width:350px){
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-actions{flex-direction:column;align-items:flex-start}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero h1{font-size:21px!important}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric{
+  grid-template-columns:1fr;grid-template-rows:auto auto auto;min-height:118px;gap:3px
+ }
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric-icon{grid-row:auto}
+}
+@media(min-width:761px) and (max-width:1120px){
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome{grid-template-columns:minmax(0,1fr)}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome :is(.bite-premium-hero,.bite-premium-workspaces){grid-column:1}
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-workspaces .bite-premium-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-metric,
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention-item,
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero-cta,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .page .btn{transition:none!important;animation:none!important;transform:none!important}
+}
+
+
+/* A real Hotel section for Hybrid accounts, not a misleading Rooms-only tab. */
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs{
+ display:flex;gap:8px;overflow:auto;scrollbar-width:none;overscroll-behavior-x:contain;
+ margin:0 0 18px;padding:2px 1px 9px;max-width:100%;scroll-snap-type:x proximity;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs::-webkit-scrollbar{display:none}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs button{
+ min-height:44px;flex:0 0 auto;scroll-snap-align:start;white-space:nowrap;
+ color:#694a53;background:#fffdfa;border:1px solid #e8dacf;border-radius:999px;
+ padding:10px 15px;font:750 12px/1.3 inherit;cursor:pointer;
+ transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs button[aria-current="page"]{
+ color:#fff;background:linear-gradient(105deg,#f19232,#e57021);
+ border-color:#da731f;box-shadow:0 6px 15px #dc7b262e;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs button:focus-visible{
+ outline:3px solid #d88444;outline-offset:2px
+}
+@media(max-width:760px){
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs{margin-top:-4px;margin-bottom:13px}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs button{min-height:43px}
+}

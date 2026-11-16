@@ -13,7 +13,7 @@ subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=Tr
 base=(ROOT/'dist/qa/owner-flow.html').read_text()
 fixture=(ROOT/'scripts/fixtures/hospitality_backend.js').read_text()
 for kind in ['hotel','hybrid','restaurant','new','cashier']:
- html=base.replace('<script src="assets/owner-hospitality.js?v=20261116-3"></script>',f'<script>window.__BITE_HOSPITALITY_TYPE={json.dumps(kind)};</script><script>{fixture}</script><script src="assets/owner-hospitality.js?v=20261116-3"></script>')
+ html=base.replace('<script src="assets/owner-hospitality.js?v=20261116-owner-v2"></script>',f'<script>window.__BITE_HOSPITALITY_TYPE={json.dumps(kind)};</script><script>{fixture}</script><script src="assets/owner-hospitality.js?v=20261116-owner-v2"></script>')
  assert fixture in html
  if kind=='new':html=html.replace("window.__BITE_QA_ROLE='owner';","window.__BITE_QA_ROLE='new-hotel-owner';",1)
  (ROOT/f'dist/qa/{kind}-owner.html').write_text(html)
@@ -52,25 +52,26 @@ try:
     # Owner sessions can restore a non-Home route: navigate to Home explicitly for the visual contract.
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
-    page.locator('#bitePremiumHome .bite-premium-action').first.wait_for(state='visible')
+    page.locator('#bitePremiumHome .bite-premium-hero-cta').first.wait_for(state='visible')
     check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium home has correct business mode at {width}px')
     links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
     check(len(set(links))>=1,f'{kind} premium shortcuts rendered at {width}px')
     check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
     check(('orders' in links)==(kind!='hotel'),f'{kind} restaurant shortcut capability at {width}px')
     screenshot(page,f'{kind}-premium-home-{width}')
-    quick='orders' if kind=='restaurant' else 'rooms'
-    page.locator(f'#bitePremiumHome .bite-premium-action[data-page="{quick}"]').click()
+    quick='orders' if kind=='restaurant' else 'hotel-register'
+    page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
     page.locator(f'#{quick}.active').wait_for(state='visible')
     check(True,f'{kind} premium quick action opens existing {quick} workspace at {width}px')
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
+    check(page.locator('#biteHotelHome .bh-hotel-tabs').count()==0,f'{kind} home does not duplicate Hotel navigation')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
      check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
     if width<760:
      actual=page.locator('#biteOwnerBottomNav [data-bite-page]').evaluate_all('(es)=>es.map(e=>e.dataset.bitePage)')
-     expected=['overview','orders','pos','menu','more'] if kind=='restaurant' else ['overview','hotel-register','rooms','folios','more']
+     expected=['overview','orders','pos','menu','more'] if kind=='restaurant' else ['overview','rooms','orders','pos','more'] if kind=='hybrid' else ['overview','hotel-register','rooms','folios','more']
      check(actual==expected,f'{kind} capability tabs at {width}px')
      check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().height)')),f'{kind} 44px navigation targets at {width}px')
     if kind=='hotel':
@@ -134,7 +135,8 @@ try:
      nav(page,'pos');page.locator('#posNewSaleBtn').click();page.locator('#orderModal.show').wait_for(state='visible');page.locator('#posPickerItemName').fill('QA Veg');page.locator('#posMenuSuggestions button').first.click();page.locator('#posItemEntry [onclick="confirmPosItemInline()"]').click();page.locator('[name=bite_order_type]').select_option('POS - Takeaway');check(page.locator('#bitePOSTableField').is_hidden(),'Takeaway bill has no table assignment');page.locator('#posPaidAmount').fill('150');page.locator('#createOrderBtn').click();page.locator('#orderModal').wait_for(state='hidden');check(page.evaluate('window.__BITE_HOTEL_QA.db.sales[0].channel')=='POS - Takeaway','Existing POS creates a real typed takeaway command')
     elif kind=='hybrid' and width<760:
      page.locator('#biteOwnerBottomNav [data-bite-page=more]').click()
-     check(all(page.locator(f'#biteOwnerMoreScreen [data-owner-route={r}]').is_visible() for r in ['orders','pos','menu','reports','hr','settings']),'Hybrid More exposes food operations and shared tools')
+     check(all(page.locator(f'#biteOwnerMoreScreen [data-owner-route={r}]').is_visible() for r in ['menu','reports','hr','settings']),'Hybrid More exposes management tools without duplicating Orders and POS')
+     check(not page.locator('#biteOwnerMoreScreen [data-owner-route=orders]').count(),'Hybrid Orders stays in bottom navigation, not More')
      screenshot(page,f'hybrid-more-{width}')
      if width==390:
       nav(page,'hotel-register');f=page.locator('#bhCheckinForm');f.locator('[name=full_name]').fill('Synthetic Room Diner');f.locator('[name=phone]').fill('8888888888');f.locator('[name=room_id]').select_option('room-a');f.locator('button[type=submit]').click();f.locator('button[type=submit]').click();page.locator('#folios.active [data-hotel-action=entry]').first.wait_for(state='visible')

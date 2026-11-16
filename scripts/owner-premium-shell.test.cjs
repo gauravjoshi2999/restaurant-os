@@ -47,7 +47,7 @@ test('Owner layer is isolated from payments, customer and admin workspaces',()=>
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   assert.match(style,/data-role="owner"/);
   assert.match(style,/prefers-reduced-motion:reduce/);
-  assert.match(source,/BiteHospitality\.routeList/);
+  assert.match(source,/hotel\.routeList/);
   assert.match(source,/root\.showPage/);
   assert.doesNotMatch(source,/supabase\.|cashfree|fetch\(|\.insert\(|\.update\(|service_role/i);
   assert.match(html,/owner-premium-shell\.css/);
@@ -59,4 +59,22 @@ test('Hotel mode does not hide the premium Home while retaining operational fron
   const hotelCss=fs.readFileSync(path.join(__dirname,'../assets/owner-hospitality.css'),'utf8');
   assert.match(hotelCss,/body\[data-business-type=hotel\] #overview>:not\(#biteHotelHome\):not\(#bitePremiumHome\)\{display:none!important\}/);
   assert.doesNotMatch(hotelCss,/body\[data-business-type=hotel\] #overview>:not\(#biteHotelHome\)\{display:none!important\}/);
+});
+
+test('V2 metrics use provided operational numbers, never synthetic revenue',()=>{
+  const c=require('../assets/owner-premium-shell.js');
+  const routes=capabilities.routes(owner('hybrid'),true);
+  const blank=c.viewModel('hybrid',routes,null);
+  assert.ok(blank.metrics.every(m=>m.value==='—'));
+  assert.equal(blank.rows.length,0);
+  const model=c.viewModel('hybrid',routes,{occupied:8,arrivals:2,cleaning:1,newOrders:3,ready:true});
+  assert.deepEqual(model.metrics.map(m=>m.value),['8','2','3','1']);
+  assert.deepEqual(model.rows.map(r=>r.page),['housekeeping','reservations','orders']);
+  assert.equal(model.rows.every(r=>routes.includes(r.page)),true);
+  assert.equal(c.viewModel('restaurant',capabilities.routes(owner('restaurant'),true),{newOrders:0}).rows.length,0);
+});
+test('Hybrid mobile has five focused tabs; Hotel remains a group, not duplicate destinations',()=>{
+ const tabs=capabilities.tabs(owner('hybrid'),true);
+ assert.deepEqual(tabs.map(t=>t.label),['Home','Hotel','Orders','POS','More']);
+ assert.deepEqual(tabs.map(t=>t.page),['overview','rooms','orders','pos','more']);
 });

@@ -3,7 +3,7 @@
  'use strict';
  const C=root.BiteCapabilities;
  const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Folios & Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service'};
- let ctx,properties=[],data=empty(),selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
+ let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
@@ -20,7 +20,19 @@
  const select=(name,label,options,extra='')=>`<label class="bh-field"><span>${esc(label)}</span><select name="${name}" ${extra}>${options}</select></label>`;
  const option=(value,label,selected=false)=>`<option value="${esc(value)}" ${selected?'selected':''}>${esc(label)}</option>`;
  const notice=()=>'<p class="bh-message" role="status" aria-live="polite"></p>';
- const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`;
+ function hotelSubnav(title){
+  if(prop()?.business_type!=='hybrid'||!has('hotel_rooms'))return '';
+  const byTitle={'Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Housekeeping':'housekeeping','Folios & Bills':'folios'};
+  const page=byTitle[title];
+  const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios'];
+  if(!routes.includes(page))return '';
+  const labels={rooms:'Room board','hotel-register':'Check-in',reservations:'Reservations',guests:'Guests',housekeeping:'Housekeeping',folios:'Bills'};
+  const pages=new Set(allowed());
+  return '<nav class="bh-hotel-tabs" aria-label="Hotel workspace sections">'+routes.filter(id=>pages.has(id)).map(id=>
+   '<button type="button" data-hotel-action="route" data-id="'+id+'"'+(page===id?' aria-current="page"':'')+'>'+esc(labels[id])+'</button>'
+  ).join('')+'</nav>';
+ }
+ const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`+hotelSubnav(title);
  const stateCard=(text)=>`<div class="bh-empty">${esc(text)}</div>`;
  function init(context){
   ctx=context;root.BiteOwnerOperations?.init(context);
@@ -70,7 +82,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
-  root.BiteOwnerOperations?.clear();loadVersion++;data=empty();selectedFolio=null;setupDraft=null;setupStep=1;reportFrom='';reportTo='';
+  root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;setupDraft=null;setupStep=1;reportFrom='';reportTo='';
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
   startPolling();
   // Clear the old property immediately, before any new network response.
@@ -103,6 +115,34 @@
   root.dispatchEvent(new Event('bite:capabilities'));
   syncOrderBadge();
  }
+ function dashboardSnapshot(){
+  const property=prop();
+  if(!property)return null;
+  const canHotel=has('hotel_rooms'),canOrders=has('online_food_orders')&&restaurantAccess();
+  const snapshot={ready:!canHotel||workspaceReady,hotel:canHotel,restaurant:canOrders,
+   occupied:null,available:null,arrivals:null,departures:null,cleaning:null,openFolios:null,newOrders:null};
+  if(canHotel&&workspaceReady){
+   const rooms=data.rooms.filter(r=>r.active);
+   const active=data.stays.filter(s=>s.status==='in_house');
+   const todayString=today();
+   const occupiedRoomIds=new Set(active.map(s=>s.room_id));
+   snapshot.occupied=rooms.filter(r=>r.occupied||occupiedRoomIds.has(r.id)).length;
+   snapshot.available=rooms.filter(r=>roomState(r)==='ready').length;
+   snapshot.cleaning=rooms.filter(r=>['dirty','cleaning'].includes(r.housekeeping)).length;
+   snapshot.arrivals=data.stays.filter(s=>s.status==='reserved'&&s.arrival<=todayString).length;
+   snapshot.departures=active.filter(s=>s.departure<=todayString).length;
+   snapshot.openFolios=data.folios.filter(f=>f.status==='open').length;
+  }
+  if(canOrders){
+   const state=ctx?.getState()||{},orders=state.orders||[],rid=ctx.getAccess().restaurantId;
+   const verified=root.BiteOwnerOrderBurst?.paidOrderIds;
+   if(typeof verified==='function'){
+    const paid=verified(state.financials||[],rid);
+    snapshot.newOrders=orders.filter(o=>o.restaurant===rid&&!o.isDemo&&o.status==='Received'&&paid.has(o.id)&&/own platform|website|web/i.test(String(o.channel||''))&&!/^POS/i.test(String(o.channel||''))).length;
+   }
+  }
+  return snapshot;
+ }
  function syncOrderBadge(){
   const e=$('biteHotelOrderAlert');if(!e)return;
   const state=ctx?.getState()||{},orders=state.orders||[],rid=ctx.getAccess().restaurantId,paid=root.BiteOwnerOrderBurst?.paidOrderIds(state.financials||[],rid)||new Set();
@@ -114,8 +154,9 @@
   const version=++loadVersion,pid=p.id;
   const {data:rows,error}=await ctx.sb.rpc('bite_hotel_workspace',{p_property:pid});
   if(version!==loadVersion||prop()?.id!==pid)return;
-  if(error){if(error.code==='42501'){data=empty();for(const id of Object.keys(titles))$(id)?.replaceChildren();root.BiteOwnerOperations?.clear()}throw error;}
-  data={...empty(),...rows};renderHome();
+  if(error){if(error.code==='42501'){data=empty();workspaceReady=false;for(const id of Object.keys(titles))$(id)?.replaceChildren();root.BiteOwnerOperations?.clear()}throw error;}
+  data={...empty(),...rows};workspaceReady=true;renderHome();
+  if(typeof root.dispatchEvent==='function')root.dispatchEvent(new Event('bite:owner-summary'));
   const active=document.querySelector('#mainApp .page.active')?.id;
   if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within'))renderPage(active);
  }
@@ -465,8 +506,8 @@
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){root.BiteOwnerOperations?.clear();loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0,
+ root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,dashboardSnapshot,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0,
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);
