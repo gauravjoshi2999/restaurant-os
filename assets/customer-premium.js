@@ -122,11 +122,11 @@
     loadSavedAddresses();
   }
   function scheduleLocationIntroduction(reason){
-    if(BITE_DIRECT_MODE||locationIntroTimer||!locationSheet.hidden)return;
+    if(BITE_DIRECT_MODE||locationIntroTimer||!locationSheet.hidden||document.body.dataset.guestStayOpen||new URLSearchParams(location.hash.slice(1)).has('stay'))return;
     try{if(sessionStorage.getItem(locationIntroKey)==='1')return;}catch{}
     locationIntroTimer=setTimeout(async()=>{
       locationIntroTimer=null;
-      if(!locationSheet.hidden||document.body.dataset.view!=='home'||BITE_DIRECT_MODE)return;
+      if(!locationSheet.hidden||document.body.dataset.view!=='home'||BITE_DIRECT_MODE||document.body.dataset.guestStayOpen)return;
       if(byId('authModal')?.classList.contains('show'))return;
       if(byId('checkoutModal')?.classList.contains('show'))return;
       try{

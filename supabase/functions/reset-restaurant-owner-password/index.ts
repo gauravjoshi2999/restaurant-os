@@ -75,8 +75,19 @@ Deno.serve(async (req: Request) => {
     const ownerId = owners[0].user_id;
     const { data: memberships, error: membershipsError } = await admin.from("restaurant_members")
       .select("restaurant_id,role").eq("user_id", ownerId);
-    if (membershipsError || !memberships || memberships.length !== 1 || memberships[0].restaurant_id !== restaurantId || memberships[0].role !== "owner") {
-      return reply(409, { error: "Owner account ek se zyada restaurant se linked hai, ya mapping invalid hai. Pehle mapping fix karein." });
+    if (membershipsError || !memberships?.length || memberships.some(m => m.role !== "owner") || !memberships.some(m => m.restaurant_id === restaurantId)) {
+      return reply(409, { error: "Owner account mapping invalid hai. Pehle mapping verify karein." });
+    }
+    const sharedLogin = memberships.length > 1;
+    if (sharedLogin) {
+      const { data: contexts, error: contextError } = await caller.rpc("bite_platform_owner_contexts");
+      const verified = Array.isArray(contexts) && memberships.every(m => contexts.some(c =>
+        c.user_id === ownerId && c.restaurant_id === m.restaurant_id && c.verified === true));
+      if (contextError || !verified) return reply(409, { error: "Multiple restaurant assignments are not a verified business portfolio. Review Owner mapping first." });
+      if (body.acknowledge_shared_login !== true) return reply(409, {
+        error: "This is one shared Owner login for " + memberships.length + " outlets. Acknowledge that the password changes for every linked outlet.",
+        code: "SHARED_LOGIN_ACK_REQUIRED", affectedOutletCount: memberships.length,
+      });
     }
 
     const { data: platformAdmin, error: platformAdminError } = await admin.from("platform_admins")
@@ -145,6 +156,7 @@ Deno.serve(async (req: Request) => {
       loginIdentifier,
       phone: sharePhone,
       migrated,
+      affectedOutletCount: memberships.length,
       temporaryPassword: update.password,
     });
   } catch (error) {

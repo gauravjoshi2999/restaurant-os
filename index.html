@@ -1366,7 +1366,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261116-1"></script>
-<script src="assets/owner-hospitality.js?v=20261116-2"></script>
+<script src="assets/owner-hospitality.js?v=20261116-2"></script><script src="assets/owner-operations.js?v=20261116-1"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -2526,26 +2526,30 @@ async function loadOwnerMappingWorkspace(){
   const {data,error}=await sb.rpc('admin_list_owner_assignments');
   if(error)throw error;
   const rows=data||[];
+  const portfolioResponse=await sb.rpc('bite_platform_owner_contexts');
+  const portfolios=portfolioResponse.error?[]:portfolioResponse.data||[];
+  const verified=r=>Number(r.user_restaurant_count)>1&&portfolios.some(p=>p.user_id===r.owner_user_id&&p.restaurant_id===r.restaurant_id&&p.verified===true);
+  const valid=r=>!!r.owner_user_id&&Number(r.restaurant_owner_count)===1&&(Number(r.user_restaurant_count)===1||verified(r));
   // The Owner mapping is authoritative for whether Reset Password should be offered.
   document.querySelectorAll('[data-owner-reset-id]').forEach(button=>{
    const matches=rows.filter(row=>row.restaurant_id===button.dataset.ownerResetId);
-   const linked=matches.length===1&&!!matches[0].owner_user_id&&Number(matches[0].restaurant_owner_count)===1&&Number(matches[0].user_restaurant_count)===1;
+   const linked=matches.length===1&&valid(matches[0]);
    button.disabled=!linked;
    button.title=linked?'Reset this restaurant linked Owner password':'No valid one-to-one Owner login. Use Owner account mapping below to create/review assignment.';
   });
-  const issueCount=rows.filter(r=>!r.owner_user_id||Number(r.restaurant_owner_count)!==1||Number(r.user_restaurant_count)!==1).length;
+  const issueCount=rows.filter(r=>!valid(r)).length;
   body.innerHTML=rows.map(r=>{
    const hasOwner=!!r.owner_user_id;
-   const issue=!hasOwner||Number(r.restaurant_owner_count)!==1||Number(r.user_restaurant_count)!==1;
+   const issue=!valid(r);
    const ownerName=hasOwner?(r.owner_name||r.owner_email||String(r.owner_user_id).slice(0,8)):'Not assigned';
    const ownerCount=Number(r.restaurant_owner_count||0),loginCount=Number(r.user_restaurant_count||0);
    const issueDetails=[];
    if(!hasOwner)issueDetails.push('No valid Owner login linked');
    if(ownerCount>1)issueDetails.push(ownerCount+' Owner logins linked to this restaurant');
    if(hasOwner&&loginCount>1)issueDetails.push('This login is linked to '+loginCount+' restaurants');
-   const issueLabel=issue?'<div class="small" style="color:#a16207;margin-top:5px;white-space:normal">'+issueDetails.map(esc).join(' · ')+'</div>':'';
+   const issueLabel=verified(r)?'<div class="small">Verified business portfolio · shared Owner login</div>':issue?'<div class="small" style="color:#a16207;margin-top:5px;white-space:normal">'+issueDetails.map(esc).join(' · ')+'</div>':'';
    const resetButton=hasOwner?'<button class="btn secondary" type="button" data-reset-mapped-owner="'+esc(r.restaurant_id)+'">Reset Password</button>':'';
-   const replaceButton=hasOwner&&!issue?'<button class="btn secondary" type="button" data-replace-owner="'+esc(r.restaurant_id)+'" data-previous-owner="'+esc(r.owner_user_id)+'">Replace Owner Login</button>':'';
+   const replaceButton=hasOwner&&!issue&&!verified(r)?'<button class="btn secondary" type="button" data-replace-owner="'+esc(r.restaurant_id)+'" data-previous-owner="'+esc(r.owner_user_id)+'">Replace Owner Login</button>':'';
    const action=hasOwner&&issue?'<button class="btn secondary" type="button" data-resolve-owner="'+esc(r.owner_user_id)+'" data-resolve-restaurant="'+esc(r.restaurant_id)+'" data-resolve-name="'+esc(r.restaurant_name)+'" data-owner-count="'+ownerCount+'" data-login-count="'+loginCount+'">Review resolution impact</button>':hasOwner?resetButton+' '+replaceButton:'<button class="btn" type="button" data-create-owner="'+esc(r.restaurant_id)+'">Create Owner Login</button>';
    const match=String(r.owner_email||'').toLowerCase().match(/^owner-91([6-9][0-9]{9})@restaurantos\.test$/);
    const loginId=match?match[1]:r.owner_email||'—';
@@ -2821,10 +2825,13 @@ async function resetOwnerPassword(id){
  if(!access.isPlatformAdmin){alert('Only Super Admin can reset Owner passwords.');return}
  const r=state.restaurants.find(x=>x.id===id);
  if(!r)return;
- if(!confirm(r.name+' ke database-linked Owner ka password reset karna hai? Current password badal jayega. Naya password verified Owner ko privately dena hoga.'))return;
+ let sharedCount=1;
+ try{const result=await sb.rpc('bite_platform_owner_contexts');if(result.error)throw result.error;const rows=result.data||[],selected=rows.filter(x=>x.restaurant_id===id);if(selected.length===1&&selected[0].verified)sharedCount=rows.filter(x=>x.user_id===selected[0].user_id).length;}
+ catch(error){alert('Owner scope verify nahi hua. Password change nahi kiya: '+error.message);return;}
+ if(!confirm(r.name+' ke database-linked Owner ka password reset karna hai? '+(sharedCount>1?'This shared login covers '+sharedCount+' outlets; the password will change for ALL linked outlets. ':'')+'Current password badal jayega. Naya password verified Owner ko privately dena hoga.'))return;
  showResetPasswordLoading();
  try{
-  const {data,error}=await sb.functions.invoke('reset-restaurant-owner-password',{body:{restaurantId:id}});
+  const {data,error}=await sb.functions.invoke('reset-restaurant-owner-password',{body:{restaurantId:id,acknowledge_shared_login:sharedCount>1}});
   if(error){
    let detail=error.message||'Password reset failed.';
    if(error.context&&typeof error.context.json==='function'){try{const body=await error.context.json();if(body?.error)detail=body.error}catch(e){}}
@@ -2833,6 +2840,7 @@ async function resetOwnerPassword(id){
   if(!data?.success||!data?.temporaryPassword)throw new Error(data?.error||'Owner password reset ka response valid nahi hai.');
   hideResetPasswordLoading();
   showResetPassword(data.temporaryPassword,data.restaurantName,data.loginIdentifier);
+  if(data.affectedOutletCount>1)document.getElementById('resetPasswordCopyStatus').textContent='Shared Owner login updated for '+data.affectedOutletCount+' outlets.';
   if(data.migrated)document.getElementById('resetPasswordCopyStatus').textContent='Purane Phone Auth account ko usi Owner ID par password login diya gaya. Restaurant aur orders data safe hai.';
  }catch(err){
   hideResetPasswordLoading();

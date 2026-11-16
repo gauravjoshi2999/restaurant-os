@@ -8,6 +8,7 @@ set role authenticated;
 set request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$declare p uuid;begin
  select id into p from public.bite_properties where name='Synthetic Hotel';
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
  perform public.bite_property_command(p,'room_save','{"number":"CONCURRENT","room_type":"Deluxe","nightly_rate":100,"adults":2,"children":1}',gen_random_uuid());
  perform public.bite_property_command(p,'guest_save','{"full_name":"Concurrent Test","phone":"7777777777"}',gen_random_uuid());
 end $$;
@@ -17,10 +18,12 @@ qa_room=$(psql -Atq -c "select id from public.bite_rooms where number='CONCURREN
 qa_guest=$(psql -Atq -c "select id from public.bite_guests where full_name='Concurrent Test'")
 for qa_id in "$qa_property" "$qa_room" "$qa_guest";do [[ "$qa_id" =~ ^[0-9a-f-]{36}$ ]];done
 for qa_attempt in 1 2;do
+ qa_staff='11111111-1111-4111-8111-111111111111'
+ if [[ $qa_attempt == 2 ]];then qa_staff='33333333-3333-4333-8333-333333333333';fi
  cat > "$qa_dir/reserve-$qa_attempt.sql" <<SQL
 begin;
 set local role authenticated;
-set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
+set local request.jwt.claim.sub='$qa_staff';
 select public.bite_property_command('$qa_property','reserve',jsonb_build_object('guest_id','$qa_guest','room_id','$qa_room','arrival',current_date,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());
 select pg_sleep(0.7);
 commit;
