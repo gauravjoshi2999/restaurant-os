@@ -12,7 +12,7 @@ test('credits page covers all current linked Maharani images, not stale 112 labe
   assert.equal(manifest.images.length,91);
   assert.equal(names.length,91);
   for(const entry of manifest.images){
-    assert.ok(page.includes('<h2>'+entry.name.replace(/&/g,'&amp;')+'</h2>'),entry.name);
+    assert.ok(page.includes('<h2>'+entry.name.replace(/&/g,'&amp;').replace(/'/g,'&#39;')+'</h2>'),entry.name);
   }
   assert.match(page,/illustrative food photographs sourced from Wikimedia Commons/);
   assert.match(page,/not photographs taken of meals cooked at Hotel Maharani Palace/);
