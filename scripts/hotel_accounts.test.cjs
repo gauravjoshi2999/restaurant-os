@@ -32,7 +32,11 @@ test('bill escapes guest/property data and unregistered bills omit tax-invoice c
  const html=A.billHTML({...invoice,property:{name:'<script>bad()</script>'},tax_profile:{},gst:[]});
  assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>bad'));assert.ok(!html.includes('Tax invoice'));
 });
-test('GST export has bill-wise separate taxable values and the two state taxes',()=>{
+test('GST export keeps one bill row with separate taxable services and state taxes',()=>{
  const rows=A.gstRows({gst_invoices:[{number:invoice.number,date:'2026-11-17',guest:'Synthetic Guest',gstin:invoice.tax_profile.gstin,total:1575,tax_lines:invoice.gst}]});
- assert.equal(rows.length,3);assert.equal(rows[1][6],1200);assert.equal(rows[1][7],2.5);assert.equal(rows[2][8],7.5);assert.equal(rows[2][10],7.5);
+ assert.equal(rows.length,3);assert.equal(rows[1][4],1200);assert.equal(rows[1][5],300);assert.equal(rows[1][7],1500);assert.equal(rows[1][10],37.5);assert.equal(rows[1][12],37.5);assert.equal(rows[2][13],1575);
+});
+test('monthly totals sum sales and movements but carry the last closing balance',()=>{
+ const rows=A.reportRows({days:[{day:'2026-11-17',gross_sales:100,cash_balance:500,online_balance:200},{day:'2026-11-18',gross_sales:150,cash_balance:600,online_balance:250}]});
+ assert.equal(rows.at(-1)[4],250);assert.equal(rows.at(-1)[11],600);assert.equal(rows.at(-1)[14],250);
 });
