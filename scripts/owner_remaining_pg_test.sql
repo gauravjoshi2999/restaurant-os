@@ -172,4 +172,22 @@ do $$declare p uuid;r uuid;g uuid;s uuid;f uuid;q jsonb;incoming uuid;begin
  perform pg_temp.denied(format('select private.bite_check_room_timing(%L,%L,current_date,current_date+1)',p,r),'conflict');
  raise notice 'PASS: hourly late fee/grace/tax, approved waiver, incoming-booking and cleaning-time conflict';
 end $$;
+-- Hotel Only -> Hybrid retains an occupied guest's original folio and charges.
+do $$declare p uuid;g uuid;r uuid;s uuid;f uuid;rid uuid;v jsonb;entries_before jsonb;begin
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ p:=public.bite_create_property('Hotel adds food QA','hotel',gen_random_uuid());
+ v:=public.bite_property_command(p,'guest_save','{"full_name":"Existing hotel guest QA","phone":"9999999912"}',gen_random_uuid());g:=(v->>'id')::uuid;
+ v:=public.bite_property_command(p,'room_save','{"number":"Add-food-1","room_type":"Deluxe","nightly_rate":100,"adults":1,"children":0}',gen_random_uuid());r:=(v->>'id')::uuid;
+ v:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());s:=(v->>'id')::uuid;f:=(v->>'folio_id')::uuid;
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+ select jsonb_agg(to_jsonb(e)order by e.id)into entries_before from public.bite_folio_entries e where e.folio_id=f;
+ perform public.bite_property_command(p,'config',jsonb_build_object('name','Hotel adds food QA','business_type','hybrid','capabilities',private.bite_default_capabilities('hybrid')),gen_random_uuid());
+ v:=public.bite_property_command(p,'outlet_application','{"name":"Hotel new food outlet QA","city":"Rajsamand","address":"Synthetic hotel food address","phone":"9999999912"}',gen_random_uuid());rid:=(v->>'id')::uuid;
+ perform set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+ update public.restaurants set status='Active',onboarding_status='approved' where id=rid;
+ assert exists(select 1 from public.bite_property_outlets where property_id=p and restaurant_id=rid);
+ assert (select jsonb_agg(to_jsonb(e)order by e.id)from public.bite_folio_entries e where e.folio_id=f)=entries_before;
+ assert (select stay_id from public.bite_folios where id=f)=s and (select status from public.bite_stays where id=s)='in_house';
+ raise notice 'PASS: Hotel Only to Hybrid approval preserves the occupied guest folio';
+end $$;
 rollback;

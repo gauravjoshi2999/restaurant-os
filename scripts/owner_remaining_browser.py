@@ -146,7 +146,7 @@ try:
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Guest bill fits '+str(width)+'px')
    shot(page,'guest-bill-'+str(width))
    if width==1440:
-    page.emulate_media(media='print');check(page.locator('#homeView').is_hidden() and page.locator('#biteGuestStayContent').is_visible(),'Guest print layout contains only the hotel bill');pdf=page.pdf(path=str(OUT/'guest-hotel-bill.pdf'),format='A4',print_background=True);check(len(pdf)>5000,'Hotel guest bill saves as a rendered PDF');page.emulate_media(media='screen')
+    page.emulate_media(media='print');check(page.locator('#biteGuestStayDialog').evaluate('(e)=>{const r=e.getBoundingClientRect();return r.left>=0&&r.top>=0&&getComputedStyle(e).borderRadius==="0px"}'),'Guest print layout has no clipped dialog edges');check(page.locator('#homeView').is_hidden() and page.locator('#biteGuestStayContent').is_visible(),'Guest print layout contains only the hotel bill');pdf=page.pdf(path=str(OUT/'guest-hotel-bill.pdf'),format='A4',print_background=True);check(len(pdf)>5000,'Hotel guest bill saves as a rendered PDF');page.emulate_media(media='screen')
    page.locator('#biteGuestStayClose').click();page.evaluate("BiteGuestStay.open('b'.repeat(64))");page.get_by_text('This guest link is invalid, expired or revoked. Ask the hotel for a new link.',exact=True).wait_for(state='visible');check(page.locator('#biteGuestStayContent').get_by_text('TEST-BILL',exact=False).count()==0,'Revoked guest link clears the previous bill');page.close()
   browser.close()
  check(not errors,'No page errors in remaining workflow browser tests')

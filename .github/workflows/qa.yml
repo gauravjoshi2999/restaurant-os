@@ -161,7 +161,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116105700_owner_room_discount_guard.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_pos_guard_fixture.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_remaining_fixture.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116113912_owner_remaining_workflows.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116135719_owner_remaining_workflows.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql

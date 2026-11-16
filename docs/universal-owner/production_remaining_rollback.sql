@@ -1,7 +1,7 @@
 -- Trusted console only. Every synthetic record/configuration is rolled back.
 -- No HTTP, message, Auth password change or payment-provider operation is used.
 do $test$
-declare p uuid;uid uuid;rid uuid;admin_id uuid;cfg jsonb;caps text[];r uuid;g uuid;s uuid;f uuid;t uuid;j uuid;o uuid;app uuid;p2 uuid;
+declare p uuid;uid uuid;rid uuid;admin_id uuid;cfg jsonb;caps text[];r uuid;g uuid;s uuid;f uuid;t uuid;j uuid;o uuid;app uuid;p2 uuid;r2 uuid;g2 uuid;s2 uuid;f2 uuid;
  out jsonb;q jsonb;args jsonb;link jsonb;credit numeric;k uuid;before_orders text;before_menu text;before_hotel text;before_counts jsonb;
 begin
  select md5(string_agg(id::text||':'||amount::text||':'||status,'|' order by id)) into before_orders from public.orders;
@@ -54,7 +54,12 @@ begin
   assert (select count(*) from public.bite_service_tasks where property_id=p and room_id=r and stay_id is null and kind='cleaning' and status='requested')=1;
   assert jsonb_array_length(public.bite_unified_audit(p,'room_pos',null)->'rows')>0;
   -- Restaurant creator/owner and existing approval guards are real production code.
-  p2:=public.bite_create_property('Synthetic application rollback only','hybrid',gen_random_uuid());
+  p2:=public.bite_create_property('Synthetic application rollback only','hotel',gen_random_uuid());
+  out:=public.bite_property_command(p2,'room_save',jsonb_build_object('number','QA-'||left(gen_random_uuid()::text,8),'room_type','Synthetic hotel before food','nightly_rate',1,'adults',1,'children',0),gen_random_uuid());r2:=(out->>'id')::uuid;
+  out:=public.bite_property_command(p2,'guest_save','{"full_name":"Synthetic hotel adds food rollback","phone":"9999999999"}',gen_random_uuid());g2:=(out->>'id')::uuid;
+  out:=public.bite_property_command(p2,'reserve',jsonb_build_object('guest_id',g2,'room_id',r2,'arrival',current_date,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());s2:=(out->>'id')::uuid;f2:=(out->>'folio_id')::uuid;
+  perform public.bite_property_command(p2,'checkin',jsonb_build_object('id',s2),gen_random_uuid());
+  perform public.bite_property_command(p2,'config',jsonb_build_object('name','Synthetic application rollback only','business_type','hybrid','capabilities',to_jsonb(caps)),gen_random_uuid());
   out:=public.bite_property_command(p2,'outlet_application','{"name":"Synthetic application rollback only","city":"Rajsamand","address":"Synthetic rollback address","phone":"9999999999"}',gen_random_uuid());app:=(out->>'id')::uuid;
   assert public.has_restaurant_role(app,array['owner']);
   assert not exists(select 1 from public.bite_property_outlets where restaurant_id=app);
@@ -62,12 +67,21 @@ begin
   update public.restaurants set status='Active',onboarding_status='approved',onboarding_reviewed_at=now(),onboarding_reviewed_by=admin_id where id=app;
   assert exists(select 1 from public.bite_property_outlets where property_id=p2 and restaurant_id=app);
   assert not (select is_published from public.restaurants where id=app);
+  assert (select stay_id from public.bite_folios where id=f2)=s2 and (select sum(amount)from public.bite_folio_entries where folio_id=f2 and kind='charge')=1;
+  perform set_config('request.jwt.claim.sub',uid::text,true);perform set_config('request.jwt.claims',jsonb_build_object('sub',uid,'role','authenticated')::text,true);execute 'set local role authenticated';
+  args:=jsonb_build_object('restaurant_id',app,'channel','POS - Counter','paid_amount',1,'payment_method','Cash','items','[{"name":"Synthetic closing rollback","quantity":1,"unit_price":1}]'::jsonb);
+  perform public.bite_property_command(p2,'pos_sale',args,gen_random_uuid());
+  q:=public.bite_property_report(p2,current_date,current_date);
+  perform public.bite_property_command(p2,'close_shift',jsonb_build_object('shift_date',current_date,'opening_cash',100,'counted_cash',100+(q->>'cash_movement')::numeric,'source_hash',q->>'source_hash','lock_journals',true),gen_random_uuid());
+  begin perform public.bite_property_command(p2,'pos_sale',args,gen_random_uuid());raise exception using errcode='BT002',message='Closed POS journal was not denied';exception when raise_exception then if position('locked' in sqlerrm)=0 then raise;end if;end;
+  begin perform public.bite_property_command(p2,'charge',jsonb_build_object('folio_id',f2,'amount',1,'description','Synthetic closed hotel journal'),gen_random_uuid());raise exception using errcode='BT002',message='Closed hotel journal was not denied';exception when raise_exception then if position('locked' in sqlerrm)=0 then raise;end if;end;
+
   raise exception using errcode='BT001',message='EXPECTED_SYNTHETIC_ROLLBACK';
  exception when sqlstate 'BT001' then null;end;
  assert (select md5(string_agg(id::text||':'||amount::text||':'||status,'|' order by id)) from public.orders)=before_orders;
  assert (select md5(string_agg(id::text||':'||name||':'||price::text,'|' order by id)) from public.menu_items)=before_menu;
  assert (select md5(coalesce(string_agg(v,'|' order by v),'')) from (select to_jsonb(x)::text v from public.bite_rooms x union all select to_jsonb(x)::text from public.bite_stays x union all select to_jsonb(x)::text from public.bite_guests x union all select to_jsonb(x)::text from public.bite_folios x union all select to_jsonb(x)::text from public.bite_folio_entries x)a)=before_hotel;
  assert before_counts=jsonb_build_object('payments',(select count(*) from public.restaurant_order_payments),'financials',(select count(*) from public.order_financials),'refund_jobs',(select count(*) from public.bite_refund_jobs),'restaurants',(select count(*) from public.restaurants));
- perform set_config('bite.qa_result','PASS: real production POS/service, prepaid/policy credit, once-only return record, guest-link revoke/privacy, compliance acknowledgment, creator/owner approval association; all synthetic data rolled back; original order/menu/hotel digests and financial counts preserved',false);
+ perform set_config('bite.qa_result','PASS: real production POS/service, prepaid/policy credit, once-only return record, guest-link revoke/privacy, compliance acknowledgment, Hotel Only to Hybrid preserves its folio; creator/owner approval association; both hotel and real POS journals lock; all synthetic data rolled back; original order/menu/hotel digests and financial counts preserved',false);
 end $test$;
 select current_setting('bite.qa_result') verified_rollback_result;
