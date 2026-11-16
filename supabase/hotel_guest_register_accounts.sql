@@ -621,7 +621,7 @@ declare v jsonb;begin
  if auth.uid()is null or not private.bite_can(p_property,'reporting')then raise exception 'Daily Book access denied'using errcode='42501';end if;
  if p_from is null or p_to is null or p_to<p_from or p_to-p_from>366 then raise exception 'Choose up to 367 days';end if;
  with journals as(
- select c.entry_id id,c.source_type,c.entry_date day,c.direction,c.category,c.description,c.amount,c.payment_method method,coalesce(n.account_note,'')account_note,
+ select c.entry_id id,c.source_type,c.entry_date book_date,c.direction,c.category,c.description,c.amount,c.payment_method method,coalesce(n.account_note,'')account_note,
  case when c.source_type='employee_payment'then split_part(c.description,' · ',1)else ''end staff_name,
  case when c.category='Employee Advance'then c.amount else 0 end advance,
  case when c.source_type in('expense','purchase')or(c.source_type='manual'and c.direction='out')or(c.source_type='employee_payment'and c.category in('Employee Salary','Employee Bonus')and not exists(select 1 from public.bite_daily_book_entries b where b.property_id=p_property and b.kind='salary_expense'and lower(b.staff_name)=lower(split_part(c.description,' · ',1))and date_trunc('month',b.entry_date)=date_trunc('month',c.entry_date)))then c.amount else 0 end cost
@@ -635,7 +635,7 @@ declare v jsonb;begin
  select e.id,'daybook',e.entry_date,case when e.kind in('expense','staff_advance','salary_payment','transfer_out')then 'out'when e.kind='salary_expense'then 'noncash'else 'in'end,e.kind,e.description,e.amount,e.method,e.account_note,e.staff_name,
  case when e.kind='staff_advance'then e.amount else 0 end,case when e.kind in('expense','salary_expense')then e.amount else 0 end from public.bite_daily_book_entries e where e.property_id=p_property and e.entry_date<=p_to
  ),sales as(
- select(o.order_date at time zone 'Asia/Kolkata')::date day,'pos'type,o.amount-o.waived_off_amount gross,0::numeric tax
+ select(o.order_date at time zone 'Asia/Kolkata')::date book_date,'pos' as sale_type,o.amount-o.waived_off_amount gross,0::numeric tax
  from public.orders o join public.bite_property_outlets po on po.restaurant_id=o.restaurant_id
  where po.property_id=p_property and not o.is_demo and o.status not in('Cancelled','Rejected')and(o.order_date at time zone 'Asia/Kolkata')::date between p_from and p_to
  and o.channel!~*'own platform|website|^web$'and not exists(select 1 from public.bite_folio_entries e where e.property_id=p_property and e.source_order_id=o.id)
@@ -644,22 +644,22 @@ declare v jsonb;begin
  coalesce((select sum((x->>'cgst')::numeric+(x->>'sgst')::numeric)from jsonb_array_elements(coalesce(f.invoice_snapshot->'gst',private.bite_invoice_gst(f.invoice_snapshot)))x),0)
  from public.bite_folios f where f.property_id=p_property and f.status='settled'and(f.settled_at at time zone 'Asia/Kolkata')::date between p_from and p_to
  union all select entry_date,'other',amount,0 from public.bite_daily_book_entries where property_id=p_property and kind='income'and entry_date between p_from and p_to
- ),day_sales as(select day,sum(gross)filter(where type='pos')pos_sales,sum(gross)filter(where type='hotel')hotel_sales,sum(gross)filter(where type='other')other_income,sum(gross)gross_sales,sum(tax)tax from sales group by day
+ ),day_sales as(select book_date,sum(gross)filter(where sale_type='pos')pos_sales,sum(gross)filter(where sale_type='hotel')hotel_sales,sum(gross)filter(where sale_type='other')other_income,sum(gross)gross_sales,sum(tax)tax from sales group by book_date
  ),daily as(
- select d::date day,coalesce(s.pos_sales,0)pos_sales,coalesce(s.hotel_sales,0)hotel_sales,coalesce(s.other_income,0)other_income,coalesce(s.gross_sales,0)gross_sales,coalesce(s.tax,0)tax,
- coalesce((select sum(j.cost)from journals j where j.day=d::date),0)expenses,
- coalesce((select sum(j.advance)from journals j where j.day=d::date),0)staff_advance,
- coalesce((select sum(j.amount)from journals j where j.day=d::date and j.direction='in'and j.method='Cash'),0)cash_in,
- coalesce((select sum(j.amount)from journals j where j.day=d::date and j.direction='out'and j.method='Cash'),0)cash_out,
- coalesce((select sum(j.amount)from journals j where j.day=d::date and j.direction='in'and j.method in('UPI','Card','Bank Transfer')),0)online_in,
- coalesce((select sum(j.amount)from journals j where j.day=d::date and j.direction='out'and j.method in('UPI','Card','Bank Transfer')),0)online_out,
- coalesce((select sum(case when j.direction='in'then j.amount when j.direction='out'then -j.amount else 0 end)from journals j where j.day<=d::date and j.method='Cash'),0)cash_balance,
- coalesce((select sum(case when j.direction='in'then j.amount when j.direction='out'then -j.amount else 0 end)from journals j where j.day<=d::date and j.method in('UPI','Card','Bank Transfer')),0)online_balance
- from generate_series(p_from,p_to,'1 day'::interval)d left join day_sales s on s.day=d::date
+ select d::date book_date,coalesce(s.pos_sales,0)pos_sales,coalesce(s.hotel_sales,0)hotel_sales,coalesce(s.other_income,0)other_income,coalesce(s.gross_sales,0)gross_sales,coalesce(s.tax,0)tax,
+ coalesce((select sum(j.cost)from journals j where j.book_date=d::date),0)expenses,
+ coalesce((select sum(j.advance)from journals j where j.book_date=d::date),0)staff_advance,
+ coalesce((select sum(j.amount)from journals j where j.book_date=d::date and j.direction='in'and j.method='Cash'),0)cash_in,
+ coalesce((select sum(j.amount)from journals j where j.book_date=d::date and j.direction='out'and j.method='Cash'),0)cash_out,
+ coalesce((select sum(j.amount)from journals j where j.book_date=d::date and j.direction='in'and j.method in('UPI','Card','Bank Transfer')),0)online_in,
+ coalesce((select sum(j.amount)from journals j where j.book_date=d::date and j.direction='out'and j.method in('UPI','Card','Bank Transfer')),0)online_out,
+ coalesce((select sum(case when j.direction='in'then j.amount when j.direction='out'then -j.amount else 0 end)from journals j where j.book_date<=d::date and j.method='Cash'),0)cash_balance,
+ coalesce((select sum(case when j.direction='in'then j.amount when j.direction='out'then -j.amount else 0 end)from journals j where j.book_date<=d::date and j.method in('UPI','Card','Bank Transfer')),0)online_balance
+ from generate_series(p_from,p_to,'1 day'::interval)d left join day_sales s on s.book_date=d::date
  )
  select jsonb_build_object('from',p_from,'to',p_to,'basis','Billed sales: final hotel bills once; standalone POS once. Cash/online balances follow recorded receipts and payments. Staff advances are assets, not salary expense.',
- 'days',coalesce((select jsonb_agg(to_jsonb(daily)||jsonb_build_object('net_sales',gross_sales-tax,'profit',gross_sales-tax-expenses)order by day)from daily),'[]'::jsonb),
- 'journal',coalesce((select jsonb_agg(to_jsonb(j)order by day desc,id)from journals j where day between p_from and p_to),'[]'::jsonb),
+ 'days',coalesce((select jsonb_agg(to_jsonb(daily)||jsonb_build_object('day',book_date,'net_sales',gross_sales-tax,'profit',gross_sales-tax-expenses)order by book_date)from daily),'[]'::jsonb),
+ 'journal',coalesce((select jsonb_agg(to_jsonb(j)||jsonb_build_object('day',j.book_date)order by book_date desc,id)from journals j where book_date between p_from and p_to),'[]'::jsonb),
  'accounts',coalesce((select jsonb_agg(a)from(select case when method='Cash'then 'Cash'else coalesce(nullif(account_note,''),'Unspecified account')end account,method,sum(case when direction='in'then amount when direction='out'then -amount else 0 end)balance from journals where method<>'Non-cash'group by 1,2 order by 1,2)a),'[]'::jsonb),
  'staff',coalesce((select jsonb_agg(x)from(select staff_name,sum(advance)advances,sum(amount)filter(where category='salary_expense')earned_salary,sum(amount)filter(where category in('salary_payment','Employee Salary','Employee Bonus'))salary_paid from journals where staff_name<>''group by staff_name)x),'[]'::jsonb),
  'gst_invoices',coalesce((select jsonb_agg(jsonb_build_object('number',f.invoice_number,'date',(f.settled_at at time zone 'Asia/Kolkata')::date,'guest',f.invoice_snapshot->'guest'->>'name','gstin',f.invoice_snapshot->'tax_profile'->>'gstin','tax_lines',coalesce(f.invoice_snapshot->'gst',private.bite_invoice_gst(f.invoice_snapshot)),'total',f.invoice_snapshot->'totals'->'charges')order by f.settled_at)from public.bite_folios f where f.property_id=p_property and f.status='settled'and(f.settled_at at time zone 'Asia/Kolkata')::date between p_from and p_to),'[]'::jsonb)
@@ -769,6 +769,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
    select * into strict f from public.bite_folios where property_id=p_property and id=fid;
    cfg:=f.invoice_snapshot||jsonb_build_object('number',private.bite_next_invoice_number(p_property),'reverse_charge',false,'place_of_supply',left(coalesce(pr.tax_profile->>'gstin',''),2));
    cfg:=cfg#-'{stay,registration}';
+   cfg:=jsonb_set(cfg,'{tax_profile}',coalesce(cfg->'tax_profile','{}'::jsonb)-'primary_account');
    cfg:=cfg||jsonb_build_object('entries',(select coalesce(jsonb_agg(e-'account_note'),'[]'::jsonb)from jsonb_array_elements(cfg->'entries')e));
    cfg:=cfg||jsonb_build_object('gst',private.bite_invoice_gst(cfg));
    cfg:=cfg||jsonb_build_object('splits',private.bite_split_invoice(cfg,f.payer_split));
