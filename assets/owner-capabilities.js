@@ -1,7 +1,7 @@
 /* Navigation uses server-issued property capabilities; SQL remains authoritative. */
 (function(root){
  'use strict';
- const hotel=[['hotel-register','Register','guest_register'],['reservations','Reservations','reservations'],['rooms','Rooms','hotel_rooms'],['guests','Guests','guest_register'],['folios','Folios & Bills','folios'],['housekeeping','Housekeeping','housekeeping'],['room-service','Room service','room_service']];
+ const hotel=[['hotel-register','Register','guest_register'],['reservations','Reservations','reservations'],['rooms','Rooms','hotel_rooms'],['guests','Guests','guest_register'],['folios','Guest Bills','folios'],['housekeeping','Housekeeping','housekeeping'],['room-service','Room service','room_service']];
  const restaurant=[['orders','Orders','online_food_orders'],['pos','POS & Billing','restaurant_pos'],['menu','Menu','restaurant_menu'],['tables','Tables','dine_in'],['khata','Customer Khata','restaurant_pos'],['cashbook','Cashbook','restaurant_pos'],['purchases','Suppliers','inventory'],['inventory','Stock','inventory']];
  const common=[['expenses','Expenses','expenses'],['reports','Reports','reporting'],['hr','Staff','staff_management']];
  const defaults={
