@@ -1,245 +1,91 @@
--- Additive Owner OS. No existing restaurant/order/payment record is replaced.
--- Financial writes go through authenticated, property-locked commands.
-create schema if not exists private;
-
-create table public.bite_businesses (
- id uuid primary key default gen_random_uuid(),
- owner_id uuid not null references auth.users(id),
- name text not null check(length(trim(name)) between 1 and 120),
- created_at timestamptz not null default now(), unique(owner_id)
+-- Owner operational completion. Existing ledger entries and invoices are retained.
+alter table public.bite_rooms add column do_not_disturb boolean not null default false;
+alter table public.bite_rooms add column cleaning_requested boolean not null default false;
+alter table public.bite_folios add column payer_split jsonb;
+create table public.bite_cashier_outlet_grants (
+ property_id uuid not null references public.bite_properties(id), user_id uuid not null references auth.users(id),
+ restaurant_id uuid not null references public.restaurants(id), primary key(property_id,user_id,restaurant_id)
 );
-create table public.bite_properties (
- id uuid primary key default gen_random_uuid(),
- business_id uuid not null references public.bite_businesses(id),
- origin_restaurant_id uuid unique references public.restaurants(id),
- name text not null check(length(trim(name)) between 1 and 120),
- business_type text not null check(business_type in ('restaurant','hotel','hybrid')),
- capabilities text[] not null,
- address text not null default '', phone text not null default '',
- timezone text not null default 'Asia/Kolkata' check(timezone='Asia/Kolkata'),
- checkin_time time not null default '12:00', checkout_time time not null default '11:00',
- tax_profile jsonb not null default '{"reviewed":false}',
- created_at timestamptz not null default now(), updated_at timestamptz not null default now()
-);
-create table public.bite_property_members (
- property_id uuid not null references public.bite_properties(id),
- user_id uuid not null references auth.users(id),
- role text not null check(role in ('owner','manager','receptionist','cashier','housekeeping','accountant')),
- active boolean not null default true,
- primary key(property_id,user_id)
-);
-create index bite_property_members_user on public.bite_property_members(user_id,property_id) where active;
-create table public.bite_property_outlets (
- property_id uuid not null references public.bite_properties(id),
- restaurant_id uuid not null unique references public.restaurants(id),
- primary key(property_id,restaurant_id)
-);
-create table public.bite_rooms (
- id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- number text not null check(length(trim(number)) between 1 and 20),
- room_type text not null check(length(trim(room_type)) between 1 and 60), floor text not null default '',
- nightly_rate numeric(14,2) not null check(nightly_rate between 0 and 999999999999.99),
- adults integer not null default 2 check(adults between 1 and 20),
- children integer not null default 2 check(children between 0 and 20),
- housekeeping text not null default 'ready' check(housekeeping in ('ready','dirty','cleaning','blocked')),
- status_note text not null default '', active boolean not null default true,
- unique(property_id,number), unique(property_id,id)
-);
-create table public.bite_guests (
- id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- full_name text not null check(length(trim(full_name)) between 1 and 120),
- phone text not null check(length(phone) between 7 and 20),
- country text not null default 'India' check(length(country) between 1 and 60),
- email text not null default '', address text not null default '',
- id_type text not null default '' check(length(id_type)<=40),
- id_last4 text not null default '' check(length(id_last4)<=4),
- created_at timestamptz not null default now(), unique(property_id,id)
-);
-create index bite_guests_phone on public.bite_guests(property_id,phone);
-create table public.bite_booking_groups (
+alter table public.bite_cashier_outlet_grants enable row level security;
+revoke all on public.bite_cashier_outlet_grants from public,anon,authenticated;
+create table public.bite_property_shift_closings (
  id uuid primary key default gen_random_uuid(),property_id uuid not null references public.bite_properties(id),
- name text not null check(length(trim(name)) between 1 and 120),payer_guest_id uuid not null,
- created_at timestamptz not null default now(),unique(property_id,id),
- foreign key(property_id,payer_guest_id) references public.bite_guests(property_id,id)
+ shift_date date not null,opening_cash numeric(14,2) not null check(opening_cash>=0),
+ counted_cash numeric(14,2) not null check(counted_cash>=0),expected_cash numeric(14,2) not null,
+ difference numeric(14,2) not null,notes text not null default '',snapshot jsonb not null,
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),unique(property_id,shift_date)
 );
-create table public.bite_stays (
- id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- guest_id uuid not null, room_id uuid not null, group_id uuid,
- arrival date not null, departure date not null check(departure>arrival),
- adults integer not null check(adults between 1 and 20), children integer not null default 0 check(children between 0 and 20),
- nightly_rate numeric(14,2) not null check(nightly_rate between 0 and 999999999999.99),
- room_tax_rate numeric(6,3) not null default 0 check(room_tax_rate between 0 and 100),
- status text not null default 'reserved' check(status in ('reserved','in_house','checked_out','cancelled','no_show')),
- checked_in_at timestamptz, checked_out_at timestamptz,
- compliance_note text not null default '', created_at timestamptz not null default now(),
- unique(property_id,id),
- foreign key(property_id,group_id) references public.bite_booking_groups(property_id,id),
- foreign key(property_id,guest_id) references public.bite_guests(property_id,id),
- foreign key(property_id,room_id) references public.bite_rooms(property_id,id)
-);
-create index bite_stays_room_dates on public.bite_stays(property_id,room_id,arrival,departure) where status in ('reserved','in_house');
-create table public.bite_folios (
- id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- stay_id uuid not null unique, status text not null default 'open' check(status in ('open','settled')),
- invoice_number text unique, invoice_snapshot jsonb, settled_at timestamptz,
- unique(property_id,id), foreign key(property_id,stay_id) references public.bite_stays(property_id,id)
-);
-create table public.bite_folio_entries (
- id uuid primary key default gen_random_uuid(), property_id uuid not null, folio_id uuid not null,
- kind text not null check(kind in ('charge','discount','reversal','payment','advance','refund','deposit_hold','deposit_return','deposit_apply')),
- category text not null check(category in ('room','incidental','food','payment','deposit')),
- description text not null check(length(trim(description)) between 1 and 250),
- amount numeric(14,2) not null check(amount>0 and amount<=999999999999.99),
- tax_amount numeric(14,2) not null default 0 check(tax_amount between 0 and 999999999999.99),
- status text not null default 'confirmed' check(status in ('pending','confirmed','void')),
- method text check(method in ('Cash','UPI','Card','Bank Transfer','Other')),
- reference text not null default '' check(length(reference)<=100),
- source_order_id uuid unique references public.orders(id), reversal_of uuid unique references public.bite_folio_entries(id),
- created_by uuid not null references auth.users(id), created_at timestamptz not null default now(),
- foreign key(property_id,folio_id) references public.bite_folios(property_id,id)
-);
-create index bite_folio_entries_scope on public.bite_folio_entries(property_id,folio_id,created_at);
-create table public.bite_property_commands (
- property_id uuid not null references public.bite_properties(id), request_id uuid not null,
- action text not null, payload jsonb not null, result jsonb not null,
- created_by uuid not null references auth.users(id), created_at timestamptz not null default now(),
- primary key(property_id,request_id)
-);
-create table public.bite_property_audit (
- id bigint generated always as identity primary key, property_id uuid not null references public.bite_properties(id),
- actor_id uuid not null references auth.users(id), action text not null, entity_id uuid,
- request_id uuid not null, created_at timestamptz not null default now()
-);
-create index bite_property_audit_scope on public.bite_property_audit(property_id,created_at desc);
-create table public.bite_property_expenses (
- id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- description text not null check(length(trim(description)) between 1 and 250),
- amount numeric(14,2) not null check(amount>0 and amount<=999999999999.99), expense_date date not null,
- method text not null check(method in ('Cash','UPI','Card','Bank Transfer','Other')),
- created_by uuid not null references auth.users(id), created_at timestamptz not null default now()
-);
-create index bite_property_expenses_scope on public.bite_property_expenses(property_id,expense_date);
+alter table public.bite_property_shift_closings enable row level security;
+revoke all on public.bite_property_shift_closings from public,anon,authenticated;
+grant select on public.bite_property_shift_closings to authenticated;
+create policy property_shift_read on public.bite_property_shift_closings for select to authenticated
+ using(private.bite_can(property_id,'reporting'));
 
-create function private.bite_default_capabilities(p_type text) returns text[]
-language sql immutable set search_path='' as $$
- select array['expenses','staff_management','reporting']::text[] ||
- case when p_type in ('hotel','hybrid') then array['hotel_rooms','guest_register','reservations','folios','housekeeping','hotel_incidentals'] else '{}'::text[] end ||
- case when p_type in ('restaurant','hybrid') then array['restaurant_pos','restaurant_menu','dine_in','takeaway','online_food_orders','inventory'] else '{}'::text[] end ||
- case when p_type='hybrid' then array['room_service','charge_to_room'] else '{}'::text[] end
-$$;
-create function private.bite_property_role(p_property uuid) returns text
-language sql stable security definer set search_path='' as $$
- select m.role from public.bite_property_members m
- where m.property_id=p_property and m.user_id=(select auth.uid()) and m.active
- and not public.is_platform_admin()
-$$;
-create function private.bite_can(p_property uuid,p_capability text) returns boolean
-language sql stable security definer set search_path='' as $$
- select coalesce((select
-  case when p_capability='manage_modules' then private.bite_property_role(p_property)='owner'
-  when p_capability='membership' then private.bite_property_role(p_property) is not null
-  else p_capability=any(p.capabilities) and
-   (private.bite_property_role(p_property) in ('owner','manager') or
-    (private.bite_property_role(p_property)='receptionist' and p_capability=any(array['hotel_rooms','guest_register','reservations','folios','housekeeping','hotel_incidentals'])) or
-    (private.bite_property_role(p_property)='housekeeping' and p_capability=any(array['hotel_rooms','housekeeping'])) or
-    (private.bite_property_role(p_property)='cashier' and p_capability=any(array['restaurant_pos','restaurant_menu','dine_in','takeaway','room_service','charge_to_room'])) or
-    (private.bite_property_role(p_property)='accountant' and p_capability=any(array['reporting','folios']))) end
- from public.bite_properties p where p.id=p_property),false)
-$$;
-create function private.bite_folio_totals(p_folio uuid) returns jsonb
-language sql stable set search_path='' as $$
- select jsonb_build_object(
-  'charges',coalesce(sum(case when kind='charge' then amount+tax_amount when kind in ('discount','reversal') then -amount-tax_amount else 0 end) filter(where status='confirmed'),0),
-  'paid',coalesce(sum(case when kind in ('payment','advance','deposit_apply') then amount when kind='refund' then -amount else 0 end) filter(where status='confirmed'),0),
-  'balance',coalesce(sum(case when kind='charge' then amount+tax_amount when kind in ('discount','reversal','payment','advance','deposit_apply') then -amount-tax_amount when kind='refund' then amount else 0 end) filter(where status='confirmed'),0),
-  'deposit_held',coalesce(sum(case when kind='deposit_hold' then amount when kind in ('deposit_return','deposit_apply') then -amount else 0 end) filter(where status='confirmed'),0),
-  'pending',coalesce(sum(amount) filter(where status='pending'),0))
- from public.bite_folio_entries where folio_id=p_folio
-$$;
-
--- No direct browser writes. RLS is defense in depth for reads; commands below
--- check auth, role and capabilities before accessing any private data.
-do $$ declare t text; begin
- foreach t in array array['bite_businesses','bite_properties','bite_property_members','bite_property_outlets','bite_rooms','bite_guests','bite_booking_groups','bite_stays','bite_folios','bite_folio_entries','bite_property_commands','bite_property_audit','bite_property_expenses'] loop
-  execute format('alter table public.%I enable row level security',t);
-  execute format('revoke all on public.%I from anon,authenticated',t);
+-- Itemized payer statements partition each confirmed charge in paise. Receipts
+-- remain on the ONE folio; allocations do not pretend to be separate collections.
+create function private.bite_split_invoice(p_invoice jsonb,p_split jsonb) returns jsonb
+language plpgsql immutable set search_path='' as $$
+declare e jsonb; a jsonb:='[]';b jsonb:='[]';pct numeric;net numeric;first numeric;second numeric;ca numeric:=0;cb numeric:=0;sign numeric;
+begin
+ if p_split is null then return '[]'::jsonb;end if;
+ pct:=(p_split->>'first_percent')::numeric;
+ for e in select value from jsonb_array_elements(p_invoice->'entries') where value->>'status'='confirmed' and value->>'kind' in ('charge','discount','reversal') loop
+  net:=(e->>'amount')::numeric+coalesce((e->>'tax_amount')::numeric,0);first:=round(net*pct/100,2);second:=net-first;
+  sign:=case when e->>'kind'='charge' then 1 else -1 end;ca:=ca+sign*first;cb:=cb+sign*second;
+  a:=a||jsonb_build_array(e||jsonb_build_object('amount',first,'tax_amount',0,'allocated_inclusive_of_tax',true));
+  b:=b||jsonb_build_array(e||jsonb_build_object('amount',second,'tax_amount',0,'allocated_inclusive_of_tax',true));
  end loop;
+ return jsonb_build_array(
+  (p_invoice-'entries'-'totals')||jsonb_build_object('number',(p_invoice->>'number')||'-A','guest',jsonb_build_object('name',p_split->>'first_name'),'entries',a,'totals',jsonb_build_object('charges',ca,'paid',ca,'balance',0,'deposit_held',0),'allocation_note','Share of itemized charges including tax. Paid from the shared settled folio; not a separate payer receipt.'),
+  (p_invoice-'entries'-'totals')||jsonb_build_object('number',(p_invoice->>'number')||'-B','guest',jsonb_build_object('name',p_split->>'second_name'),'entries',b,'totals',jsonb_build_object('charges',cb,'paid',cb,'balance',0,'deposit_held',0),'allocation_note','Share of itemized charges including tax. Paid from the shared settled folio; not a separate payer receipt.')
+ );
 end $$;
-grant select on public.bite_properties,public.bite_property_members,public.bite_property_outlets,public.bite_rooms,public.bite_guests,public.bite_stays,public.bite_folios,public.bite_folio_entries,public.bite_property_audit to authenticated;
-grant select on public.bite_property_expenses to authenticated;
-grant select on public.bite_booking_groups to authenticated;
-create policy booking_groups_read on public.bite_booking_groups for select to authenticated using(private.bite_can(property_id,'reservations'));
-create policy property_expenses_read on public.bite_property_expenses for select to authenticated using(private.bite_can(property_id,'expenses'));
-create policy property_read on public.bite_properties for select to authenticated using(private.bite_can(id,'membership'));
-create policy property_members_read on public.bite_property_members for select to authenticated using(user_id=(select auth.uid()) or private.bite_can(property_id,'manage_modules'));
-create policy property_outlets_read on public.bite_property_outlets for select to authenticated using(private.bite_can(property_id,'membership'));
-create policy rooms_read on public.bite_rooms for select to authenticated using(private.bite_can(property_id,'hotel_rooms'));
-create policy guests_read on public.bite_guests for select to authenticated using(private.bite_can(property_id,'guest_register'));
-create policy stays_read on public.bite_stays for select to authenticated using(private.bite_can(property_id,'reservations'));
-create policy folios_read on public.bite_folios for select to authenticated using(private.bite_can(property_id,'folios'));
-create policy entries_read on public.bite_folio_entries for select to authenticated using(private.bite_can(property_id,'folios'));
-create policy property_audit_read on public.bite_property_audit for select to authenticated using(private.bite_can(property_id,'reporting'));
 
--- Existing restaurant owners get defaults without changing old IDs or records.
-insert into public.bite_businesses(owner_id,name)
-select distinct on (rm.user_id) rm.user_id,r.name from public.restaurant_members rm
-join public.restaurants r on r.id=rm.restaurant_id
-where rm.role='owner' and not exists(select 1 from public.platform_admins a where a.user_id=rm.user_id)
-order by rm.user_id,r.id on conflict(owner_id) do nothing;
-insert into public.bite_properties(business_id,origin_restaurant_id,name,business_type,capabilities,address,phone)
-select b.id,r.id,r.name,'restaurant',private.bite_default_capabilities('restaurant'),coalesce(r.address,''),coalesce(r.phone,'')
-from public.restaurants r join public.restaurant_members rm on rm.restaurant_id=r.id and rm.role='owner'
-join public.bite_businesses b on b.owner_id=rm.user_id
-where (select count(*) from public.restaurant_members m where m.restaurant_id=r.id and m.role='owner')=1
-on conflict(origin_restaurant_id) do nothing;
-insert into public.bite_property_members(property_id,user_id,role)
-select p.id,b.owner_id,'owner' from public.bite_properties p join public.bite_businesses b on b.id=p.business_id
-on conflict do nothing;
-insert into public.bite_property_outlets(property_id,restaurant_id)
-select id,origin_restaurant_id from public.bite_properties where origin_restaurant_id is not null on conflict do nothing;
-
-create function private.bite_owner_context() returns jsonb
+create function private.bite_property_report(p_property uuid,p_from date,p_to date) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
+declare v jsonb;room_total numeric;extra_total numeric;food_total numeric;cash_total numeric;source_hash text;
 begin
- if auth.uid() is null or public.is_platform_admin() then return '[]'::jsonb; end if;
- return coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'business_type',p.business_type,
-  'address',p.address,'phone',p.phone,'tax_profile',p.tax_profile,'checkin_time',p.checkin_time,'checkout_time',p.checkout_time,
-  'role',m.role,'capabilities',(select coalesce(jsonb_agg(c),'[]'::jsonb) from unnest(p.capabilities) c where private.bite_can(p.id,c)),
-  'configured_capabilities',case when m.role='owner' then to_jsonb(p.capabilities) else null end,
-  'can_configure',m.role='owner','outlets',(select coalesce(jsonb_agg(o.restaurant_id),'[]'::jsonb) from public.bite_property_outlets o where o.property_id=p.id)) order by p.created_at)
-  from public.bite_properties p join public.bite_property_members m on m.property_id=p.id
-  where m.user_id=auth.uid() and m.active),'[]'::jsonb);
+ if not private.bite_can(p_property,'reporting') then raise exception 'Reporting access denied' using errcode='42501';end if;
+ if p_from is null or p_to is null or p_to<p_from or p_to-p_from>366 then raise exception 'Choose up to 367 report days';end if;
+ select coalesce(sum(case when category='room' then (case when kind='charge' then 1 else -1 end)*(amount+tax_amount) else 0 end),0),
+ coalesce(sum(case when category='incidental' then (case when kind='charge' then 1 else -1 end)*(amount+tax_amount) else 0 end),0)
+ into room_total,extra_total from public.bite_folio_entries where property_id=p_property and status='confirmed' and kind in ('charge','discount','reversal') and (created_at at time zone 'Asia/Kolkata')::date between p_from and p_to;
+ select coalesce(sum(o.amount-o.waived_off_amount),0) into food_total from public.orders o join public.bite_property_outlets po on po.restaurant_id=o.restaurant_id
+ where po.property_id=p_property and not o.is_demo and o.status not in ('Cancelled','Rejected') and (o.order_date at time zone 'Asia/Kolkata')::date between p_from and p_to and (o.channel !~* 'own platform|website|^web$' or exists(select 1 from public.order_financials f where f.order_id=o.id and f.payment_status='paid'));
+ -- Cashbook already contains canonical POS receipts/refunds/restaurant expenses.
+ -- Room food transfers have no POS receipt. Add hotel receipts/deposits once.
+ with money as (
+ select c.entry_id::text id,c.direction,c.amount,c.payment_method from public.restaurant_cashbook_entries c join public.bite_property_outlets o on o.restaurant_id=c.restaurant_id where o.property_id=p_property and c.entry_date between p_from and p_to
+ union all select e.id::text,case when e.kind in ('refund','deposit_return') then 'out' else 'in' end,e.amount,coalesce(e.method,'Other') from public.bite_folio_entries e where e.property_id=p_property and e.status='confirmed' and e.kind in ('payment','advance','refund','deposit_hold','deposit_return') and (e.created_at at time zone 'Asia/Kolkata')::date between p_from and p_to
+ union all select e.id::text,'out',e.amount,e.method from public.bite_property_expenses e where e.property_id=p_property and e.expense_date between p_from and p_to
+ ) select coalesce(sum(case when direction='in' then amount else -amount end) filter(where payment_method='Cash'),0),md5(coalesce(string_agg(id||direction||amount||payment_method,'|' order by id),'')),
+ jsonb_build_object('methods',coalesce((select jsonb_agg(m) from (select payment_method,sum(case when direction='in' then amount else -amount end) net from money group by payment_method) m),'[]'::jsonb),'money_entries',count(*)) into cash_total,source_hash,v from money;
+ return v||jsonb_build_object('room_revenue',room_total,'incidentals_revenue',extra_total,'food_revenue',food_total,'total_revenue',room_total+extra_total+food_total,'cash_movement',cash_total,'source_hash',source_hash,'from',p_from,'to',p_to,
+ 'closings',(select coalesce(jsonb_agg(c order by c.shift_date desc),'[]'::jsonb) from public.bite_property_shift_closings c where c.property_id=p_property and c.shift_date between p_from and p_to));
 end $$;
-create function public.bite_owner_context() returns jsonb language sql security invoker set search_path='' as $$select private.bite_owner_context()$$;
-
-create function private.bite_create_property(p_name text,p_type text,p_request uuid) returns uuid
-language plpgsql security definer set search_path='' as $$
-declare b uuid; existing uuid; p uuid;
-begin
- if auth.uid() is null or public.is_platform_admin() then raise exception 'Owner login required' using errcode='42501'; end if;
- if p_type not in ('restaurant','hotel','hybrid') or p_request is null or length(trim(p_name)) not between 1 and 120 then raise exception 'Valid property name and type required'; end if;
- insert into public.bite_businesses(owner_id,name) values(auth.uid(),trim(p_name)) on conflict(owner_id) do nothing;
- select id into b from public.bite_businesses where owner_id=auth.uid() for update;
- select entity_id into existing from public.bite_property_audit where actor_id=auth.uid() and request_id=p_request and action='create_property';
- if existing is not null then
-  if not exists(select 1 from public.bite_properties where id=existing and name=trim(p_name) and business_type=p_type) then raise exception 'Request ID reused with different property'; end if;
-  return existing;
- end if;
- insert into public.bite_properties(business_id,name,business_type,capabilities) values(b,trim(p_name),p_type,private.bite_default_capabilities(p_type)) returning id into p;
- insert into public.bite_property_members values(p,auth.uid(),'owner',true);
- insert into public.bite_property_audit(property_id,actor_id,action,entity_id,request_id) values(p,auth.uid(),'create_property',p,p_request);
- return p;
+create function public.bite_property_report(p_property uuid,p_from date,p_to date) returns jsonb language sql security invoker set search_path='' as $$select private.bite_property_report(p_property,p_from,p_to)$$;
+create function private.bite_audit_search(p_property uuid,p_query text,p_before bigint default null) returns jsonb
+language plpgsql stable security definer set search_path='' as $$begin
+ if not private.bite_can(p_property,'reporting') then raise exception 'Audit access denied' using errcode='42501';end if;
+ return (select coalesce(jsonb_agg(x),'[]'::jsonb) from (select id,action,entity_id,actor_id,created_at from public.bite_property_audit where property_id=p_property and (p_before is null or id<p_before) and (coalesce(p_query,'')='' or action ilike '%'||left(p_query,100)||'%' or entity_id::text ilike '%'||left(p_query,100)||'%') order by id desc limit 100) x);
 end $$;
-create function public.bite_create_property(p_name text,p_type text,p_request uuid) returns uuid language sql security invoker set search_path='' as $$select private.bite_create_property(p_name,p_type,p_request)$$;
+create function public.bite_audit_search(p_property uuid,p_query text,p_before bigint default null) returns jsonb language sql security invoker set search_path='' as $$select private.bite_audit_search(p_property,p_query,p_before)$$;
+revoke all on function private.bite_split_invoice(jsonb,jsonb),private.bite_property_report(uuid,date,date),private.bite_audit_search(uuid,text,bigint),public.bite_property_report(uuid,date,date),public.bite_audit_search(uuid,text,bigint) from public,anon;
+grant execute on function private.bite_property_report(uuid,date,date),private.bite_audit_search(uuid,text,bigint),public.bite_property_report(uuid,date,date),public.bite_audit_search(uuid,text,bigint) to authenticated;
+-- Cashiers retain the same safe per-user/per-outlet draft storage as owners.
+create policy property_staff_draft_select on public.restaurant_pos_drafts for select to authenticated using(created_by=(select auth.uid()) and exists(select 1 from public.bite_property_outlets o where o.restaurant_id=restaurant_pos_drafts.restaurant_id and private.bite_can(o.property_id,'restaurant_pos')));
+create policy property_staff_draft_insert on public.restaurant_pos_drafts for insert to authenticated with check(created_by=(select auth.uid()) and exists(select 1 from public.bite_property_outlets o where o.restaurant_id=restaurant_pos_drafts.restaurant_id and private.bite_can(o.property_id,'restaurant_pos')));
+create policy property_staff_draft_update on public.restaurant_pos_drafts for update to authenticated using(created_by=(select auth.uid()) and exists(select 1 from public.bite_property_outlets o where o.restaurant_id=restaurant_pos_drafts.restaurant_id and private.bite_can(o.property_id,'restaurant_pos'))) with check(created_by=(select auth.uid()) and exists(select 1 from public.bite_property_outlets o where o.restaurant_id=restaurant_pos_drafts.restaurant_id and private.bite_can(o.property_id,'restaurant_pos')));
+create policy property_staff_draft_delete on public.restaurant_pos_drafts for delete to authenticated using(created_by=(select auth.uid()) and exists(select 1 from public.bite_property_outlets o where o.restaurant_id=restaurant_pos_drafts.restaurant_id and private.bite_can(o.property_id,'restaurant_pos')));
 
-create function private.bite_property_command(p_property uuid,p_action text,p_payload jsonb,p_request uuid) returns jsonb
+create or replace function private.bite_property_command(p_property uuid,p_action text,p_payload jsonb,p_request uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
 #variable_conflict use_column
 declare
  prop public.bite_properties; prior public.bite_property_commands;
  room public.bite_rooms; stay public.bite_stays; folio public.bite_folios; entry public.bite_folio_entries;
  caps text[]; cap text; role_name text; entity uuid; guest uuid; room_id uuid; folio_id uuid;
- amount numeric(14,2); tax numeric(14,2); rate numeric(6,3); total jsonb; result jsonb;
+ v_expected_cash numeric(14,2);v_extension_rate numeric(14,2);amount numeric(14,2); tax numeric(14,2); rate numeric(6,3); total jsonb; result jsonb;
  v_arrival date; v_departure date; n integer; a integer; c integer; old_room uuid; kind text; stat text; desc_text text;
  invoice jsonb; rid uuid; order_id uuid; ord public.orders; unit jsonb;v_group uuid;group_stays jsonb:='[]'::jsonb;
 begin
@@ -248,15 +94,17 @@ begin
  if role_name is null then raise exception 'Property access denied' using errcode='42501'; end if;
  cap:=case
   when p_action in ('config','member') then 'manage_modules'
-  when p_action in ('room_save','room_status') then 'housekeeping'
+  when p_action in ('room_save','room_status','room_privacy') then 'housekeeping'
   when p_action='guest_save' then 'guest_register'
   when p_action in ('reserve','reserve_group','reservation_edit','checkin','move','extend','cancel','no_show') then 'reservations'
   when p_action in ('room_post','room_pos') then 'charge_to_room'
+  when p_action='pos_sale' then 'restaurant_pos'
+  when p_action='close_shift' then 'reporting'
   when p_action='expense' then 'expenses'
   else 'folios' end;
  if not private.bite_can(p_property,cap) then raise exception 'Module or role does not permit this action' using errcode='42501'; end if;
  if role_name='accountant' then raise exception 'Read-only accounting access' using errcode='42501'; end if;
- if p_action in ('room_save','discount','reverse','refund','payment_confirm','payment_void','expense') and role_name not in ('owner','manager') then raise exception 'Owner or manager authorization required' using errcode='42501'; end if;
+ if p_action in ('room_save','discount','reverse','refund','payment_confirm','payment_void','expense','split_bill','close_shift') and role_name not in ('owner','manager') then raise exception 'Owner or manager authorization required' using errcode='42501'; end if;
  -- One property's writes serialize: allocation, ledger writes, config disable and
  -- checkout cannot race. No locks on unrelated restaurant/payment workflows.
  select * into strict prop from public.bite_properties where id=p_property for update;
@@ -267,6 +115,12 @@ begin
  end if;
  entity:=nullif(p_payload->>'id','')::uuid;
 
+ if p_action in ('room_pos','pos_sale') then
+  if coalesce(jsonb_typeof(p_payload->'items'),'')<>'array' or jsonb_array_length(p_payload->'items') not between 1 and 200 then raise exception 'Add 1 to 200 valid POS items';end if;
+  for unit in select value from jsonb_array_elements(p_payload->'items') loop
+   if length(trim(coalesce(unit->>'name',''))) not between 1 and 120 or (unit->>'quantity')::numeric is null or (unit->>'quantity')::numeric not between 0.01 and 9999 or (unit->>'quantity')::numeric<>round((unit->>'quantity')::numeric,2) or (unit->>'unit_price')::numeric is null or (unit->>'unit_price')::numeric not between 0 and 9999999999.99 or (unit->>'unit_price')::numeric<>round((unit->>'unit_price')::numeric,2) then raise exception 'POS item quantity and price must be finite positive/two-decimal amounts';end if;
+  end loop;
+ end if;
  if p_action='config' then
   select coalesce(array_agg(value),'{}'::text[]) into caps from jsonb_array_elements_text(p_payload->'capabilities');
   if caps is null or not caps <@ private.bite_default_capabilities('hybrid') then raise exception 'Unknown business module'; end if;
@@ -300,6 +154,28 @@ begin
    address=left(coalesce(p_payload->>'address',''),500),phone=left(coalesce(p_payload->>'phone',''),20),
    tax_profile=coalesce(p_payload->'tax_profile','{"reviewed":false}'::jsonb),updated_at=now() where id=p_property;
   entity:=p_property;
+ elsif p_action='close_shift' then
+  v_arrival:=(p_payload->>'shift_date')::date;
+  if v_arrival>(now() at time zone prop.timezone)::date then raise exception 'Cannot close a future shift';end if;
+  if exists(select 1 from public.bite_property_shift_closings where property_id=p_property and shift_date=v_arrival) then raise exception 'Shift already closed; review its immutable snapshot';end if;
+  total:=private.bite_property_report(p_property,v_arrival,v_arrival);
+  if p_payload->>'source_hash' is distinct from total->>'source_hash' then raise exception 'Money entries changed. Refresh and review before closing';end if;
+  amount:=(p_payload->>'opening_cash')::numeric;tax:=(p_payload->>'counted_cash')::numeric;
+  if amount is null or tax is null or amount not between 0 and 999999999999.99 or tax not between 0 and 999999999999.99 or amount<>round(amount,2) or tax<>round(tax,2) then raise exception 'Valid opening and counted cash required';end if;
+  v_expected_cash:=amount+(total->>'cash_movement')::numeric;
+  if v_expected_cash not between 0 and 999999999999.99 then raise exception 'Opening cash is insufficient for recorded cash outflows';end if;
+  desc_text:=left(trim(coalesce(p_payload->>'notes','')),500);
+  if tax<>v_expected_cash and length(desc_text)<8 then raise exception 'Explain the cash difference (at least 8 characters)';end if;
+  insert into public.bite_property_shift_closings(property_id,shift_date,opening_cash,counted_cash,expected_cash,difference,notes,snapshot,created_by)
+  values(p_property,v_arrival,amount,tax,v_expected_cash,tax-v_expected_cash,desc_text,total,auth.uid()) returning id into entity;
+ elsif p_action='pos_sale' then
+  rid:=(p_payload->>'restaurant_id')::uuid;
+  if not exists(select 1 from public.bite_property_outlets where property_id=p_property and restaurant_id=rid) or not public.has_restaurant_role(rid,array['owner','manager','staff']) then raise exception 'Authorized POS outlet required' using errcode='42501';end if;
+  if p_payload->>'channel' not in ('POS - Counter','POS - Dine-in','POS - Takeaway') then raise exception 'Select a POS order type';end if;
+  select sum(round((value->>'quantity')::numeric*(value->>'unit_price')::numeric,2)) into amount from jsonb_array_elements(p_payload->'items');
+  if (p_payload->>'paid_amount')::numeric is distinct from amount then raise exception 'Dine-in, takeaway and cashier Pay Now bills require full recorded payment. Use room billing for an occupied guest';end if;
+  entity:=public.create_pos_order_with_payment(rid,'POS-'||p_request::text,p_payload->>'channel',left(p_payload->>'customer_name',120),left(p_payload->>'customer_phone',20),p_payload->'items',amount,p_payload->>'payment_method',(now() at time zone prop.timezone)::date,p_payload->>'reference',nullif(p_payload->>'table_id','')::uuid);
+  result:=jsonb_build_object('id',entity,'order_id',entity,'order_code','POS-'||p_request::text,'confirmed',true);
  elsif p_action='expense' then
   if (p_payload->>'amount')::numeric<>round((p_payload->>'amount')::numeric,2) then raise exception 'Maximum two decimal places'; end if;
   insert into public.bite_property_expenses(property_id,description,amount,expense_date,method,created_by)
@@ -314,6 +190,20 @@ begin
   if not exists(select 1 from auth.users where id=entity) then raise exception 'Registered user ID required'; end if;
   insert into public.bite_property_members values(p_property,entity,p_payload->>'role',coalesce((p_payload->>'active')::boolean,true))
    on conflict(property_id,user_id) do update set role=excluded.role,active=excluded.active;
+ -- Link only explicitly assigned cashiers/managers to this owner's outlets.
+  -- Existing independent memberships are never overwritten or removed.
+  for rid in select restaurant_id from public.bite_property_outlets where property_id=p_property loop
+   if not public.has_restaurant_role(rid,array['owner']) then raise exception 'Only the linked outlet owner may grant restaurant access' using errcode='42501';end if;
+   if p_payload->>'role' in ('cashier','manager') and coalesce((p_payload->>'active')::boolean,true) then
+    if not exists(select 1 from public.restaurant_members where restaurant_id=rid and user_id=entity) then
+     insert into public.restaurant_members(restaurant_id,user_id,role) values(rid,entity,case when p_payload->>'role'='manager' then 'manager' else 'staff' end);
+     insert into public.bite_cashier_outlet_grants(property_id,user_id,restaurant_id) values(p_property,entity,rid);
+    end if;
+   else
+    delete from public.restaurant_members m where m.restaurant_id=rid and m.user_id=entity and m.role in ('staff','manager') and exists(select 1 from public.bite_cashier_outlet_grants g where g.property_id=p_property and g.restaurant_id=rid and g.user_id=entity);
+    delete from public.bite_cashier_outlet_grants where property_id=p_property and restaurant_id=rid and user_id=entity;
+   end if;
+  end loop;
  elsif p_action='room_save' then
   if entity is null then
    insert into public.bite_rooms(property_id,number,room_type,floor,nightly_rate,adults,children)
@@ -323,9 +213,14 @@ begin
    if exists(select 1 from public.bite_stays where room_id=entity and status in ('reserved','in_house')) and not coalesce((p_payload->>'active')::boolean,true) then raise exception 'Room has active or reserved stays'; end if;
    update public.bite_rooms set number=trim(p_payload->>'number'),room_type=trim(p_payload->>'room_type'),floor=left(coalesce(p_payload->>'floor',''),30),nightly_rate=(p_payload->>'nightly_rate')::numeric,adults=(p_payload->>'adults')::integer,children=coalesce((p_payload->>'children')::integer,0),active=coalesce((p_payload->>'active')::boolean,true) where id=entity;
   end if;
+ elsif p_action='room_privacy' then
+  select * into strict room from public.bite_rooms where id=entity and property_id=p_property;
+  if not exists(select 1 from public.bite_stays where room_id=entity and status='in_house') and coalesce((p_payload->>'do_not_disturb')::boolean,false) then raise exception 'Do Not Disturb applies to occupied rooms';end if;
+  update public.bite_rooms set do_not_disturb=coalesce((p_payload->>'do_not_disturb')::boolean,false),cleaning_requested=coalesce((p_payload->>'cleaning_requested')::boolean,false),status_note=left(coalesce(p_payload->>'note',''),250) where id=entity;
  elsif p_action='room_status' then
   select * into strict room from public.bite_rooms where id=entity and property_id=p_property;
   stat:=p_payload->>'status';
+  if room.do_not_disturb and stat='cleaning' then raise exception 'Do Not Disturb is active. Confirm permission before starting cleaning';end if;
   if stat not in ('ready','dirty','cleaning','blocked') then raise exception 'Invalid room status'; end if;
   if stat='ready' and role_name='housekeeping' then raise exception 'Supervisor must inspect and mark Ready' using errcode='42501'; end if;
   if stat='blocked' and role_name not in ('owner','manager') then raise exception 'Manager must block rooms' using errcode='42501'; end if;
@@ -397,16 +292,22 @@ begin
    if room.id=stay.room_id then raise exception 'Select another room'; end if;
    if room.adults<stay.adults or room.children<stay.children then raise exception 'Room occupancy limit exceeded'; end if;
    if exists(select 1 from public.bite_stays s where s.room_id=room.id and s.status in ('reserved','in_house') and daterange(s.arrival,s.departure,'[)') && daterange(stay.arrival,stay.departure,'[)')) then raise exception 'Target room has conflicting stay'; end if;
-   if stay.status='in_house' then update public.bite_rooms set housekeeping='dirty' where id=stay.room_id; end if;
+   if stay.status='in_house' then
+    update public.bite_rooms d set do_not_disturb=o.do_not_disturb,cleaning_requested=o.cleaning_requested from public.bite_rooms o where d.id=room.id and o.id=stay.room_id;
+    update public.bite_rooms set housekeeping='dirty',do_not_disturb=false,cleaning_requested=false where id=stay.room_id;
+   end if;
    update public.bite_stays set room_id=room.id where id=stay.id;
   elsif p_action='extend' then
    if stay.status not in ('reserved','in_house') then raise exception 'Stay cannot be extended'; end if;
    v_departure:=(p_payload->>'departure')::date; n:=v_departure-stay.departure;
    if n<=0 or v_departure-stay.arrival>365 then raise exception 'Choose a later departure date'; end if;
    if exists(select 1 from public.bite_stays s where s.room_id=stay.room_id and s.id<>stay.id and s.status in ('reserved','in_house') and daterange(s.arrival,s.departure,'[)') && daterange(stay.departure,v_departure,'[)')) then raise exception 'Extension conflicts with another reservation'; end if;
-   amount:=stay.nightly_rate*n;
+   amount:=coalesce((p_payload->>'nightly_rate')::numeric,stay.nightly_rate);
+   if amount<>stay.nightly_rate and (role_name not in ('owner','manager') or stay.status<>'in_house') then raise exception 'Manager authorization and an in-house stay required for a new extension rate' using errcode='42501';end if;
+   if amount<0 or amount<>round(amount,2) then raise exception 'Valid extension rate required';end if;
+   v_extension_rate:=amount;amount:=v_extension_rate*n;
    if stay.status='in_house' and amount>0 then insert into public.bite_folio_entries(property_id,folio_id,kind,category,description,amount,tax_amount,created_by) values(p_property,folio.id,'charge','room',n||' extra nights',amount,round(amount*stay.room_tax_rate/100,2),auth.uid()); end if;
-   update public.bite_stays set departure=v_departure where id=stay.id;
+   update public.bite_stays set departure=v_departure,nightly_rate=v_extension_rate where id=stay.id;
   else
    if stay.status<>'reserved' then raise exception 'Only an unarrived reservation can be cancelled/no-show'; end if;
    if p_action='no_show' and (stay.arrival>(now() at time zone prop.timezone)::date or (stay.arrival=(now() at time zone prop.timezone)::date and (now() at time zone prop.timezone)::time<prop.checkin_time)) then raise exception 'No-show cannot be marked before the arrival cutoff'; end if;
@@ -426,15 +327,20 @@ begin
   end if;
   total:=private.bite_folio_totals(folio.id);
   amount:=round((p_payload->>'amount')::numeric,2); desc_text:=left(trim(coalesce(p_payload->>'description','')),250);
-  if p_action='checkout' then
+  if p_action='split_bill' then
+   if length(trim(coalesce(p_payload->>'first_name',''))) not between 1 and 120 or length(trim(coalesce(p_payload->>'second_name',''))) not between 1 and 120 or coalesce((p_payload->>'first_percent')::numeric,0) not between 0.01 and 99.99 then raise exception 'Two payer names and a percentage between 0.01 and 99.99 required';end if;
+   update public.bite_folios set payer_split=jsonb_build_object('first_name',trim(p_payload->>'first_name'),'second_name',trim(p_payload->>'second_name'),'first_percent',(p_payload->>'first_percent')::numeric) where id=folio.id;
+   entity:=folio.id;
+  elsif p_action='checkout' then
    if stay.status<>'in_house' then raise exception 'Only an in-house stay can check out'; end if;
    if (total->>'balance')::numeric<>0 or (total->>'deposit_held')::numeric<>0 or (total->>'pending')::numeric<>0 then raise exception 'Settle balance, pending payments and held deposit before checkout'; end if;
    invoice:=jsonb_build_object('number','BITE-'||replace(folio.id::text,'-',''),'issued_at',now(),'property',jsonb_build_object('name',prop.name,'address',prop.address,'phone',prop.phone),'tax_profile',prop.tax_profile,
     'guest',(select jsonb_build_object('name',full_name,'address',address) from public.bite_guests where id=stay.guest_id),'stay',to_jsonb(stay)||jsonb_build_object('status','checked_out','checked_out_at',now()),'room',(select jsonb_build_object('number',number,'room_type',room_type) from public.bite_rooms where id=stay.room_id),'totals',total,
     'entries',(select coalesce(jsonb_agg((to_jsonb(e)-'created_by')||jsonb_build_object('source_items',(select coalesce(jsonb_agg(jsonb_build_object('name',i.item_name,'quantity',i.quantity,'unit_price',i.unit_price)),'[]'::jsonb) from public.order_items i where i.order_id=e.source_order_id)) order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where e.folio_id=folio.id));
+   invoice:=invoice||jsonb_build_object('splits',private.bite_split_invoice(invoice,folio.payer_split));
    update public.bite_folios set status='settled',settled_at=now(),invoice_number=invoice->>'number',invoice_snapshot=invoice where id=folio.id;
    update public.bite_stays set status='checked_out',checked_out_at=now() where id=stay.id;
-   update public.bite_rooms set housekeeping='dirty' where id=stay.room_id;
+   update public.bite_rooms set housekeeping='dirty',do_not_disturb=false,cleaning_requested=false where id=stay.room_id;
    entity:=stay.id; result:=jsonb_build_object('id',stay.id,'folio_id',folio.id,'invoice',invoice);
   elsif p_action in ('payment_confirm','payment_void') then
    select * into strict entry from public.bite_folio_entries where id=entity and folio_id=folio.id and property_id=p_property;
@@ -454,16 +360,23 @@ begin
     if not private.bite_can(p_property,'restaurant_pos') or not exists(select 1 from public.bite_property_outlets o where o.property_id=p_property and o.restaurant_id=rid) or not public.has_restaurant_role(rid,array['owner','manager','staff']) then raise exception 'Authorized property POS outlet required' using errcode='42501'; end if;
     -- Reuse the existing POS engine. The whole sale + folio posting is one
     -- transaction, no restaurant cash receipt and no duplicate Khata debtor.
-    order_id:=public.create_pos_order_with_payment(rid,'POS-ROOM-'||p_request::text,'POS - Counter',
+    order_id:=public.create_pos_order_with_payment(rid,'POS-ROOM-'||p_request::text,coalesce(p_payload->>'channel','POS - Counter'),
      (select full_name from public.bite_guests where id=stay.guest_id),'',p_payload->'items',0,null,current_date,null,null);
+   amount:=coalesce((p_payload->>'discount')::numeric,0);
+    if amount not between 0 and 999999999999.99 or amount<>round(amount,2) then raise exception 'Valid discount required';end if;
+    if amount>0 then
+     if role_name not in ('owner','manager') or length(trim(coalesce(p_payload->>'discount_reason','')))<3 then raise exception 'Manager approval and discount reason required' using errcode='42501';end if;
+     if amount>=(select o.amount from public.orders o where o.id=order_id) then raise exception 'Discount must leave a positive food charge';end if;
+     update public.orders set waived_off_amount=(p_payload->>'discount')::numeric where id=order_id;
+    end if;
    else order_id:=(p_payload->>'order_id')::uuid; end if;
    select * into strict ord from public.orders where id=order_id for update;
    if not exists(select 1 from public.bite_property_outlets o where o.property_id=p_property and o.restaurant_id=ord.restaurant_id) or not public.has_restaurant_role(ord.restaurant_id,array['owner','manager','staff']) then raise exception 'Order belongs to another property/outlet' using errcode='42501'; end if;
    if ord.channel not like 'POS - %' or ord.status in ('Cancelled','Rejected') or ord.is_demo then raise exception 'Only genuine POS sales can be charged to room'; end if;
-   if ord.restaurant_customer_id is not null or ord.waived_off_amount<>0 or exists(select 1 from public.restaurant_order_payments where order_id=ord.id) or exists(select 1 from public.restaurant_order_refunds where order_id=ord.id) then raise exception 'Paid, Khata-linked, adjusted or refunded POS sale cannot be posted'; end if;
+   if ord.restaurant_customer_id is not null or (ord.waived_off_amount<>0 and p_action<>'room_pos') or exists(select 1 from public.restaurant_order_payments where order_id=ord.id) or exists(select 1 from public.restaurant_order_refunds where order_id=ord.id) then raise exception 'Paid, Khata-linked, adjusted or refunded POS sale cannot be posted'; end if;
    if exists(select 1 from public.bite_folio_entries where source_order_id=ord.id) then raise exception 'POS sale already posted to a folio'; end if;
    insert into public.bite_folio_entries(property_id,folio_id,kind,category,description,amount,source_order_id,created_by)
-   values(p_property,folio.id,'charge','food','POS '||ord.order_code,ord.amount,ord.id,auth.uid()) returning id into entity;
+   values(p_property,folio.id,'charge','food','POS '||ord.order_code||case when ord.waived_off_amount>0 then ' · discount '||ord.waived_off_amount||': '||left(p_payload->>'discount_reason',60) else '' end,ord.amount-ord.waived_off_amount,ord.id,auth.uid()) returning id into entity;
    if p_action='room_pos' then result:=jsonb_build_object('id',ord.id,'order_id',ord.id,'entry_id',entity,'folio_id',folio.id,'confirmed',true); end if;
   elsif p_action='reverse' then
    select * into strict entry from public.bite_folio_entries where id=entity and folio_id=folio.id and property_id=p_property and kind='charge' and status='confirmed';
@@ -514,70 +427,11 @@ begin
  insert into public.bite_property_audit(property_id,actor_id,action,entity_id,request_id) values(p_property,auth.uid(),p_action,entity,p_request);
  return result;
 end $$;
-create function public.bite_property_command(p_property uuid,p_action text,p_payload jsonb,p_request uuid) returns jsonb
-language sql security invoker set search_path='' as $$select private.bite_property_command(p_property,p_action,p_payload,p_request)$$;
 
-create function private.bite_hotel_workspace(p_property uuid) returns jsonb
-language plpgsql stable security definer set search_path='' as $$
-declare result jsonb; begin
- if not private.bite_can(p_property,'membership') then raise exception 'Property access denied' using errcode='42501'; end if;
- result:=jsonb_build_object('rooms','[]'::jsonb,'guests','[]'::jsonb,'stays','[]'::jsonb,'folios','[]'::jsonb,'entries','[]'::jsonb,'audit','[]'::jsonb);
- if private.bite_can(p_property,'hotel_rooms') then result:=result||jsonb_build_object('rooms',(select coalesce(jsonb_agg(to_jsonb(r)||jsonb_build_object('occupied',exists(select 1 from public.bite_stays s where s.room_id=r.id and s.status='in_house')) order by r.number),'[]'::jsonb) from public.bite_rooms r where property_id=p_property)); end if;
- if private.bite_can(p_property,'manage_modules') then result:=result||jsonb_build_object('members',(select coalesce(jsonb_agg(jsonb_build_object('user_id',m.user_id,'role',m.role,'active',m.active,'email',u.email,
- 'display_name',coalesce(nullif(u.raw_user_meta_data->>'full_name',''),u.email,'Staff account'))),'[]'::jsonb) from public.bite_property_members m join auth.users u on u.id=m.user_id where m.property_id=p_property)); end if;
- if private.bite_can(p_property,'expenses') then result:=result||jsonb_build_object('expenses',(select coalesce(jsonb_agg(e order by e.expense_date desc),'[]'::jsonb) from public.bite_property_expenses e where property_id=p_property)); end if;
- if private.bite_can(p_property,'guest_register') then result:=result||jsonb_build_object('guests',(select coalesce(jsonb_agg(g order by g.created_at desc),'[]'::jsonb) from public.bite_guests g where property_id=p_property)); end if;
- if private.bite_can(p_property,'reservations') then result:=result||jsonb_build_object('stays',(select coalesce(jsonb_agg(s order by s.created_at desc),'[]'::jsonb) from public.bite_stays s where property_id=p_property),
- 'groups',(select coalesce(jsonb_agg(g),'[]'::jsonb) from public.bite_booking_groups g where property_id=p_property)); end if;
- if private.bite_can(p_property,'folios') then result:=result||jsonb_build_object('folios',(select coalesce(jsonb_agg(to_jsonb(f)||jsonb_build_object('totals',private.bite_folio_totals(f.id))),'[]'::jsonb) from public.bite_folios f where property_id=p_property),
- 'entries',(select coalesce(jsonb_agg(to_jsonb(e)||jsonb_build_object('source_items',(select coalesce(jsonb_agg(jsonb_build_object('name',i.item_name,'quantity',i.quantity,'unit_price',i.unit_price)),'[]'::jsonb) from public.order_items i where i.order_id=e.source_order_id)) order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where property_id=p_property)); end if;
- if private.bite_can(p_property,'reporting') then result:=result||jsonb_build_object('audit',(select coalesce(jsonb_agg(a),'[]'::jsonb) from (select id,action,entity_id,created_at from public.bite_property_audit where property_id=p_property order by id desc limit 100) a)); end if;
- return result;
-end $$;
-create function public.bite_hotel_workspace(p_property uuid) returns jsonb language sql security invoker set search_path='' as $$select private.bite_hotel_workspace(p_property)$$;
-
--- Minimal stay picker for cashier: no phone, ID, address, payment or ledger data.
-create function private.bite_room_charge_targets(p_property uuid) returns jsonb
-language plpgsql stable security definer set search_path='' as $$begin
- if not private.bite_can(p_property,'charge_to_room') then raise exception 'Room charge access denied' using errcode='42501'; end if;
- return coalesce((select jsonb_agg(jsonb_build_object('folio_id',f.id,'stay_id',s.id,'room',r.number,'guest',g.full_name))
- from public.bite_stays s join public.bite_folios f on f.stay_id=s.id join public.bite_rooms r on r.id=s.room_id join public.bite_guests g on g.id=s.guest_id
- where s.property_id=p_property and s.status='in_house' and f.status='open'),'[]'::jsonb);
-end $$;
-create function public.bite_room_charge_targets(p_property uuid) returns jsonb language sql security invoker set search_path='' as $$select private.bite_room_charge_targets(p_property)$$;
-
--- Guard existing POS collections/corrections after a transfer to hotel folio.
--- The original POS sale remains the single food revenue record. Collection is
--- owned by the folio, so direct POS receipt entry must fail even via REST/RPC.
-create function private.bite_guard_room_posted_pos() returns trigger language plpgsql security definer set search_path='' as $$declare target uuid; begin
- if TG_TABLE_NAME='orders' then target:=old.id; elsif TG_OP='DELETE' then target:=old.order_id; else target:=new.order_id; end if;
- -- Serializes against a concurrent folio transfer, even on legacy REST writes.
- perform 1 from public.orders where id=target for update;
- if exists(select 1 from public.bite_folio_entries e where e.source_order_id=target) then
-  if TG_TABLE_NAME='orders' then
-   if new.status='Cancelled' and new.amount=old.amount and new.waived_off_amount=old.waived_off_amount and exists(
-    select 1 from public.bite_folio_entries e join public.bite_folio_entries r on r.reversal_of=e.id
-    where e.source_order_id=target and r.kind='reversal' and r.amount=e.amount and r.tax_amount=e.tax_amount) then return new; end if;
-  end if;
-  raise exception 'POS sale charged to room. Collect or correct through its hotel folio.';
- end if;
- if TG_OP='DELETE' then return old; end if;return new;
-end $$;
-create trigger bite_room_posted_payment_guard before insert or update or delete on public.restaurant_order_payments for each row execute function private.bite_guard_room_posted_pos();
-create trigger bite_room_posted_order_guard before update of amount,waived_off_amount,status on public.orders for each row when (old.channel like 'POS - %') execute function private.bite_guard_room_posted_pos();
-create trigger bite_room_posted_refund_guard before insert or update or delete on public.restaurant_order_refunds for each row execute function private.bite_guard_room_posted_pos();
-create trigger bite_room_posted_item_guard before insert or update or delete on public.order_items for each row execute function private.bite_guard_room_posted_pos();
-
--- Module hiding must not be the authorization boundary. These guards also run
--- for existing privileged RPCs, including direct REST calls to legacy routines.
-create function private.bite_outlet_enabled(p_restaurant uuid,p_capability text) returns boolean
-language sql stable security definer set search_path='' as $$
- select coalesce((select p_capability=any(p.capabilities) from public.bite_property_outlets o
-  join public.bite_properties p on p.id=o.property_id where o.restaurant_id=p_restaurant),true)
-$$;
-create function private.bite_guard_outlet_module() returns trigger language plpgsql security definer set search_path='' as $$
+create or replace function private.bite_guard_outlet_module() returns trigger language plpgsql security definer set search_path='' as $$
 declare rid uuid;cap text;begin
  if TG_OP='DELETE' then rid:=old.restaurant_id;else rid:=new.restaurant_id;end if;
+ perform 1 from public.bite_properties p join public.bite_property_outlets o on o.property_id=p.id where o.restaurant_id=rid for update of p;
  if TG_TABLE_NAME='orders' then
   cap:=case when new.channel like 'POS - %' then 'restaurant_pos' else 'online_food_orders' end;
   if new.channel='POS - Dine-in' and not private.bite_outlet_enabled(rid,'dine_in') then raise exception 'Dine-in disabled for this outlet' using errcode='42501';end if;
@@ -587,25 +441,3 @@ declare rid uuid;cap text;begin
  if not private.bite_outlet_enabled(rid,cap) then raise exception 'Business module disabled for this outlet' using errcode='42501';end if;
  if TG_OP='DELETE' then return old;end if;return new;
 end $$;
-create trigger bite_order_module_guard before insert on public.orders for each row execute function private.bite_guard_outlet_module();
--- Stop before Cashfree session creation, not just after a payment at activation.
-create trigger bite_checkout_module_guard before insert on public.bite_live_checkout_intents for each row execute function private.bite_guard_outlet_module();
-create trigger bite_menu_module_guard before insert or update or delete on public.menu_items for each row execute function private.bite_guard_outlet_module();
-create trigger bite_category_module_guard before insert or update or delete on public.menu_categories for each row execute function private.bite_guard_outlet_module();
--- Deliberately public boolean metadata used by RLS. No rows, guest data or
--- private-schema grants are exposed to anonymous clients.
-create function public.bite_outlet_module_enabled(p_restaurant uuid,p_capability text) returns boolean
-language sql stable security definer set search_path='' as $$
- select case when p_capability in ('restaurant_menu','online_food_orders','restaurant_pos') then private.bite_outlet_enabled(p_restaurant,p_capability) else false end
-$$;
-create policy bite_menu_module_read on public.menu_items as restrictive for select to authenticated,anon using(public.bite_outlet_module_enabled(restaurant_id,'restaurant_menu'));
-create policy bite_category_module_read on public.menu_categories as restrictive for select to authenticated,anon using(public.bite_outlet_module_enabled(restaurant_id,'restaurant_menu'));
-
-revoke all on function private.bite_default_capabilities(text),private.bite_property_role(uuid),private.bite_can(uuid,text),private.bite_folio_totals(uuid),private.bite_owner_context(),private.bite_create_property(text,text,uuid),private.bite_property_command(uuid,text,jsonb,uuid),private.bite_hotel_workspace(uuid),private.bite_room_charge_targets(uuid),private.bite_guard_room_posted_pos() from public,anon;
-revoke all on function private.bite_outlet_enabled(uuid,text),private.bite_guard_outlet_module() from public,anon;
-grant usage on schema private to authenticated;
-revoke all on function public.bite_outlet_module_enabled(uuid,text) from public;
-grant execute on function public.bite_outlet_module_enabled(uuid,text) to authenticated,anon;
-grant execute on function private.bite_property_role(uuid),private.bite_can(uuid,text),private.bite_owner_context(),private.bite_create_property(text,text,uuid),private.bite_property_command(uuid,text,jsonb,uuid),private.bite_hotel_workspace(uuid),private.bite_room_charge_targets(uuid) to authenticated;
-revoke all on function public.bite_owner_context(),public.bite_create_property(text,text,uuid),public.bite_property_command(uuid,text,jsonb,uuid),public.bite_hotel_workspace(uuid),public.bite_room_charge_targets(uuid) from public,anon;
-grant execute on function public.bite_owner_context(),public.bite_create_property(text,text,uuid),public.bite_property_command(uuid,text,jsonb,uuid),public.bite_hotel_workspace(uuid),public.bite_room_charge_targets(uuid) to authenticated;

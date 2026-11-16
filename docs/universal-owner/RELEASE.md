@@ -1,58 +1,61 @@
 # Bite Universal Owner OS — implementation and release evidence
 
-**16 November 2026. This is a staged implementation, not certification of all 120 scenarios or a fully finished hospitality product.** The actual source changes and release status are in [PR #145](https://github.com/gauravjoshi2999/restaurant-os/pull/145). Final main CI, merge SHA and Pages deployment evidence are recorded on that PR after publication.
+**16 November 2026. The existing Bite app has been implemented and released in verified stages. This is not certification of all 120 scenarios or a fully finished hospitality product.** Code, published SHAs, final main CI and exact-SHA Pages deployment evidence are recorded in [core PR #145](https://github.com/gauravjoshi2999/restaurant-os/pull/145) and [operational completion PR #146](https://github.com/gauravjoshi2999/restaurant-os/pull/146).
 
-Source specification: the user's 20-page `BITE_ONE_POWERFUL_WORK_PROMPT_WITH_8_UI_IMAGES(2).pdf`, SHA-256 `1d0bda989f79901a0ff4711aca6ca9ed4bd01c1c633bea035d7f684a2f4c1561`. The 8 references were reviewed as concepts, not imported as real data. See [audit and image interpretation](AUDIT.md).
+Source: the user's 20-page `BITE_ONE_POWERFUL_WORK_PROMPT_WITH_8_UI_IMAGES(2).pdf`, SHA-256 `1d0bda989f79901a0ff4711aca6ca9ed4bd01c1c633bea035d7f684a2f4c1561`. All 120 cases and 8 references were reviewed. References are design concepts, not real room numbers, rates, guest or tax data. See [the audit](AUDIT.md).
 
-## Verified before / after
+## Actual changes
 
-| Area | Before | Implemented and verified |
-| --- | --- | --- |
-| Application | Existing `index.html` Owner/Admin shell and restaurant workspaces | Same app and router. No separate hotel application |
-| Configuration | One restaurant owner context; no hotel tables | Organization/property membership, effective capabilities and role scopes; existing owners backfilled non-destructively |
-| Navigation | Restaurant Home / Orders / POS / Menu / More | Restaurant defaults preserved. Hotel/hybrid Home / Register / Rooms / Folios / More; one shared Reports/Staff/Settings destination |
-| Setup | Restaurant-only setup | Four-step module review and first-time hotel setup; dependencies and unsafe-disabling checks |
-| Front desk | No room/stay/folio backend | Guest lookup/minimal identity, draft/review/check-in, reservations, room assignment, move/extension, pre-arrival correction, group reservations and individual room folios |
-| Housekeeping | None | Ready/Dirty/Cleaning/Blocked with role checks. Checkout marks Dirty. Updates poll across sessions; real two-device timing is not certified |
-| Folio | None | Room nights, incidentals, advances, partial receipts, pending bank verification/void, deposits/apply/return, manager adjustments and reversals, balanced checkout and immutable invoice snapshot |
-| Hybrid food | Existing canonical menu/POS | Explicit room/guest tender; existing POS engine and one folio posting in a transaction; retry deduplication; second POS collection and post-transfer edits denied |
-| Shared tools | Existing restaurant reports, employee/payroll records and expenses | Same entries retained. Hotel ledger date filters/real Excel export, method totals, scoped property expenses and registered staff-email access; clear accounting boundaries |
-| Marketplace | Existing customer, payment/refund, notification and delivery code | Preserved. Room posting is POS-only. Disabled online module blocks new checkout intents before provider session creation |
+| Area | Implemented in the existing application |
+| --- | --- |
+| Shared shell | Existing `index.html` Owner/Admin router, adaptive Restaurant / Hotel / Hybrid capabilities, shared Settings/Reports/Staff and scoped property switch. Customer/delivery entry points stay linked to original records |
+| Setup | Four-step module review, first-time hotel setup, dependencies and unsafe-disabling checks. Existing accounts remain Restaurant Only until the owner reviews their actual configuration |
+| Front desk | Returning guest lookup, minimal identity, scoped draft/review/check-in, reservations/corrections/no-show, room reassignment/move, manager-priced extensions, group bookings and separate room folios |
+| Housekeeping | Ready/Dirty/Cleaning/Blocked, inspected readiness, DND and stayover cleaning request flags. DND prevents starting cleaning, follows a moved guest and clears on checkout. Checkout marks Dirty |
+| Guest ledger | Itemized nights/incidentals, partial/advance receipts, pending bank verification, deposits/apply/return, authorized reversals/discounts, balanced checkout and immutable statement snapshots |
+| Payer split | Two itemized charge-allocation statements, partitioned in paise, on one settled folio. Shared receipts remain on that one folio. These are not certified separate statutory tax invoices |
+| Existing POS | Explicit room/guest tender uses the canonical POS engine and one atomic folio posting. Cashier access uses scoped staff membership. Dine-in/takeaway Pay Now, optional dine-in table, manager-approved room-food discount and original owner Counter POS are retained |
+| Money integrity | Direct second POS collection/post-transfer edits denied. Initial room discount must match the protected open-folio source entry exactly; no client-settable bypass. Coordinated source reversals retain the original sale/history |
+| Reports | Hotel Excel/date/method reports, source-deduplicated combined sales and money methods, immutable combined closing snapshots with later-entry warnings, paginated property audit search and scoped property expenses |
+| Marketplace | Existing customer checkout, Cashfree/refund/provider, delivery/OTP, notification and Android source preserved. Module cutoff and checkout intent creation serialize before provider session creation |
 
-Hotel-only manual extras do not depend on restaurant menu/POS. Bank/UPI/card records remain pending until authorized verification. Recording a front-desk transaction does not charge a card or trigger a gateway refund. A linked POS food charge is a folio collection reference; it is not another restaurant sale.
+Hotel-only manual extras do not depend on restaurant menu/POS. Folio UPI/card/bank records stay pending until authorized verification. Recording a front-desk receipt/refund does not charge a card or initiate a gateway refund. Room-posted food is an existing POS sale and one folio collection reference.
 
-## Tests and actual evidence
+## Verification and evidence
 
-- Baseline: **723 Node tests passed** before changes. Final runtime validation: **736/736 Node tests passed**, existing frontend/structure/build checks passed.
-- [QA run 43840965237](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43840965237), runtime source `b74bdf0a5d19da3c2ed3b9d434ba5961eae14277`: all four jobs passed — static/browser, existing cashbook PostgreSQL, existing delivery/OTP PostgreSQL, and new Universal Owner PostgreSQL.
-- The new browser suite passed **76 assertions** at 360px, 390px and desktop 1440px, with **zero JavaScript page errors**. It uses the actual application controllers with an explicitly synthetic transport. It is not signed-in production/browser or Android hardware proof.
-- PostgreSQL 17 tests exercise hotel-only and hybrid accounting, active room conflicts, duplicate commands, pending payments, advance cancellation/refund records, deposits, role/RLS restrictions, coordinated food reversal and module guards. Two simultaneous last-room requests create one stay; concurrent identical charge requests create one ledger entry.
-- [Desktop/mobile screenshot and workbook artifact](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43840965237/artifacts/14212314979) includes three dashboards, inner registration/folio/rooms/More/setup/report screens, a hybrid checkout and the tested Excel file. All fixture screens are labelled synthetic.
-- Actual production database verification used [this rollback-only test](production_smoke_rollback.sql), with authenticated role/claims and the existing POS engine. Room + food + incidental checkout, repeated receipt/checkout, invoice snapshot, Dirty room, direct second POS receipt denial, cross-tenant RLS/RPC denial and anonymous RPC denial passed. **All synthetic rows and temporary module changes were rolled back. No charge, refund or transfer was initiated.**
+- Baseline **723 Node tests**. Current **736/736 Node regression tests**, frontend/structure/build checks and existing cashbook/delivery PostgreSQL checks passed.
+- [Operational QA 43852828203](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43852828203) runs the actual new migrations, real legacy order-field guard surface and all original Owner SQL suites on disposable PostgreSQL 17.
+- **97 browser assertions**, zero uncaught page errors, at 360px/390px/1440px. These click actual controllers with explicitly synthetic transport; they are not signed-in production-browser or physical-APK proof. Cases include interrupted/offline checkout, slow loading, returning guests, DND, payer print, cashier dine-in, takeaway, net room discount, closing and audit search.
+- [Screenshots, browser evidence and tested Excel workbook](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43852828203/artifacts/14218272969). Fixture screens are labelled synthetic; only runtime files are packaged for Pages.
+- Real PostgreSQL concurrency proves one last-room winner, one ledger row for concurrent identical retries, and correct checkout/module-disable exclusion **in both directions**. Existing cashbook and delivery/OTP security suites remain intact.
+- The [production rollback-only probe](production_completion_rollback.sql) uses authenticated role/claims and the real existing POS engine. DND denial, discounted source/folio agreement, payer totals, dine-in/takeaway, source-once combined revenue/closing, retries, second-collection denial, audit and cross-tenant/anonymous restrictions were verified. All synthetic rows and temporary configuration changes roll back. No real charge/refund/transfer is initiated.
 
-Two actual UI bugs were found and corrected through these tests: room editors initially mounted inside an inactive folio; and POS collection state initially rendered before newly posted room links loaded. A screenshot review also corrected the adaptive mobile header's height and text contrast.
+Testing found and fixed editor mounting, stale POS collection rendering, mobile header contrast/height, DND after a room move and an integration conflict with the production owner-field trigger. The trigger integration was corrected through a separate migration and tested against the real legacy guard; financial-field protection was retained.
 
-## 120-scenario ledger
+## All 120 scenarios
 
-The structured [JSON ledger](scenarios.json) and [CSV ledger](scenarios.csv) contain all 120 original cases, roles, initial states, routes/actions, fields, permissions, ledger effects, recovery contracts and evidence/limitations.
+The [JSON ledger](scenarios.json) and [CSV ledger](scenarios.csv) retain each case's role, initial state, route/actions, fields, permissions, money effects, recovery and evidence/limitations.
 
-| Status | Count | Meaning |
+| Status | Count | Scope |
 | --- | ---: | --- |
-| PASS | 72 | Recorded isolated/rollback test scope passed; not blanket live/device certification |
-| PARTIAL | 19 | Some supporting behavior works; full case is not certified |
-| NOT_RUN | 20 | Complete case has not been executed |
-| NOT_IMPLEMENTED | 6 | Dedicated workflow is still absent |
-| BLOCKED_EXTERNAL | 3 | Physical-device/native verification required |
+| PASS | 94 | Only the recorded isolated/browser/rollback scope passed |
+| PARTIAL | 17 | Supporting behavior works; the complete case is not certified |
+| NOT_RUN | 6 | Complete case remains unexecuted |
+| BLOCKED_EXTERNAL | 3 | Actual native/device verification needed |
 
-The six explicit feature gaps are split-payer invoices for a single stay, dedicated Do Not Disturb, property-cashier access to the legacy POS UI, dedicated dine-in/takeaway entry classification, POS discount allocation across a room folio, and one combined hotel/restaurant shift closing. Additional partial cases include automatic early/late/rate-change policies, a separate room-service fulfilment queue, adding another outlet, full audit search, and guest-facing stay/refund access. Existing owner Counter POS, restaurant closing and marketplace customer refund progress remain available.
+The six previously absent workflows now have implementation: payer statements, DND, property-cashier POS access, dine-in/takeaway classification, room-food discount and combined closing snapshots. Combined snapshots do **not** lock both department journals together. Other partial scope includes automatic early/late/extra-bed policies, full prescribed foreign-guest compliance, a separate room-service/housekeeping assignment queue, guest-facing hotel refund access, adding another approved outlet, complete multi-device/property-switch testing and merging all legacy restaurant audit scopes. See the individual cases; no blanket “all 120 passed” claim is made.
 
-## Database, integrity and rollback
+## Database preservation and release migrations
 
-Applied database migration: **`20261116094006_universal_owner_platform`**. The repository migration filename matches the version actually returned by the connected database. It adds 13 RLS-enabled tables, five authenticated invoker RPC entry points backed by guarded private routines, a deliberately public boolean module-metadata function, and guards around existing POS/menu/checkout writes. It does not rewrite existing provider functions or delete business history.
+Applied migrations, in order:
 
-After migration, **5 existing property configurations** were backfilled; **0 rooms, stays and folios** were seeded. Existing source snapshots matched before/after exactly:
+1. `20261116094006_universal_owner_platform`: 13 RLS tables, five authenticated invoker entry RPCs backed by guarded private routines, deliberately public boolean module metadata and existing POS/menu/checkout guards.
+2. `20261116104349_owner_operational_completion`: DND/request/payer fields, two RLS tables for tracked staff grants/closing snapshots, authenticated report/audit reads and guarded operational commands.
+3. `20261116105700_owner_room_discount_guard`: exact protected-folio proof for initial POS discount/coordinated reversal, integrated with the real existing owner-field trigger.
 
-| Existing data | Before | After |
+Repository filenames match the versions returned by the database. Duplicate unapplied filenames were removed. No business history is deleted or reseeded. Five existing property configurations were backfilled; **zero real rooms/stays/folios/guests were invented**.
+
+| Existing data | Before | After verification |
 | --- | ---: | ---: |
 | Restaurants | 11 | 11 |
 | Menu items | 133 | 133 |
@@ -62,21 +65,21 @@ After migration, **5 existing property configurations** were backfilled; **0 roo
 | Financial snapshots | 94 | 94 |
 | Refund jobs | 3 | 3 |
 
-Order digest: `773e1941cd727f4a91519cc403b20816`. Menu digest: `580b079270b8efbd89f1202cadf14f56`. The rollback integration test independently rechecked the old digests and payment/financial counts. These are preservation checks, **not a full database backup**.
+Order digest: `773e1941cd727f4a91519cc403b20816`. Menu digest: `580b079270b8efbd89f1202cadf14f56`. The rollback tests independently check both and the payment/financial counts. These are preservation checks, **not a full database backup**.
 
-Mutations serialize on the selected property row and store request UUID/payload/result for retry recovery. Cross-property composite keys, current membership checks and scoped RLS protect the new data. Guest scans are not uploaded or publicly served. Staff are assigned by exact registered email, with immediate membership revocation; user-editable metadata is used only for display names.
+Property commands serialize and store request UUID/payload/result for recovery. Current membership, role checks and cross-property keys/RLS protect data. Staff email maps to an existing account; metadata is display-only. Owner-granted cashier/manager membership links to approved owned outlets without overwriting independent existing memberships. Revocation removes only the tracked grant. No invitation or message is sent. Guest scans are not uploaded or publicly served.
 
-Security-advisor review found no newly exposed guest/ledger tables. Two new internal tables intentionally have no browser policy/grant. The public boolean function is intentionally callable by anonymous users for menu RLS and returns no guest or financial rows. Existing advisory warnings remain, including [leaked-password protection disabled](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection); this release does not claim all platform advisories are resolved.
+Security review found no newly exposed guest/ledger tables. Internal businesses/commands/staff-grant tables intentionally have no browser write policy/grant. The deliberately public boolean function returns no guest/money rows. Existing advisories, including [disabled leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), remain explicit platform gates.
 
-Rollback frontend with a reviewed revert of this release and the existing exact-SHA QA/Pages process. **Keep all new tables and financial history.** Do not blindly push the earlier local migration version or drop populated tables. Older POS screens may offer a payment action for a room-posted bill; the new database guard still rejects that second collection. Restore/retain the new interface to manage existing hotel folios. Disabling modules is allowed only after the server's active-stay/balance/deposit/order/refund checks permit it.
+Rollback a frontend release using a reviewed revert and the existing exact-SHA QA/Pages process. **Keep all new ledger/invoice/history tables.** Do not drop populated tables or blindly push an earlier local migration version. Older POS screens may offer payment for a room-posted sale; the database still denies the second collection. Retain/restore the new interface to manage hotel folios. Module disabling remains blocked while the server's active stay/balance/deposit/order/refund/checkout checks fail.
 
-## Owner-only setup and remaining release gates
+## Owner setup and external gates
 
-1. Existing accounts start as Restaurant Only to preserve current operations. In **Settings → Business Modules**, select the actual type and review the impact before saving. New hotel accounts use the same app's setup flow.
-2. Enter actual room numbers, occupancy and agreed rates in **Rooms**. None were inferred from mockups or memory. Hotel Maharani Palace's real room/rate setup still needs the owner’s confirmed input.
-3. Review GST registration/rates with the property's accountant. Unreviewed statements are not certified GST invoices. Complete applicable foreign-guest reporting through the official FRRO process; Bite does not file Form III.
-4. Staff first register with their own email, then the owner grants the appropriate property role. Restaurant cashier/outlet provisioning and additional outlet association need completion of the recorded gaps above.
-5. Verify lock-screen sound, native Accept/Reject, session persistence and property-switch notification handoff on the actual installed Partner APK. Existing source tests cannot replace this device check.
-6. Confirm leaked-password protection and the remaining platform launch blockers independently. No live Cashfree payment/refund/split-settlement test was run for this release.
+1. In **Settings → Business Modules**, select the actual property type and review the impact. Existing accounts start Restaurant Only. New hotels use the same app's setup flow.
+2. Enter actual room numbers, capacity and agreed rates in **Rooms**. Hotel Maharani Palace's real configuration was not inferred from images or memory.
+3. Review GST/rates and invoice requirements with the accountant; statements are not certified statutory tax invoices. Complete applicable foreign-guest reporting through the official process; Bite does not file it.
+4. Staff register their own email first. The owner grants the verified exact account and role. Additional restaurant/outlet association still requires approved trusted mapping.
+5. Test actual installed Partner APK lock-screen sound, native Accept/Reject, persistent sessions and property-switch notification handoff. Source/synthetic tests cannot certify physical-device behavior.
+6. Finish external provider/payment/refund/split-settlement and remaining platform gates separately. No live-money Cashfree test was run for this Owner release.
 
-Release must be described as **core implementation with the explicit ledger above**, not as “all 120 passed,” “all workflows production-ready,” or a completed legal/tax/native-device certification.
+Final merged SHAs, main QA and verified live Pages deployment are recorded on PR #146 after publication. Describe this as verified staged implementation with the ledger above, not all-workflow, legal/tax or native-device certification.
