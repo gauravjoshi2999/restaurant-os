@@ -14,7 +14,8 @@ body[data-universal-owner=true] #mainApp .main>.top{flex-wrap:wrap;gap:10px}body
 @media print{.bh-actions,.bh-form-actions,#bitePropertySelect,.bh-order-alert{display:none!important}}
 #orderModal[data-room-charge=true] #posPaymentFields,#orderModal[data-room-charge=true] #posPaymentDetails,#orderModal[data-room-charge=true] #posBalanceActionFields,#orderModal[data-room-charge=true] label:has(#posWhatsAppConsent){display:none!important}
 #biteRoomPOSTender{padding:14px 0}#biteRoomPOSTender [hidden]{display:none!important}
-body[data-business-type=hotel] #overview>:not(#biteHotelHome){display:none!important}
+/* Hotel home keeps both the operational ledger and the capability-scoped premium shortcuts visible. */
+body[data-business-type=hotel] #overview>:not(#biteHotelHome):not(#bitePremiumHome){display:none!important}
 body[data-owner-onboarding=true] #mainApp .bite-owner-bottom-nav,body[data-owner-onboarding=true] #mainApp .bh-property-switch{display:none!important}
 body[data-restaurant-access=false] #overview>[data-owner-dashboard]{display:none!important}
 .bh-property-switch>.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
