@@ -302,10 +302,10 @@ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-prem
 }
 @media(prefers-reduced-motion:no-preference){
   body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-hero{
-    animation:bitePremiumEnter .38s cubic-bezier(.2,.8,.2,1) both;
+    animation:bitePremiumEnter .38s cubic-bezier(.2,.8,.2,1) backwards;
   }
   body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-action{
-    animation:bitePremiumEnter .34s cubic-bezier(.2,.8,.2,1) both;
+    animation:bitePremiumEnter .34s cubic-bezier(.2,.8,.2,1) backwards;
   }
   body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-action:nth-child(n+5){animation-delay:.045s}
   @keyframes bitePremiumEnter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
