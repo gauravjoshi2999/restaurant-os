@@ -1,0 +1,371 @@
+{
+  "title": "Maharani Palace menu image snapshot — read-only on 2026-11-16",
+  "restaurant_id": "262aaba7-f48b-4fa5-9ff6-b334ededca84",
+  "description": "For image load and attribution auditing only. Never use as approved item or price source.",
+  "images": [
+    {
+      "name": "Aloo Jeera",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Alu%20Jeera.jpg?width=720"
+    },
+    {
+      "name": "Aloo Matar",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aalu%20Matar%20Curry.jpg?width=720"
+    },
+    {
+      "name": "Aloo Paratha with Curd",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Aloo%20Paratha%20with%20curd%20and%20Pickle.jpg?width=720"
+    },
+    {
+      "name": "Besan Gatta",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Besan%20Gatta%20Sabji.jpg?width=720"
+    },
+    {
+      "name": "Bhindi Fry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bhindi%20fry.jpg?width=720"
+    },
+    {
+      "name": "Bhindi Masala",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bhindi%20Masala.jpg?width=720"
+    },
+    {
+      "name": "Boondi Raita",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Boondi%20Raita.jpg?width=720"
+    },
+    {
+      "name": "Bread Butter (Amul)",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Bread%20and%20butter.jpg?width=720"
+    },
+    {
+      "name": "Butter Dal Fry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/DAAL%20FRY.JPG?width=720"
+    },
+    {
+      "name": "Butter Kulcha",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Butter%20kulcha%20-%20paneer%20chana.jpg?width=720"
+    },
+    {
+      "name": "Cheese Masala Papad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Masala%20Papad%20baked%20with%20cheese.jpg?width=720"
+    },
+    {
+      "name": "Cheese Naan",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Cheese%20naan%2020260427%20-%2001.jpg?width=720"
+    },
+    {
+      "name": "Dal Fry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dal%20Fry%20(15295329183).jpg?width=720"
+    },
+    {
+      "name": "Dal Khichadi",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dall%20Khichdi.jpg?width=720"
+    },
+    {
+      "name": "Dal Makhani",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dal%20Makhani%2001.jpg"
+    },
+    {
+      "name": "Dal Tadka",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dal%20Tadka.jpg?width=720"
+    },
+    {
+      "name": "Extra Poori",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Poori%20or%20Puri.JPG?width=720"
+    },
+    {
+      "name": "Fried Papad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Papad%2C%20deep%20fried.jpg?width=720"
+    },
+    {
+      "name": "Garlic Naan",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Garlic%20naan.jpg?width=720"
+    },
+    {
+      "name": "Green Salad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Green%20Salad.JPG?width=720"
+    },
+    {
+      "name": "Hari Mirch Fried",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Instant%20Chilli%20Pickle%20Recipe%20-%20Mirch%20Ke%20Tipore%20by%20Sonia%20Goyal.jpg?width=720"
+    },
+    {
+      "name": "Hot & Sour Soup",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Hot%20%26%20sour%20veg%20soup.jpg?width=720"
+    },
+    {
+      "name": "Jeera Rice",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Jeera%20Rice.jpg?width=720"
+    },
+    {
+      "name": "Kachumber Salad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Kachumber%20Salad.JPG?width=720"
+    },
+    {
+      "name": "Kadhi Rajasthani/Gujarati",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Gujaratikadhi.jpg?width=720"
+    },
+    {
+      "name": "Kaju Curry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Cashew%20Curry.JPG?width=720"
+    },
+    {
+      "name": "Kaju Paneer",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Korma%20with%20Gravy.jpg?width=720"
+    },
+    {
+      "name": "Kashmiri Pulao",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Kashmiri%20Pulav.JPG?width=720"
+    },
+    {
+      "name": "Lachha Paratha",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lachha-paratha.jpg?width=720"
+    },
+    {
+      "name": "Mamma's Special Dal",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Dal%20Makhani%2001.jpg?width=720"
+    },
+    {
+      "name": "Manchow Soup",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Indian%20style%20manchow%20soup.jpg?width=720"
+    },
+    {
+      "name": "Manchurian Dry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/DRY%20MANCHURIAN.jpg?width=720"
+    },
+    {
+      "name": "Manchurian Gravy",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/IndianVegManchurianCurry.jpg?width=720"
+    },
+    {
+      "name": "Masala Chhach",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Masala%20chaas.JPG?width=720"
+    },
+    {
+      "name": "Masala Papad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Masala%20Papad.jpg?width=720"
+    },
+    {
+      "name": "Matar Paneer",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Matar%20paneer.jpg?width=720"
+    },
+    {
+      "name": "Methi Malai Matar",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Methi%20Malai%20Matar.jpg?width=720"
+    },
+    {
+      "name": "Missi Roti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Missi%20Roti.jpg?width=720"
+    },
+    {
+      "name": "Mix Veg",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mix%20veg.jpg?width=720"
+    },
+    {
+      "name": "Mushroom Soup",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mushroom%20Soup.jpg?width=720"
+    },
+    {
+      "name": "Namkeen Lassi",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chilli%20Garlic%20Chuntney%20and%20Namkeen%20Lassi.JPG?width=720"
+    },
+    {
+      "name": "Onion Raita",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Onion%20Raita.jpg?width=720"
+    },
+    {
+      "name": "Onion Salad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Spicy%20Onion%20Salad.jpg?width=720"
+    },
+    {
+      "name": "Palak Paneer",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Palak%20Paneer.JPG?width=720"
+    },
+    {
+      "name": "Panchwati Dal",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/DalPanchmel.JPG?width=720"
+    },
+    {
+      "name": "Paneer Angara Special",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Lababdaar.jpg?width=720"
+    },
+    {
+      "name": "Paneer Balti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Capsicum%20Curry.JPG?width=720"
+    },
+    {
+      "name": "Paneer Bhurji",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Bhurji.jpg?width=720"
+    },
+    {
+      "name": "Paneer Butter Masala",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Butter%20Masala%20-%20Garnished.jpg"
+    },
+    {
+      "name": "Paneer Chilli Dry",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Panner%20Chilli.jpg?width=720"
+    },
+    {
+      "name": "Paneer Chilli Gravy",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Chilli%20Semi%20Gravy.jpg?width=720"
+    },
+    {
+      "name": "Paneer Do Pyaza",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Do-Pyaza.jpg?width=720"
+    },
+    {
+      "name": "Paneer Handi/Kadai",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Kadai%20Paneer.JPG?width=720"
+    },
+    {
+      "name": "Paneer Pakoda",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Pakoda.jpg?width=720"
+    },
+    {
+      "name": "Paneer Paratha with Curd",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Paratha.jpg?width=720"
+    },
+    {
+      "name": "Paneer Silsila",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Chatpat%2001.jpg?width=720"
+    },
+    {
+      "name": "Peanut Chaat",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Peanut%20Salad.jpg?width=720"
+    },
+    {
+      "name": "Plain Kulcha",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Kulcha.jpg?width=720"
+    },
+    {
+      "name": "Plain Rice",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Plain%20rice.jpg?width=720"
+    },
+    {
+      "name": "Poori Bhaji",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Puri%20bhaji.jpg?width=720"
+    },
+    {
+      "name": "Roasted Papad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Roasted%20Papad.JPG?width=720"
+    },
+    {
+      "name": "Sev Bhaji",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sev%20Bhaji%20and%20Bhakri.jpg?width=720"
+    },
+    {
+      "name": "Sev Tomato",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sev%20Tameta%20Nu%20Shaak.jpg?width=720"
+    },
+    {
+      "name": "Shahi Paneer",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Shahi%20paneer.jpg?width=720"
+    },
+    {
+      "name": "Special Maharani Salad",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Paneer%20Salad.jpg?width=720"
+    },
+    {
+      "name": "Special Maharani Vegetable",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mixed%20Vegetable%20Curry%20-%20Kolkata%202014-02-13%202644.JPG?width=720"
+    },
+    {
+      "name": "Special Malai Pyaj",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Onion%20curry%20pieces.jpg?width=720"
+    },
+    {
+      "name": "Steam Rice",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Steamed%20rice%20in%20bowl%2001.jpg?width=720"
+    },
+    {
+      "name": "Stuff Capsicum",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Stuffed%20Capsicum.jpg?width=720"
+    },
+    {
+      "name": "Stuff Naan",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Stuffed%20Naan.JPG?width=720"
+    },
+    {
+      "name": "Stuff Tomato",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Stuffed%20Tomato%20Curry%20Rayagada%20Odisha%2002.jpg?width=720"
+    },
+    {
+      "name": "Sweet Lassi",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Sweet%20Lassi.JPG?width=720"
+    },
+    {
+      "name": "Tandoori Butter Roti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Butter%20Tandoori%20Roti.jpg?width=720"
+    },
+    {
+      "name": "Tandoori Plain Roti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tandoori-rotis.jpg?width=720"
+    },
+    {
+      "name": "Tawa Butter Roti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Butter%20Chapati.jpg?width=720"
+    },
+    {
+      "name": "Tawa Plain Roti",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tawa%20Roti.JPG?width=720"
+    },
+    {
+      "name": "Tomato Soup",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/TOMATO%20SOUP.JPG?width=720"
+    },
+    {
+      "name": "Veg Angara",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mixed%20Vegetable%20Curry%20-%20Kolkata%202014-02-13%202658.JPG?width=720"
+    },
+    {
+      "name": "Veg Biryani",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vegetable%20biryani.jpg"
+    },
+    {
+      "name": "Veg Chowmein",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20Chowmein.jpg?width=720"
+    },
+    {
+      "name": "Veg Clear Soup",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/VegetableClearSoup%20HomeMade%20Mumbai.jpg?width=720"
+    },
+    {
+      "name": "Veg Diwani Handi",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Handi%20Vegetable.jpg?width=720"
+    },
+    {
+      "name": "Veg Fried Rice",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20-%20Fried%20Rice.jpg?width=720"
+    },
+    {
+      "name": "Veg Grilled Cheese Sandwich",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20Cheese%20Sandwich.jpg"
+    },
+    {
+      "name": "Veg Hyderabadi Biryani",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Hyderabadi%20Veg%20Biryani.jpg?width=720"
+    },
+    {
+      "name": "Veg Kolhapuri",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20Kolhapuri.jpg?width=720"
+    },
+    {
+      "name": "Veg Pakoda",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mix%20veg%20pakoda.jpg?width=720"
+    },
+    {
+      "name": "Veg Pulao",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20Pulao.JPG?width=720"
+    },
+    {
+      "name": "Veg Raita",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Vegetable%20Raita.jpg?width=720"
+    },
+    {
+      "name": "Veg Sandwich",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Veg%20Sandwich.jpg"
+    },
+    {
+      "name": "Veg Stuffed Paratha",
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Stuffed%20Paratha%20(Corn%20and%20Bell%20peppers).jpg?width=720"
+    }
+  ]
+}
