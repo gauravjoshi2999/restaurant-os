@@ -380,6 +380,11 @@ body[data-role="owner"] #mainApp .nav button[data-page="moderation"]{display:non
 body[data-role="owner"] .od-priority-title>div{display:grid;gap:3px}
 body[data-role="owner"] .od-priority-empty{padding:14px 10px;line-height:1.5}
 body[data-role="owner"] #ownerAlertPreferences .owner-alert-settings-actions .btn{flex:1 1 190px}
+#ownerAlertPreferences>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none!important;cursor:pointer}
+#ownerAlertPreferences>summary::-webkit-details-marker{display:none}
+#ownerAlertPreferences>summary::marker{content:""}
+#ownerAlertPreferences>summary::after{content:"⌄";font-size:20px;line-height:1;color:#697386}
+#ownerAlertPreferences[open]>summary::after{transform:rotate(180deg)}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}/* Platform restaurant manager */
@@ -1169,13 +1174,15 @@ body.bite-session-check #biteSessionSplash{
 <section class="page" id="settings">
 <div class="welcome"><div><h1>Restaurant settings</h1><div class="muted">Apne outlet ki customer-facing details aur order preferences update karein.</div></div></div>
 <details class="card" id="ownerAlertPreferences" style="margin:0 0 16px;padding:14px 16px;border:1px solid #e4e8ef;border-radius:14px">
- <summary style="cursor:pointer;font-weight:750;font-size:15px;list-style:auto">🔔 Order notification preferences</summary>
- <p class="muted" style="font-size:13px;margin:12px 0">Naye paid orders ki phone notifications automatically aati rahengi. Browser sound aur phone sound setting yahan manage karein.</p>
+ <summary style="font-weight:750;font-size:15px">🔔 Order notification preferences</summary>
+ <p class="muted" style="font-size:13px;margin:12px 0">Verified paid orders ke alerts Bite Partner par milte hain. Phone notifications ke liye Android permission on rakhein.</p>
  <div class="owner-alert-settings-actions" style="display:flex;gap:9px;flex-wrap:wrap">
   <button class="btn secondary" id="orderSoundToggle" type="button" onclick="toggleOrderSound()" aria-pressed="false" style="min-height:42px">🔔 Sound alerts</button>
   <button type="button" class="btn secondary" id="ownerNotificationSoundSettings" onclick="openOwnerNotificationSoundSettings()" aria-label="Open Android notification sound settings" style="min-height:42px">Phone notification settings</button>
   <button type="button" class="btn secondary" id="ownerPushHealthButton" onclick="checkOwnerPushHealth()" style="min-height:42px">Check push health</button>
+  <button type="button" class="btn secondary" id="ownerLockScreenPushTest" onclick="testOwnerLockScreenPush()" style="min-height:42px">Test lock-screen push</button>
  </div>
+ <p id="ownerNotificationSettingsHint" role="status" aria-live="polite" class="muted" hidden style="margin-top:10px;font-size:12px"></p>
  <p id="ownerPushHealthResult" role="status" aria-live="polite" class="muted" style="margin-top:10px;font-size:12px">Phone push status not checked yet. Live website order updates are separate from Android push delivery.</p>
 </details>
 <div class="card owner-profile-settings">
@@ -3487,15 +3494,20 @@ async function handlePendingNativeOwnerAction(){
 }
 window.addEventListener('focus',()=>{if(currentUser&&access.role==='owner')void handlePendingNativeOwnerAction();});
 function openOwnerNotificationSoundSettings(){
+ const hint=document.getElementById('ownerNotificationSettingsHint');
+ const fallback=()=>{
+  if(!hint)return;
+  hint.hidden=false;
+  hint.textContent='Android Settings → Apps → Bite Partner → Notifications → New restaurant orders kholein. Sound aur permission wahin set karein.';
+ };
  const native=window.Capacitor?.Plugins?.BiteOwnerPush;
  if(native?.openNotificationSettings){
+  if(hint)hint.hidden=true;
   void native.openNotificationSettings().catch(error=>{
-   console.warn('Android sound settings could not open',error);
-   showOrderLiveToast('Phone Settings → Apps → Bite Partner → Notifications → New restaurant orders → Sound check karein.');
+   console.warn('Android notification settings could not open',error);
+   fallback();
   });
- }else{
-  showOrderLiveToast('Partner APK update karein. Phir Android Settings → Apps → Bite Partner → Notifications → New restaurant orders kholein.');
- }
+ }else fallback();
 }
 async function prepareOwnerOrderNotifications(){
  if(access.role!=='owner')return false;

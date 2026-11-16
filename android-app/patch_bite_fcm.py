@@ -119,6 +119,9 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.firebase.messaging.FirebaseMessaging;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 
 @CapacitorPlugin(name="BiteOwnerPush")
 public class BiteOwnerPushPlugin extends Plugin {
@@ -135,6 +138,34 @@ public class BiteOwnerPushPlugin extends Plugin {
       result.put("supports_order_actions", true);
       call.resolve(result);
     });
+  }
+
+  // Open the OS channel settings for Bite Partner; do not change permissions.
+  // Android notification sound and visibility are chosen by the device owner.
+  @PluginMethod
+  public void openNotificationSettings(PluginCall call) {
+    try {
+      String pkg=getContext().getPackageName();
+      Intent settings;
+      if(Build.VERSION.SDK_INT>=26){
+        settings=new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+        settings.putExtra(Settings.EXTRA_APP_PACKAGE,pkg);
+        settings.putExtra(Settings.EXTRA_CHANNEL_ID,"bite_owner_new_orders_v1");
+      }else{
+        settings=new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+        settings.putExtra(Settings.EXTRA_APP_PACKAGE,pkg);
+      }
+      try {
+        getActivity().startActivity(settings);
+      }catch(Exception unsupportedChannel){
+        Intent fallback=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        fallback.setData(Uri.parse("package:"+pkg));
+        getActivity().startActivity(fallback);
+      }
+      call.resolve();
+    }catch(Exception error){
+      call.reject("Android notification settings unavailable");
+    }
   }
 
   @PluginMethod

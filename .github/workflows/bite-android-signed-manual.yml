@@ -5,7 +5,7 @@ on:
       version_code:
         description: 'Android version code (increase for each installable update)'
         required: false
-        default: '16'
+        default: '17'
         type: string
   push:
     branches: [main]
@@ -54,7 +54,7 @@ jobs:
       - name: Configure selected Bite app
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '16' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '17' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -172,7 +172,7 @@ jobs:
             echo "::error::Partner signed release blocked: Firebase Android config secret is missing."
             exit 1
           fi
-          # Partner v16: distinct order/cancellation cards, Android action buttons.
+          # Partner v17: notification channel settings, distinct order/cancellation cards and action buttons.
           python3 patch_bite_fcm.py
           if [ "${{ matrix.app }}" = "partner" ]; then
             test -s android/app/google-services.json || { echo "::error::Partner Firebase config file not generated"; exit 1; }
@@ -180,15 +180,16 @@ jobs:
             test -n "$SERVICE_FILE" && test -s "$SERVICE_FILE" || { echo "::error::Partner Firebase Messaging Service not generated"; exit 1; }
             grep -Fq 'manager.notify(notificationTag,0,builder.build());' "$SERVICE_FILE" || { echo "::error::Distinct notification tags not compiled"; exit 1; }
             grep -Fq 'isCancellation?"bite-cancel-"+requestId' "$SERVICE_FILE" || { echo "::error::Cancellation-specific tag not compiled"; exit 1; }
+            grep -Fq 'public void openNotificationSettings(PluginCall call)' "$(find android/app/src/main/java -name BiteOwnerPushPlugin.java -print -quit)" || { echo "::error::Partner v17 notification settings plugin method not compiled"; exit 1; }
             grep -Fq 'activityIntent(id,restaurant,"Accepted")' "$SERVICE_FILE" || { echo "::error::Accept action not compiled"; exit 1; }
             grep -Fq 'activityIntent(id,restaurant,"Rejected")' "$SERVICE_FILE" || { echo "::error::Reject action not compiled"; exit 1; }
             grep -Fq '.BiteFirebaseMessagingService' android/app/src/main/AndroidManifest.xml || { echo "::error::FCM service missing from Android manifest"; exit 1; }
-            echo "Verified Partner v16 native FCM, distinct notification tags and order action buttons."
+            echo "Verified Partner v17 native FCM, distinct notification tags and order action buttons."
           fi
       - name: Set version code for signed releases
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '16' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '17' }}
         run: |
           node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\s+\d+/, 'versionCode '+v);if(!s.includes('versionCode '+v))throw Error('versionCode update failed');fs.writeFileSync(p,s)"
       - name: Build release APK (unsigned)
