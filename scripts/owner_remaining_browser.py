@@ -10,7 +10,10 @@ OUT=ROOT/'dist/launch-qa';OUT.mkdir(parents=True,exist_ok=True)
 subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=True)
 html=(ROOT/'dist/qa/owner-flow.html').read_text();fixture=(ROOT/'scripts/fixtures/hospitality_backend.js').read_text()
 needle='<script src="assets/owner-hospitality.js?v=20261116-2"></script>'
-html=html.replace(needle,'<script>window.__BITE_HOSPITALITY_TYPE="hybrid";</script><script>'+fixture+'</script>'+needle)
+multi_fixture="""<script>
++const multiFactory=window.supabase.createClient;window.supabase.createClient=(...args)=>{const c=multiFactory(...args),base=c.rpc.bind(c),qa=window.__BITE_HOTEL_QA;const second={...structuredClone(qa.property),id:'34343434-3434-4434-8434-343434343434',name:'Second hotel QA',business_type:'hotel',outlets:[],capabilities:[...BiteCapabilities.defaults.hotel],configured_capabilities:[...BiteCapabilities.defaults.hotel]};c.rpc=async(name,args)=>{if(localStorage.getItem('qa_multiple_properties')==='on'){if(name==='bite_owner_context')return{data:[structuredClone(qa.property),second],error:null};if(name==='bite_hotel_workspace'&&args.p_property===second.id)return{data:{rooms:[{id:'second-room',number:'S-201',room_type:'Suite',nightly_rate:999,adults:2,children:0,housekeeping:'ready',active:true}],guests:[],stays:[],folios:[],entries:[],audit:[],expenses:[],members:[]},error:null};}return base(name,args)};return c};
++</script>""".replace('\n+','\n')
+html=html.replace(needle,'<script>window.__BITE_HOSPITALITY_TYPE="hybrid";</script><script>'+fixture+'</script>'+multi_fixture+needle)
 assert fixture in html
 (ROOT/'dist/qa/remaining-owner.html').write_text(html)
 customer=(ROOT/'dist/qa/customer-flow.html').read_text()
@@ -76,12 +79,16 @@ try:
     page.locator('[data-ops-action=task-step]').first.click();page.wait_for_function("window.__BITE_HOTEL_QA.db.tasks.find(t=>t.kind==='room_service').status==='"+status+"'")
    check(page.evaluate("window.__BITE_HOTEL_QA.db.entries.filter(e=>e.category==='food').length") == 1,'Service progress leaves exactly one source food folio entry')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Service queue has no horizontal overflow at '+str(width)+'px')
+   page.evaluate("""()=>{const q=window.__BITE_HOTEL_QA,d=q.db;d.entries.push({id:crypto.randomUUID(),folio_id:d.folios[0].id,kind:'payment',category:'payment',amount:1350,method:'Cash',description:'Synthetic credit fixture after a price correction',status:'confirmed',created_at:new Date().toISOString()})}""")
+   nav(page,'folios');page.locator('[data-ops-action=refund-request]').click();f=page.locator('#bhActionEditor form');f.locator('[name=amount]').fill('200');f.locator('[name=reason]').fill('Synthetic approved credit return');finish(page)
+   page.locator('[data-ops-action=refund-progress]').click();f=page.locator('#bhActionEditor form');f.locator('[name=status]').select_option('paid');f.locator('button[type=submit]').click();page.get_by_text('Verify the actual return and reference',exact=True).wait_for(state='visible');check(page.evaluate("window.__BITE_HOTEL_QA.db.refund_requests[0].status==='requested'"),'Return cannot be marked paid without verified reference')
+   f.locator('[name=reference]').fill('SYNTHETIC-RETURN-1234');f.locator('[name=return_verified]').check();finish(page);page.locator('#biteGuestOperations').get_by_text('₹200 · paid',exact=True).wait_for(state='visible');check(True,'Owner sees saved refund progress after verification')
    nav(page,'settings');page.locator('[data-ops-action=apply-outlet]').click();f=page.locator('#bhActionEditor form');f.locator('[name=city]').fill('Rajsamand');f.locator('[name=address]').fill('Synthetic new outlet address');finish(page);page.get_by_text('pending · Lead added',exact=True).wait_for(state='visible')
    check(page.evaluate("window.__BITE_HOTEL_QA.db.outlet_applications[0].onboarding_status==='pending'"),'Restaurant application remains pending Admin review')
    # Actual shell property handoff and late-response invalidation, synthetic transport.
-   page.evaluate("""()=>{const base=sb.rpc.bind(sb),qa=window.__BITE_HOTEL_QA;const second={...structuredClone(qa.property),id:'34343434-3434-4434-8434-343434343434',name:'Second hotel QA',business_type:'hotel',outlets:[],capabilities:[...BiteCapabilities.defaults.hotel],configured_capabilities:[...BiteCapabilities.defaults.hotel]};sb.rpc=async(name,args)=>{if(name==='bite_owner_context')return{data:[structuredClone(qa.property),second],error:null};if(name==='bite_hotel_workspace'&&args.p_property===second.id)return{data:{rooms:[{id:'second-room',number:'S-201',room_type:'Suite',nightly_rate:999,adults:2,children:0,housekeeping:'ready',active:true}],guests:[],stays:[],folios:[],entries:[],audit:[],expenses:[],members:[]},error:null};return base(name,args)}}""")
+   page.evaluate("localStorage.setItem('qa_multiple_properties','on')")
    page.evaluate('BiteHospitality.refreshContext(false)');page.evaluate('window.__BITE_HOTEL_QA.delayMs=800;void BiteHospitality.reload()');page.locator('#bitePropertySelect').select_option('34343434-3434-4434-8434-343434343434');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'rooms');page.get_by_text('S-201',exact=True).wait_for(state='visible');page.wait_for_timeout(900)
-   check(page.locator('#rooms').get_by_text('101',exact=True).count()==0,'Switching properties discards the prior property response')
+   check(page.locator('#rooms').get_by_text('101',exact=True).count()==0,'Property handoff reloads the app and clears the prior property workspace')
    check(page.locator('#biteHotelOrderAlert').is_hidden(),'Other property food orders do not show a hotel alert')
    shot(page,'second-property-'+str(width));context.close()
   # Guest sees progress without an authenticated hotel membership or location interruption.

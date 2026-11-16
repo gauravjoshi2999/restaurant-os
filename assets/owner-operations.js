@@ -40,7 +40,7 @@
    (open&&manager()&&Number(folio.totals?.balance)<0?button('refund-request','Create refund request',folio.id):'')+
    (guest&&(guest.is_oci||!['india','indian','bharat','भारत'].includes(String(guest.country||'India').trim().toLowerCase()))?'<h3>Foreign / OCI guest reporting</h3><p>Arrival and departure reporting must be completed in the official system. Record the acknowledgment here.</p>'+complianceSummary(stay)+(['owner','manager','receptionist'].includes(p().role)?button('compliance','Reporting checklist',stay.id):''):'');
   target.querySelector('#bhFolioEditor')?.before(box);
-  const old=target.querySelector('[data-hotel-action="entry"][data-id="refund"]');if(old)old.replaceWith(Object.assign(document.createElement('span'),{innerHTML:button('refund-request','Refund progress',folio.id)}));
+  const old=target.querySelector('[data-hotel-action="entry"][data-id="refund"]');if(old)old.remove();
  }
  function complianceSummary(stay){const c=(db().compliance||[]).find(c=>c.stay_id===stay.id);return '<p>Arrival: '+(c?.arrival_reference?'Acknowledgment recorded':'Not recorded')+' · Departure: '+(c?.departure_reference?'Acknowledgment recorded':'Not recorded')+'</p>'}
  function registerFields(form,draft,guest){
