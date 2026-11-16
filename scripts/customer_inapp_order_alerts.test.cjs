@@ -1,0 +1,50 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {createController}=require('../assets/customer-inapp-order-alerts.js');
+const html=fs.readFileSync('customer.html','utf8');
+const account=fs.readFileSync('assets/customer-account-center.js','utf8');
+test('notifies only after known owned order status actually changes with opt-in',()=>{
+ const alerts=[];
+ const c=createController(message=>alerts.push(message));
+ c.setUser('customer-A');c.setEnabled(true);
+ c.seed([{id:'order1',status:'Accepted'}],'customer-A');
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-A',status:'Preparing'}},'customer-A'),true);
+ assert.deepEqual(alerts,['Your food is being prepared']);
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-A',status:'Preparing'}},'customer-A'),false);
+ assert.equal(alerts.length,1);
+});
+test('no alerts before opt-in, when another customer updates, or on missing ownership',()=>{
+ const alerts=[];const c=createController(value=>alerts.push(value));
+ c.setUser('customer-A');
+ c.seed([{id:'order1',status:'Accepted'}],'customer-A');
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-A',status:'Preparing'}},'customer-A'),false);
+ c.setEnabled(true);
+ assert.equal(c.onUpdate({new:{id:'order2',customer_id:'customer-B',status:'Ready'}},'customer-A'),false);
+ assert.equal(c.onUpdate({new:{id:'order3',status:'Ready'}},'customer-A'),false);
+ assert.equal(c.onUpdate({new:{id:'order4',customer_id:'customer-A',status:'Ready'}},'customer-A'),false);
+ assert.equal(alerts.length,0);
+});
+test('account switching clears status cache and cannot leak old customer update',()=>{
+ const alerts=[],c=createController(label=>alerts.push(label));
+ c.setUser('customer-A');c.setEnabled(true);c.seed([{id:'order1',status:'Accepted'}],'customer-A');
+ c.setUser('customer-B');
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-A',status:'Ready'}},'customer-A'),false);
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-B',status:'Ready'}},'customer-B'),false);
+ c.seed([{id:'order1',status:'Ready'}],'customer-B');
+ assert.equal(c.onUpdate({new:{id:'order1',customer_id:'customer-B',status:'Completed'}},'customer-B'),true);
+ assert.deepEqual(alerts,['Order completed']);
+ c.setUser(null);
+ assert.equal(c.currentUser(),null);
+});
+test('notification preference is real, persisted, and does not falsely claim phone push',()=>{
+ assert.match(html,/id="biteAccountOrderAlerts" type="checkbox"/);
+ assert.match(html,/not a phone push notification/i);
+ assert.match(html,/window\.BiteCustomerOrderAlerts\?\.onOrderUpdate\?\.\(payload,userId\)/);
+ assert.match(html,/window\.BiteCustomerOrderAlerts\?\.seedOrders\?\.\(customerOrders,requestedCustomerId\)/);
+ assert.match(html,/assets\/customer-inapp-order-alerts\.js\?v=20261116-alerts1/);
+ assert.match(account,/in_app_updates:requested/);
+ assert.match(account,/sb\.auth\.updateUser\(\{data:\{bite_preferences_v1:merged\}\}\)/);
+ assert.match(account,/byId\('biteAccountOrderAlerts'\)\?\.addEventListener\('change',saveOrderAlerts\)/);
+});
