@@ -39,6 +39,7 @@ jobs:
           python scripts/owner_cash_closing_smoke.py
           python scripts/pos_payment_browser_smoke.py
           python scripts/owner_mobile_navigation_smoke.py
+          python scripts/universal_owner_browser.py
 
       - name: Upload synthetic QA evidence
         if: always()
@@ -49,6 +50,8 @@ jobs:
             dist/launch-qa/browser-evidence.json
             dist/launch-qa/ui-*.png
             dist/launch-qa/owner-feedback-mobile-evidence.json
+            dist/launch-qa/universal-owner-browser-evidence.json
+            dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
           if-no-files-found: ignore
 
@@ -120,3 +123,37 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f scripts/delivery_handoff_pg_fixture.sql
       - name: Verify tenant protection, OTP lock, token rotation and expiry
         run: psql -v ON_ERROR_STOP=1 -f scripts/delivery_handoff_pg_security_test.sql
+
+  universal-owner-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_hotel_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_hotel_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_hotel_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify hotel ledger, tenant and role boundaries on isolated PostgreSQL 17
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116094006_universal_owner_platform.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
+          bash scripts/universal_owner_concurrency.sh

@@ -142,7 +142,11 @@
     const nav=doc.createElement('nav');
     nav.id='biteOwnerBottomNav';nav.className='bite-owner-bottom-nav';
     nav.setAttribute('aria-label','Restaurant owner quick navigation');
-    tabs.forEach(tab=>{
+    let activeTabs=tabs;
+    function buildTabs(){
+    nav.replaceChildren();
+    nav.style.gridTemplateColumns='repeat('+activeTabs.length+',minmax(0,1fr))';
+    activeTabs.forEach(tab=>{
       const button=doc.createElement('button');
       button.type='button';button.dataset.bitePage=tab.page;
       button.className='bite-owner-tab';
@@ -161,6 +165,8 @@
         if(typeof root.showPage==='function')void root.showPage(tab.page);
       });
     });
+    }
+    buildTabs();
     app.append(nav);
 
     const drawerLogout=doc.createElement('button');
@@ -177,6 +183,7 @@
       if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
       if(doc.body.dataset.role!=='owner'){moreChildPage=null;moreEntryPage=null;moreRestored=false;}
       const state=navigationState(doc.body.dataset.role,page,moreOpen);
+      if(root.BiteHospitality?.prop()&&state.visible)state.active=moreOpen?'more':activeTabs.some(t=>t.page===page)?page:'more';
       nav.hidden=!state.visible;
       drawerLogout.hidden=!state.visible;
       back.hidden=!state.showBack;
@@ -225,8 +232,31 @@
     const drawerObserver=new MutationObserver(sync);
     drawerObserver.observe(side,{attributes:true,attributeFilter:['class']});
     root.addEventListener?.('resize',syncResponsive);
+    root.addEventListener?.('bite:capabilities',()=>{
+      const p=root.BiteHospitality?.prop();
+      activeTabs=p?root.BiteHospitality.getTabs():tabs;buildTabs();
+      const allowed=p?root.BiteHospitality.routeList({role:'owner',property:p}):null;
+      moreScreen.querySelectorAll('[data-owner-route]').forEach(b=>{b.hidden=!!allowed&&!allowed.includes(b.dataset.ownerRoute)});
+      let extra=doc.getElementById('bitePropertyMore');
+      if(extra)extra.remove();
+      if(p){
+        extra=doc.createElement('section');extra.id='bitePropertyMore';extra.className='bite-more-group';
+        const heading=doc.createElement('h2');heading.textContent='Property operations';extra.append(heading);
+        const grid=doc.createElement('div');grid.className='bite-more-grid';
+        for(const [page,label,description,icon] of root.BiteHospitality.getMore()){
+          if(activeTabs.some(t=>t.page===page)||moreScreen.querySelector('[data-owner-route="'+page+'"]'))continue;
+          const b=doc.createElement('button');b.type='button';b.className='bite-more-item';b.dataset.ownerRoute=page;
+          const glyph=doc.createElement('span');glyph.className='bite-more-item-icon';glyph.textContent=icon;glyph.setAttribute('aria-hidden','true');
+          const copy=doc.createElement('span');copy.className='bite-more-item-copy';const strong=doc.createElement('strong');strong.textContent=label;const small=doc.createElement('small');small.textContent=description;copy.append(strong,small);
+          b.append(glyph,copy);b.addEventListener('click',()=>{moreChildPage=page;closeMore();if(typeof root.showPage==='function')void root.showPage(page)});grid.append(b);
+        }
+        extra.append(grid);moreHead.after(extra);
+      }
+      sync();
+    });
     doc.addEventListener('keydown',event=>{if(event.key==='Escape'&&moreOpen){event.preventDefault();closeMore()}});
     syncResponsive();sync();
+    if(root.BiteHospitality?.prop())root.dispatchEvent(new Event('bite:capabilities'));
   }
   const api={tabs,sections,navigationState,init};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;

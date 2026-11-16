@@ -1,0 +1,44 @@
+-- Group reservations, pre-arrival advances, correction and refund accounting.
+set role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+do $$ declare p uuid;g uuid;r1 uuid;r2 uuid;v_group uuid;s uuid;f uuid;e uuid;out jsonb;payload jsonb;k uuid;n integer;begin
+ select id into p from public.bite_properties where name='Synthetic Hybrid';
+ perform public.bite_property_command(p,'member','{"email":"accountant@example.test","role":"accountant","active":true}',gen_random_uuid());
+ assert exists(select 1 from public.bite_property_members where property_id=p and user_id='55555555-5555-4555-8555-555555555555' and role='accountant' and active);
+ select id into g from public.bite_guests where property_id=p and full_name='Hybrid Test Guest';
+ select id into r1 from public.bite_rooms where property_id=p and number='201';
+ out:=public.bite_property_command(p,'room_save','{"number":"202","room_type":"Deluxe","nightly_rate":600,"adults":2,"children":1}',gen_random_uuid());r2:=(out->>'id')::uuid;
+ k:=gen_random_uuid();payload:=jsonb_build_object('name','Synthetic family group','guest_id',g,'arrival',current_date+5,'departure',current_date+6,'rooms',jsonb_build_array(jsonb_build_object('room_id',r1,'adults',1,'children',0),jsonb_build_object('room_id',r2,'adults',1,'children',1)));
+ out:=public.bite_property_command(p,'reserve_group',payload,k);v_group:=(out->>'id')::uuid;
+ assert public.bite_property_command(p,'reserve_group',payload,k)=out;
+ assert (select count(*) from public.bite_stays where bite_stays.group_id=v_group)=2;
+ assert (select count(distinct f.id) from public.bite_folios f join public.bite_stays s on s.id=f.stay_id where s.group_id=v_group)=2;
+ select s.id,f.id into s,f from public.bite_stays s join public.bite_folios f on f.stay_id=s.id where s.group_id=v_group and s.room_id=r1;
+ perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',200,'description','Pre-arrival advance','method','Cash'),gen_random_uuid());
+ assert (select count(*) from public.bite_folio_entries where folio_id=f and kind='advance')=1;
+ out:=public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',100,'description','Unreceived UPI advance','method','UPI'),gen_random_uuid());e:=(out->>'id')::uuid;
+ perform public.bite_property_command(p,'payment_void',jsonb_build_object('folio_id',f,'id',e,'description','Bank confirms not received'),gen_random_uuid());
+ assert (select status from public.bite_folio_entries where id=e)='void';
+ begin perform public.bite_property_command(p,'cancel',jsonb_build_object('id',s),gen_random_uuid());raise exception 'Expected advance block';exception when raise_exception then if sqlerrm='Expected advance block' then raise;end if;end;
+ k:=gen_random_uuid();payload:=jsonb_build_object('folio_id',f,'amount',200,'description','Advance returned in cash','method','Cash');
+ perform public.bite_property_command(p,'refund',payload,k);perform public.bite_property_command(p,'refund',payload,k);
+ perform public.bite_property_command(p,'cancel',jsonb_build_object('id',s),gen_random_uuid());
+ assert (select status from public.bite_stays where id=s)='cancelled';
+ select st.id,fl.id into s,f from public.bite_stays st join public.bite_folios fl on fl.stay_id=st.id where st.group_id=v_group and st.room_id=r2;
+ perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',100,'description','Room advance','method','Cash'),gen_random_uuid());
+ perform public.bite_property_command(p,'reservation_edit',jsonb_build_object('id',s,'room_id',r2,'arrival',current_date,'departure',current_date+1,'adults',1,'children',1),gen_random_uuid());
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+ perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',500,'description','Balance in cash','method','Cash'),gen_random_uuid());
+ perform public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid());
+ assert (select invoice_snapshot->'stay'->>'group_id' from public.bite_folios where id=f)=v_group::text;
+ select count(*) into n from public.bite_stays where property_id=p;
+ begin
+  perform public.bite_property_command(p,'reserve_group',jsonb_build_object('name','Atomic rollback group','guest_id',g,'arrival',current_date,'departure',current_date+1,'rooms',jsonb_build_array(jsonb_build_object('room_id',r2,'adults',1),jsonb_build_object('room_id',r1,'adults',1))),gen_random_uuid());
+  raise exception 'Expected group room conflict';
+ exception when raise_exception then if sqlerrm='Expected group room conflict' then raise;end if;end;
+ assert (select count(*) from public.bite_stays where property_id=p)=n;
+ assert not exists(select 1 from public.bite_booking_groups where name='Atomic rollback group');
+ insert into qa_results values('A010 A017 A018 A030 A031 A034 A040: group atomicity, separate room folios, advance/return and corrected reservation');
+end $$;
+reset role;
+select * from qa_results;
