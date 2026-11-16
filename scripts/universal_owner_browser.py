@@ -49,6 +49,9 @@ try:
     page.goto(f'http://127.0.0.1:4185/qa/{kind}-owner.html',wait_until='domcontentloaded')
     page.wait_for_function("document.body.dataset.businessType === '"+kind+"'")
     page.locator('#mainApp').wait_for(state='visible')
+    # Owner sessions can restore a non-Home route: navigate to Home explicitly for the visual contract.
+    page.evaluate("showPage('overview')")
+    page.locator('#overview.active').wait_for(state='visible')
     page.locator('#bitePremiumHome .bite-premium-action').first.wait_for(state='visible')
     check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium home has correct business mode at {width}px')
     links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
