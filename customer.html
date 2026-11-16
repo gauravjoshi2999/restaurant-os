@@ -492,7 +492,7 @@ async function openRestaurant(id){if(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURA
  $('customerNote').value=matchingCart?String(savedCart.generalNote||'').slice(0,500):'';
  $('cartOrderNote').value=$('customerNote').value;
  $('checkoutCutlery').checked=matchingCart&&savedCart.cutleryRequested===true;
- menuItems=[];showCustomerView('menu');$('menuSearchInput').value='';$('menuVegToggle').checked=false;window.BiteMenuPersonalization?.reset();activeMenuCategory='all';$('restaurantName').textContent=activeRestaurant.name;$('restaurantCuisine').textContent=(activeRestaurant.cuisine_tags||[]).join(' • ')||'Restaurant';$('restaurantInfo').textContent=(activeRestaurant.city||'')+' • '+Number(activeRestaurant.estimated_prep_minutes||30)+' min • '+(activeRestaurant.accepts_delivery&&!activeRestaurant.delivery_paused?'Delivery':'')+(activeRestaurant.accepts_pickup?' • Pickup':'')+(BiteDiscovery.isClosed(activeRestaurant)?' • Closed now':'');$('restaurantDescription').textContent=activeRestaurant.public_description||'';window.BiteRestaurantDetails?.render(activeRestaurant,[]);
+ menuItems=[];showCustomerView('menu');$('menuSearchInput').value='';$('menuVegToggle').checked=window.BiteAccountHub?.vegOnly?.()===true;window.BiteMenuPersonalization?.reset();activeMenuCategory='all';$('restaurantName').textContent=activeRestaurant.name;$('restaurantCuisine').textContent=(activeRestaurant.cuisine_tags||[]).join(' • ')||'Restaurant';$('restaurantInfo').textContent=(activeRestaurant.city||'')+' • '+Number(activeRestaurant.estimated_prep_minutes||30)+' min • '+(activeRestaurant.accepts_delivery&&!activeRestaurant.delivery_paused?'Delivery':'')+(activeRestaurant.accepts_pickup?' • Pickup':'')+(BiteDiscovery.isClosed(activeRestaurant)?' • Closed now':'');$('restaurantDescription').textContent=activeRestaurant.public_description||'';window.BiteRestaurantDetails?.render(activeRestaurant,[]);
  const hero=BiteRestaurantCovers.choose(activeRestaurant,publicMenuSearch,SUPABASE_URL);
  $('biteRestaurantHero').style.removeProperty('display');
  setCustomerCoverImage($('biteRestaurantHeroImage'),$('biteRestaurantCoverLabel'),hero);
@@ -620,7 +620,7 @@ function refreshMenuQuantityControl(id){
 function resetMenuFilters(){
  clearTimeout(biteMenuSearchTimer);
  $('menuSearchInput').value='';
- $('menuVegToggle').checked=false;
+ $('menuVegToggle').checked=window.BiteAccountHub?.vegOnly?.()===true;
  window.BiteMenuPersonalization?.reset();
  activeMenuCategory='all';
  $('categoryBar').querySelectorAll('[data-cat]').forEach(button=>{
