@@ -55,6 +55,7 @@ jobs:
             dist/launch-qa/owner-remaining-browser-evidence.json
             dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
+            dist/launch-qa/guest-hotel-bill.pdf
           if-no-files-found: ignore
 
   cashbook-postgres-qa:

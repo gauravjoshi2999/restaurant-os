@@ -9,7 +9,7 @@ create temp table remaining_state(key text primary key,value text);
 grant all on remaining_state to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
-do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;e uuid;t uuid;j uuid;rid uuid;k uuid;out jsonb;args jsonb;q jsonb;tot jsonb;link jsonb;credit numeric;begin
+do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;f2 uuid;e uuid;t uuid;j uuid;rid uuid;k uuid;out jsonb;args jsonb;q jsonb;tot jsonb;link jsonb;credit numeric;begin
  select id into p from public.bite_properties where origin_restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  perform public.bite_property_command(p,'config',jsonb_build_object('name','Remaining workflow QA','business_type','hybrid','capabilities','["hotel_rooms","guest_register","reservations","folios","housekeeping","hotel_incidentals","restaurant_pos","restaurant_menu","dine_in","takeaway","online_food_orders","room_service","charge_to_room","expenses","staff_management","reporting"]'::jsonb,'tax_profile','{"reviewed":true,"room_rate":5,"incidental_rate":5}'::jsonb),gen_random_uuid());
  args:='{"checkin_time":"23:59","checkout_time":"11:00","policy":{"reviewed":true,"early_checkin_fee":25,"late_fee_per_hour":10,"grace_minutes":30,"turnover_minutes":30,"max_late_hours":24,"unused_night_credit_percent":100,"fee_tax_rate":5}}';
@@ -86,7 +86,9 @@ do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;e uuid;t uuid;j uuid;rid
  assert public.bite_guest_folio(link->>'token')->'refunds'->0->>'reference_tail'='1234';
  q:=public.bite_guest_link(p,f);
  perform pg_temp.denied(format('select public.bite_guest_folio(%L)',link->>'token'),'invalid or expired');
+ out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0),gen_random_uuid());f2:=(out->>'folio_id')::uuid;tot:=public.bite_guest_link(p,f2);
  perform public.bite_property_command(p,'guest_link_revoke',jsonb_build_object('folio_id',f),gen_random_uuid());
+ assert public.bite_guest_folio(tot->>'token')->>'status'='open';
  perform pg_temp.denied(format('select public.bite_guest_folio(%L)',q->>'token'),'invalid or expired');
  link:=public.bite_guest_link(p,f);insert into remaining_state values('guest_token',link->>'token'),('folio',f::text),('property',p::text),('stay',s::text);
  perform public.bite_property_command(p,'compliance_save',jsonb_build_object('id',s,'travel_document_checked',true,'permission_checked',true,'arrival_reference','SYNTHETIC-EXTERNAL-ACK','arrived_from','Delhi'),gen_random_uuid());
@@ -138,11 +140,19 @@ update public.restaurants set status='Active',onboarding_status='approved' where
 do $$begin
  assert exists(select 1 from public.bite_property_outlets where restaurant_id=(select value::uuid from remaining_state where key='restaurant') and property_id=(select value::uuid from remaining_state where key='property2'));
  assert not (select is_published from public.restaurants where id=(select value::uuid from remaining_state where key='restaurant'));
- update public.bite_guest_folio_links set expires_at=now()-interval '1 second' where folio_id=(select value::uuid from remaining_state where key='folio');
+
 end $$;
+select set_config('bite.qa_guest_token',(select value from remaining_state where key='guest_token'),true);
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
-do $$begin perform pg_temp.denied('select public.bite_guest_folio(''invalid'')','invalid or expired');end $$;
+do $$begin
+ assert public.bite_guest_folio(current_setting('bite.qa_guest_token'))->>'status'='settled';
+ perform pg_temp.denied('select public.bite_guest_folio(''invalid'')','invalid or expired');
+end $$;
+reset role;
+update public.bite_guest_folio_links set expires_at=now()-interval '1 second' where folio_id=(select value::uuid from remaining_state where key='folio');
+set local role anon;
+do $$begin perform pg_temp.denied(format('select public.bite_guest_folio(%L)',current_setting('bite.qa_guest_token')),'invalid or expired');end $$;
 reset role;
 -- Approved timing guards and late-policy math with an explicit simulated time.
 do $$declare p uuid;r uuid;g uuid;s uuid;f uuid;q jsonb;incoming uuid;begin

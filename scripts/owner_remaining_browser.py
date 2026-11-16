@@ -115,7 +115,7 @@ try:
    check(page.locator('#biteOwnerBottomNav [data-bite-page=orders]').count()==0,'Disabled online orders have no navigation tab')
    # Actual shell property handoff and late-response invalidation, synthetic transport.
    page.evaluate("localStorage.setItem('qa_multiple_properties','on')")
-   page.evaluate('BiteHospitality.refreshContext(false)');page.evaluate('window.__BITE_HOTEL_QA.delayMs=800;void BiteHospitality.reload()');page.locator('#bitePropertySelect').select_option('34343434-3434-4434-8434-343434343434');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'rooms');page.get_by_text('S-201',exact=True).wait_for(state='visible');page.wait_for_timeout(900)
+   page.evaluate('BiteHospitality.refreshContext(false)');page.evaluate('window.__BITE_HOTEL_QA.delayMs=800;void BiteHospitality.reload()');page.locator('#bitePropertySelect').select_option('34343434-3434-4434-8434-343434343434');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'rooms');page.locator('#rooms').get_by_text('S-201',exact=True).wait_for(state='visible');page.wait_for_timeout(900)
    check(page.locator('#rooms').get_by_text('101',exact=True).count()==0,'Property handoff reloads the app and clears the prior property workspace')
    check(page.locator('#biteHotelOrderAlert').is_hidden(),'Other property food orders do not show a hotel alert')
    shot(page,'second-property-'+str(width));context.close()
@@ -131,9 +131,9 @@ try:
   sessions=[browser.new_context(viewport={'width':390,'height':900}) for _ in range(2)];pages=[c.new_page() for c in sessions]
   for page in pages:
    page.on('pageerror',lambda e:errors.append(str(e)));page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4186/qa/shared-owner.html',wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hybrid'");nav(page,'rooms')
-  pages[0].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[0].locator('#bhActionEditor [name=status]').select_option('cleaning');finish(pages[0]);pages[1].evaluate('BiteHospitality.reload()')
-  check(pages[1].locator('#rooms .bh-room-title').first.inner_text().endswith('cleaning'),'Second browser session reloads the updated housekeeping list')
-  pages[1].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[1].locator('#bhActionEditor [name=status]').select_option('ready');finish(pages[1]);pages[0].evaluate('BiteHospitality.reload()')
+  pages[0].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[0].locator('#bhActionEditor [name=status]').select_option('cleaning');finish(pages[0]);pages[1].bring_to_front();pages[1].wait_for_function("BiteHospitality.getWorkspace().rooms[0].housekeeping==='cleaning'",timeout=40000)
+  check(pages[1].locator('#rooms .bh-room-title').first.inner_text().endswith('cleaning'),'Second browser session automatically refreshes the housekeeping list')
+  pages[1].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[1].locator('#bhActionEditor [name=status]').select_option('ready');finish(pages[1]);pages[0].bring_to_front();pages[0].wait_for_function("BiteHospitality.getWorkspace().rooms[0].housekeeping==='ready'",timeout=40000)
   check(pages[0].locator('#rooms .bh-room-title').first.inner_text().endswith('ready'),'Supervisor Ready status returns to the first session')
   for c in sessions:c.close()
   # Guest sees progress without an authenticated hotel membership or location interruption.
@@ -144,7 +144,10 @@ try:
    page.evaluate("window.__GUEST_REFUND_STATUS='paid'");page.locator('[data-guest-refresh]').click();page.get_by_text('Return recorded as paid by hotel',exact=False).wait_for(state='visible')
    check('reference ending 1234' in page.locator('#biteGuestStayContent').inner_text(),'Guest sees verified progress and masked return reference')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Guest bill fits '+str(width)+'px')
-   shot(page,'guest-bill-'+str(width));page.locator('#biteGuestStayClose').click();page.evaluate("BiteGuestStay.open('b'.repeat(64))");page.get_by_text('This guest link is invalid, expired or revoked. Ask the hotel for a new link.',exact=True).wait_for(state='visible');check(page.locator('#biteGuestStayContent').get_by_text('TEST-BILL',exact=False).count()==0,'Revoked guest link clears the previous bill');page.close()
+   shot(page,'guest-bill-'+str(width))
+   if width==1440:
+    page.emulate_media(media='print');check(page.locator('#homeView').is_hidden() and page.locator('#biteGuestStayContent').is_visible(),'Guest print layout contains only the hotel bill');pdf=page.pdf(path=str(OUT/'guest-hotel-bill.pdf'),format='A4',print_background=True);check(len(pdf)>5000,'Hotel guest bill saves as a rendered PDF');page.emulate_media(media='screen')
+   page.locator('#biteGuestStayClose').click();page.evaluate("BiteGuestStay.open('b'.repeat(64))");page.get_by_text('This guest link is invalid, expired or revoked. Ask the hotel for a new link.',exact=True).wait_for(state='visible');check(page.locator('#biteGuestStayContent').get_by_text('TEST-BILL',exact=False).count()==0,'Revoked guest link clears the previous bill');page.close()
   browser.close()
  check(not errors,'No page errors in remaining workflow browser tests')
 finally:
