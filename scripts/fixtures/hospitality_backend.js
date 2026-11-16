@@ -9,6 +9,24 @@
   const day=()=>window.BiteOwner.day();
   const db={rooms:exists?[{id:'room-a',property_id:pid,number:'101',room_type:'Deluxe',nightly_rate:1000,adults:2,children:2,housekeeping:'ready',active:true},{id:'room-b',property_id:pid,number:'102',room_type:'Suite',nightly_rate:1500,adults:3,children:2,housekeeping:'ready',active:true}]:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[],tasks:[],task_members:[],refund_requests:[],compliance:[],outlet_applications:[],available_outlets:[]};
   const commands=new Map();window.__BITE_HOTEL_QA={db,commands,property:p,calls:[]};
+  // Fixture-only RLS-aware preference transport. This fake never reaches production.
+  const originalFrom=client.from.bind(client),prefKey='synthetic-housekeeping-display:'+pid;
+  client.from=(table)=>{
+   if(table!=='bite_property_ui_preferences')return originalFrom(table);
+   return {
+    select(){return {eq(column,id){return {async maybeSingle(){
+     if(column!=='property_id'||id!==pid)return {data:null,error:null};
+     const raw=sessionStorage.getItem(prefKey);
+     return {data:raw===null?null:{show_housekeeping:raw==='true'},error:null};
+    }}}}},
+    upsert(record){return {select(){return {async single(){
+     if(p.role!=='owner'||record.property_id!==pid)return {data:null,error:{code:'42501',message:'Owner only'}};
+     sessionStorage.setItem(prefKey,record.show_housekeeping===true?'true':'false');
+     return {data:{show_housekeeping:record.show_housekeeping===true},error:null};
+    }}}}}
+   };
+  };
+
   if(requested==='cashier'){p.role='cashier';p.can_configure=false;p.capabilities=['restaurant_pos','restaurant_menu','dine_in','takeaway'];}
   db.closings=[];db.sales=[];
   function totals(f){
