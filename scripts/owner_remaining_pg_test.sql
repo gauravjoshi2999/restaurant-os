@@ -110,6 +110,20 @@ do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;e uuid;t uuid;j uuid;rid
  perform pg_temp.denied(format('select public.bite_unified_audit(%L,'''',null)',p),'Audit access denied');
  perform pg_temp.denied(format('select public.bite_checkout_policy_quote(%L,%L)',p,s),'Stay access denied');
  perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ -- A staff member assigned to two properties gets a separately scoped workspace.
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p2,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p2,'guest_save','{"full_name":"Second property only guest","phone":"9999999911"}',gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+ assert public.bite_hotel_workspace(p2)->'guests' @> '[{"full_name":"Second property only guest"}]'::jsonb;
+ assert not public.bite_hotel_workspace(p)->'guests' @> '[{"full_name":"Second property only guest"}]'::jsonb;
+ assert not public.bite_hotel_workspace(p2)->'guests' @> '[{"full_name":"SECRET PRIVATE GUEST"}]'::jsonb;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":false}',gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+ perform pg_temp.denied(format('select public.bite_hotel_workspace(%L)',p),'Property access denied');
+ assert jsonb_array_length(public.bite_hotel_workspace(p2)->'guests')=1;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
  assert jsonb_array_length(public.bite_unified_audit(p,'room_pos',null)->'rows')>0;
  assert not has_table_privilege('anon','public.bite_guest_folio_links','select');
  assert not has_table_privilege('authenticated','public.bite_guest_folio_links','select');

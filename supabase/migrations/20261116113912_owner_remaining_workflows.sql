@@ -209,6 +209,7 @@ create function private.bite_verified_owner_portfolio(p_owner uuid,p_target uuid
  select (auth.uid()=p_owner or public.is_platform_admin() or coalesce(auth.jwt()->>'role','')='service_role' or session_user in ('postgres','supabase_admin'))
  and exists(select 1 from public.bite_properties pr join public.bite_businesses b on b.id=pr.business_id join public.bite_property_members m on m.property_id=pr.id and m.user_id=p_owner and m.active and m.role='owner'
   where b.owner_id=p_owner and (exists(select 1 from public.bite_outlet_applications a where a.restaurant_id=p_target and a.property_id=pr.id and a.submitted_by=p_owner) or exists(select 1 from public.bite_property_outlets o where o.property_id=pr.id and o.restaurant_id=p_target)))
+ and not exists(select 1 from public.restaurant_members own join public.restaurant_members other on other.restaurant_id=own.restaurant_id and other.role='owner' and other.user_id<>p_owner where own.user_id=p_owner and own.role='owner')
  and not exists(select 1 from public.restaurant_members old where old.user_id=p_owner and old.role='owner' and old.restaurant_id<>p_target and not exists(
   select 1 from public.bite_properties pr join public.bite_businesses b on b.id=pr.business_id where b.owner_id=p_owner and (exists(select 1 from public.bite_property_outlets o where o.property_id=pr.id and o.restaurant_id=old.restaurant_id) or exists(select 1 from public.bite_outlet_applications a where a.property_id=pr.id and a.restaurant_id=old.restaurant_id and a.submitted_by=p_owner))))
 $$;

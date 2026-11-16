@@ -2,10 +2,10 @@
 (function(){
  const factory=window.supabase.createClient;
  window.supabase.createClient=(...args)=>{
-  const client=factory(...args),rpc=client.rpc.bind(client),requested=window.__BITE_HOSPITALITY_TYPE||'hotel',type=requested==='new'?'hotel':requested==='cashier'?'restaurant':requested;
-  let exists=requested!=='new';
+  const client=factory(...args),rpc=client.rpc.bind(client),requested=window.__BITE_HOSPITALITY_TYPE||'hotel',type=requested==='new'?'hotel':['cashier','new-restaurant'].includes(requested)?'restaurant':requested;
+  let exists=!['new','new-restaurant'].includes(requested);
   const pid='12121212-1212-4212-8212-121212121212',rid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-  const p={id:pid,name:'Synthetic '+type+' property',business_type:type,capabilities:[...window.BiteCapabilities.defaults[type]],configured_capabilities:[...window.BiteCapabilities.defaults[type]],can_configure:true,role:'owner',outlets:type==='hotel'?[]:[rid],address:'Synthetic QA road',phone:'9999999999',tax_profile:{reviewed:false}};
+  const p={id:pid,name:'Synthetic '+type+' property',business_type:type,capabilities:[...window.BiteCapabilities.defaults[type]],configured_capabilities:[...window.BiteCapabilities.defaults[type]],can_configure:true,role:'owner',outlets:type==='hotel'||!exists?[]:[rid],address:'Synthetic QA road',phone:'9999999999',tax_profile:{reviewed:false}};
   const day=()=>window.BiteOwner.day();
   const db={rooms:exists?[{id:'room-a',property_id:pid,number:'101',room_type:'Deluxe',nightly_rate:1000,adults:2,children:2,housekeeping:'ready',active:true},{id:'room-b',property_id:pid,number:'102',room_type:'Suite',nightly_rate:1500,adults:3,children:2,housekeeping:'ready',active:true}]:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[],tasks:[],task_members:[],refund_requests:[],compliance:[],outlet_applications:[],available_outlets:[]};
   const commands=new Map();window.__BITE_HOTEL_QA={db,commands,property:p,calls:[]};
