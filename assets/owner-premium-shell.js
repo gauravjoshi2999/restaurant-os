@@ -95,9 +95,8 @@
     node.append(hero,header,grid);
     doc.body.classList.add('bite-premium-ready');
   }
-  function navigate(event){
-    const button=event.target.closest('button[data-page]');
-    if(!button||!event.currentTarget.contains(button))return;
+  function navigate(button){
+    if(!button||!button.closest('#bitePremiumHome'))return;
     const property=root.BiteHospitality?.prop?.();
     const current=root.BiteHospitality?.routeList?.({role:'owner',property})||[];
     if(!current.includes(button.dataset.page))return;
@@ -105,7 +104,7 @@
   }
   function start(){
     if(!root.document)return;
-    root.document.getElementById('overview')?.addEventListener('click',function(e){if(e.target.closest('#bitePremiumHome'))navigate(Object.assign(e,{currentTarget:e.target.closest('#bitePremiumHome')}));});
+    root.document.getElementById('overview')?.addEventListener('click',function(e){const button=e.target.closest('#bitePremiumHome button[data-page]');if(button)navigate(button);});
     render();
     if(typeof root.MutationObserver==='function'){
       const observer=new root.MutationObserver(render);
