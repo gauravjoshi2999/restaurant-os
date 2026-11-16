@@ -25,6 +25,9 @@ PUBLIC_FILES = (
     "menu-qr.html",
     "assets/admin-cashfree-audit.js",
     "assets/bite-pos-drafts.js",
+    "assets/owner-capabilities.js",
+    "assets/owner-hospitality.js",
+    "assets/owner-hospitality.css",
     "bite-deploy-version.json",
 )
 MAX_BYTES = 3_000_000

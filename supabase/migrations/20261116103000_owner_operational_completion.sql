@@ -51,7 +51,7 @@ begin
  coalesce(sum(case when category='incidental' then (case when kind='charge' then 1 else -1 end)*(amount+tax_amount) else 0 end),0)
  into room_total,extra_total from public.bite_folio_entries where property_id=p_property and status='confirmed' and kind in ('charge','discount','reversal') and (created_at at time zone 'Asia/Kolkata')::date between p_from and p_to;
  select coalesce(sum(o.amount-o.waived_off_amount),0) into food_total from public.orders o join public.bite_property_outlets po on po.restaurant_id=o.restaurant_id
- where po.property_id=p_property and not o.is_demo and o.status not in ('Cancelled','Rejected') and (o.order_date at time zone 'Asia/Kolkata')::date between p_from and p_to;
+ where po.property_id=p_property and not o.is_demo and o.status not in ('Cancelled','Rejected') and (o.order_date at time zone 'Asia/Kolkata')::date between p_from and p_to and (o.channel !~* 'own platform|website|^web$' or exists(select 1 from public.order_financials f where f.order_id=o.id and f.payment_status='paid'));
  -- Cashbook already contains canonical POS receipts/refunds/restaurant expenses.
  -- Room food transfers have no POS receipt. Add hotel receipts/deposits once.
  with money as (
@@ -115,6 +115,12 @@ begin
  end if;
  entity:=nullif(p_payload->>'id','')::uuid;
 
+ if p_action in ('room_pos','pos_sale') then
+  if coalesce(jsonb_typeof(p_payload->'items'),'')<>'array' or jsonb_array_length(p_payload->'items') not between 1 and 200 then raise exception 'Add 1 to 200 valid POS items';end if;
+  for unit in select value from jsonb_array_elements(p_payload->'items') loop
+   if length(trim(coalesce(unit->>'name',''))) not between 1 and 120 or (unit->>'quantity')::numeric is null or (unit->>'quantity')::numeric not between 0.01 and 9999 or (unit->>'quantity')::numeric<>round((unit->>'quantity')::numeric,2) or (unit->>'unit_price')::numeric is null or (unit->>'unit_price')::numeric not between 0 and 9999999999.99 or (unit->>'unit_price')::numeric<>round((unit->>'unit_price')::numeric,2) then raise exception 'POS item quantity and price must be finite positive/two-decimal amounts';end if;
+  end loop;
+ end if;
  if p_action='config' then
   select coalesce(array_agg(value),'{}'::text[]) into caps from jsonb_array_elements_text(p_payload->'capabilities');
   if caps is null or not caps <@ private.bite_default_capabilities('hybrid') then raise exception 'Unknown business module'; end if;
@@ -155,9 +161,9 @@ begin
   total:=private.bite_property_report(p_property,v_arrival,v_arrival);
   if p_payload->>'source_hash' is distinct from total->>'source_hash' then raise exception 'Money entries changed. Refresh and review before closing';end if;
   amount:=(p_payload->>'opening_cash')::numeric;tax:=(p_payload->>'counted_cash')::numeric;
-  if amount is null or tax is null or amount<0 or tax<0 or amount<>round(amount,2) or tax<>round(tax,2) then raise exception 'Valid opening and counted cash required';end if;
+  if amount is null or tax is null or amount not between 0 and 999999999999.99 or tax not between 0 and 999999999999.99 or amount<>round(amount,2) or tax<>round(tax,2) then raise exception 'Valid opening and counted cash required';end if;
   v_expected_cash:=amount+(total->>'cash_movement')::numeric;
-  if v_expected_cash<0 then raise exception 'Opening cash is insufficient for recorded cash outflows';end if;
+  if v_expected_cash not between 0 and 999999999999.99 then raise exception 'Opening cash is insufficient for recorded cash outflows';end if;
   desc_text:=left(trim(coalesce(p_payload->>'notes','')),500);
   if tax<>v_expected_cash and length(desc_text)<8 then raise exception 'Explain the cash difference (at least 8 characters)';end if;
   insert into public.bite_property_shift_closings(property_id,shift_date,opening_cash,counted_cash,expected_cash,difference,notes,snapshot,created_by)
@@ -354,7 +360,7 @@ begin
     order_id:=public.create_pos_order_with_payment(rid,'POS-ROOM-'||p_request::text,coalesce(p_payload->>'channel','POS - Counter'),
      (select full_name from public.bite_guests where id=stay.guest_id),'',p_payload->'items',0,null,current_date,null,null);
    amount:=coalesce((p_payload->>'discount')::numeric,0);
-    if amount<0 or amount<>round(amount,2) then raise exception 'Valid discount required';end if;
+    if amount not between 0 and 999999999999.99 or amount<>round(amount,2) then raise exception 'Valid discount required';end if;
     if amount>0 then
      if role_name not in ('owner','manager') or length(trim(coalesce(p_payload->>'discount_reason','')))<3 then raise exception 'Manager approval and discount reason required' using errcode='42501';end if;
      if amount>=(select o.amount from public.orders o where o.id=order_id) then raise exception 'Discount must leave a positive food charge';end if;

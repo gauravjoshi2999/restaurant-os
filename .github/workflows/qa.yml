@@ -153,10 +153,10 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116094006_universal_owner_platform.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_completion_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116103000_owner_operational_completion.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
           bash scripts/universal_owner_concurrency.sh
-          psql -v ON_ERROR_STOP=1 -f scripts/owner_completion_fixture.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116103000_owner_operational_completion.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_completion_pg_test.sql

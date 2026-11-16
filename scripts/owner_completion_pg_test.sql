@@ -28,13 +28,23 @@ begin
  assert (select amount from public.bite_folio_entries where source_order_id=o)=45;
  assert (public.bite_property_report(p,current_date,current_date)->>'food_revenue')::numeric=before_food+45;
  assert ((select value->'totals' from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios') where value->>'id'=f::text)->>'charges')::numeric=270.06;
+ -- Some-night extras and last-minute minibar are itemized manual charges.
+ perform public.bite_property_command(p,'charge',jsonb_build_object('folio_id',f,'amount',3,'description','Extra bed: one of two nights'),gen_random_uuid());
+ perform public.bite_property_command(p,'charge',jsonb_build_object('folio_id',f,'amount',2,'description','Minibar at checkout'),gen_random_uuid());
+ perform public.bite_property_command(p,'guest_save',jsonb_build_object('id',g,'full_name','Corrected billing name','phone','9999999900','address','Corrected billing address'),gen_random_uuid());
  perform public.bite_property_command(p,'split_bill',jsonb_build_object('folio_id',f,'first_name','Company A','second_name','Guest B','first_percent',33.33),gen_random_uuid());
- perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',270.06,'method','Cash','description','Shared settlement'),gen_random_uuid());
+ out:=public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',1,'method','Card','description','Split card settlement'),gen_random_uuid());e:=(out->>'id')::uuid;
+ perform public.bite_property_command(p,'payment_confirm',jsonb_build_object('id',e,'folio_id',f,'reference','SYNTHETIC-CARD-VERIFIED'),gen_random_uuid());
+ perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',274.06,'method','Cash','description','Shared cash settlement'),gen_random_uuid());
  out:=public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid());inv:=out->'invoice';
  assert jsonb_array_length(inv->'splits')=2;
- assert (inv->'splits'->0->'totals'->>'charges')::numeric+(inv->'splits'->1->'totals'->>'charges')::numeric=270.06;
+ assert (inv->'splits'->0->'totals'->>'charges')::numeric+(inv->'splits'->1->'totals'->>'charges')::numeric=275.06;
+ assert inv->'guest'->>'name'='Corrected billing name' and inv->'guest'->>'address'='Corrected billing address';
  assert not (select do_not_disturb or cleaning_requested from public.bite_rooms where id=r);
  assert public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid())->'invoice'=inv;
+ perform public.bite_property_command(p,'room_save',jsonb_build_object('id',r,'number','C-1-renamed','room_type','Deluxe','nightly_rate',100.01,'adults',2,'children',1,'active',false),gen_random_uuid());
+ assert (select room_id from public.bite_stays where id=s)=r;
+ assert inv->'room'->>'number'='C-1';
  -- Registered cashier is granted ONLY staff restaurant membership; no hotel IDs.
  perform public.bite_property_command(p,'member','{"id":"77777777-7777-4777-8777-777777777777","role":"cashier","active":true}',gen_random_uuid());
  perform set_config('request.jwt.claim.sub','77777777-7777-4777-8777-777777777777',true);
@@ -43,6 +53,7 @@ begin
  assert jsonb_array_length(public.bite_hotel_workspace(p)->'guests')=0;
  args:=jsonb_build_object('restaurant_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','channel','POS - Dine-in','items','[{"name":"Tea","quantity":1,"unit_price":20}]'::jsonb,'paid_amount',20,'payment_method','Cash');
  out:=public.bite_property_command(p,'pos_sale',args,gen_random_uuid());assert out->>'order_id' is not null;
+ begin perform public.bite_property_command(p,'pos_sale',args||jsonb_build_object('items','[{"name":"Invalid","quantity":"NaN","unit_price":20}]'::jsonb),gen_random_uuid());raise exception 'Expected finite amount denial';exception when raise_exception then if sqlerrm='Expected finite amount denial' then raise;end if;end;
  begin perform public.bite_property_command(p,'split_bill',jsonb_build_object('folio_id',f),gen_random_uuid());raise exception 'Expected cashier folio denial';exception when insufficient_privilege then null;end;
  begin perform public.bite_property_report(p,current_date,current_date);raise exception 'Expected cashier report denial';exception when insufficient_privilege then null;end;
  perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);

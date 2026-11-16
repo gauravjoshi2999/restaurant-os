@@ -1,4 +1,5 @@
 -- Disposable DB additions matching the existing production POS/cashbook shape.
+create table public.order_financials(order_id uuid,payment_status text);
 alter table public.orders add column order_date timestamptz not null default now();
 alter table public.restaurant_order_payments add column restaurant_id uuid;
 alter table public.restaurant_order_payments add column payment_method text default 'Cash';
