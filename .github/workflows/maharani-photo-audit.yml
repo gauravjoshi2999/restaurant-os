@@ -1,0 +1,32 @@
+name: Maharani Photo Network Audit
+on:
+  pull_request:
+    paths:
+      - 'scripts/maharani_image_network_audit.py'
+      - 'docs/launch/maharani-image-snapshot-20261116.json'
+      - '.github/workflows/maharani-photo-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  image-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Test all 91 image URLs without submitting data
+        run: python scripts/maharani_image_network_audit.py
+      - name: Upload per-image results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maharani-photo-network-${{ github.sha }}
+          path: dist/launch-qa/maharani-photo-network-audit.json
+          if-no-files-found: warn
