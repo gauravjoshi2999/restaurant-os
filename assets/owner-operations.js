@@ -42,7 +42,14 @@
   target.querySelector('#bhFolioEditor')?.before(box);
   const old=target.querySelector('[data-hotel-action="entry"][data-id="refund"]');if(old)old.remove();
  }
- function complianceSummary(stay){const c=(db().compliance||[]).find(c=>c.stay_id===stay.id);return '<p>Arrival: '+(c?.arrival_reference?'Acknowledgment recorded':'Not recorded')+' · Departure: '+(c?.departure_reference?'Acknowledgment recorded':'Not recorded')+'</p>'}
+ function complianceSummary(stay){
+  const c=(db().compliance||[]).find(c=>c.stay_id===stay.id),due=[];
+  for(const [label,at,reference] of [['Arrival',stay.checked_in_at,c?.arrival_reference],['Departure',stay.checked_out_at,c?.departure_reference]]){
+   if(at&&!reference){const deadline=new Date(Date.parse(at)+24*3600000);due.push('<p class="bh-note" role="status">'+label+' reporting '+(deadline.getTime()<Date.now()?'overdue — follow up now':'due by '+esc(deadline.toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})))+'. Complete it in the official portal and record the acknowledgment.</p>')}
+  }
+  return '<p>Arrival: '+(c?.arrival_reference?'Acknowledgment recorded':'Not recorded')+' · Departure: '+(c?.departure_reference?'Acknowledgment recorded':'Not recorded')+'</p>'+due.join('');
+ }
+
  function registerFields(form,draft,guest){
   const box=document.createElement('section');box.className='bh-panel';box.id='biteRegistrationOperations';
   box.innerHTML=check('is_oci','Guest is an Overseas Citizen of India (OCI)',guest?.is_oci||draft.is_oci==='on')+
