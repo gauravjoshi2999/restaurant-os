@@ -69,7 +69,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 5.09c Test simultaneous deliveries/OTP submissions and lock races, invalid token exposure, physical-device network delays; not covered by sequential isolated SQL.
 - [x] 5.10a Improve real delivery page OTP-first mobile UX and add in-page handover status refresh; remove broken demo link. Mock RPC Chromium 390px test passed, PR #137 merged.
 - [ ] 5.10b Complete physical Android Owner → WhatsApp delivery link → 4-digit OTP and invalid/expired link tests without changing any real-money order.
-- [ ] 5.11 Review refund/commission/settlement audit logs with evidence.
+- [x] 5.11a Read-only DB refund/settlement inventory: 11 paid non-demo financial snapshots totaling ₹184 (one ₹174), all 11 missing actual provider fee and `not_ready`; 3 refund jobs without provider-confirmed status; zero settlement rows. Evidence: `docs/launch/REFUND_SETTLEMENT_READONLY_20261116.md`.
+- [ ] 5.11b Obtain and reconcile Cashfree provider-issued payment/refund/vendor/payout evidence; database status alone cannot prove funds, split or credit.
 - [ ] 5.12 Backup and isolated restore rehearsal; record recovery owner.
 
 ## Phase 4 — Customer experience
@@ -130,4 +131,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**5.04b, 5.05b, 5.07b and 5.09c**: targeted authenticated authorization negative tests and concurrent OTP race checks. Isolated PG delivery RPC suite and production read-only Owner RLS smoke have passed; still need true APK/HTTP acceptance and provider finance gates. See `docs/launch/DELIVERY_AND_RLS_ACCEPTANCE_20261116.md`.
+**5.04b, 5.05b, 5.07b, 5.09c and 5.11b**: complete authenticated Owner/Admin negative cases, privileged-function review, concurrent OTP testing and Cashfree provider reconciliation. DB/RLS read-only and isolated PG OTP tests passed; **₹174 local PAID is not proof of split or settlement**. Physical APK and payment provider confirmations still open.
