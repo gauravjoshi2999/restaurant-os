@@ -35,7 +35,7 @@ function setup(options={}){
   {order_id:'order-pos',restaurant_id:'restaurant-a',channel:'POS - Counter',is_demo:false,payment_status:'paid',customer_payable_amount:100}
  ];
  const state={orders,financials:fin,restaurants:[{id:'restaurant-a',name:'Test Restaurant'}]};
- const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},in(column,ids){read.push({type:'in',table,column,ids});return this;},order(){return this;},async limit(){return {data:table==='bite_refund_jobs'?refunds:table==='orders'?(options.lookupOrders||[]):checks,error};}};
+ const query={select(...args){read.push({type:'select',args});return this;},eq(){return this;},in(column,ids){read.push({type:'in',table,column,ids});return this;},order(){return this;},async maybeSingle(){return {data:table==='bite_operations_config'?(options.autoConfig||{auto_refunds_enabled:false,auto_refund_max_amount:2000}):null,error};},async limit(){return {data:table==='bite_refund_jobs'?refunds:table==='orders'?(options.lookupOrders||[]):checks,error};}};
  const sb={from(name){table=name;read.push({type:'table',name});return query;},functions:{async invoke(name,payload){
     if(payload.body?.action==='preflight'){
       calls.push({name,payload});
@@ -322,7 +322,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-mobile-result-card1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -498,7 +498,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-mobile-result-card1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -585,7 +585,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261115-mobile-result-card1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);
@@ -675,4 +675,71 @@ test('preflight signal is bounded, but does not initiate a refund or payment ret
  assert.match(code,/AbortSignal\.timeout\(30000\)/);
  assert.match(code,/action:'preflight'/);
  assert.doesNotMatch(code,/action:'execute_refund'|action:'create_refund'/);
+});
+
+test('automatic refund policy is read-only and honestly shows OFF and historical manual review',async()=>{
+ const a=setup({autoConfig:{auto_refunds_enabled:false,auto_refund_max_amount:2000}});
+ await a.audit.loadAutoRefundPolicy();
+ assert.equal(a.calls.length,0,'No Cashfree call or payment action for policy status');
+ assert.ok(a.read.some(x=>x.name==='bite_operations_config'));
+ assert.match(a.find('biteRefundAutoStatus').textContent,/AUTO REFUNDS OFF/);
+ assert.match(a.find('biteRefundAutoStatus').textContent,/Historical jobs require manual review/);
+ assert.match(html,/id="biteRefundAutoStatus"/);
+ assert.match(html,/id="biteRefundAutoCheck"/);
+});
+test('policy ON does not imply old refunds are authorized or paid',async()=>{
+ const a=setup({autoConfig:{auto_refunds_enabled:true,auto_refund_max_amount:500}});
+ await a.audit.loadAutoRefundPolicy();
+ assert.match(a.find('biteRefundAutoStatus').textContent,/AUTO REFUNDS ON/);
+ assert.match(a.find('biteRefundAutoStatus').textContent,/Historical jobs still need manual review/);
+ assert.equal(a.calls.length,0);
+});
+test('manual pending and old approved refunds are explicitly not auto-authorized',async()=>{
+ const a=setup({refunds:[
+  {id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval',auto_authorized_at:null,auto_rule:null},
+  {id:'22222222-2222-4222-8222-222222222222',order_id:'order-paid',amount:1,status:'approved'}
+ ]});
+ await a.audit.loadRefundReview();
+ const rows=a.find('biteRefundReviewRows').children;
+ assert.equal(rows.length,2);
+ for(const row of rows){
+  assert.match(row.children[3].textContent,/Manual review required/);
+  assert.equal(row.children[4].children.length,2);
+  assert.equal(row.children[4].children[1].textContent,'Check automatic refund readiness');
+ }
+ assert.equal(a.calls.length,0);
+});
+test('future trusted rule is visibly distinct, but never auto-runs on admin load',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved',
+  auto_authorized_at:'2026-11-16T11:43:00Z',auto_rule:'CUSTOMER_BEFORE_ACCEPTANCE'}]});
+ await a.audit.loadRefundReview();
+ assert.match(a.find('biteRefundReviewRows').children[0].children[3].textContent,/Trusted auto rule recorded/);
+ assert.equal(a.calls.length,0);
+});
+test('per-refund readiness calls the GET-only authenticated Edge preflight, not execute',async()=>{
+ const a=setup({refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'pending_approval'}]});
+ await a.audit.loadRefundReview();
+ await a.audit.preflightRefundJob(REFUND_ID);
+ assert.equal(a.calls.length,1);
+ assert.equal(a.calls[0].name,'bite-auto-refund');
+ assert.deepEqual(JSON.parse(JSON.stringify(a.calls[0].payload.body)),
+  {action:'preflight',order_id:'order-paid'});
+ const msg=a.find('biteRefundReviewRows').children[0].children[3].textContent;
+ assert.match(msg,/Cashfree PAID and amount match/);
+ assert.match(msg,/NOT authorized for automatic execution/);
+ assert.match(msg,/This check did not send a refund/);
+ assert.doesNotMatch(code,/action:'execute_refund'|action:'create_refund'|\.update\(|\.insert\(/);
+});
+test('preflight existing provider record gives STOP; owner cannot access and signout clears',async()=>{
+ const a=setup({preflightResult:'EXISTING_REFUND_RECORD',
+  refunds:[{id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved'}]});
+ await a.audit.loadRefundReview();await a.audit.preflightRefundJob(REFUND_ID);
+ assert.match(a.find('biteRefundReviewStatus').textContent,/STOP: Cashfree has existing refund/);
+ assert.equal(a.calls.length,1);
+ a.setRole('owner');
+ await a.audit.preflightRefundJob(REFUND_ID);
+ assert.equal(a.calls.length,1);
+ a.audit.clear();
+ assert.equal(a.find('biteRefundReviewRows').children.length,0);
+ assert.match(a.find('biteRefundAutoStatus').textContent,/Sign in as Super Admin/);
 });
