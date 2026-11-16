@@ -25,7 +25,7 @@
  }
  function getPrefs(user=state.sessionUser){
    const stored=user?.user_metadata?.bite_preferences_v1;
-   return {veg_only:stored?.veg_only===true,in_app_updates:stored?.in_app_updates===true,appearance:['light','dark','system'].includes(stored?.appearance)?stored.appearance:'system',reduced_motion:stored?.reduced_motion===true};
+   return {veg_only:stored?.veg_only===true,in_app_updates:stored?.in_app_updates===true,appearance:['light','dark','system'].includes(stored?.appearance)?stored.appearance:'system',reduced_motion:stored?.reduced_motion===true,show_cart_suggestions:stored?.show_cart_suggestions!==false};
  }
  function updateVegUI(){
    const toggle=byId('biteAccountVeg');
@@ -34,6 +34,8 @@
    if(appearance)appearance.value=getPrefs().appearance;
    const motion=byId('biteAccountReduceMotion');
    if(motion)motion.checked=getPrefs().reduced_motion;
+   const suggest=byId('biteAccountSuggestions');
+   if(suggest)suggest.checked=getPrefs().show_cart_suggestions;
  }
  function applyVisualPreferences(){
    const prefs=getPrefs();
@@ -45,7 +47,8 @@
    if(state.preferenceBusy){updateVegUI();return;}
    const id=state.userId,epoch=state.epoch;
    if(!id){updateVegUI();return;}
-   const requested=control.id==='biteAccountAppearance'?{appearance:control.value}:{reduced_motion:control.checked};
+   const requested=control.id==='biteAccountAppearance'?{appearance:control.value}:
+     control.id==='biteAccountReduceMotion'?{reduced_motion:control.checked}:{show_cart_suggestions:control.checked};
    if(requested.appearance&&!['light','dark','system'].includes(requested.appearance)){updateVegUI();return;}
    state.preferenceBusy=true;control.disabled=true;text('biteAccountVisualMessage','Saving your settings…');
    try{
@@ -59,6 +62,7 @@
      if(!sameUser(id)||epoch!==state.epoch)return;
      state.sessionUser=result.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:next}};
      updateVegUI();applyVisualPreferences();
+     document.dispatchEvent?.(new Event('bite:personalization-change'));
      text('biteAccountVisualMessage','Preferences saved to your Bite account.');
    }catch(error){
      if(sameUser(id)&&epoch===state.epoch){updateVegUI();text('biteAccountVisualMessage','Could not save settings. Please retry.');}
@@ -295,6 +299,7 @@
  byId('biteAccountVeg')?.addEventListener('change',saveVeg);
  byId('biteAccountAppearance')?.addEventListener('change',saveVisualPreference);
  byId('biteAccountReduceMotion')?.addEventListener('change',saveVisualPreference);
+ byId('biteAccountSuggestions')?.addEventListener('change',saveVisualPreference);
  byId('biteAccountOrderAlerts')?.addEventListener('change',saveOrderAlerts);
  // Intercept the existing Back button only for account subpages.
  byId('accountBackBtn')?.addEventListener('click',e=>{
@@ -314,16 +319,17 @@
    }
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
    state.sessionUser=user;
-   updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();
+   updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();document.dispatchEvent?.(new Event('bite:personalization-change'));
    if(section.dataset.section!=='profile')renderProfile();
  });
  root.BiteAccountHub={
    vegOnly(){return getPrefs().veg_only;},
+   recommendationsEnabled(){return getPrefs().show_cart_suggestions;},
    open({user}){
      if(!user?.id)return;
      if(user.id!==state.userId){state.epoch++;state.profile=null;}
      state.userId=user.id;state.sessionUser=user;
-     show('overview');renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();
+     show('overview');renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();document.dispatchEvent?.(new Event('bite:personalization-change'));
    },
    setProfile(profile,user){
      if(!user?.id||!sameUser(user.id))return;
@@ -335,6 +341,6 @@
    const user=data?.session?.user;
    if(!user)return;
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
-   state.sessionUser=user;renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();
+   state.sessionUser=user;renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();applyVisualPreferences();document.dispatchEvent?.(new Event('bite:personalization-change'));
  }).catch(()=>{});
 })(window);
