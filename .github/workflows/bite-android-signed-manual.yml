@@ -184,7 +184,7 @@ jobs:
             grep -Fq 'activityIntent(id,restaurant,"Accepted")' "$SERVICE_FILE" || { echo "::error::Accept action not compiled"; exit 1; }
             grep -Fq 'activityIntent(id,restaurant,"Rejected")' "$SERVICE_FILE" || { echo "::error::Reject action not compiled"; exit 1; }
             grep -Fq '.BiteFirebaseMessagingService' android/app/src/main/AndroidManifest.xml || { echo "::error::FCM service missing from Android manifest"; exit 1; }
-            echo "Verified Partner v16 native FCM, distinct notification tags and order action buttons."
+            echo "Verified Partner v17 native FCM, distinct notification tags and order action buttons."
           fi
       - name: Set version code for signed releases
         shell: bash
