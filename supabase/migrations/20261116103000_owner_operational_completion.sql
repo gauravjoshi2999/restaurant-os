@@ -427,3 +427,17 @@ begin
  insert into public.bite_property_audit(property_id,actor_id,action,entity_id,request_id) values(p_property,auth.uid(),p_action,entity,p_request);
  return result;
 end $$;
+
+create or replace function private.bite_guard_outlet_module() returns trigger language plpgsql security definer set search_path='' as $$
+declare rid uuid;cap text;begin
+ if TG_OP='DELETE' then rid:=old.restaurant_id;else rid:=new.restaurant_id;end if;
+ perform 1 from public.bite_properties p join public.bite_property_outlets o on o.property_id=p.id where o.restaurant_id=rid for update of p;
+ if TG_TABLE_NAME='orders' then
+  cap:=case when new.channel like 'POS - %' then 'restaurant_pos' else 'online_food_orders' end;
+  if new.channel='POS - Dine-in' and not private.bite_outlet_enabled(rid,'dine_in') then raise exception 'Dine-in disabled for this outlet' using errcode='42501';end if;
+  if new.channel='POS - Takeaway' and not private.bite_outlet_enabled(rid,'takeaway') then raise exception 'Takeaway disabled for this outlet' using errcode='42501';end if;
+ elsif TG_TABLE_NAME='bite_live_checkout_intents' then cap:='online_food_orders';
+ else cap:='restaurant_menu';end if;
+ if not private.bite_outlet_enabled(rid,cap) then raise exception 'Business module disabled for this outlet' using errcode='42501';end if;
+ if TG_OP='DELETE' then return old;end if;return new;
+end $$;

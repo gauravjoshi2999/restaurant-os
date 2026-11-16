@@ -50,7 +50,7 @@
      for(const unit of v.rooms){const s=await client.rpc('bite_property_command',{...args,p_action:'reserve',p_payload:{...unit,guest_id:v.guest_id,arrival:v.arrival,departure:v.departure},p_request:crypto.randomUUID()});if(s.error)return s;db.stays.find(x=>x.id===s.data.id).group_id=result.id;stays.push(s.data)}result.stays=stays;
     }else if(a==='room_pos'){
      const amount=v.items.reduce((n,i)=>n+i.quantity*i.unit_price,0),oid=result.id;
-     await client.from('orders').insert({id:oid,restaurant_id:rid,order_code:'SYNTHETIC-ROOM-POS',channel:'POS - Counter',amount,status:'Received',order_date:new Date().toISOString(),is_demo:false});
+     await client.from('orders').insert({id:oid,restaurant_id:rid,order_code:'SYNTHETIC-ROOM-POS',channel:'POS - Counter',amount,waived_off_amount:Number(v.discount||0),status:'Received',order_date:new Date().toISOString(),is_demo:false});
      await client.from('order_items').insert(v.items.map(i=>({order_id:oid,item_name:i.name,quantity:i.quantity,unit_price:i.unit_price})));
      db.entries.push({id:crypto.randomUUID(),folio_id:v.folio_id,kind:'charge',category:'food',source_order_id:oid,amount:amount-Number(v.discount||0),tax_amount:0,status:'confirmed',description:'POS SYNTHETIC-ROOM-POS',created_at:new Date().toISOString()});result.order_id=oid;result.folio_id=v.folio_id;
     }else if(a==='pos_sale'){

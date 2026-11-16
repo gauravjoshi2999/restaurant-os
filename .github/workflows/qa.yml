@@ -160,3 +160,4 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
           bash scripts/universal_owner_concurrency.sh
           psql -v ON_ERROR_STOP=1 -f scripts/owner_completion_pg_test.sql
+          bash scripts/owner_module_race_test.sh

@@ -3436,7 +3436,7 @@ function renderPOSWorkspace(){
  const active=orders.filter(o=>!['Cancelled','Rejected'].includes(o.status));
  const sum=key=>active.filter(o=>!String(o.code||'').startsWith('POS-ROOM-')&&!window.BiteHospitality?.postedOrder(o.id)).reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
  document.getElementById('posOrderCount').textContent=String(active.length);
- document.getElementById('posSalesTotal').textContent=money(active.reduce((n,o)=>n+o.amount,0));
+ document.getElementById('posSalesTotal').textContent=money(active.reduce((n,o)=>n+Math.max(0,o.amount-Number(o.waivedOffAmount||0)),0));
  document.getElementById('posCollectedTotal').textContent=money(sum('paid_amount'));
  document.getElementById('posDueTotal').textContent=money(sum('balance_amount'));
  document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{
@@ -3452,7 +3452,7 @@ function renderPOSWorkspace(){
   const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
    '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
   const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
-  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
  }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
 }
