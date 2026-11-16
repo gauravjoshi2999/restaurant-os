@@ -16,6 +16,13 @@ Navigate to **Financials & Settlements → Refund status review**:
 
 A Cashfree `PAID_MATCHES_NO_REFUND` outcome confirms only the checked collection and refund history at that moment; it is **not** a bank credit, refund authorization, or platform/vendor settlement confirmation. `EXISTING_REFUND_RECORD` and any mismatch must stop further refund attempts until reconciled.
 
+## Read-only production provider preflight results (16 November 2026)
+Using the existing private Vault-signed **preflight** endpoint, with no refund POST:
+- `BITE-C80BB5EB3413` (₹1, locally approved): `PAID_MATCHES_NO_REFUND`.
+- `BITE-336A4B8646C2` (₹1, pending approval): `PAID_MATCHES_NO_REFUND`.
+- `BITE-70498A97AEDF` (₹1, pending approval): `INTERNAL_MISMATCH_OR_INELIGIBLE`. Read-only ledger investigation shows the order is **Completed**, not Cancelled/Rejected. Do NOT silently alter the order status or auto-authorize its refund.
+All three responses had `refund_sent=false`. These results establish neither customer bank credit nor authorization to issue refunds. Cashfree merchant settlement, actual refund fees, receipt of funds by restaurants, and origin of the contradictory completed-order refund job remain unverified. **Keep the money-moving rollout OFF.**
+
 ## Required production activation gates
 Automatic money movement **must stay OFF** until all conditions have evidence:
 1. Approved merchant account, live Cashfree payment/refund API, matching trusted order ID/INR/amount and actual collection against provider; investigate the historic ₹174 complaint and ₹1 jobs.
