@@ -9,6 +9,7 @@
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+ const shortDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))?String(s).slice(8)+'/'+String(s).slice(5,7)+'/'+String(s).slice(2,4):String(s||'');
  const today=()=>root.BiteOwner.day();
  const datePlus=n=>{const d=new Date(today()+'T12:00:00+05:30');d.setDate(d.getDate()+n);return root.BiteOwner.day(d)};
  const prop=()=>ctx?.getAccess().property||null;
@@ -279,9 +280,29 @@
   const target=$(id);if(!target)return;
   if(id==='room-service'){root.BiteOwnerOperations?.tasks(target,'room_service');return}
   if(id==='hotel-register'){renderRegister();return}
+  if(id==='housekeeping'&&!housekeepingVisible()){void ctx.navigate('rooms');return;}
   if(id==='rooms'||id==='housekeeping'){
-   target.innerHTML=header(id==='rooms'?'Rooms':'Housekeeping','Checkout leaves the room Dirty. Inspect and mark Ready before the next arrival.',['owner','manager'].includes(prop().role)?btn('new-room','＋ Add room'):'')+notice()+
-    '<div class="bh-room-grid">'+data.rooms.map(r=>`<article class="bh-panel"><div class="bh-room-title"><h2>${esc(r.number)}</h2><span class="bh-chip ${roomState(r)}">${esc(roomState(r))}</span></div><p>${esc(r.room_type)} · Floor ${esc(r.floor||'—')}</p><p>${money(r.nightly_rate)} / night · ${r.adults} adults, ${r.children} children</p><p>${esc(r.status_note)}</p>${r.do_not_disturb?'<p class="bh-chip">Do Not Disturb · cleaning delayed</p>':''}${r.cleaning_requested?'<p class="bh-note">Stayover cleaning requested</p>':''}<div class="bh-actions">${r.active?btn('room-privacy','DND / cleaning request',r.id):''}${r.active?btn('room-status','Update status',r.id):''}${['owner','manager'].includes(prop().role)?btn('edit-room','Edit',r.id):''}</div></article>`).join('')+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add the real room numbers and rates to begin.'):'' );root.BiteOwnerOperations?.decorateRooms(target);return;
+   const hk=housekeepingVisible(),canEdit=['owner','manager'].includes(prop().role);
+   const active=data.rooms.filter(r=>r.active),occupied=active.filter(r=>roomState(r)==='occupied').length,available=active.filter(r=>roomState(r)==='ready').length;
+   const statusLabel=status=>({occupied:'Occupied',ready:hk?'Ready':'Available',reserved:'Reserved',dirty:hk?'Needs cleaning':'Not ready',cleaning:hk?'Cleaning':'Not ready',blocked:'Unavailable',inactive:'Inactive'}[status]||String(status).replaceAll('_',' '));
+   const cards=data.rooms.map(r=>{
+    const status=roomState(r),note=String(r.status_note||'').trim();
+    return '<article class="bh-panel bh-room-card" data-room-state="'+esc(status)+'"><div class="bh-room-title"><div><span class="bh-room-eyebrow">ROOM</span><h2>'+esc(r.number)+'</h2></div><span class="bh-chip '+esc(status)+'">'+esc(statusLabel(status))+'</span></div>'+
+     '<p class="bh-room-subtitle">'+esc(r.room_type)+(r.floor?' · Floor '+esc(r.floor):'')+'</p>'+
+     '<div class="bh-room-meta"><div><strong>'+money(r.nightly_rate)+'</strong><span> / night</span></div><span>'+esc(r.adults)+' adults · '+esc(r.children)+' children</span></div>'+
+     (note&&(hk||!/clean|housekeep|dnd|do not disturb/i.test(note))?'<p class="bh-room-note">'+esc(note)+'</p>':'')+
+     (hk&&r.do_not_disturb?'<p class="bh-room-note">Do Not Disturb active</p>':'')+
+     (hk&&r.cleaning_requested?'<p class="bh-room-note">Stayover cleaning requested</p>':'')+
+     '<div class="bh-actions bh-room-actions">'+(hk&&r.active?btn('room-privacy','Guest privacy / cleaning',r.id)+btn('room-status','Room status',r.id):'')+
+     (canEdit?btn('edit-room','Edit room',r.id):'')+'</div></article>';
+   }).join('');
+   target.innerHTML=header(id==='rooms'?'Rooms':'Housekeeping',
+    hk?'Room availability and cleaning status.':'Manage room details, availability and rates.',
+    canEdit?btn('new-room','+ Add room'):'')+notice()+
+    '<div class="bh-room-overview" aria-label="Rooms overview"><span><strong>'+occupied+'</strong> Occupied</span><span><strong>'+available+'</strong> '+(hk?'Ready':'Available')+'</span><span><strong>'+active.length+'</strong> Total rooms</span></div>'+
+    '<div class="bh-room-grid">'+cards+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add your room numbers and rates to begin.'):'' );
+   if(hk)root.BiteOwnerOperations?.decorateRooms(target);
+   return;
   }
   if(id==='reservations'){
    target.innerHTML=header('Reservations','Choose a stay to check in, extend, move or review its folio.',btn('register','＋ New reservation')+btn('group-booking','Group booking'))+notice()+searchBox('Search guest, room or status')+data.stays.map(s=>stayCard(s)).join('')+(!data.stays.length?stateCard('No reservations in this property.'):'' );return;
@@ -369,47 +390,54 @@
   const manager=writable&&['owner','manager'].includes(prop().role);
   const canFood=writable&&s?.status==='in_house'&&has('charge_to_room')&&restaurantAccess()&&['owner','manager'].includes(prop().role);
   const balance=Number(t.balance||0),pending=Number(t.pending||0),held=Number(t.deposit_held||0),paid=Number(t.paid||0);
-  const card='<section class="bh-guest-bill-top"><p class="bh-guest-bill-overline">Guest account</p><h2>'+esc(g?.full_name||'Guest')+'</h2><p>Room '+esc(r?.number||'—')+' · '+esc(s?.arrival||'')+' to '+esc(s?.departure||'')+'</p><span class="bh-chip">'+esc(s?.status==='in_house'?'Guest staying':f.status==='open'?'Bill open':'Checked out')+'</span></section>';
-  const summary='<section class="bh-guest-bill-summary" aria-label="Guest bill summary"><div><span>Room, food & other charges</span><strong>'+money(t.charges)+'</strong></div><div><span>Payment received</span><strong>−'+money(paid)+'</strong></div><div class="bh-guest-bill-due"><span>'+esc(balance>0?'Balance to collect':balance<0?'Credit / refund due':'Balance left')+'</span><strong>'+money(Math.abs(balance))+'</strong></div></section>';
+  const card='<section class="bh-guest-bill-top"><div class="bh-guest-identity"><div><p class="bh-guest-bill-overline">Room '+esc(r?.number||'—')+' · Guest bill</p><h2>'+esc(g?.full_name||'Guest')+'</h2></div><span class="bh-chip '+(s?.status==='in_house'?'in_house':'')+'">'+esc(s?.status==='in_house'?'Checked in':f.status==='open'?'Open bill':'Checked out')+'</span></div><p class="bh-stay-dates">'+esc(shortDate(s?.arrival))+' – '+esc(shortDate(s?.departure))+'</p></section>';
+  const summary='<section class="bh-guest-bill-summary" aria-label="Guest bill summary"><div><span>Total room + food bill</span><strong>'+money(t.charges)+'</strong></div><div><span>Received & verified</span><strong>−'+money(paid)+'</strong></div><div class="bh-guest-bill-due"><span>'+esc(balance>0?'Amount due':balance<0?'Credit / refund due':'Fully paid')+'</span><strong>'+money(Math.abs(balance))+'</strong></div></section>';
   const foreignGuest=!!(g&&(g.is_oci||!['india','indian','bharat','भारत'].includes(String(g.country||'India').trim().toLowerCase())));
-  const flags=(foreignGuest?'<p class="bh-note">Foreign / OCI guest: complete reporting under More guest services / refunds.</p>':'')+(pending>0?'<p class="bh-note">'+money(pending)+' payment verification pending. Confirm the UPI / card / bank receipt before checkout.</p>':'')+
-   (held>0?'<p class="bh-note">Security deposit '+money(held)+' is held separately. Apply or return it under Manager options.</p>':'');
-  const primary=writable?'<section class="bh-guest-bill-steps"><h2>What do you want to do?</h2><div class="bh-guest-bill-buttons">'+
-   (canFood?btn('food-menu','＋ Add food from menu',f.id):'')+
-   (balance>0?btn('entry','Record payment','payment'):'')+
-   btn('preview','See full bill',f.id)+btn('share','Share bill',f.id)+
-   (s?.status==='in_house'?btn('checkout','Checkout & final bill',f.id,balance!==0||pending>0||held>0?'disabled title="Clear dues, pending payments and deposits first"':''):'')+
-   '</div>'+(writable&&!canFood&&s?.status==='in_house'&&!has('charge_to_room')?'<p class="bh-note">Menu se khana jodne ke liye property mein Hotel + Restaurant aur Charge to Room enable hona chahiye.</p>':'')+'</section>':
-   '<section class="bh-guest-bill-steps"><div class="bh-guest-bill-buttons">'+btn('preview','See full bill',f.id)+btn('share','Share bill',f.id)+(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+'</div></section>';
+  const pendingReceipt=entries.find(e=>e.status==='pending'&&['payment','advance','deposit_hold'].includes(e.kind));
+  const flags=(foreignGuest?'<p class="bh-note">Foreign / OCI guest reporting is available under More services.</p>':'')+
+   (pending>0?'<section class="bh-bill-attention" role="status"><div><strong>'+money(pending)+' payment verification pending</strong><p>UPI / card / bank receipt verify hone ke baad hi payment received mein judega.</p></div>'+
+    (manager&&pendingReceipt?btn('verify-payment','Verify receipt',pendingReceipt.id):'')+'</section>':'')+
+   (held>0?'<p class="bh-note">Security deposit '+money(held)+' is separate from payment. Resolve it under Manager options.</p>':'');
+  const unsettled=balance!==0||pending>0||held>0;
+  const primary=writable?'<section class="bh-guest-bill-steps"><h2>Guest actions</h2><div class="bh-guest-bill-buttons">'+
+   (canFood?btn('food-menu','＋ Add food',f.id):'')+
+   (balance>0?btn('entry','Receive payment','payment'):'')+
+   btn('preview','View bill',f.id)+btn('share','Share bill',f.id)+
+   (s?.status==='in_house'?btn('checkout','Checkout guest',f.id,unsettled?'disabled title="Resolve outstanding balance, unverified payments and deposits first"':''):'')+
+   '</div>'+(unsettled&&s?.status==='in_house'?'<p class="bh-checkout-hint">Checkout available after pending payments, dues and deposits are resolved.</p>':'')+
+   (writable&&!canFood&&s?.status==='in_house'&&!has('charge_to_room')?'<p class="bh-note">Food billing needs Hotel + Restaurant / Charge to Room enabled.</p>':'')+'</section>':
+   '<section class="bh-guest-bill-steps"><div class="bh-guest-bill-buttons">'+btn('preview','View bill',f.id)+btn('share','Share bill',f.id)+(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+'</div></section>';
   const activity=entries.map(e=>{
-   const amount=Number(e.amount||0)+Number(e.tax_amount||0),negative=['payment','advance','discount','reversal','deposit_apply'].includes(e.kind);
+   const amount=Number(e.amount||0)+Number(e.tax_amount||0),negative=e.status!=='pending'&&['payment','advance','discount','reversal','deposit_apply'].includes(e.kind);
    const foodItems=e.source_order_id&&(e.source_items||[]).length?'<div class="bh-guest-food-lines">'+e.source_items.map(i=>'<span>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(Number(i.quantity)*Number(i.unit_price))+'</span>').join('')+'</div>':'';
-   return '<div class="bh-guest-bill-line"><div><strong>'+esc(simpleEntryLabel(e))+'</strong>'+foodItems+
-    (e.kind==='charge'&&!e.source_order_id?'<small>'+esc(e.description||'')+'</small>':'')+
-    '<small>'+esc(e.status==='confirmed'?'Saved':e.status==='pending'?'Awaiting verification':e.status||'')+'</small></div><strong>'+ (negative?'−':'')+money(amount)+'</strong></div>';
+   const label=e.kind==='charge'&&e.category!=='room'&&!e.source_order_id?'Other charge':simpleEntryLabel(e);
+   const desc=String(e.description||'').trim();
+   return '<div class="bh-guest-bill-line'+(e.status==='pending'?' is-pending':'')+'"><div><strong>'+esc(label)+'</strong>'+foodItems+
+    (e.kind==='charge'&&!e.source_order_id&&desc.length>2?'<small>'+esc(desc)+'</small>':'')+
+    '<small>'+esc(e.status==='confirmed'?'Confirmed':e.status==='pending'?'Awaiting verification':e.status||'')+'</small></div><strong>'+ (negative?'−':'')+money(amount)+'</strong></div>';
   }).join('');
   const adjustments=entries.map(e=>
    '<div class="bh-advanced-entry"><span>'+esc(e.description)+' · '+money(Number(e.amount||0)+Number(e.tax_amount||0))+'</span>'+
    (manager&&e.status==='pending'?btn('verify-payment','Confirm receipt',e.id)+btn('void-payment','Not received',e.id):'')+
    (manager&&e.kind==='charge'&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Cancel food charge':'Correct charge',e.id):'')+'</div>'
   ).join('');
-  const advanced=(writable?'<details class="bh-guest-advanced"><summary>Manager options / corrections</summary><p class="bh-note">Use only for corrections, deposits, refunds or separate payer statements. Changes are recorded in the audit trail.</p><div class="bh-actions">'+
+  const advanced=(writable?'<details class="bh-guest-advanced"><summary>Manager tools & corrections</summary><p class="bh-note">Use only for corrections, deposits, refunds or separate payer statements. Changes are recorded in the audit trail.</p><div class="bh-actions">'+
    btn('entry','Other charge','charge')+btn('entry','Security deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply')+
    (manager?btn('entry','Discount','discount')+btn('entry','Record refund already paid','refund')+btn('split-bill','Split payer statements',f.id):'')+
    (f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+
    '</div><h3>Original ledger and corrections</h3>'+adjustments+'</details>':'');
-  target.innerHTML=header('Guest Bill','All room and restaurant charges in one place.',btn('folio-list','All guest bills'))+
-   card+summary+flags+(f.payer_split?'<p class="bh-note">Bill share: '+esc(f.payer_split.first_name)+' '+esc(f.payer_split.first_percent)+'% / '+esc(f.payer_split.second_name)+' '+esc(100-f.payer_split.first_percent)+'%</p>':'')+notice()+primary+'<div id="bhFolioEditor"></div>'+
-   '<section class="bh-guest-bill-activity"><h2>Items on this bill</h2>'+(activity||stateCard('Room and food charges will appear here.'))+'</section>'+
-   advanced;
+  target.innerHTML=header('Guest Bill','Room charges, food and payment in one bill.',btn('folio-list','← All guest bills'))+
+   card+summary+flags+(f.payer_split?'<p class="bh-note">Payers: '+esc(f.payer_split.first_name)+' '+esc(f.payer_split.first_percent)+'% / '+esc(f.payer_split.second_name)+' '+esc(100-f.payer_split.first_percent)+'%</p>':'')+notice()+
+   '<section class="bh-guest-bill-activity"><h2>Bill details</h2>'+(activity||stateCard('Room and food charges will appear here.'))+'</section>'+
+   primary+'<div id="bhFolioEditor"></div>'+advanced;
   root.BiteOwnerOperations?.decorateFolio(target,f,s,g);
   const guestOperations=target.querySelector('#biteGuestOperations');
   if(guestOperations){
    const disclosure=document.createElement('details');
    disclosure.className='bh-guest-advanced';
    const summary=document.createElement('summary');
-   summary.textContent='More guest services / refunds';
-   guestOperations.before(disclosure);disclosure.append(summary,guestOperations);
+   summary.textContent='Other services & refunds';
+   target.append(disclosure);disclosure.append(summary,guestOperations);
    guestOperations.classList.remove('bh-panel');
   }
  }
@@ -580,8 +608,10 @@
     const r=data.rooms.find(r=>r.id===id)||{};
     editor(`<form class="bh-form" data-hotel-form="room" data-room-id="${esc(r.id||'')}"><h2>${r.id?'Edit room':'Add room'}</h2><div class="bh-form-grid">${field('number','Room number *','text',r.number||'','required maxlength="20"')}${field('room_type','Room type *','text',r.room_type||'Deluxe','required maxlength="60"')}${field('floor','Floor','text',r.floor||'','maxlength="30"')}${field('nightly_rate','Nightly rate (₹) *','number',r.nightly_rate??'','required min="0" step="0.01"')}${field('adults','Maximum adults','number',r.adults||2,'required min="1" max="20"')}${field('children','Maximum children','number',r.children??2,'required min="0" max="20"')}${select('active','Availability',option('true','Active',r.active!==false)+option('false','Deactivate',r.active===false))}</div>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Save room</button></div></form>`);
    }else if(action==='room-privacy'){
+    if(!housekeepingVisible())throw Error('Housekeeping is off. Enable it in Settings before using cleaning controls.');
     const r=data.rooms.find(r=>r.id===id);editor(`<form class="bh-form" data-hotel-form="room-privacy" data-room-id="${esc(id)}"><h2>Guest privacy & stayover service</h2><label class="bh-check"><input name="do_not_disturb" type="checkbox" ${r.do_not_disturb?'checked':''}> Do Not Disturb</label><label class="bh-check"><input name="cleaning_requested" type="checkbox" ${r.cleaning_requested?'checked':''}> Stayover cleaning requested</label>${field('note','Guest / service note','text',r.status_note||'','maxlength="250"')}<p>DND prevents starting cleaning until permission is confirmed and DND is cleared.</p>${notice()}<button type="submit" class="btn">Save guest preference</button></form>`);
    }else if(action==='room-status'){
+    if(!housekeepingVisible())throw Error('Housekeeping is off. Enable it in Settings to manage room readiness.');
     editor(`<form class="bh-form" data-hotel-form="room-status" data-room-id="${esc(id)}"><h2>Update room status</h2>${select('status','Status',['dirty','cleaning',...(['owner','manager','receptionist'].includes(prop().role)?['ready']:[]),...(['owner','manager'].includes(prop().role)?['blocked']:[])].map(s=>option(s,s)).join(''))}${field('note','Reason / cleaning note','text','','maxlength="250"')}${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Update status</button></div></form>`);
    }else if(action==='stay-options'){
     const s=data.stays.find(s=>s.id===id);if(!s)return;

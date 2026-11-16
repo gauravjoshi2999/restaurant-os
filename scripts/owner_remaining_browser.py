@@ -82,6 +82,9 @@ try:
    check('#stay='+'a'*64 in page.locator('[data-guest-bill-link]').input_value(),'Guest bill token uses a URL fragment')
    page.locator('[data-ops-action=copy-link]').click();page.locator('[data-ops-action=revoke-link]').click();page.get_by_text('Guest link revoked',exact=True).wait_for(state='visible')
    check(page.evaluate("window.__BITE_HOTEL_QA.calls.some(c=>c.args.p_action==='guest_link_revoke')"),'Revocation calls the authorized property endpoint')
+   page.evaluate("showPage('settings')")
+   page.locator('#biteShowHousekeeping').check()
+   page.wait_for_function("BiteHospitality.housekeepingVisible()===true")
    nav(page,'rooms');page.locator('#rooms [data-hotel-action=room-privacy][data-id=room-a]').click();f=page.locator('#bhActionEditor form');f.locator('[name=do_not_disturb]').check();f.locator('[name=cleaning_requested]').check();finish(page)
    page.evaluate("showPage('settings')")
    page.locator('#biteShowHousekeeping').wait_for(state='visible')
@@ -134,11 +137,11 @@ try:
   # Two independent browser sessions reload the same synthetic server state.
   sessions=[browser.new_context(viewport={'width':390,'height':900}) for _ in range(2)];pages=[c.new_page() for c in sessions]
   for page in pages:
-   page.on('pageerror',lambda e:errors.append(str(e)));page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4186/qa/shared-owner.html',wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hybrid'");nav(page,'rooms')
+   page.on('pageerror',lambda e:errors.append(str(e)));page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4186/qa/shared-owner.html',wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hybrid'");page.evaluate("showPage('settings')");page.locator('#biteShowHousekeeping').check();page.wait_for_function("BiteHospitality.housekeepingVisible()===true");nav(page,'rooms')
   pages[0].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[0].locator('#bhActionEditor [name=status]').select_option('cleaning');finish(pages[0]);pages[1].bring_to_front();pages[1].wait_for_function("BiteHospitality.getWorkspace().rooms[0].housekeeping==='cleaning'",timeout=40000)
-  check(pages[1].locator('#rooms .bh-room-title').first.inner_text().endswith('cleaning'),'Second browser session automatically refreshes the housekeeping list')
+  check(pages[1].locator('#rooms .bh-room-title').first.inner_text().lower().endswith('cleaning'),'Second browser session automatically refreshes the housekeeping list')
   pages[1].locator('[data-hotel-action=room-status][data-id=room-a]').click();pages[1].locator('#bhActionEditor [name=status]').select_option('ready');finish(pages[1]);pages[0].bring_to_front();pages[0].wait_for_function("BiteHospitality.getWorkspace().rooms[0].housekeeping==='ready'",timeout=40000)
-  check(pages[0].locator('#rooms .bh-room-title').first.inner_text().endswith('ready'),'Supervisor Ready status returns to the first session')
+  check(pages[0].locator('#rooms .bh-room-title').first.inner_text().lower().endswith('ready'),'Supervisor Ready status returns to the first session')
   for c in sessions:c.close()
   # Guest sees progress without an authenticated hotel membership or location interruption.
   for width in [360,390,1440]:

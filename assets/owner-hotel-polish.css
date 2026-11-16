@@ -1,0 +1,215 @@
+/* Bite Front Desk — compact mobile-first room and guest-bill surfaces.
+   Scope is deliberately narrow so POS, customer, hotel ledgers and dialogs keep their own presentation. */
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios{
+ --bh-ui-ink:#292b2d;--bh-ui-muted:#6f7374;--bh-ui-line:#e9e5e0;
+ --bh-ui-accent:#d86c1f;--bh-ui-soft:#fff7f0;--bh-ui-card:#fff;
+ color:var(--bh-ui-ink);
+ padding-bottom:108px;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading{
+ display:flex!important;align-items:center!important;justify-content:space-between!important;flex-direction:row!important;
+ gap:10px!important;min-height:65px!important;padding:12px 15px!important;margin:0 0 10px!important;
+ background:#fff!important;border:1px solid #e8e1db!important;border-radius:15px!important;
+ box-shadow:0 2px 9px #362b2208!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading .bh-eyebrow,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading .bh-eyebrow{display:none!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading h1,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading h1{
+ font-size:19px!important;line-height:1.3!important;margin:0!important;letter-spacing:-.025em!important;color:#302b2e!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading p,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading p{margin:2px 0 0!important;font-size:12px!important;color:#707374!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading .bh-actions,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading .bh-actions{
+ width:auto!important;display:flex!important;align-items:center!important;flex:0 0 auto!important;gap:6px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading .btn,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading .btn{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ padding:9px 11px!important;min-height:39px!important;border-radius:11px!important;font-size:12px!important;font-weight:750!important;
+ border:1px solid #e7d5c6!important;color:#8b491c!important;background:#fff9f3!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-hotel-tabs,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-hotel-tabs{
+ display:flex!important;gap:6px!important;margin:0 0 12px!important;padding:2px 0 5px!important;
+ overflow-x:auto!important;scrollbar-width:none!important;overscroll-behavior-x:contain;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-hotel-tabs button,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-hotel-tabs button{
+ min-height:37px!important;padding:6px 12px!important;flex:0 0 auto!important;
+ font-size:12px!important;line-height:1.3!important;font-weight:700!important;
+ border:1px solid #e5dfd9!important;background:#fff!important;border-radius:11px!important;color:#645d59!important;
+ box-shadow:none!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-hotel-tabs button[aria-current="page"],
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-hotel-tabs button[aria-current="page"]{
+ background:#faede0!important;border-color:#edc6a5!important;color:#9b4e1c!important;
+}
+
+/* Rooms: one elegant operational board instead of large forms embedded in cards. */
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-overview{
+ display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-overview span{
+ display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#f6f3ef;
+ color:#585e59;padding:7px 11px;font-size:12px;font-weight:600;line-height:1.25
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-overview strong{font-size:14px;color:#2d3733}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid{
+ display:grid!important;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))!important;gap:10px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card{
+ display:flex!important;flex-direction:column!important;gap:0!important;margin:0!important;
+ min-width:0!important;padding:15px 16px!important;border:1px solid #e7e2df!important;border-left:3px solid #cbbfb3!important;
+ border-radius:16px!important;background:#fff!important;box-shadow:0 3px 12px #34231a08!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card[data-room-state="ready"]{border-left-color:#72ae86!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card[data-room-state="occupied"]{border-left-color:#e98d3a!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card[data-room-state="dirty"],
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card[data-room-state="cleaning"]{border-left-color:#d7b26a!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-title{
+ display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin:0!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-eyebrow{font-size:9px;color:#9a8980;font-weight:850;letter-spacing:.13em}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-title h2{
+ margin:0!important;padding:0!important;font-size:25px!important;line-height:1.1!important;
+ color:#2d292c!important;font-weight:850!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-title .bh-chip{
+ margin:0!important;font-size:11px!important;font-weight:750!important;padding:6px 10px!important;border-radius:999px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-subtitle{
+ margin:7px 0 11px!important;padding:0!important;font-size:12px!important;color:#736d69!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-meta{
+ display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;
+ font-size:11px;color:#7d7772;margin-bottom:12px
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-meta strong{font-size:16px;color:#363030;font-weight:850}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-note{
+ margin:0 0 9px!important;padding:8px 9px!important;background:#fff9f3;border-radius:8px!important;font-size:11px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-actions{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:auto;padding-top:11px;border-top:1px solid #f0ebe6
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-actions .btn{
+ min-height:38px!important;padding:7px 12px!important;font-size:12px!important;font-weight:750!important;
+ border:1px solid #ded6cf!important;background:#fff!important;color:#6b4535!important;border-radius:10px!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-actions .btn[data-hotel-action="edit-room"]{
+ background:#fff5ed!important;color:#8d4d20!important;border-color:#ebd0ba!important
+}
+
+/* Guest Bills: one clear identity, ledger and next-action sequence. */
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-activity,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-steps{
+ border:1px solid #e8e3df!important;border-radius:16px!important;background:#fff!important;
+ padding:15px 16px!important;margin:0 0 10px!important;box-shadow:0 3px 11px #39271a07!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top{border-left:3px solid #e18b43!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-identity{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-identity>div{min-width:0}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top .bh-guest-bill-overline{
+ margin:0 0 5px!important;font-size:11px!important;font-weight:800!important;letter-spacing:.04em!important;color:#9d5c28!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top h2{
+ font-size:22px!important;line-height:1.24!important;letter-spacing:-.025em!important;margin:0!important;color:#312b2e!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-stay-dates{color:#77746e!important;font-size:12px!important;margin:8px 0 0!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-identity .bh-chip{
+ margin:0!important;white-space:nowrap;padding:6px 9px!important;border-radius:99px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary{display:grid!important;gap:0!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary>div{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ padding:9px 0!important;min-height:41px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary span{font-size:13px!important;font-weight:600!important;color:#77736e!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary strong{font-size:16px!important;color:#302d2c!important;font-weight:850!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary .bh-guest-bill-due{
+ border-radius:11px!important;margin-top:8px!important;padding:11px 12px!important;background:#fff3e7!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary .bh-guest-bill-due span{color:#87491e!important;font-weight:800!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary .bh-guest-bill-due strong{font-size:23px!important;color:#84411b!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-bill-attention{
+ border:1px solid #ead4a9;background:#fffaf0;border-radius:12px;
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:11px;
+ padding:12px 14px;margin:0 0 10px;color:#77572e
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-bill-attention strong{font-size:13px}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-bill-attention p{font-size:12px;line-height:1.5;margin:4px 0 0}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-bill-attention .btn{
+ min-height:40px!important;padding:9px 12px!important;border-radius:9px!important;
+ background:#fff!important;color:#6e4d21!important;border:1px solid #e8d5b1!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-activity h2,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-steps h2{
+ font-size:16px!important;letter-spacing:-.02em!important;color:#333035!important;margin:0 0 9px!important;font-weight:800!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-line{
+ padding:11px 0!important;gap:10px!important;line-height:1.45!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-line strong{
+ font-size:13px!important;color:#393b3b!important;font-weight:750!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-line>strong{font-size:15px!important;flex:0 0 auto;font-variant-numeric:tabular-nums}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-line small,
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-food-lines{font-size:11px!important;color:#83827f!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-line.is-pending{opacity:.8}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons .btn{
+ min-height:43px!important;padding:10px 11px!important;border-radius:10px!important;
+ border:1px solid #e8dcd0!important;background:#fffaf5!important;color:#69472f!important;
+ font-size:13px!important;font-weight:750!important;box-shadow:none!important;white-space:normal!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons [data-hotel-action="food-menu"]{
+ grid-column:auto!important;background:#ed7d26!important;color:#fff!important;border-color:#ed7d26!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons [data-hotel-action="entry"]{
+ background:#eff9f3!important;color:#276844!important;border-color:#cbe2d1!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons [data-hotel-action="checkout"]{
+ grid-column:1/-1!important;background:#2c3c35!important;border-color:#2c3c35!important;color:#fff!important
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons [data-hotel-action="checkout"]:disabled{opacity:.5!important;cursor:not-allowed}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-checkout-hint{font-size:11px!important;color:#8d745d!important;margin:8px 0 0!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-advanced{
+ margin:0 0 10px!important;border-radius:13px!important;background:#faf9f6!important;
+ padding:8px 12px!important;box-shadow:none!important;border:1px solid #e8e2dd!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-advanced>summary{
+ min-height:35px!important;line-height:1.4!important;font-size:13px!important;font-weight:750!important;color:#6d615a!important;padding:8px 0!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-list{padding:13px!important;gap:10px}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-list>strong{font-variant-numeric:tabular-nums}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios #bhFolioEditor{margin:0 0 10px}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios #bhActionEditor{box-shadow:none!important;border-color:#efd5bf!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp #folios #bhFoodPicker{padding:15px!important}
+@media(max-width:760px){
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios{padding-bottom:120px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading{padding:11px 12px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms>.bh-heading p,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios>.bh-heading p{display:none!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid{grid-template-columns:minmax(0,1fr)!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #rooms .bh-room-grid .bh-room-card{padding:13px 14px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-summary,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-activity,
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-steps{padding:13px 14px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-top h2{font-size:19px!important}
+}
+@media(max-width:360px){
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-bill-buttons .btn{font-size:12px!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios .bh-guest-identity{flex-wrap:wrap}
+}
