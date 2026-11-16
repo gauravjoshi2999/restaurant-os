@@ -76,7 +76,7 @@
   housekeepingDisplay.enabled=!resultError&&data?.show_housekeeping===true;
   housekeepingDisplay.error=resultError?String(resultError.message||'Connection error'):'';
   applyShell();
-  if(document.querySelector('#overview.active'))renderHome();
+  renderHome();
   root.dispatchEvent(new Event('bite:owner-summary'));
  }
  async function saveHousekeepingDisplay(enabled){
@@ -100,7 +100,7 @@
   }finally{
    if(prop()?.id===propertyId){
     housekeepingDisplay.saving=false;applyShell();
-    if(document.querySelector('#overview.active'))renderHome();
+    renderHome();
     root.dispatchEvent(new Event('bite:owner-summary'));
    }
   }
