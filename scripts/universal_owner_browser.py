@@ -56,6 +56,12 @@ try:
     check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
     check(('orders' in links)==(kind!='hotel'),f'{kind} restaurant shortcut capability at {width}px')
     screenshot(page,f'{kind}-premium-home-{width}')
+    quick='orders' if kind=='restaurant' else 'rooms'
+    page.locator(f'#bitePremiumHome .bite-premium-action[data-page="{quick}"]').click()
+    page.locator(f'#{quick}.active').wait_for(state='visible')
+    check(True,f'{kind} premium quick action opens existing {quick} workspace at {width}px')
+    page.evaluate("showPage('overview')")
+    page.locator('#overview.active').wait_for(state='visible')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
      check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
