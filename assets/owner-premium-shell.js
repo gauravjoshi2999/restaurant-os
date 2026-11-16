@@ -7,7 +7,7 @@
   reservations:{label:'Reservations',hint:'Upcoming stays and bookings',icon:'calendar'},
   rooms:{label:'Rooms',hint:'Room board, readiness and occupancy',icon:'bed'},
   guests:{label:'Guests',hint:'Search returning guests',icon:'people'},
-  folios:{label:'Folios & Bills',hint:'Stay charges and balances',icon:'receipt'},
+  folios:{label:'Guest Bills',hint:'Room, food and final guest bill',icon:'receipt'},
   housekeeping:{label:'Housekeeping',hint:'Cleaning and room readiness',icon:'sparkles'},
   orders:{label:'Live Orders',hint:'Accept and fulfil paid orders',icon:'orders'},
   pos:{label:'POS Billing',hint:'Counter, takeaway and dine-in billing',icon:'pos'},
