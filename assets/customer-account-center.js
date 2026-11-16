@@ -25,11 +25,44 @@
  }
  function getPrefs(user=state.sessionUser){
    const stored=user?.user_metadata?.bite_preferences_v1;
-   return {veg_only:stored?.veg_only===true};
+   return {veg_only:stored?.veg_only===true,appearance:['light','dark','system'].includes(stored?.appearance)?stored.appearance:'system',reduced_motion:stored?.reduced_motion===true};
  }
  function updateVegUI(){
    const toggle=byId('biteAccountVeg');
    if(toggle)toggle.checked=getPrefs().veg_only;
+   const appearance=byId('biteAccountAppearance');
+   if(appearance)appearance.value=getPrefs().appearance;
+   const motion=byId('biteAccountReduceMotion');
+   if(motion)motion.checked=getPrefs().reduced_motion;
+ }
+ function applyVisualPreferences(){
+   const prefs=getPrefs();
+   document.documentElement?.setAttribute?.('data-bite-account-appearance',prefs.appearance);
+   document.documentElement?.setAttribute?.('data-bite-reduce-motion',prefs.reduced_motion?'true':'false');
+ }
+ async function saveVisualPreference(event){
+   const control=event.currentTarget;
+   if(state.preferenceBusy){updateVegUI();return;}
+   const id=state.userId,epoch=state.epoch;
+   if(!id){updateVegUI();return;}
+   const requested=control.id==='biteAccountAppearance'?{appearance:control.value}:{reduced_motion:control.checked};
+   if(requested.appearance&&!['light','dark','system'].includes(requested.appearance)){updateVegUI();return;}
+   state.preferenceBusy=true;control.disabled=true;text('biteAccountVisualMessage','Saving your settings…');
+   try{
+     const verified=await sb.auth.getUser();
+     if(verified.error)throw verified.error;
+     if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed.');
+     const prior=verified.data.user?.user_metadata?.bite_preferences_v1||{};
+     const next={...prior,...requested};
+     const result=await sb.auth.updateUser({data:{bite_preferences_v1:next}});
+     if(result.error)throw result.error;
+     if(!sameUser(id)||epoch!==state.epoch)return;
+     state.sessionUser=result.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:next}};
+     updateVegUI();applyVisualPreferences();
+     text('biteAccountVisualMessage','Preferences saved to your Bite account.');
+   }catch(error){
+     if(sameUser(id)&&epoch===state.epoch){updateVegUI();text('biteAccountVisualMessage','Could not save settings. Please retry.');}
+   }finally{state.preferenceBusy=false;control.disabled=false;}
  }
  function applyVegMode(){
    const on=getPrefs().veg_only;
@@ -64,7 +97,7 @@
    const heading=byId('accountPageTitle');if(heading)heading.textContent=titles[next];
    const back=byId('accountBackBtn');if(back)back.textContent=next==='overview'?'← Explore':'← Account';
    if(next==='profile'){renderProfile();text('biteProfileMessage','');}
-   if(next==='preferences'){updateVegUI();text('biteAccountVegMessage','');}
+   if(next==='preferences'){updateVegUI();applyVisualPreferences();text('biteAccountVegMessage','');text('biteAccountVisualMessage','');}
    if(next==='support'&&!byId('customerSupportCategory')?.value)byId('customerSupportCategory').value='Account';
    root.scrollTo?.({top:0,behavior:'instant'});
  }
@@ -118,10 +151,12 @@
      const verified=await sb.auth.getUser();
      if(verified.error)throw verified.error;
      if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed. Please reopen settings.');
-     const response=await sb.auth.updateUser({data:{bite_preferences_v1:{veg_only:requested}}});
+     const prior=verified.data.user?.user_metadata?.bite_preferences_v1||{};
+     const next={...prior,veg_only:requested};
+     const response=await sb.auth.updateUser({data:{bite_preferences_v1:next}});
      if(response.error)throw response.error;
      if(!sameUser(id)||epoch!==state.epoch)return;
-     state.sessionUser=response.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:{veg_only:requested}}};
+     state.sessionUser=response.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:next}};
      applyVegMode();
      text('biteAccountVegMessage',requested?'Vegetarian mode enabled for discovery and menu browsing.':'Vegetarian mode disabled.');
    }catch(error){
@@ -224,6 +259,8 @@
  byId('biteProfileForm')?.addEventListener('submit',saveProfile);
  byId('biteEmailChangeForm')?.addEventListener('submit',requestEmailChange);
  byId('biteAccountVeg')?.addEventListener('change',saveVeg);
+ byId('biteAccountAppearance')?.addEventListener('change',saveVisualPreference);
+ byId('biteAccountReduceMotion')?.addEventListener('change',saveVisualPreference);
  // Intercept the existing Back button only for account subpages.
  byId('accountBackBtn')?.addEventListener('click',e=>{
    if(state.subpage==='overview')return;
@@ -233,6 +270,8 @@
    const user=session?.user||null;
    if(!user){
      state.userId=null;state.sessionUser=null;state.profile=null;state.epoch++;
+     document.documentElement?.removeAttribute?.('data-bite-account-appearance');
+     document.documentElement?.removeAttribute?.('data-bite-reduce-motion');
      show('overview');text('biteAccountName','Welcome to Bite');text('biteAccountEmail','Your account, your way.');
      const name=byId('biteProfileName'),phone=byId('biteProfilePhone');
      if(name)name.value='';if(phone)phone.value='';
@@ -240,7 +279,7 @@
    }
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
    state.sessionUser=user;
-   updateVegUI();applyVegMode();
+   updateVegUI();applyVegMode();applyVisualPreferences();
    if(section.dataset.section!=='profile')renderProfile();
  });
  root.BiteAccountHub={
@@ -249,7 +288,7 @@
      if(!user?.id)return;
      if(user.id!==state.userId){state.epoch++;state.profile=null;}
      state.userId=user.id;state.sessionUser=user;
-     show('overview');renderProfile();updateVegUI();applyVegMode();
+     show('overview');renderProfile();updateVegUI();applyVegMode();applyVisualPreferences();
    },
    setProfile(profile,user){
      if(!user?.id||!sameUser(user.id))return;
@@ -261,6 +300,6 @@
    const user=data?.session?.user;
    if(!user)return;
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
-   state.sessionUser=user;renderProfile();updateVegUI();applyVegMode();
+   state.sessionUser=user;renderProfile();updateVegUI();applyVegMode();applyVisualPreferences();
  }).catch(()=>{});
 })(window);
