@@ -2588,7 +2588,19 @@ function renderMenuWorkspace(){const filter=document.getElementById('menuCategor
 function openMenuItem(id){const f=document.getElementById('menuItemForm');f.reset();f.elements.id.value='';f.elements.is_vegetarian.value='true';f.elements.is_available.value='true';f.elements.is_kids_choice.value='false';document.getElementById('menuItemError').textContent='';document.getElementById('menuItemModalTitle').textContent='Add menu item';document.getElementById('menuItemCategory').value='';if(id){const item=menuItems.find(x=>x.id===id);if(!item)return;f.elements.id.value=item.id;f.elements.name.value=item.name;f.elements.category_id.value=item.category_id||'';f.elements.price.value=item.price;f.elements.image_url.value=item.image_url||'';f.elements.is_vegetarian.value=String(item.is_vegetarian);f.elements.is_available.value=String(item.is_available);f.elements.is_kids_choice.value=String(item.is_kids_choice===true);f.elements.description.value=item.description||'';document.getElementById('menuItemModalTitle').textContent='Edit menu item'}document.getElementById('menuItemModal').classList.add('show')}
 function editMenuItem(id){openMenuItem(id)}
 async function toggleMenuItem(id){const item=menuItems.find(x=>x.id===id);if(!item)return;const {error}=await sb.from('menu_items').update({is_available:!item.is_available,updated_at:new Date().toISOString()}).eq('id',id);if(error){alert('Availability update nahi hui: '+error.message);return}await fetchMenuData()}
-async function deleteMenuItem(id){const item=menuItems.find(x=>x.id===id);if(!item||!confirm('"'+item.name+'" ko menu se delete karein?'))return;const {error}=await sb.from('menu_items').delete().eq('id',id);if(error){alert('Item delete nahi hua: '+error.message);return}await fetchMenuData()}
+async function deleteMenuItem(id){
+ const rid=menuRestaurantId();
+ const item=menuItems.find(x=>x.id===id);
+ if(!rid||!item)return;
+ const warning='"'+item.name+'" ko hamesha ke liye delete karna hai?\\n\\nDish ko temporarily hide karne ke liye Pause use karein. Delete ke baad uski original menu entry aur price restore karna mushkil ho sakta hai.';
+ if(!confirm(warning))return;
+ const typed=prompt('Permanent Delete confirm karne ke liye dish ka EXACT naam likhein:\\n'+item.name);
+ if(typed!==item.name){if(typed!==null)alert('Naam match nahi hua. Dish delete nahi hui.');return;}
+ const {data,error}=await sb.from('menu_items').delete().eq('id',id).eq('restaurant_id',rid).select('id');
+ if(error){alert('Item delete nahi hua: '+error.message);return}
+ if(!Array.isArray(data)||data.length!==1){alert('Delete confirm nahi hua. Menu refresh karke check karein.');await fetchMenuData();return}
+ await fetchMenuData();
+}
 document.getElementById('addMenuItemBtn').addEventListener('click',()=>{if(!menuRestaurantId()){alert('Pehle restaurant select karein.');return}openMenuItem()});
 document.getElementById('menuRestaurantSelect').addEventListener('change',fetchMenuData);
 document.getElementById('menuCategoryFilter').addEventListener('change',renderMenuWorkspace);
