@@ -38,11 +38,29 @@ jobs:
         run: |
           [[ "$BITE_DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            # This workflow is triggered by a completed Bite QA run. Query
+            # *that exact run ID* instead of an eventually-consistent list of
+            # runs by head_sha; keep all push/main/success integrity checks.
+            qa_run_id="${{ github.event.workflow_run.id }}"
+            [[ "$qa_run_id" =~ ^[0-9]+$ ]]
+            qa=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$qa_run_id")
+            jq -e --arg sha "$BITE_DEPLOY_SHA" '
+              .name == "Bite QA" and .head_sha == $sha and
+              .head_branch == "main" and .event == "push" and
+              .status == "completed" and .conclusion == "success"
+            ' <<< "$qa"
             current_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
             [[ "$BITE_DEPLOY_SHA" == "$current_main" ]] || { echo "Stale automatic deployment skipped"; exit 1; }
+          else
+            # Explicit manual deployment still needs independently verified
+            # successful main QA on the exact supplied commit.
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$BITE_DEPLOY_SHA&per_page=50")
+            jq -e --arg sha "$BITE_DEPLOY_SHA" '
+              .workflow_runs | any(.name == "Bite QA" and .head_sha == $sha
+               and .head_branch == "main" and .event == "push"
+               and .status == "completed" and .conclusion == "success")
+            ' <<< "$runs"
           fi
-          runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$BITE_DEPLOY_SHA&per_page=50")
-          jq -e --arg sha "$BITE_DEPLOY_SHA" '.workflow_runs | any(.name == "Bite QA" and .head_sha == $sha and .head_branch == "main" and .event == "push" and .conclusion == "success")' <<< "$runs"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.BITE_DEPLOY_SHA }}
