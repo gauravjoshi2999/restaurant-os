@@ -25,11 +25,15 @@
  }
  function getPrefs(user=state.sessionUser){
    const stored=user?.user_metadata?.bite_preferences_v1;
-   return {veg_only:stored?.veg_only===true};
+   return {veg_only:stored?.veg_only===true,in_app_updates:stored?.in_app_updates===true};
  }
  function updateVegUI(){
    const toggle=byId('biteAccountVeg');
    if(toggle)toggle.checked=getPrefs().veg_only;
+ }
+ function updateOrderAlertsUI(){
+   const toggle=byId('biteAccountOrderAlerts');
+   if(toggle)toggle.checked=getPrefs().in_app_updates;
  }
  function applyVegMode(){
    const on=getPrefs().veg_only;
@@ -65,6 +69,7 @@
    const back=byId('accountBackBtn');if(back)back.textContent=next==='overview'?'← Explore':'← Account';
    if(next==='profile'){renderProfile();text('biteProfileMessage','');}
    if(next==='preferences'){updateVegUI();text('biteAccountVegMessage','');}
+   if(next==='notifications'){updateOrderAlertsUI();text('biteAccountOrderAlertsMessage','');}
    if(next==='support'&&!byId('customerSupportCategory')?.value)byId('customerSupportCategory').value='Account';
    root.scrollTo?.({top:0,behavior:'instant'});
  }
@@ -118,16 +123,43 @@
      const verified=await sb.auth.getUser();
      if(verified.error)throw verified.error;
      if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed. Please reopen settings.');
-     const response=await sb.auth.updateUser({data:{bite_preferences_v1:{veg_only:requested}}});
+     const merged={...(verified.data.user.user_metadata?.bite_preferences_v1||{}),veg_only:requested};
+     const response=await sb.auth.updateUser({data:{bite_preferences_v1:merged}});
      if(response.error)throw response.error;
      if(!sameUser(id)||epoch!==state.epoch)return;
-     state.sessionUser=response.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:{veg_only:requested}}};
+     state.sessionUser=response.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:merged}};
      applyVegMode();
      text('biteAccountVegMessage',requested?'Vegetarian mode enabled for discovery and menu browsing.':'Vegetarian mode disabled.');
    }catch(error){
      if(sameUser(id)&&epoch===state.epoch){
        control.checked=!requested;
        text('biteAccountVegMessage','Could not save your preference. Please retry.');
+     }
+   }finally{state.preferenceBusy=false;control.disabled=false;}
+ }
+ async function saveOrderAlerts(event){
+   const control=event.currentTarget;
+   if(state.preferenceBusy){control.checked=!control.checked;return;}
+   const id=state.userId,epoch=state.epoch,requested=control.checked;
+   if(!id){control.checked=!requested;return;}
+   state.preferenceBusy=true;control.disabled=true;
+   text('biteAccountOrderAlertsMessage','Saving notification preference…');
+   try{
+     const verified=await sb.auth.getUser();
+     if(verified.error)throw verified.error;
+     if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed.');
+     const merged={...(verified.data.user.user_metadata?.bite_preferences_v1||{}),in_app_updates:requested};
+     const response=await sb.auth.updateUser({data:{bite_preferences_v1:merged}});
+     if(response.error)throw response.error;
+     if(!sameUser(id)||epoch!==state.epoch)return;
+     state.sessionUser=response.data.user||{...state.sessionUser,user_metadata:{...state.sessionUser?.user_metadata,bite_preferences_v1:merged}};
+     updateVegUI();
+     root.BiteCustomerOrderAlerts?.syncUser?.({user:state.sessionUser});
+     text('biteAccountOrderAlertsMessage',requested?'In-app order alerts enabled.':'In-app order alerts turned off. My Orders still updates normally.');
+   }catch(error){
+     if(sameUser(id)&&epoch===state.epoch){
+       control.checked=!requested;
+       text('biteAccountOrderAlertsMessage','Could not save alert preference. Please retry.');
      }
    }finally{state.preferenceBusy=false;control.disabled=false;}
  }
@@ -224,6 +256,7 @@
  byId('biteProfileForm')?.addEventListener('submit',saveProfile);
  byId('biteEmailChangeForm')?.addEventListener('submit',requestEmailChange);
  byId('biteAccountVeg')?.addEventListener('change',saveVeg);
+ byId('biteAccountOrderAlerts')?.addEventListener('change',saveOrderAlerts);
  // Intercept the existing Back button only for account subpages.
  byId('accountBackBtn')?.addEventListener('click',e=>{
    if(state.subpage==='overview')return;
@@ -240,7 +273,7 @@
    }
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
    state.sessionUser=user;
-   updateVegUI();applyVegMode();
+   updateVegUI();updateOrderAlertsUI();applyVegMode();
    if(section.dataset.section!=='profile')renderProfile();
  });
  root.BiteAccountHub={
@@ -249,18 +282,18 @@
      if(!user?.id)return;
      if(user.id!==state.userId){state.epoch++;state.profile=null;}
      state.userId=user.id;state.sessionUser=user;
-     show('overview');renderProfile();updateVegUI();applyVegMode();
+     show('overview');renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();
    },
    setProfile(profile,user){
      if(!user?.id||!sameUser(user.id))return;
      state.profile=profile||null;state.sessionUser=user;
-     renderProfile();updateVegUI();
+     renderProfile();updateVegUI();updateOrderAlertsUI();
    }
  };
  sb.auth.getSession().then(({data})=>{
    const user=data?.session?.user;
    if(!user)return;
    if(user.id!==state.userId){state.epoch++;state.profile=null;state.userId=user.id;}
-   state.sessionUser=user;renderProfile();updateVegUI();applyVegMode();
+   state.sessionUser=user;renderProfile();updateVegUI();updateOrderAlertsUI();applyVegMode();
  }).catch(()=>{});
 })(window);
