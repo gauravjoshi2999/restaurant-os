@@ -140,7 +140,7 @@ check("const platformPages=['overview','restaurants','orders','reconciliation','
       "Platform Admin audit log viewer is available only in the Admin workspace")
 check("setRestaurantApproval" in owner and "onboardingStatus" in owner,
       "Platform Admin has explicit restaurant approve/reject/suspend/reactivate controls")
-check("const allowed=access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[]" in owner and "if(!allowed.includes(id))id='overview'" in owner,
+check("window.BiteHospitality?.routeList(access)||" in owner and "(access.role==='owner'?ownerPages:access.role==='super_admin'?platformPages:[])" in owner and "if(!allowed.includes(id))id='overview'" in owner,
       "Owner route guard allows supported restaurant operations and blocks disabled or Platform Admin pages")
 blocked_pos_handler = "Manual POS / offline order entry Bite ke initial marketplace version mein enabled nahi hai." in owner
 guarded_pos_handler = "if(!['owner','manager'].includes(access.role))" in owner and "if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId)" in owner
