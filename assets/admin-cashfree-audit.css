@@ -93,3 +93,30 @@
     display:none
   }
 }
+
+/* Automatic refund readiness: neutral controls, no implied bank-credit success. */
+#financials .bite-auto-refund-summary{
+ display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+ padding:14px;margin:12px 0 15px;border:1px solid #dbe3de;
+ border-radius:14px;background:#f7faf8;color:#264b3d
+}
+#financials .bite-auto-refund-summary-icon{
+ display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;
+ border-radius:12px;background:#e8f1eb;font-weight:800;font-size:22px
+}
+#financials .bite-auto-refund-summary-body{flex:1 1 200px;min-width:0}
+#financials .bite-auto-refund-summary-body strong{display:block;font-size:15px}
+#financials #biteRefundAutoStatus{margin:3px 0 0;overflow-wrap:anywhere}
+#financials #biteRefundAutoCheck{min-height:44px}
+#financials #biteRefundReviewRows td:last-child button{
+ display:block;width:100%;min-height:42px;margin:0 0 8px;
+ white-space:normal;text-align:left;line-height:1.3
+}
+#financials #biteRefundReviewRows td:nth-child(4){min-width:220px;overflow-wrap:anywhere;line-height:1.5}
+#financials #biteRefundReviewRows button:focus-visible,
+#financials #biteRefundAutoCheck:focus-visible{outline:3px solid #166b4d;outline-offset:2px}
+@media(max-width:760px){
+ #financials .bite-auto-refund-summary{align-items:flex-start;gap:10px;padding:12px}
+ #financials #biteRefundAutoCheck{width:100%}
+ #financials #biteRefundReviewRows td:last-child button{text-align:center}
+}
