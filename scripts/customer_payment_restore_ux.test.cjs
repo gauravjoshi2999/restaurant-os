@@ -111,7 +111,7 @@ test('late lookup must not show account A payment in account B session',async()=
 });
 test('account switch clears attempt guard and mobile cache loads corrected script',()=>{
  assert.match(source,/lastRestoreAttemptKey=null;recoveryBusy=false/);
- assert.match(html,/assets\/customer-completion\.js\?v=20261116-payment-restore1/);
+ assert.match(html,/assets\/customer-completion\.js\?v=20261116-account-center2/);
  assert.doesNotMatch(restore,/notice\('Could not check the previous payment/);
  assert.match(source,/restoreUnavailable\?'Previous payment status unavailable'/);
  assert.match(source,/lastRestoreAttemptKey=null;recoveryBusy=false;pendingLiveCheckout=null/);
