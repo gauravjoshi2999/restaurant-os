@@ -23,7 +23,7 @@ Hotel-only manual extras do not depend on restaurant menu/POS. Folio UPI/card/ba
 
 ## Verification and evidence
 
-- Baseline **723 Node tests**. Current **747/747 Node regression tests**, frontend/structure/build checks and existing cashbook/delivery PostgreSQL checks passed.
+- Baseline **723 Node tests**. Operational release **747/747 Node regression tests**, frontend/structure/build checks and existing cashbook/delivery PostgreSQL checks passed.
 - [Operational QA 43852828203](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43852828203) runs the actual new migrations, real legacy order-field guard surface and all original Owner SQL suites on disposable PostgreSQL 17.
 - **176 recorded browser assertions at runtime QA 43869216519 (97 original + 79 operational)**, zero uncaught page errors, at 360px/390px/1440px. These click actual controllers with explicitly synthetic transport; they are not signed-in production-browser or physical-APK proof. Cases include interrupted/offline checkout, slow loading, returning guests, DND, payer print, cashier dine-in, takeaway, net room discount, closing and audit search.
 - [Screenshots, browser evidence and tested Excel workbook](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43852828203/artifacts/14218272969). Fixture screens are labelled synthetic; only runtime files are packaged for Pages.
