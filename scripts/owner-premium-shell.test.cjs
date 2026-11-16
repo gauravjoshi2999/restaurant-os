@@ -47,7 +47,7 @@ test('Owner layer is isolated from payments, customer and admin workspaces',()=>
   const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   assert.match(style,/data-role="owner"/);
   assert.match(style,/prefers-reduced-motion:reduce/);
-  assert.match(source,/BiteHospitality\.routeList/);
+  assert.match(source,/hotel\.routeList/);
   assert.match(source,/root\.showPage/);
   assert.doesNotMatch(source,/supabase\.|cashfree|fetch\(|\.insert\(|\.update\(|service_role/i);
   assert.match(html,/owner-premium-shell\.css/);
