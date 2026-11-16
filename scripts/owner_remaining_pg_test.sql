@@ -1,0 +1,193 @@
+-- Endpoints and production-shaped triggers, synthetic records, rollback only.
+begin;
+create trigger enforce_owner_assignment before insert or update on public.restaurant_members for each row execute function public.enforce_single_restaurant_owner_assignment();
+create function pg_temp.denied(statement text,fragment text) returns void language plpgsql as $$begin
+ begin execute statement;raise exception 'EXPECTED_DENIAL_MISSING';exception when others then
+  if sqlerrm='EXPECTED_DENIAL_MISSING' or (position(fragment in sqlerrm)=0 and sqlstate<>'42501') then raise;end if;
+ end;end $$;
+create temp table remaining_state(key text primary key,value text);
+grant all on remaining_state to authenticated;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;f2 uuid;e uuid;t uuid;j uuid;rid uuid;k uuid;out jsonb;args jsonb;q jsonb;tot jsonb;link jsonb;credit numeric;begin
+ select id into p from public.bite_properties where origin_restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ perform public.bite_property_command(p,'config',jsonb_build_object('name','Remaining workflow QA','business_type','hybrid','capabilities','["hotel_rooms","guest_register","reservations","folios","housekeeping","hotel_incidentals","restaurant_pos","restaurant_menu","dine_in","takeaway","online_food_orders","room_service","charge_to_room","expenses","staff_management","reporting"]'::jsonb,'tax_profile','{"reviewed":true,"room_rate":5,"incidental_rate":5}'::jsonb),gen_random_uuid());
+ args:='{"checkin_time":"23:59","checkout_time":"11:00","policy":{"reviewed":true,"early_checkin_fee":25,"late_fee_per_hour":10,"grace_minutes":30,"turnover_minutes":30,"max_late_hours":24,"unused_night_credit_percent":100,"fee_tax_rate":5}}';
+ perform public.bite_property_command(p,'policy_save',args,gen_random_uuid());
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''policy_save'',''{}'',gen_random_uuid())',p),'Review valid');
+ out:=public.bite_property_command(p,'room_save','{"number":"R-QA","room_type":"Deluxe","nightly_rate":100,"adults":2,"children":1}',gen_random_uuid());r:=(out->>'id')::uuid;
+ out:=public.bite_property_command(p,'guest_save','{"full_name":"SECRET PRIVATE GUEST","phone":"9999999900","country":"France","is_oci":false,"address":"PRIVATE ADDRESS","id_last4":"ABCD"}',gen_random_uuid());g:=(out->>'id')::uuid;
+ args:=jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date,'departure',current_date+4,'adults',1,'children',0,'booking_source','external_booking','booking_reference','SYNTHETIC-OTA','advance_amount',400,'advance_method','UPI','advance_reference','SYNTHETIC-BANK','booking_mode','checkin');
+ q:=public.bite_reservation_quote(p,args||'{"mode":"checkin"}'::jsonb);
+ assert (q->>'total')::numeric=446.25;
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''reserve'',%L,gen_random_uuid())',p,(args||'{"quote_hash":"forged"}'::jsonb)::text),'Room quote changed');
+ args:=args||jsonb_build_object('quote_hash',q->>'quote_hash');k:=gen_random_uuid();out:=public.bite_property_command(p,'reserve',args,k);
+ assert out=public.bite_property_command(p,'reserve',args,k);s:=(out->>'id')::uuid;f:=(out->>'folio_id')::uuid;
+ assert (select count(*) from public.bite_folio_entries where folio_id=f and kind='advance')=1;
+ assert (select status from public.bite_folio_entries where folio_id=f and kind='advance')='pending';
+ q:=public.bite_reservation_quote(p,args||jsonb_build_object('stay_id',s,'mode','checkin'));
+ assert (q->>'total')::numeric=446.25;
+ select id into e from public.bite_folio_entries where folio_id=f and kind='advance';
+ perform public.bite_property_command(p,'payment_confirm',jsonb_build_object('folio_id',f,'id',e,'reference','VERIFIED-SYNTHETIC-BANK'),gen_random_uuid());
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+ assert (select count(*) from public.bite_folio_entries where folio_id=f and policy_tag='early_checkin')=1;
+ assert (select sum(amount+tax_amount) from public.bite_folio_entries where folio_id=f and kind='charge')=446.25;
+ -- A later policy edit cannot change the agreement on this stay.
+ perform public.bite_property_command(p,'policy_save','{"checkin_time":"14:00","checkout_time":"11:00","policy":{"reviewed":true,"unused_night_credit_percent":0}}',gen_random_uuid());
+ assert (select (policy_snapshot->>'unused_night_credit_percent')::numeric from public.bite_stays where id=s)=100;
+ -- Tasks do not create a second financial sale or receipt.
+ perform public.bite_property_command(p,'member','{"id":"44444444-4444-4444-8444-444444444444","role":"housekeeping","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p,'member','{"id":"77777777-7777-4777-8777-777777777777","role":"cashier","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p,'room_privacy',jsonb_build_object('id',r,'do_not_disturb',true,'cleaning_requested',true),gen_random_uuid());
+ select id into t from public.bite_service_tasks where property_id=p and room_id=r and kind='cleaning' and status='requested';assert t is not null;
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','assigned','assigned_to','44444444-4444-4444-8444-444444444444'),gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
+ assert jsonb_array_length(public.bite_hotel_workspace(p)->'guests')=0;
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''task_update'',%L,gen_random_uuid())',p,jsonb_build_object('id',t,'status','in_progress')::text),'Do Not Disturb');
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform public.bite_property_command(p,'room_privacy',jsonb_build_object('id',r,'do_not_disturb',false),gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','in_progress'),gen_random_uuid());
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','completed'),gen_random_uuid());
+ assert (select housekeeping from public.bite_rooms where id=r)='cleaning';
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r,'status','ready'),gen_random_uuid());
+ args:=jsonb_build_object('folio_id',f,'restaurant_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','fulfilment','room_service','items','[{"name":"Tea","quantity":1,"unit_price":10}]'::jsonb);k:=gen_random_uuid();out:=public.bite_property_command(p,'room_pos',args,k);
+ assert public.bite_property_command(p,'room_pos',args,k)=out;
+ select id into t from public.bite_service_tasks where order_id=(out->>'order_id')::uuid;assert t is not null;
+ assert (select count(*) from public.bite_service_tasks where order_id=(out->>'order_id')::uuid)=1;
+ assert not exists(select 1 from public.restaurant_order_payments where order_id=(out->>'order_id')::uuid);
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''checkout'',%L,gen_random_uuid())',p,jsonb_build_object('folio_id',f)::text),'outstanding room-service');
+ perform set_config('request.jwt.claim.sub','77777777-7777-4777-8777-777777777777',true);
+ assert jsonb_array_length(public.bite_hotel_workspace(p)->'guests')=0;
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','in_progress'),gen_random_uuid());
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','ready'),gen_random_uuid());
+ perform public.bite_property_command(p,'task_update',jsonb_build_object('id',t,'status','completed'),gen_random_uuid());
+ perform pg_temp.denied(format('select public.bite_guest_link(%L,%L)',p,f),'sharing denied');
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ -- A reviewed early checkout credit follows allocated nights, not a free text amount.
+ q:=public.bite_checkout_policy_quote(p,s);assert (q->>'early_credit')::numeric>=200;
+ k:=gen_random_uuid();args:=jsonb_build_object('folio_id',f,'quote_hash',q->>'quote_hash');out:=public.bite_property_command(p,'apply_checkout_policy',args,k);
+ assert public.bite_property_command(p,'apply_checkout_policy',args,k)=out;
+ perform public.bite_property_command(p,'apply_checkout_policy',args,gen_random_uuid());
+ assert (select count(*) from public.bite_folio_entries where folio_id=f and policy_tag='early_checkout')=1;
+ select (value->'totals'->>'balance')::numeric into credit from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios') where value->>'id'=f::text;credit:=-credit;assert credit>0;
+ args:=jsonb_build_object('folio_id',f,'amount',credit,'method','UPI','reason','Unused prepaid nights');k:=gen_random_uuid();out:=public.bite_property_command(p,'refund_request',args,k);j:=(out->>'id')::uuid;
+ assert out=public.bite_property_command(p,'refund_request',args,k);
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''refund_request'',%L,gen_random_uuid())',p,args::text),'exceed');
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''refund_update'',%L,gen_random_uuid())',p,jsonb_build_object('id',j,'status','paid','reference','fake')::text),'Verify the actual return');
+ perform public.bite_property_command(p,'refund_update',jsonb_build_object('id',j,'status','processing'),gen_random_uuid());
+ link:=public.bite_guest_link(p,f);assert length(link->>'token')=64;
+ out:=public.bite_guest_folio(link->>'token');assert out::text not like '%SECRET PRIVATE%' and out::text not like '%PRIVATE ADDRESS%' and out::text not like '%9999999900%';
+ assert out->'refunds'->0->>'status'='processing';
+ args:=jsonb_build_object('id',j,'status','paid','reference','SYNTHETIC-RETURN-1234','return_verified',true);k:=gen_random_uuid();out:=public.bite_property_command(p,'refund_update',args,k);
+ assert out=public.bite_property_command(p,'refund_update',args,k);
+ assert (select count(*) from public.bite_folio_entries where folio_id=f and kind='refund')=1;
+ assert public.bite_guest_folio(link->>'token')->'refunds'->0->>'reference_tail'='1234';
+ q:=public.bite_guest_link(p,f);
+ perform pg_temp.denied(format('select public.bite_guest_folio(%L)',link->>'token'),'invalid or expired');
+ out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0),gen_random_uuid());f2:=(out->>'folio_id')::uuid;tot:=public.bite_guest_link(p,f2);
+ perform public.bite_property_command(p,'guest_link_revoke',jsonb_build_object('folio_id',f),gen_random_uuid());
+ assert public.bite_guest_folio(tot->>'token')->>'status'='open';
+ perform pg_temp.denied(format('select public.bite_guest_folio(%L)',q->>'token'),'invalid or expired');
+ link:=public.bite_guest_link(p,f);insert into remaining_state values('guest_token',link->>'token'),('folio',f::text),('property',p::text),('stay',s::text);
+ perform public.bite_property_command(p,'compliance_save',jsonb_build_object('id',s,'travel_document_checked',true,'permission_checked',true,'arrival_reference','SYNTHETIC-EXTERNAL-ACK','arrived_from','Delhi'),gen_random_uuid());
+ assert (select arrival_reported_at is not null and departure_reported_at is null from public.bite_stay_compliance where stay_id=s);
+ out:=public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid());assert out->'invoice' is not null;
+ assert exists(select 1 from public.bite_service_tasks where room_id=r and kind='cleaning' and stay_id is null and status='requested');
+ -- Self-application is pending until the existing Admin approves it.
+ p2:=public.bite_create_property('Second verified property','hybrid',gen_random_uuid());
+ args:='{"name":"Synthetic new restaurant","city":"Rajsamand","address":"Synthetic address only","phone":"9999999900"}';k:=gen_random_uuid();out:=public.bite_property_command(p2,'outlet_application',args,k);rid:=(out->>'id')::uuid;
+ assert public.bite_property_command(p2,'outlet_application',args,k)=out;
+ assert not exists(select 1 from public.bite_property_outlets where restaurant_id=rid);
+ assert public.has_restaurant_role(rid,array['owner']);
+ assert private.bite_verified_owner_portfolio('11111111-1111-4111-8111-111111111111',rid);
+ perform public.bite_property_command(p2,'outlet_application_edit',jsonb_build_object('restaurant_id',rid,'name','Corrected restaurant','address','Corrected synthetic address'),gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+ perform pg_temp.denied(format('select public.admin_resolve_owner_mapping(''11111111-1111-4111-8111-111111111111'',%L)',rid),'Verified portfolios');
+ -- Approval is exercised separately as privileged fixture setup below.
+ insert into remaining_state values('restaurant',rid::text),('property2',p2::text);
+ perform set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+ perform pg_temp.denied(format('select public.bite_hotel_workspace(%L)',p),'Property access denied');
+ perform pg_temp.denied(format('select public.bite_unified_audit(%L,'''',null)',p),'Audit access denied');
+ perform pg_temp.denied(format('select public.bite_checkout_policy_quote(%L,%L)',p,s),'Stay access denied');
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ -- A staff member assigned to two properties gets a separately scoped workspace.
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p2,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
+ perform public.bite_property_command(p2,'guest_save','{"full_name":"Second property only guest","phone":"9999999911"}',gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+ assert public.bite_hotel_workspace(p2)->'guests' @> '[{"full_name":"Second property only guest"}]'::jsonb;
+ assert not public.bite_hotel_workspace(p)->'guests' @> '[{"full_name":"Second property only guest"}]'::jsonb;
+ assert not public.bite_hotel_workspace(p2)->'guests' @> '[{"full_name":"SECRET PRIVATE GUEST"}]'::jsonb;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":false}',gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+ perform pg_temp.denied(format('select public.bite_hotel_workspace(%L)',p),'Property access denied');
+ assert jsonb_array_length(public.bite_hotel_workspace(p2)->'guests')=1;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ assert jsonb_array_length(public.bite_unified_audit(p,'room_pos',null)->'rows')>0;
+ assert not has_table_privilege('anon','public.bite_guest_folio_links','select');
+ assert not has_table_privilege('authenticated','public.bite_guest_folio_links','select');
+ assert not has_function_privilege('anon','public.bite_guest_link(uuid,uuid)','execute');
+ assert not has_function_privilege('authenticated','private.bite_policy_quote(uuid,timestamptz)','execute');
+ raise notice 'PASS: quoted prepaid arrival, policy snapshot, scoped service queues/DND, cashier, once-only manual refund progress, guest token rotation/revoke/privacy, checklist and pending approved portfolio';
+end $$;
+reset role;
+-- Production-equivalent Admin UPDATE trigger and expiry; no service calls.
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+update public.restaurants set status='Active',onboarding_status='approved' where id=(select value::uuid from remaining_state where key='restaurant');
+do $$begin
+ assert exists(select 1 from public.bite_property_outlets where restaurant_id=(select value::uuid from remaining_state where key='restaurant') and property_id=(select value::uuid from remaining_state where key='property2'));
+ assert not (select is_published from public.restaurants where id=(select value::uuid from remaining_state where key='restaurant'));
+
+end $$;
+select set_config('bite.qa_guest_token',(select value from remaining_state where key='guest_token'),true);
+set local role anon;
+select set_config('request.jwt.claim.sub','',true);
+do $$begin
+ assert public.bite_guest_folio(current_setting('bite.qa_guest_token'))->>'status'='settled';
+ perform pg_temp.denied('select public.bite_guest_folio(''invalid'')','invalid or expired');
+end $$;
+reset role;
+update public.bite_guest_folio_links set expires_at=now()-interval '1 second' where folio_id=(select value::uuid from remaining_state where key='folio');
+set local role anon;
+do $$begin perform pg_temp.denied(format('select public.bite_guest_folio(%L)',current_setting('bite.qa_guest_token')),'invalid or expired');end $$;
+reset role;
+-- Approved timing guards and late-policy math with an explicit simulated time.
+do $$declare p uuid;r uuid;g uuid;s uuid;f uuid;q jsonb;incoming uuid;begin
+ select value::uuid into p from remaining_state where key='property';
+ select id into g from public.bite_guests where property_id=p limit 1;
+ insert into public.bite_rooms(property_id,number,room_type,nightly_rate,adults,children)values(p,'Late-QA','Deluxe',100,2,0)returning id into r;
+ insert into public.bite_stays(property_id,room_id,guest_id,arrival,departure,adults,nightly_rate,room_tax_rate,status,policy_snapshot,standard_checkout_at,expected_checkout_at)
+ values(p,r,g,current_date-1,current_date,1,100,5,'in_house','{"reviewed":true,"late_fee_per_hour":10,"grace_minutes":30,"turnover_minutes":30,"max_late_hours":24,"fee_tax_rate":5}',(current_date+time '11:00')at time zone 'Asia/Kolkata',(current_date+time '11:00')at time zone 'Asia/Kolkata')returning id into s;
+ insert into public.bite_folios(property_id,stay_id)values(p,s)returning id into f;
+ q:=private.bite_policy_quote(s,(current_date+time '12:31')at time zone 'Asia/Kolkata');assert (q->>'late_fee')::numeric=20 and (q->>'late_tax')::numeric=1;
+ insert into public.bite_stays(property_id,room_id,guest_id,arrival,departure,adults,nightly_rate,room_tax_rate,scheduled_arrival_at)values(p,r,g,current_date,current_date+1,1,100,5,(current_date+time '14:00')at time zone 'Asia/Kolkata')returning id into incoming;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''late_checkout'',%L,gen_random_uuid())',p,jsonb_build_object('id',s,'until',current_date::text||'T15:00','reason','Requested by guest')::text),'conflicts');
+ perform public.bite_property_command(p,'late_checkout',jsonb_build_object('id',s,'until',current_date::text||'T13:00','reason','Agreed with guest','waive_fee',true),gen_random_uuid());
+ q:=private.bite_policy_quote(s,(current_date+time '12:31')at time zone 'Asia/Kolkata');assert (q->>'late_fee')::numeric=0;
+ update public.bite_stays set expected_checkout_at=(current_date+time '15:00')at time zone 'Asia/Kolkata' where id=s;
+ perform pg_temp.denied(format('select private.bite_check_room_timing(%L,%L,current_date,current_date+1)',p,r),'conflict');
+ raise notice 'PASS: hourly late fee/grace/tax, approved waiver, incoming-booking and cleaning-time conflict';
+end $$;
+-- Hotel Only -> Hybrid retains an occupied guest's original folio and charges.
+do $$declare p uuid;g uuid;r uuid;s uuid;f uuid;rid uuid;v jsonb;entries_before jsonb;begin
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ p:=public.bite_create_property('Hotel adds food QA','hotel',gen_random_uuid());
+ v:=public.bite_property_command(p,'guest_save','{"full_name":"Existing hotel guest QA","phone":"9999999912"}',gen_random_uuid());g:=(v->>'id')::uuid;
+ v:=public.bite_property_command(p,'room_save','{"number":"Add-food-1","room_type":"Deluxe","nightly_rate":100,"adults":1,"children":0}',gen_random_uuid());r:=(v->>'id')::uuid;
+ v:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());s:=(v->>'id')::uuid;f:=(v->>'folio_id')::uuid;
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+ select jsonb_agg(to_jsonb(e)order by e.id)into entries_before from public.bite_folio_entries e where e.folio_id=f;
+ perform public.bite_property_command(p,'config',jsonb_build_object('name','Hotel adds food QA','business_type','hybrid','capabilities',private.bite_default_capabilities('hybrid')),gen_random_uuid());
+ v:=public.bite_property_command(p,'outlet_application','{"name":"Hotel new food outlet QA","city":"Rajsamand","address":"Synthetic hotel food address","phone":"9999999912"}',gen_random_uuid());rid:=(v->>'id')::uuid;
+ perform set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+ update public.restaurants set status='Active',onboarding_status='approved' where id=rid;
+ assert exists(select 1 from public.bite_property_outlets where property_id=p and restaurant_id=rid);
+ assert (select jsonb_agg(to_jsonb(e)order by e.id)from public.bite_folio_entries e where e.folio_id=f)=entries_before;
+ assert (select stay_id from public.bite_folios where id=f)=s and (select status from public.bite_stays where id=s)='in_house';
+ raise notice 'PASS: Hotel Only to Hybrid approval preserves the occupied guest folio';
+end $$;
+rollback;

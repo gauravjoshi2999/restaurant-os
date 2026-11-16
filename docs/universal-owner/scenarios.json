@@ -43,21 +43,21 @@
       "1440x1000 desktop"
     ],
     "entry_point": "hotel-register",
-    "screens_actions": "Search/select guest, complete essential details, choose dates/occupancy/room, save draft or review and confirm",
+    "screens_actions": "Enter external booking reference and already-received advance, review the current server quote, confirm reservation/check-in, verify bank receipt separately",
     "required_fields": "Guest name/phone/country; optional email and minimal ID type/last4; dates, room, adults/children",
     "permissions": "guest_register / reservations",
     "mutations": "Guest profile; reserved stay; one folio; check-in posts room nights once",
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Guest profile; reserved stay; one folio; check-in posts room nights once",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Reservation/advance entry is manual; there is no hotel OTA/online-reservation connector.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Manual external booking reference, server-priced early-arrival quote, once-only advance and bank verification. No OTA connector or live card charge is claimed.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A003",
@@ -110,12 +110,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Guest profile; reserved stay; one folio; check-in posts room nights once",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/universal_owner_concurrency.sh"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Two distinct guests and two authorized staff race for the last room on isolated PostgreSQL 17. Physical reception traffic is not certified.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A005",
@@ -260,11 +262,11 @@
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
     "test_status": "PARTIAL",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Minimal nationality/identity recording and FRRO reminder are available. Prescribed foreign-guest reporting fields/filing are not certified.",
+    "limitation": "Foreign/OCI checklist, external acknowledgments and 24-hour arrival/departure reminders are implemented. Full official reporting, supporting records and legal certification remain external.",
     "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
@@ -400,22 +402,22 @@
       "390x844 Android",
       "1440x1000 desktop"
     ],
-    "entry_point": "reservations",
-    "screens_actions": "Select reservation; check in, reassign room, extend, cancel or mark no-show after cutoff",
+    "entry_point": "folios",
+    "screens_actions": "Manager approves late departure time/reason/waiver; server checks the incoming booking and cleaning interval",
     "required_fields": "Property/stay IDs; target room or departure; resolved financial obligations before cancellation",
     "permissions": "reservations",
     "mutations": "Property-locked stay/availability change; preserve folio and history",
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Property-locked stay/availability change; preserve folio and history",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Extension conflicts are guarded; a dedicated late-checkout policy and incoming-arrival walkthrough remain.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Approved departure time plus turnover cannot overlap an incoming booking. Explicit simulated timestamps test the boundary; no elapsed-time device certification.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A015",
@@ -1151,21 +1153,21 @@
       "1440x1000 desktop"
     ],
     "entry_point": "folios",
-    "screens_actions": "Open correct stay folio; review items; add/reverse charge, record/verify collection or deposit, preview or settle",
+    "screens_actions": "Owner creates a credit-return request, records actual return progress/reference; authorized guest opens the time-limited bill link",
     "required_fields": "Property/folio IDs; positive two-decimal amount; description; method; verified reference for pending transfers",
     "permissions": "folios; owner/manager for adjustments, refunds and verification",
     "mutations": "Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Existing marketplace refund progress is preserved. A guest-facing hotel stay portal is not enabled.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Owner records actual property returns with verified reference; guest sees pending/processing/paid states through a scoped expiring link. No money is sent by these forms; food gateway refunds retain their existing flow.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A040",
@@ -1309,14 +1311,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Early checkout uses explicit authorized adjustments; an automatic policy engine is not implemented.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Reviewed unused-night percentage uses structured nightly allocations and an immutable agreed policy. Legacy stays retain zero automatic fees; old unallocated charges require manual review.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A045",
@@ -1339,14 +1341,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Manual extra charges are available; automatic configurable late-checkout fees are not implemented.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Reviewed per-started-hour rate, grace, cap, fee tax and approved waiver tested using explicit simulated times. Tax/legal certification remains external.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A046",
@@ -1399,14 +1401,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Invoice and split-statement browser preview/printing passed. Actual guest dispatch and a physical printer are not certified.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Immutable folio, PDF rendering and private-link copy/rotation/revoke tested. Physical printer and actual guest-message delivery are not certified.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A048",
@@ -1639,14 +1641,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Room readiness/note changes with timestamped audit; no guest payment mutation",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Stayover cleaning requests and DND appear on room cards and follow the guest on a move. A separate staff assignment/completion queue is not implemented.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Assigned cleaning task, DND hold, staff completion and separate supervisor Ready inspection tested; no guest-ID access is granted to housekeeping.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A056",
@@ -1789,12 +1791,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Room readiness/note changes with timestamped audit; no guest payment mutation",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_remaining_browser.py"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Two independent Chromium sessions use a shared synthetic server; the actual 30-second controller polling propagates cleaning and supervisor Ready. This is not two physical Android devices.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A061",
@@ -1817,14 +1821,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Existing restaurant owners keep their setup. A brand-new restaurant still needs platform approval and outlet association.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "New Restaurant Only owner completes the existing wizard and submits a real approval-shaped outlet application with no invented rooms. Admin approval/publication remains explicit.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A062",
@@ -1997,14 +2001,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_browser.py"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Capability-driven navigation and server dine-in gate are implemented; dedicated cloud-kitchen bill-type UI needs completion.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Disabling dine-in removes its navigation/table/order-type choices while keeping POS; SQL capabilities remain authoritative.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A068",
@@ -2539,14 +2543,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; One canonical POS sale; no second POS receipt when transferred; one linked folio charge",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "POS food can be billed to a stay; a separate room-service fulfilment queue is not implemented.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Room POS creates one source sale/folio entry and a preparation-ready-delivered task. Outstanding service blocks checkout. Progress never collects twice.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A086",
@@ -2689,14 +2693,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; One canonical POS sale; no second POS receipt when transferred; one linked folio charge",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_browser.py; scripts/owner_module_race_test.sh"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Online-disabled server gates are tested. Full offline-marketplace/hybrid POS browser context remains separate.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "After disabling online food orders the UI saves a new room-service POS sale; modules, route options and source deduplication remain active.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A091",
@@ -2899,14 +2903,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Enabling restaurant capabilities preserves folios; adding/associating an additional outlet still needs a trusted mapping step.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "An occupied Hotel Only property enables restaurant modules and receives an Admin-approved outlet; original stay/folio and charges survive in rollback-only production verification.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A098",
@@ -3109,12 +3113,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_remaining_pg_test.sql"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "A receptionist assigned to two properties gets separate scoped workspaces. Revoking the first removes access immediately while retaining the second.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A105",
@@ -3137,14 +3143,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_pg_test.sql; scripts/owner_remaining_browser.py"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Multiple property memberships/context data are tested; browser/native property-switch handoff is not fully exercised.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Two property contexts, independent data/roles and the actual reload-based browser handoff are tested. Native device handoff is separately limited under A107/A115.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A106",
@@ -3167,14 +3173,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_remaining_browser.py; scripts/owner_remaining_pg_test.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Different business types per owner are represented; the complete two-property UI/native walkthrough is not run.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Hybrid-to-Hotel Only property selection clears prior room/restaurant data and applies different capability routes; synthetic transport and SQL tenant checks.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A107",
@@ -3197,11 +3203,13 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PARTIAL",
+    "evidence": [
+      "scripts/owner_remaining_browser.py; index.html switchBiteProperty"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
+    "limitation": "Browser property reload removes the prior outlet badge/workspace. Actual FCM/Android cross-outlet notification handoff still needs real-device verification.",
     "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
@@ -3225,11 +3233,13 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PARTIAL",
+    "evidence": [
+      "scripts/owner_remaining_pg_test.sql; docs/universal-owner/production_remaining_rollback.sql"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
+    "limitation": "Anonymous guest-table/token-table access and guest-link identity leakage are denied. Bite does not store guest identity scans, so a guest-document URL storage workflow is not implemented or certified.",
     "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
@@ -3317,7 +3327,7 @@
     "evidence": [],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
+    "limitation": "Mobile widths and reachable form controls are browser-tested. An actual Android software keyboard and viewport resize have not been exercised.",
     "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
@@ -3521,14 +3531,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Read-only report/export; food-linked folio references are not another restaurant sale",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py"
+      "scripts/owner_remaining_closing_pg_test.sql; scripts/owner_combined_closing_race.sh; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "A combined immutable closing snapshot reconciles recorded cash and separates room/incidentals/source food/deposits. Later entries are flagged. Existing restaurant day locks remain independent; both department journals are not locked together.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Explicit combined journal locking covers hotel entries and all seven restaurant cashbook sources. Source/closing races reject stale reviews. Existing snapshots stay compatible; marketplace activation is exempt. No bank settlement certification.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   },
   {
     "id": "A119",
@@ -3581,13 +3591,13 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Read-only report/export; food-linked folio references are not another restaurant sale",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "bite_property_audit; hotel Reports recent activity"
+      "scripts/owner_remaining_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_remaining_rollback.sql"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Property command audits are searchable with timestamp, actor, entity and pagination. Existing legacy restaurant audit records remain in their original scope, not one fully merged audit search.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "limitation": "Property, linked legacy restaurant and relevant platform actions share scoped actor/timestamp/entity search and opaque pagination. Raw audit payloads and bearer tokens are not exposed.",
+    "verified_ci": "Runtime QA 43869216519 plus final PR #147 QA; production rollback probes where explicitly listed"
   }
 ]

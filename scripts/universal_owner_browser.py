@@ -13,7 +13,7 @@ subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=Tr
 base=(ROOT/'dist/qa/owner-flow.html').read_text()
 fixture=(ROOT/'scripts/fixtures/hospitality_backend.js').read_text()
 for kind in ['hotel','hybrid','restaurant','new','cashier']:
- html=base.replace('<script src="assets/owner-hospitality.js?v=20261116-2"></script>',f'<script>window.__BITE_HOSPITALITY_TYPE={json.dumps(kind)};</script><script>{fixture}</script><script src="assets/owner-hospitality.js?v=20261116-2"></script>')
+ html=base.replace('<script src="assets/owner-hospitality.js?v=20261116-3"></script>',f'<script>window.__BITE_HOSPITALITY_TYPE={json.dumps(kind)};</script><script>{fixture}</script><script src="assets/owner-hospitality.js?v=20261116-3"></script>')
  assert fixture in html
  if kind=='new':html=html.replace("window.__BITE_QA_ROLE='owner';","window.__BITE_QA_ROLE='new-hotel-owner';",1)
  (ROOT/f'dist/qa/{kind}-owner.html').write_text(html)

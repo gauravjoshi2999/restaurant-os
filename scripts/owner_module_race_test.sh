@@ -4,12 +4,12 @@ set -euo pipefail
 task_tmp=$(mktemp -d)
 trap 'rm -rf "$task_tmp"' EXIT
 psql -v ON_ERROR_STOP=1 <<'SQL'
-insert into public.restaurants(id,name)values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Synthetic module race');
-insert into public.restaurant_members(restaurant_id,user_id,role)values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','11111111-1111-4111-8111-111111111111','owner');
+insert into public.restaurants(id,name,created_by)values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Synthetic module race','66666666-6666-4666-8666-666666666666');
 insert into public.bite_properties(id,business_id,origin_restaurant_id,name,business_type,capabilities)
 select 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',id,'cccccccc-cccc-4ccc-8ccc-cccccccccccc','Synthetic module race','restaurant',private.bite_default_capabilities('restaurant') from public.bite_businesses where owner_id='11111111-1111-4111-8111-111111111111';
 insert into public.bite_property_members values('dddddddd-dddd-4ddd-8ddd-dddddddddddd','11111111-1111-4111-8111-111111111111','owner',true);
 insert into public.bite_property_outlets values('dddddddd-dddd-4ddd-8ddd-dddddddddddd','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+insert into public.restaurant_members(restaurant_id,user_id,role)values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','11111111-1111-4111-8111-111111111111','owner');
 SQL
 wait_marker(){
  for task_n in {1..60};do

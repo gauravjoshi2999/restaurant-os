@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  const C=root.BiteCapabilities;
- const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Folios & Bills','housekeeping':'Housekeeping','business-modules':'Business Modules'};
+ const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Folios & Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service'};
  let ctx,properties=[],data=empty(),selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -13,7 +13,7 @@
  const has=cap=>C.has(prop(),cap);
  const identity=()=>[ctx?.getUser()?.id,prop()?.id].join(':');
  const restaurantAccess=()=>!!ctx?.getAccess().restaurantId;
- const allowed=()=>prop()?.role==='cashier'?['overview','pos']:C.routes(prop(),restaurantAccess());
+ const allowed=()=>prop()?.role==='cashier'?['overview','pos',...(has('room_service')?['room-service']:[])]:C.routes(prop(),restaurantAccess());
  const $=id=>document.getElementById(id);
  const btn=(action,label,id='',extra='')=>`<button type="button" class="btn secondary" data-hotel-action="${action}" data-id="${esc(id)}" ${extra}>${esc(label)}</button>`;
  const field=(name,label,type='text',value='',extra='')=>`<label class="bh-field"><span>${esc(label)}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
@@ -23,7 +23,7 @@
  const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`;
  const stateCard=(text)=>`<div class="bh-empty">${esc(text)}</div>`;
  function init(context){
-  ctx=context;
+  ctx=context;root.BiteOwnerOperations?.init(context);
   const content=document.querySelector('#mainApp .main>.content');if(!content)return;
   for(const [id,title] of Object.entries(titles)){
    if(!$(id)){const s=document.createElement('section');s.id=id;s.className='page bh-workspace';s.hidden=true;s.setAttribute('aria-label',title);content.append(s)}
@@ -54,7 +54,7 @@
   root.addEventListener('online',()=>{if(has('hotel_rooms'))void reload().catch(showError)});
   startPolling();
  }
- function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&has('hotel_rooms')&&!document.querySelector('.bh-workspace form:focus-within'))void reload().catch(()=>{});syncOrderBadge()},30000)}
+ function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&!!prop()&&!document.querySelector('.bh-workspace form:focus-within'))void reload().catch(()=>{});syncOrderBadge()},30000)}
  async function loadContext(){
   const {data:rows,error}=await ctx.sb.rpc('bite_owner_context');
   if(error){
@@ -70,7 +70,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
-  loadVersion++;data=empty();selectedFolio=null;setupDraft=null;setupStep=1;reportFrom='';reportTo='';
+  root.BiteOwnerOperations?.clear();loadVersion++;data=empty();selectedFolio=null;setupDraft=null;setupStep=1;reportFrom='';reportTo='';
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
   startPolling();
   // Clear the old property immediately, before any new network response.
@@ -114,7 +114,7 @@
   const version=++loadVersion,pid=p.id;
   const {data:rows,error}=await ctx.sb.rpc('bite_hotel_workspace',{p_property:pid});
   if(version!==loadVersion||prop()?.id!==pid)return;
-  if(error)throw error;
+  if(error){if(error.code==='42501'){data=empty();for(const id of Object.keys(titles))$(id)?.replaceChildren();root.BiteOwnerOperations?.clear()}throw error;}
   data={...empty(),...rows};renderHome();
   const active=document.querySelector('#mainApp .page.active')?.id;
   if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within'))renderPage(active);
@@ -157,10 +157,11 @@
   if(id==='overview'){if(!prop()){void ctx.navigate('business-modules');return}renderHome();return}
   if(id==='business-modules'){renderSetup();return}
   const target=$(id);if(!target)return;
+  if(id==='room-service'){root.BiteOwnerOperations?.tasks(target,'room_service');return}
   if(id==='hotel-register'){renderRegister();return}
   if(id==='rooms'||id==='housekeeping'){
    target.innerHTML=header(id==='rooms'?'Rooms':'Housekeeping','Checkout leaves the room Dirty. Inspect and mark Ready before the next arrival.',['owner','manager'].includes(prop().role)?btn('new-room','＋ Add room'):'')+notice()+
-    '<div class="bh-room-grid">'+data.rooms.map(r=>`<article class="bh-panel"><div class="bh-room-title"><h2>${esc(r.number)}</h2><span class="bh-chip ${roomState(r)}">${esc(roomState(r))}</span></div><p>${esc(r.room_type)} · Floor ${esc(r.floor||'—')}</p><p>${money(r.nightly_rate)} / night · ${r.adults} adults, ${r.children} children</p><p>${esc(r.status_note)}</p>${r.do_not_disturb?'<p class="bh-chip">Do Not Disturb · cleaning delayed</p>':''}${r.cleaning_requested?'<p class="bh-note">Stayover cleaning requested</p>':''}<div class="bh-actions">${r.active?btn('room-privacy','DND / cleaning request',r.id):''}${r.active?btn('room-status','Update status',r.id):''}${['owner','manager'].includes(prop().role)?btn('edit-room','Edit',r.id):''}</div></article>`).join('')+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add the real room numbers and rates to begin.'):'' );return;
+    '<div class="bh-room-grid">'+data.rooms.map(r=>`<article class="bh-panel"><div class="bh-room-title"><h2>${esc(r.number)}</h2><span class="bh-chip ${roomState(r)}">${esc(roomState(r))}</span></div><p>${esc(r.room_type)} · Floor ${esc(r.floor||'—')}</p><p>${money(r.nightly_rate)} / night · ${r.adults} adults, ${r.children} children</p><p>${esc(r.status_note)}</p>${r.do_not_disturb?'<p class="bh-chip">Do Not Disturb · cleaning delayed</p>':''}${r.cleaning_requested?'<p class="bh-note">Stayover cleaning requested</p>':''}<div class="bh-actions">${r.active?btn('room-privacy','DND / cleaning request',r.id):''}${r.active?btn('room-status','Update status',r.id):''}${['owner','manager'].includes(prop().role)?btn('edit-room','Edit',r.id):''}</div></article>`).join('')+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add the real room numbers and rates to begin.'):'' );root.BiteOwnerOperations?.decorateRooms(target);return;
   }
   if(id==='reservations'){
    target.innerHTML=header('Reservations','Choose a stay to check in, extend, move or review its folio.',btn('register','＋ New reservation')+btn('group-booking','Group booking'))+notice()+searchBox('Search guest, room or status')+data.stays.map(s=>stayCard(s)).join('')+(!data.stays.length?stateCard('No reservations in this property.'):'' );return;
@@ -171,7 +172,7 @@
   if(id==='folios'){renderFolios();return}
   if(id==='reports'){renderReports(target);return}
   if(id==='settings'){
-   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;return;
+   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);return;
   }
   if(id==='hr'){renderStaffAccess(target);return}
   if(id==='expenses'){
@@ -195,8 +196,10 @@
    <h2>2 · Stay & room</h2><div class="bh-form-grid">${field('arrival','Arrival *','date',draft.arrival||today(),'required')}${field('departure','Departure *','date',draft.departure||datePlus(1),'required')}${field('adults','Adults *','number',draft.adults||1,'required min="1" max="20"')}${field('children','Children','number',draft.children||0,'required min="0" max="20"')}${select('room_id','Room *',option('','Choose a room')+data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type+' · '+money(r.nightly_rate)+'/night · '+roomState(r),r.id===draft.room_id)).join(''),'required')}${field('compliance_note','Compliance / arrival note','text',draft.compliance_note||'','maxlength="250"')}</div>
    ${select('mode','On confirmation',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))}
    <p class="bh-note">Availability and room readiness are checked again by the server. No payment is collected by this form.</p>${notice()}<div class="bh-form-actions">${btn('save-draft','Save draft')}<button type="submit" class="btn">Review check-in</button></div></form>`;
+  root.BiteOwnerOperations?.registerFields($('bhCheckinForm'),draft,g);
   $('bhCheckinForm').querySelector('[data-guest-picker]').addEventListener('change',e=>{
    const f=$('bhCheckinForm'),g=data.guests.find(g=>g.id===e.target.value);
+   if(g&&f.elements.is_oci)f.elements.is_oci.checked=!!g.is_oci;
    if(g)for(const key of ['full_name','phone','country','email','address','id_type','id_last4'])f.elements[key].value=g[key]||'';
    f.dataset.stayId='';f.dataset.reviewed='';f.querySelector('.bh-review')?.remove();persistDraft(f);
   });
@@ -225,7 +228,7 @@
    '<div class="bh-metrics">'+[['Charges',money(t.charges)],['Applied payments',money(t.paid)],['Balance due',money(t.balance)],['Held deposit',money(t.deposit_held)]].map(([k,v])=>`<div class="bh-metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')+'</div>'+notice()+
    (Number(t.pending)>0?`<p class="bh-note">${money(t.pending)} verification pending. Pending transfers do not settle this bill.</p>`:'')+
    '<div class="bh-ledger">'+entries.map(e=>`<article class="bh-record"><div><strong>${esc(e.description)}</strong><p>${esc(e.kind)} · ${esc(e.category)}${e.method?' · '+esc(e.method):''} · ${esc(e.status)}<br>${esc(new Date(e.created_at).toLocaleString('en-IN'))}</p>${e.source_order_id?'<small>Linked POS sale — collect here once</small>'+((e.source_items||[]).map(i=>'<p>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(i.unit_price)+'</p>').join('')):''}</div><strong>${['payment','advance','discount','reversal','deposit_apply'].includes(e.kind)?'−':''}${money(Number(e.amount)+Number(e.tax_amount||0))}</strong><div class="bh-actions">${writable&&e.status==='pending'&&['owner','manager'].includes(prop().role)?btn('verify-payment','Verify received',e.id)+btn('void-payment','Not received',e.id):''}${writable&&e.kind==='charge'&&['owner','manager'].includes(prop().role)&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Reverse food sale':'Reverse',e.id):''}</div></article>`).join('')+'</div>'+(!entries.length?stateCard('No charges yet. Room nights are posted once at check-in.'):'' )+
-   `<div class="bh-actions bh-folio-actions">${writable?btn('entry','＋ Add charge','charge')+btn('entry','Collect payment','payment')+btn('entry','Deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply'):''}${writable&&['owner','manager'].includes(prop().role)?btn('entry','Discount','discount')+btn('entry','Record credit refund','refund'):''}${writable&&['owner','manager'].includes(prop().role)?btn('split-bill','Split payer statements',f.id):''}${f.payer_split?'<p class="bh-note">Split: '+esc(f.payer_split.first_name)+' '+f.payer_split.first_percent+'% / '+esc(f.payer_split.second_name)+' '+(100-f.payer_split.first_percent)+'%. Receipts remain on this folio.</p>':''}${(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')}${btn('preview','Preview / Print',f.id)}${btn('share','Share statement',f.id)}${writable&&s?.status==='in_house'?btn('checkout','Settle & Check Out',f.id):''}</div><div id="bhFolioEditor"></div>`;
+   `<div class="bh-actions bh-folio-actions">${writable?btn('entry','＋ Add charge','charge')+btn('entry','Collect payment','payment')+btn('entry','Deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply'):''}${writable&&['owner','manager'].includes(prop().role)?btn('entry','Discount','discount')+btn('entry','Record credit refund','refund'):''}${writable&&['owner','manager'].includes(prop().role)?btn('split-bill','Split payer statements',f.id):''}${f.payer_split?'<p class="bh-note">Split: '+esc(f.payer_split.first_name)+' '+f.payer_split.first_percent+'% / '+esc(f.payer_split.second_name)+' '+(100-f.payer_split.first_percent)+'%. Receipts remain on this folio.</p>':''}${(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')}${btn('preview','Preview / Print',f.id)}${btn('share','Share statement',f.id)}${writable&&s?.status==='in_house'?btn('checkout','Settle & Check Out',f.id):''}</div><div id="bhFolioEditor"></div>`;root.BiteOwnerOperations?.decorateFolio(target,f,s,g);
  }
  function reportEntries(){const from=reportFrom||today(),to=reportTo||today();return data.entries.filter(e=>{const d=root.BiteOwner.day(e.created_at);return d>=from&&d<=to})}
  function renderReports(target){
@@ -236,7 +239,7 @@
    `<form class="bh-form bh-panel" data-hotel-form="report-filter"><div class="bh-form-grid">${field('from','From','date',from,'required')}${field('to','To','date',to,'required')}</div><button type="submit" class="btn">Apply dates</button>${notice()}</form>`+
    '<div class="bh-metrics">'+[['Room charges (incl. tax)',money(t.room)],['Incidentals (incl. tax)',money(t.incidentals)],['Recorded collections',money(t.collections)],['Deposit held at end date',money(held)],['Pending in period',money(t.pending)],['Current folio balance',money(balance)]].map(([k,v])=>`<div class="bh-metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')+'</div>'+
    `<p class="bh-note">${money(t.foodOnFolios)} food posted in this period references existing POS sales. Do not add it again to restaurant sales. Deposits and cash collections are not sales. These are ledger record dates and current verification states, not a bank settlement statement.</p>`+
-   '<article class="bh-panel"><h2>Recorded money by method</h2>'+methods.map(m=>`<div class="bh-room-line"><strong>${m.method}</strong><span>${money(m.amount)}</span></div>`).join('')+`<p>Property expenses in period: ${money(expenses)}. Restaurant expenses stay in the existing restaurant reports.</p><p class="bh-note">This report does not close or lock a combined hotel/restaurant cash drawer. Restaurant day closing retains its existing scope.</p></article>`+
+   '<article class="bh-panel"><h2>Recorded money by method</h2>'+methods.map(m=>`<div class="bh-room-line"><strong>${m.method}</strong><span>${money(m.amount)}</span></div>`).join('')+`<p>Property expenses in period: ${money(expenses)}. Restaurant expenses stay in the existing restaurant reports.</p><p class="bh-note">Use the combined closing below to save a snapshot or explicitly lock the hotel and restaurant journals for a day. Online payment processing continues.</p></article>`+
    '<div id="bhOperationalReports"></div><article class="bh-panel"><h2>Recent audit activity</h2>'+data.audit.map(a=>`<div class="bh-room-line"><strong>${esc(a.action)}</strong><span>${esc(new Date(a.created_at).toLocaleString('en-IN'))}</span></div>`).join('')+(!data.audit.length?stateCard('No activity yet.'):'' )+'</article>';
   void loadOperationalReports().catch(showError);
  }
@@ -247,14 +250,14 @@
   const r=await ctx.sb.rpc('bite_property_report',{p_property:p.id,p_from:from,p_to:to});
   if(!mount.isConnected||prop()?.id!==p.id||from!==(reportFrom||today())||to!==(reportTo||today()))return;
   if(r.error){mount.innerHTML=stateCard('Combined report unavailable: '+r.error.message);return}
-  const v=r.data;mount.innerHTML='<article class="bh-panel"><h2>Combined property ledger</h2><div class="bh-metrics">'+[['Room charges',v.room_revenue],['Incidentals',v.incidentals_revenue],['Food sales (source orders once)',v.food_revenue],['Total recorded sales',v.total_revenue],['Net drawer cash movement',v.cash_movement]].map(([k,n])=>'<div class="bh-metric"><span>'+esc(k)+'</span><strong>'+money(n)+'</strong></div>').join('')+'</div><p class="bh-note">Food transfers are collection references, not another sale. Deposit movements affect cash, not revenue. Gateway settlements remain in the existing payment reports.</p>'+v.methods.map(m=>'<div class="bh-room-line"><strong>'+esc(m.payment_method)+'</strong><span>'+money(m.net)+'</span></div>').join('')+(from===to&&['owner','manager'].includes(p.role)?btn('close-shift','Review combined closing'):'')+(v.closings||[]).map(c=>'<div class="bh-record"><div><strong>Closed '+esc(c.shift_date)+'</strong><p>Expected '+money(c.expected_cash)+' · Counted '+money(c.counted_cash)+' · Difference '+money(c.difference)+'</p><p>'+esc(c.notes)+'</p>'+(from===to&&c.snapshot.source_hash!==v.source_hash?'<p class="bh-note">Entries changed after this snapshot. Review the later cash movements.</p>':'')+'</div></div>').join('')+'</article><form class="bh-panel bh-form" data-hotel-form="audit-search"><h2>Search audit history</h2>'+field('query','Action or entity identifier','search',auditQuery,'maxlength="100"')+'<button class="btn" type="submit">Search all history</button></form><div id="bhAuditResults"></div>';
+  const v=r.data;mount.innerHTML='<article class="bh-panel"><h2>Combined property ledger</h2><div class="bh-metrics">'+[['Room charges',v.room_revenue],['Incidentals',v.incidentals_revenue],['Food sales (source orders once)',v.food_revenue],['Total recorded sales',v.total_revenue],['Net drawer cash movement',v.cash_movement]].map(([k,n])=>'<div class="bh-metric"><span>'+esc(k)+'</span><strong>'+money(n)+'</strong></div>').join('')+'</div><p class="bh-note">Food transfers are collection references, not another sale. Deposit movements affect cash, not revenue. Gateway settlements remain in the existing payment reports.</p>'+v.methods.map(m=>'<div class="bh-room-line"><strong>'+esc(m.payment_method)+'</strong><span>'+money(m.net)+'</span></div>').join('')+(from===to&&['owner','manager'].includes(p.role)?btn('close-shift','Review combined closing'):'')+(v.closings||[]).map(c=>'<div class="bh-record"><div><strong>Closed '+esc(c.shift_date)+(c.locked?' · Journals locked':' · Snapshot')+'</strong><p>Expected '+money(c.expected_cash)+' · Counted '+money(c.counted_cash)+' · Difference '+money(c.difference)+'</p><p>'+esc(c.notes)+'</p>'+(from===to&&(c.lock_review||c.snapshot).source_hash!==v.source_hash?'<p class="bh-note">Entries changed after this snapshot. Review the later cash movements.</p>':'')+'</div></div>').join('')+'</article><form class="bh-panel bh-form" data-hotel-form="audit-search"><h2>Search audit history</h2>'+field('query','Action or entity identifier','search',auditQuery,'maxlength="100"')+'<button class="btn" type="submit">Search all history</button></form><div id="bhAuditResults"></div>';
  }
  async function searchAudit(more){
   const p=prop(),mount=$('bhAuditResults');if(!mount)return;
-  const r=await ctx.sb.rpc('bite_audit_search',{p_property:p.id,p_query:auditQuery,p_before:more?auditBefore:null});if(r.error)throw r.error;if(!mount.isConnected||p.id!==prop()?.id)return;
+  const r=await ctx.sb.rpc('bite_unified_audit',{p_property:p.id,p_query:auditQuery,p_cursor:more?auditBefore:null});if(r.error)throw r.error;if(!mount.isConnected||p.id!==prop()?.id)return;
   mount.querySelector('[data-hotel-action=audit-more]')?.remove();if(!more)mount.replaceChildren();
-  const rows=r.data||[];mount.insertAdjacentHTML('beforeend',rows.map(a=>'<article class="bh-record"><div><strong>'+esc(a.action)+'</strong><p>'+esc(new Date(a.created_at).toLocaleString('en-IN'))+'</p><small>'+esc(a.entity_id||'')+'</small></div></article>').join('')||stateCard('No matching actions.'));
-  auditBefore=rows.at(-1)?.id||null;if(rows.length===100)mount.insertAdjacentHTML('beforeend',btn('audit-more','Load older actions'));
+  const rows=r.data?.rows||[];mount.insertAdjacentHTML('beforeend',rows.map(a=>'<article class="bh-record"><div><strong>'+esc(a.source||'Property')+' · '+esc(a.action)+'</strong><p>'+esc(a.actor_name||'Staff / system')+' · '+esc(new Date(a.created_at).toLocaleString('en-IN'))+'</p><small>'+esc(a.entity_id||'')+'</small></div></article>').join('')||stateCard('No matching actions.'));
+  auditBefore=r.data?.next_cursor||null;if(auditBefore)mount.insertAdjacentHTML('beforeend',btn('audit-more','Load older actions'));
  }
  function renderSetup(){
   if(!setupDraft){const p=prop();setupDraft={name:p?.name||'',business_type:p?.business_type||'restaurant',address:p?.address||'',phone:p?.phone||'',capabilities:[...(p?.configured_capabilities||p?.capabilities||C.defaults.restaurant)],tax_profile:p?.tax_profile||{reviewed:false}}}
@@ -300,7 +303,7 @@
    else if(action==='audit-more'){await searchAudit(true)}
    else if(action==='close-shift'){
     const date=reportFrom||today(),r=await ctx.sb.rpc('bite_property_report',{p_property:prop().id,p_from:date,p_to:date});if(r.error)throw r.error;
-    editor(`<form class="bh-form" data-hotel-form="close-shift"><h2>Combined closing snapshot · ${esc(date)}</h2><input type="hidden" name="shift_date" value="${esc(date)}"><input type="hidden" name="source_hash" value="${esc(r.data.source_hash)}">${field('opening_cash','Combined opening cash','number',0,'required min="0" step="0.01"')}${field('counted_cash','Combined counted cash','number','','required min="0" step="0.01"')}${field('notes','Difference / shift notes','text','','maxlength="500"')}<p>Recorded cash movement: ${money(r.data.cash_movement)}. Expected = opening + movement. Deposits are liabilities, not revenue.</p><p class="bh-note">This creates one immutable combined closing snapshot. Existing restaurant day locks remain separate. Later entries are flagged when reviewing this date.</p>${notice()}<button class="btn" type="submit">Review & record closing</button></form>`);
+    editor(`<form class="bh-form" data-hotel-form="close-shift"><h2>Combined closing snapshot · ${esc(date)}</h2><input type="hidden" name="shift_date" value="${esc(date)}"><input type="hidden" name="source_hash" value="${esc(r.data.source_hash)}">${field('opening_cash','Combined opening cash','number',0,'required min="0" step="0.01"')}${field('counted_cash','Combined counted cash','number','','required min="0" step="0.01"')}${field('notes','Difference / shift notes','text','','maxlength="500"')}<p>Recorded cash movement: ${money(r.data.cash_movement)}. Expected = opening + movement. Deposits are liabilities, not revenue.</p><p class="bh-note">This creates one immutable combined closing snapshot. Choose a snapshot for review only, or lock hotel and restaurant journals for this date. A lock cannot be undone here; record corrections on a later open day. Online payment activation continues.</p><label class="bh-check"><input type="checkbox" name="lock_journals"> Lock hotel and restaurant journals for this date</label>${notice()}<button class="btn" type="submit">Review & record closing</button></form>`);
    }
    else if(action==='split-bill'){
     const f=data.folios.find(f=>f.id===id),v=f.payer_split||{};editor(`<form class="bh-form" data-hotel-form="split-bill"><h2>Split itemized payer statements</h2>${field('first_name','First payer name','text',v.first_name||'','required maxlength="120"')}${field('second_name','Second payer name','text',v.second_name||'','required maxlength="120"')}${field('first_percent','First payer share (%)','number',v.first_percent||50,'required min="0.01" max="99.99" step="0.01"')}<p class="bh-note">Each charge is partitioned in paise; the second payer receives the remainder. After settlement, print both itemized statements. Collections remain on the original folio; these are not separate payment receipts.</p>${notice()}<button class="btn" type="submit">Save payer split</button></form>`);
@@ -381,20 +384,20 @@
     }
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
-     const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000);
-     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Room quote ${money(n*Number(r?.nightly_rate||0))} before applicable configured taxes.</p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} — no money collected.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
+     const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000),quote=await root.BiteOwnerOperations.reservationQuote(f,form.dataset.stayId);form.dataset.quoteHash=quote.quote_hash;
+     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
     }
     let guestId=f.guest_id;
-    if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
+    if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),is_oci:f.is_oci==='on',...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
     let stayId=form.dataset.stayId,folioId;
-    if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
+    if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
     else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children)})}
     if(f.mode==='checkin'){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
     localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=folioId||null;await ctx.navigate('folios');
    }else{
     let action,payload;
     if(type==='room'){action='room_save';payload={...f,id:form.dataset.roomId||null,nightly_rate:Number(f.nightly_rate),adults:Number(f.adults),children:Number(f.children),active:f.active==='true'}}
-    if(type==='close-shift'){action='close_shift';payload={...f,opening_cash:Number(f.opening_cash),counted_cash:Number(f.counted_cash)};if(!root.confirm('Record the reviewed combined closing?'))return}
+    if(type==='close-shift'){action='close_shift';payload={...f,opening_cash:Number(f.opening_cash),counted_cash:Number(f.counted_cash),lock_journals:f.lock_journals==='on'};if(!root.confirm(f.lock_journals==='on'?'Lock hotel and restaurant journals for this day? Later corrections must use an open day. Online payment activation continues.':'Record the reviewed combined closing snapshot?'))return}
     if(type==='split-bill'){action='split_bill';payload={...f,folio_id:selectedFolio,first_percent:Number(f.first_percent)}}
     if(type==='room-privacy'){action='room_privacy';payload={...f,id:form.dataset.roomId,do_not_disturb:f.do_not_disturb==='on',cleaning_requested:f.cleaning_requested==='on'}}
     if(type==='room-status'){action='room_status';payload={...f,id:form.dataset.roomId}}
@@ -420,6 +423,7 @@
   win.document.write(`<!doctype html><html><head><title>${esc(s.number)}</title><meta name="viewport" content="width=device-width"><style>body{font:15px/1.5 system-ui;margin:30px;color:#17202a}h1{margin-bottom:0}table{border-collapse:collapse;width:100%;margin:24px 0}td,th{text-align:left;border-bottom:1px solid #ddd;padding:8px}button{padding:12px}@media print{button{display:none}}</style></head><body><h1>${esc(s.property.name)}</h1><p>${esc(s.property.address||'')}<br>${esc(s.property.phone||'')}</p><h2>${esc(s.number)}</h2><p>${esc(taxLabel)}${s.tax_profile?.gstin?' · GSTIN '+esc(s.tax_profile.gstin):''}</p><p>${esc(s.guest.name)}<br>${esc(s.guest.address||'')}</p>${s.allocation_note?'<p>'+esc(s.allocation_note)+'</p>':''}<p>Room ${esc(s.room?.number||'—')} · ${esc(s.stay?.arrival||'')} → ${esc(s.stay?.departure||'')}</p><table><thead><tr><th>Entry</th><th>Status</th><th>Amount</th></tr></thead><tbody>${s.entries.map(e=>`<tr><td>${esc(e.description)}<br><small>${esc(e.kind)}</small>${(e.source_items||[]).map(i=>'<br><small>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(i.unit_price)+'</small>').join('')}</td><td>${esc(e.status)}</td><td>${money(Number(e.amount)+Number(e.tax_amount||0))}</td></tr>`).join('')}</tbody></table><p>Charges: ${money(s.totals.charges)} · Applied payments: ${money(s.totals.paid)}<br><strong>Balance: ${money(s.totals.balance)}</strong> · Deposit held: ${money(s.totals.deposit_held)}</p><button onclick="window.print()">Print / Save PDF</button></body></html>`);win.document.close();win.opener=null;
  }
  async function shareStatement(id){
+  if(root.BiteOwnerOperations){await root.BiteOwnerOperations.share(id);return}
   const s=statement(id),text=s.property.name+'\n'+s.number+'\nGuest: '+s.guest.name+'\nCharges: '+money(s.totals.charges)+'\nPayments: '+money(s.totals.paid)+'\nBalance: '+money(s.totals.balance);
   if(navigator.share)await navigator.share({title:s.property.name+' guest statement',text});
   else if(navigator.clipboard){await navigator.clipboard.writeText(text);const m=document.querySelector('.page.active .bh-message');if(m)m.textContent='Statement summary copied. Share only with the authorized guest.'}
@@ -435,7 +439,7 @@
   $('posPaymentSection').prepend(type);type.querySelector('[name=bite_order_type]').addEventListener('change',e=>{$('orderChannel').value=e.target.value;$('orderChannel').dispatchEvent(new Event('change'));$('bitePOSTableField').hidden=e.target.value!=='POS - Dine-in';if(e.target.value!=='POS - Dine-in')type.querySelector('[name=bite_table_id]').value=''});
   if(!has('charge_to_room'))return;
   const box=document.createElement('div');box.id='biteRoomPOSTender';box.className='bh-workspace';
-  box.innerHTML=`${select('bite_tender','Food bill payment',option('pay_now','Pay now / usual POS')+option('room','Charge to room'))}<div id="biteRoomPOSPicker" hidden><label class="bh-field"><span>Verify room and guest</span><select id="biteRoomPOSFolio" name="bite_room_folio"><option value="">Loading occupied rooms…</option></select></label><p class="bh-note">No money collected here. The existing POS sale and its guest folio charge are saved together once.</p>${['owner','manager'].includes(prop().role)?field('bite_food_discount','Room food discount (₹)','number',0,'min="0" step="0.01"')+field('bite_discount_reason','Discount reason','text','','maxlength="100"'):''}</div>`;
+  box.innerHTML=`${select('bite_tender','Food bill payment',option('pay_now','Pay now / usual POS')+option('room','Charge to room'))}<div id="biteRoomPOSPicker" hidden><label class="bh-field"><span>Verify room and guest</span><select id="biteRoomPOSFolio" name="bite_room_folio"><option value="">Loading occupied rooms…</option></select></label><p class="bh-note">No money collected here. The existing POS sale and its guest folio charge are saved together once.</p>${has('room_service')?select('bite_fulfilment','Fulfilment',option('served','Served now')+option('room_service','Prepare and deliver to room'))+field('bite_service_note','Room-service instructions','text','','maxlength="250"'):''}${['owner','manager'].includes(prop().role)?field('bite_food_discount','Room food discount (₹)','number',0,'min="0" step="0.01"')+field('bite_discount_reason','Discount reason','text','','maxlength="100"'):''}</div>`;
   $('posPaymentSection').prepend(box);box.querySelector('[name=bite_tender]').addEventListener('change',e=>{
    const room=e.target.value==='room';$('orderModal').dataset.roomCharge=String(room);$('biteRoomPOSPicker').hidden=!room;
   });
@@ -450,16 +454,19 @@
   const text=$('biteRoomPOSFolio').selectedOptions[0]?.textContent;
   const discount=Number($('orderForm').elements.bite_food_discount?.value||0);
   if(!root.confirm(text+'\nFood charge '+money(total-discount)+(discount?' (discount '+money(discount)+')':'')+'\nPost once to this guest folio?'))throw Error('Room charge cancelled. Bill draft is preserved.');
-  return command('room_pos',{folio_id,restaurant_id:ctx.getAccess().restaurantId,items,channel:$('orderChannel').value,discount:Number($('orderForm').elements.bite_food_discount?.value||0),discount_reason:$('orderForm').elements.bite_discount_reason?.value||''});
+  return command('room_pos',{folio_id,restaurant_id:ctx.getAccess().restaurantId,items,fulfilment:$('orderForm').elements.bite_fulfilment?.value||'served',service_note:$('orderForm').elements.bite_service_note?.value||'',channel:$('orderChannel').value,discount:Number($('orderForm').elements.bite_food_discount?.value||0),discount_reason:$('orderForm').elements.bite_discount_reason?.value||''});
  }
  function createPOSSale(items,fields){return command('pos_sale',{restaurant_id:ctx.getAccess().restaurantId,items,channel:fields.get('channel'),customer_name:fields.get('customer_name')||'',customer_phone:fields.get('customer_phone')||'',paid_amount:Number(fields.get('paid_amount')||0),payment_method:fields.get('payment_method'),reference:fields.get('payment_reference')||'',table_id:fields.get('bite_table_id')||null})}
  function postedOrder(id){return data.entries.find(e=>e.source_order_id===id)||null}
  async function augmentPage(id){
-  if(!prop()||!restaurantAccess())return;
+  if(!prop())return;
+  if(id==='settings'&&restaurantAccess()){await reload();root.BiteOwnerOperations?.settings($('settings'))}
+  if(!restaurantAccess())return;
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
- root.BiteHospitality={init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0,
+ function clear(){root.BiteOwnerOperations?.clear();loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
+ root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0,
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);
