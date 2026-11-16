@@ -34,7 +34,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 6.10b Confirm whether 25 disabled items reflect genuine kitchen availability before re-enabling any.
 - [x] 6.11a Read-only media inventory: 91 externally hosted Wikimedia Commons URLs, 1 blank Choklet image, photo licensing documented in 9 repo credit files. See `docs/launch/MAHARANI_MEDIA_SOURCE_AUDIT_20261116.md`.
 - [x] 6.11b Run real Chromium network tests of all 91 URLs: 33/91 bulk-load, 58 transient-looking errors; separate clean-runner serial retest loaded 7/7. See `docs/launch/MAHARANI_IMAGE_LOAD_DIAGNOSTIC_20261116.md`.
-- [ ] 6.11c Certify each image and exact license/attribution and physical-device relevance; 7/7 spotcheck does not prove 91/91.
+- [x] 6.11c Create and merge customer-facing photo-source page for 91 current images, scoped to Maharani, with source links and mobile search; PR #129 Bite QA passed. **Actual GitHub Pages deploy not yet separately confirmed**.
+- [ ] 6.11d Certify every photo's exact license, attribution completeness, matching Pure Veg dish and device/browser loading; 7/7 clean-runner check is not 91/91.
 - [x] 6.12a Read-only verification: restaurant and Rajsamand delivery zone both specify minimum order ₹1 and delivery fee ₹0; no production changes.
 - [ ] 6.12b Get confirmed commercial order minimum and fee rules from restaurant operator; do not guess replacements.
 - [x] 6.13a Read-only verification: 1 active Rajsamand delivery zone, PIN 313324, pickup/delivery enabled, 10:00–23:00 hours and 30-minute prep; **restaurant address and map coordinates NULL**.
@@ -49,7 +50,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 6.20 Reconcile pilot charge, fee, refund (if any), restaurant payout, support outcome and order completion.
 
 ## Phase 5 — Admin, security and delivery
-- [ ] 5.01 Inventory all Admin/Super Admin roles and routes; keep Owner features separate.
+- [x] 5.01a Verify static route matrices: Owner has 13 permitted pages, Super Admin has 10, enforced by applyRoleUI/showPage and app-scope guards. Read-only report: `docs/launch/ROLE_ROUTE_AND_RLS_REVIEW_20261116.md`.
+- [ ] 5.01b Verify signed-in APK role isolation and navigation against authenticated test identities.
 - [x] 5.02 Audit production mappings read-only: 5 memberships, 5 distinct users, 5 restaurants; no multi-restaurant or multiple-owner conflicts; no Admin/Owner membership overlap on inspected rows.
 - [x] 5.03a Verify Maharani has exactly 1 owner membership in database.
 - [ ] 5.03b Verify intended person's identity/actual Partner login using authorized sign-in; do not infer identity from count.
@@ -122,4 +124,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**5.01 and 5.04b**: finish role/route inventory and safe account-isolation negative tests. Photo bulk/serial diagnosis is complete; 6.11c remains open for real-device and licensing QA, along with 6.08b, 6.09b, 6.10b, 6.12b, 6.13b and 6.14b.
+**5.01b, 5.04b and 5.05**: authenticated role isolation and per-restaurant data negative tests in isolated identities, without mutations to real restaurant/customer accounts. Photo credits static page merged; keep 6.11d license/media verification and the original human/device/payment gates open.
