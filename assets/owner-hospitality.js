@@ -2,8 +2,9 @@
 (function(root){
  'use strict';
  const C=root.BiteCapabilities;
- const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Folios & Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service'};
+ const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service'};
  let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
+ let foodFolio=null,foodMenu=[],foodCart=new Map(),foodQuery='';
  let housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''},housekeepingRequest=0;
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,7 +25,7 @@
  const notice=()=>'<p class="bh-message" role="status" aria-live="polite"></p>';
  function hotelSubnav(title){
   if(prop()?.business_type!=='hybrid'||!has('hotel_rooms'))return '';
-  const byTitle={'Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Housekeeping':'housekeeping','Folios & Bills':'folios'};
+  const byTitle={'Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Housekeeping':'housekeeping','Guest Bills':'folios','Guest Bill':'folios'};
   const page=byTitle[title];
   const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios'];
   if(!routes.includes(page))return '';
@@ -136,6 +137,7 @@
   content.addEventListener('click',handleClick);content.addEventListener('submit',handleSubmit);
   content.addEventListener('input',e=>{
    const search=e.target.closest('[data-hotel-search]');if(search)filterCards(search);
+   const foodSearch=e.target.closest('[data-bh-food-search]');if(foodSearch){foodQuery=foodSearch.value.toLocaleLowerCase().trim();$('bhFoodPicker')?.querySelectorAll('[data-food-row]').forEach(row=>{row.hidden=!row.dataset.foodRow.includes(foodQuery)});}
    const form=e.target.closest('#bhCheckinForm');if(form){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();persistDraft(form)}
   });
   root.addEventListener('online',()=>{if(has('hotel_rooms'))void reload().catch(showError)});
@@ -157,7 +159,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
-  root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;setupDraft=null;setupStep=1;reportFrom='';reportTo='';
+  root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();setupDraft=null;setupStep=1;reportFrom='';reportTo='';
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
   startPolling();
   // Clear the old property immediately, before any new network response.
@@ -334,19 +336,129 @@
  function persistDraft(form){
   try{const fields=Object.fromEntries(new FormData(form));fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
  }
+ function simpleEntryLabel(e){
+  if(e.kind==='charge'&&e.source_order_id)return 'Restaurant food';
+  if(e.kind==='charge'&&e.category==='room')return 'Room rent';
+  if(e.kind==='charge')return e.description||'Other charge';
+  if(e.kind==='payment'||e.kind==='advance')return 'Payment received'+(e.method?' · '+e.method:'');
+  if(e.kind==='discount')return 'Discount';
+  if(e.kind==='reversal')return 'Charge cancelled';
+  if(e.kind==='deposit_hold')return 'Security deposit received';
+  if(e.kind==='deposit_return')return 'Security deposit returned';
+  if(e.kind==='deposit_apply')return 'Security deposit used';
+  if(e.kind==='refund')return 'Refund recorded';
+  return e.description||'Bill adjustment';
+ }
  function renderFolios(){
-  const target=$('folios'),f=data.folios.find(f=>f.id===selectedFolio);
-  if(!f){target.innerHTML=header('Folios & Bills','One statement per stay. Deposits and pending transfers remain separate.')+notice()+data.folios.map(f=>{
-   const s=data.stays.find(s=>s.id===f.stay_id),g=data.guests.find(g=>g.id===s?.guest_id),r=data.rooms.find(r=>r.id===s?.room_id);
-   return `<article class="bh-record"><div><strong>${esc(g?.full_name||'Guest folio')}</strong><p>Room ${esc(r?.number||'—')} · ${esc(f.status)}</p></div><strong>${money(f.totals?.balance)}</strong>${btn('folio','Open',f.id)}</article>`;
-  }).join('')+(!data.folios.length?stateCard('Check in or reserve a guest to open a folio.'):'' );return}
+  const target=$('folios'),f=data.folios.find(x=>x.id===selectedFolio);
+  if(!f){
+   const sorted=[...data.folios].sort((a,b)=>{
+    const sa=data.stays.find(s=>s.id===a.stay_id),sb=data.stays.find(s=>s.id===b.stay_id);
+    return Number(sb?.status==='in_house')-Number(sa?.status==='in_house');
+   });
+   target.innerHTML=header('Guest Bills','Select a room or guest to view everything on one bill.')+notice()+
+    searchBox('Search guest name or room number')+
+    sorted.map(x=>{
+     const s=data.stays.find(s=>s.id===x.stay_id),g=data.guests.find(g=>g.id===s?.guest_id),r=data.rooms.find(r=>r.id===s?.room_id),due=Number(x.totals?.balance||0);
+     return '<article class="bh-record bh-guest-list" data-hotel-search-card="'+esc([g?.full_name,g?.phone,r?.number].join(' ').toLowerCase())+'"><div><strong>'+esc(g?.full_name||'Guest')+'</strong><p>Room '+esc(r?.number||'—')+' · '+esc(s?.status==='in_house'?'Staying':x.status==='open'?'Open bill':'Checked out')+'</p><p>'+esc(due>0?'To collect':due<0?'Credit / refund due':'All paid')+'</p></div><strong>'+money(Math.abs(due))+'</strong>'+btn('folio','View bill',x.id)+'</article>';
+    }).join('')+(!sorted.length?stateCard('No guest bills yet. Create a guest check-in first.'):'' );
+   return;
+  }
   const s=data.stays.find(s=>s.id===f.stay_id),g=data.guests.find(g=>g.id===s?.guest_id),r=data.rooms.find(r=>r.id===s?.room_id),t=f.totals||{},entries=data.entries.filter(e=>e.folio_id===f.id);
   const writable=f.status==='open'&&['owner','manager','receptionist'].includes(prop().role);
-  target.innerHTML=header(g?.full_name||'Guest folio','Room '+(r?.number||'—')+' · '+(s?.arrival||'')+' → '+(s?.departure||''),btn('folio-list','All folios'))+
-   '<div class="bh-metrics">'+[['Charges',money(t.charges)],['Applied payments',money(t.paid)],['Balance due',money(t.balance)],['Held deposit',money(t.deposit_held)]].map(([k,v])=>`<div class="bh-metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')+'</div>'+notice()+
-   (Number(t.pending)>0?`<p class="bh-note">${money(t.pending)} verification pending. Pending transfers do not settle this bill.</p>`:'')+
-   '<div class="bh-ledger">'+entries.map(e=>`<article class="bh-record"><div><strong>${esc(e.description)}</strong><p>${esc(e.kind)} · ${esc(e.category)}${e.method?' · '+esc(e.method):''} · ${esc(e.status)}<br>${esc(new Date(e.created_at).toLocaleString('en-IN'))}</p>${e.source_order_id?'<small>Linked POS sale — collect here once</small>'+((e.source_items||[]).map(i=>'<p>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(i.unit_price)+'</p>').join('')):''}</div><strong>${['payment','advance','discount','reversal','deposit_apply'].includes(e.kind)?'−':''}${money(Number(e.amount)+Number(e.tax_amount||0))}</strong><div class="bh-actions">${writable&&e.status==='pending'&&['owner','manager'].includes(prop().role)?btn('verify-payment','Verify received',e.id)+btn('void-payment','Not received',e.id):''}${writable&&e.kind==='charge'&&['owner','manager'].includes(prop().role)&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Reverse food sale':'Reverse',e.id):''}</div></article>`).join('')+'</div>'+(!entries.length?stateCard('No charges yet. Room nights are posted once at check-in.'):'' )+
-   `<div class="bh-actions bh-folio-actions">${writable?btn('entry','＋ Add charge','charge')+btn('entry','Collect payment','payment')+btn('entry','Deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply'):''}${writable&&['owner','manager'].includes(prop().role)?btn('entry','Discount','discount')+btn('entry','Record credit refund','refund'):''}${writable&&['owner','manager'].includes(prop().role)?btn('split-bill','Split payer statements',f.id):''}${f.payer_split?'<p class="bh-note">Split: '+esc(f.payer_split.first_name)+' '+f.payer_split.first_percent+'% / '+esc(f.payer_split.second_name)+' '+(100-f.payer_split.first_percent)+'%. Receipts remain on this folio.</p>':''}${(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')}${btn('preview','Preview / Print',f.id)}${btn('share','Share statement',f.id)}${writable&&s?.status==='in_house'?btn('checkout','Settle & Check Out',f.id):''}</div><div id="bhFolioEditor"></div>`;root.BiteOwnerOperations?.decorateFolio(target,f,s,g);
+  const manager=writable&&['owner','manager'].includes(prop().role);
+  const canFood=writable&&s?.status==='in_house'&&has('charge_to_room')&&restaurantAccess()&&['owner','manager'].includes(prop().role);
+  const balance=Number(t.balance||0),pending=Number(t.pending||0),held=Number(t.deposit_held||0),paid=Number(t.paid||0);
+  const card='<section class="bh-guest-bill-top"><p class="bh-guest-bill-overline">Guest account</p><h2>'+esc(g?.full_name||'Guest')+'</h2><p>Room '+esc(r?.number||'—')+' · '+esc(s?.arrival||'')+' to '+esc(s?.departure||'')+'</p><span class="bh-chip">'+esc(s?.status==='in_house'?'Guest staying':f.status==='open'?'Bill open':'Checked out')+'</span></section>';
+  const summary='<section class="bh-guest-bill-summary" aria-label="Guest bill summary"><div><span>Room, food & other charges</span><strong>'+money(t.charges)+'</strong></div><div><span>Payment received</span><strong>−'+money(paid)+'</strong></div><div class="bh-guest-bill-due"><span>'+esc(balance>0?'Balance to collect':balance<0?'Credit / refund due':'Balance left')+'</span><strong>'+money(Math.abs(balance))+'</strong></div></section>';
+  const flags=(pending>0?'<p class="bh-note">'+money(pending)+' bank / UPI / card payment is awaiting verification. It is not counted as received.</p>':'')+
+   (held>0?'<p class="bh-note">Security deposit '+money(held)+' is held separately. Apply or return it under Manager options.</p>':'');
+  const primary=writable?'<section class="bh-guest-bill-steps"><h2>What do you want to do?</h2><div class="bh-guest-bill-buttons">'+
+   (canFood?btn('food-menu','＋ Add food from menu',f.id):'')+
+   (balance>0?btn('entry','Record payment','payment'):'')+
+   btn('preview','See full bill',f.id)+btn('share','Share bill',f.id)+
+   (s?.status==='in_house'?btn('checkout','Checkout & final bill',f.id,balance!==0||pending>0||held>0?'disabled title="Clear dues, pending payments and deposits first"':''):'')+
+   '</div>'+(writable&&!canFood&&s?.status==='in_house'&&!has('charge_to_room')?'<p class="bh-note">Menu se khana jodne ke liye property mein Hotel + Restaurant aur Charge to Room enable hona chahiye.</p>':'')+'</section>':
+   '<section class="bh-guest-bill-steps"><div class="bh-guest-bill-buttons">'+btn('preview','See full bill',f.id)+btn('share','Share bill',f.id)+'</div></section>';
+  const activity=entries.map(e=>{
+   const amount=Number(e.amount||0)+Number(e.tax_amount||0),negative=['payment','advance','discount','reversal','deposit_apply'].includes(e.kind);
+   const foodItems=e.source_order_id&&(e.source_items||[]).length?'<div class="bh-guest-food-lines">'+e.source_items.map(i=>'<span>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(Number(i.quantity)*Number(i.unit_price))+'</span>').join('')+'</div>':'';
+   return '<div class="bh-guest-bill-line"><div><strong>'+esc(simpleEntryLabel(e))+'</strong>'+foodItems+
+    (e.kind==='charge'&&!e.source_order_id?'<small>'+esc(e.description||'')+'</small>':'')+
+    '<small>'+esc(e.status==='confirmed'?'Saved':e.status==='pending'?'Awaiting verification':e.status||'')+'</small></div><strong>'+ (negative?'−':'')+money(amount)+'</strong></div>';
+  }).join('');
+  const adjustments=entries.map(e=>
+   '<div class="bh-advanced-entry"><span>'+esc(e.description)+' · '+money(Number(e.amount||0)+Number(e.tax_amount||0))+'</span>'+
+   (manager&&e.status==='pending'?btn('verify-payment','Confirm receipt',e.id)+btn('void-payment','Not received',e.id):'')+
+   (manager&&e.kind==='charge'&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Cancel food charge':'Correct charge',e.id):'')+'</div>'
+  ).join('');
+  const advanced=(writable?'<details class="bh-guest-advanced"><summary>Manager options / corrections</summary><p class="bh-note">Use only for corrections, deposits, refunds or separate payer statements. Changes are recorded in the audit trail.</p><div class="bh-actions">'+
+   btn('entry','Other charge','charge')+btn('entry','Security deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply')+
+   (manager?btn('entry','Discount','discount')+btn('entry','Record refund already paid','refund')+btn('split-bill','Split payer statements',f.id):'')+
+   (f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+
+   '</div><h3>Original ledger and corrections</h3>'+adjustments+'</details>':'');
+  target.innerHTML=header('Guest Bill','All room and restaurant charges in one place.',btn('folio-list','All guest bills'))+
+   card+summary+flags+notice()+primary+'<div id="bhFolioEditor"></div>'+
+   '<section class="bh-guest-bill-activity"><h2>Items on this bill</h2>'+(activity||stateCard('Room and food charges will appear here.'))+'</section>'+
+   advanced;
+  root.BiteOwnerOperations?.decorateFolio(target,f,s,g);
+  const guestOperations=target.querySelector('#biteGuestOperations');
+  if(guestOperations){
+   const disclosure=document.createElement('details');
+   disclosure.className='bh-guest-advanced';
+   const summary=document.createElement('summary');
+   summary.textContent='More guest services / refunds';
+   guestOperations.before(disclosure);disclosure.append(summary,guestOperations);
+   guestOperations.classList.remove('bh-panel');
+  }
+ }
+ function renderFoodPicker(){
+  const mount=$('bhFolioEditor');
+  if(!mount||selectedFolio!==foodFolio)return;
+  const f=data.folios.find(x=>x.id===foodFolio),s=data.stays.find(x=>x.id===f?.stay_id),room=data.rooms.find(x=>x.id===s?.room_id);
+  const picked=foodMenu.filter(x=>(foodCart.get(x.id)||0)>0);
+  const total=picked.reduce((sum,item)=>sum+(foodCart.get(item.id)||0)*Number(item.price),0);
+  const rows=foodMenu.map(item=>{
+   const qty=foodCart.get(item.id)||0;
+   return '<div class="bh-guest-food-row" data-food-row="'+esc(item.name.toLocaleLowerCase())+'"><div><strong>'+esc(item.name)+'</strong><small>'+money(item.price)+'</small></div><div class="bh-guest-qty">'+btn('food-minus','−',item.id,qty===0?'disabled':'')+'<span aria-label="Quantity">'+qty+'</span>'+btn('food-plus','+',item.id)+'</div></div>';
+  }).join('');
+  mount.innerHTML='<section id="bhFoodPicker" class="bh-guest-food-picker"><div class="bh-food-picker-heading"><div><h2>Add food to Room '+esc(room?.number||'—')+'</h2><p>Menu se select karein. Payment checkout par hoga.</p></div>'+btn('food-close','Close')+'</div>'+
+   '<label class="bh-field"><span>Find a dish</span><input type="search" data-bh-food-search placeholder="Search roti, paneer, tea…" value="'+esc(foodQuery)+'" autocomplete="off"></label>'+
+   '<div class="bh-guest-food-list">'+(rows||stateCard('No available dishes. Update the restaurant menu first.'))+'</div>'+
+   '<div class="bh-guest-food-bottom"><strong>'+picked.reduce((n,x)=>n+(foodCart.get(x.id)||0),0)+' items · '+money(total)+'</strong>'+
+   btn('food-save','Add selected food to guest bill','',!picked.length?'disabled':'')+'</div>'+notice()+'</section>';
+  const search=mount.querySelector('[data-bh-food-search]');
+  if(search&&foodQuery)search.dispatchEvent(new Event('input',{bubbles:true}));
+ }
+ async function openFoodPicker(){
+  const folioId=selectedFolio,propertyId=prop()?.id,restaurantId=ctx.getAccess().restaurantId;
+  const folio=data.folios.find(x=>x.id===folioId),stay=data.stays.find(s=>s.id===folio?.stay_id);
+  if(!folio||folio.status!=='open'||stay?.status!=='in_house'||!has('charge_to_room')||!restaurantId)throw Error('Guest must be checked in and Hotel + Restaurant room billing enabled.');
+  if(!['owner','manager'].includes(prop().role))throw Error('Only an authorized restaurant-linked owner or manager can add menu food.');
+  $('bhActionEditor')?.remove();
+  const mount=$('bhFolioEditor');mount.innerHTML='<section class="bh-panel" role="status">Loading restaurant menu…</section>';
+  const response=await ctx.sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');
+  if(prop()?.id!==propertyId||selectedFolio!==folioId)return;
+  if(response.error){mount.innerHTML='';throw response.error;}
+  foodMenu=(response.data||[]).filter(x=>x.id&&x.name&&Number.isFinite(Number(x.price))&&Number(x.price)>=0);
+  foodCart=new Map();foodFolio=folioId;foodQuery='';
+  renderFoodPicker();
+  $('bhFoodPicker')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+ }
+ async function postFoodToBill(){
+  if(!foodFolio||selectedFolio!==foodFolio)throw Error('Guest bill changed. Reopen the food menu.');
+  const f=data.folios.find(x=>x.id===foodFolio),s=data.stays.find(x=>x.id===f?.stay_id),room=data.rooms.find(x=>x.id===s?.room_id);
+  if(f?.status!=='open'||s?.status!=='in_house')throw Error('This guest is no longer checked in.');
+  const items=foodMenu.filter(x=>(foodCart.get(x.id)||0)>0).map(x=>({name:x.name,quantity:foodCart.get(x.id),unit_price:Number(x.price)}));
+  if(!items.length)throw Error('Choose at least one menu item.');
+  const total=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0);
+  if(!root.confirm('Room '+(room?.number||'—')+' mein '+money(total)+' ka food add karna hai? Payment abhi record nahi hoga.'))return;
+  const result=await command('room_pos',{folio_id:foodFolio,restaurant_id:ctx.getAccess().restaurantId,items,fulfilment:'served',service_note:'',channel:'POS - Counter',discount:0,discount_reason:''});
+  foodFolio=null;foodCart=new Map();foodMenu=[];foodQuery='';
+  $('bhFoodPicker')?.remove();
+  try{await reload();const message=$('folios')?.querySelector('.bh-message');if(message)message.textContent='Food added to guest bill. Restaurant sale is linked once; collect money at checkout.';}
+  catch(error){root.alert('Food was saved, but the bill refresh failed. Refresh this page; do not add the same food again. '+error.message)}
+  return result;
  }
  function reportEntries(){const from=reportFrom||today(),to=reportTo||today();return data.entries.filter(e=>{const d=root.BiteOwner.day(e.created_at);return d>=from&&d<=to})}
  function renderReports(target){
@@ -406,7 +518,19 @@
  function showError(error){const active=document.querySelector('.page.active');const msg=active?.querySelector('.bh-message');if(msg)msg.textContent=error.message||String(error);else root.alert(error.message||String(error))}
  function editor(html){const page=document.querySelector('.page.active');const mount=page?.querySelector('#bhFolioEditor')||page;const old=$('bhActionEditor');old?.remove();const box=document.createElement('div');box.id='bhActionEditor';box.className='bh-panel';box.innerHTML=html;mount.append(box);box.scrollIntoView({block:'nearest',behavior:'smooth'});box.querySelector('input,select,button')?.focus()}
  function entryForm(action,entryId=''){
-  const labels={charge:'Add incidental charge',payment:'Record received payment / advance',deposit_hold:'Record held deposit',deposit_return:'Record returned deposit',deposit_apply:'Apply held deposit to bill',discount:'Authorized discount',refund:'Record credit refund already returned',reverse:'Reverse incorrect charge',payment_confirm:'Verify bank receipt',payment_void:'Mark pending transfer not received'};
+  if(action==='payment'){
+   const f=data.folios.find(x=>x.id===selectedFolio),due=Number(f?.totals?.balance||0);
+   if(!f||f.status!=='open'||due<=0)throw Error('There is no unpaid guest bill to collect.');
+   editor('<form class="bh-form bh-guest-payment-form" data-hotel-form="entry" data-action="payment"><h2>Record guest payment</h2><p>Enter only the money actually received.</p>'+
+    field('amount','Amount received (₹)','number',due.toFixed(2),'required min="0.01" max="'+due.toFixed(2)+'" step="0.01" inputmode="decimal"')+
+    select('method','Paid using',['Cash','UPI','Card','Bank Transfer','Other'].map(x=>option(x,x)).join(''))+
+    field('description','Note','text','Guest bill payment','required maxlength="250"')+
+    field('reference','Payment reference (optional)','text','','maxlength="100"')+
+    '<p class="bh-note">Cash is recorded here. UPI, card and bank transfer need receipt verification by owner / manager before checkout. No online payment is initiated on this screen.</p>'+notice()+
+    '<div class="bh-actions">'+btn('close-editor','Cancel')+'<button class="btn" type="submit">Save received payment</button></div></form>');
+   return;
+  }
+  const labels={charge:'Add incidental charge',payment:'Guest payment',deposit_hold:'Record held deposit',deposit_return:'Record returned deposit',deposit_apply:'Apply held deposit to bill',discount:'Authorized discount',refund:'Record credit refund already returned',reverse:'Reverse incorrect charge',payment_confirm:'Verify bank receipt',payment_void:'Mark pending transfer not received'};
   editor(`<form class="bh-form" data-hotel-form="entry" data-action="${esc(action)}" data-entry-id="${esc(entryId)}"><h2>${labels[action]}</h2>${!['reverse','payment_confirm','payment_void'].includes(action)?field('amount','Amount (₹) *','number','','required min="0.01" step="0.01" inputmode="decimal"'):''}${field('description','Description / reason *','text','','required maxlength="250"')}${['payment','deposit_hold','deposit_return','refund'].includes(action)?select('method','Collection / return method',['Cash','UPI','Card','Bank Transfer','Other'].map(m=>option(m,m)).join('')):''}${field('reference',action==='payment_confirm'?'Verified bank/provider reference *':'Reference (optional)','text','',action==='payment_confirm'?'required maxlength="100"':'maxlength="100"')}<p class="bh-note">UPI, card and bank receipts stay Pending until the owner/manager verifies receipt. This records front-desk transactions; it does not charge a card or trigger a gateway refund.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Confirm</button></div></form>`);
   try{const pending=JSON.parse(localStorage.getItem('bite_property_request:'+identity()+':'+action+':'+(entryId||selectedFolio))||'null');if(pending){const values=JSON.parse(pending.signature),form=$('bhActionEditor').querySelector('form');for(const key of ['amount','description','reference','method'])if(form.elements[key]&&values[key]!=null)form.elements[key].value=values[key];form.querySelector('.bh-message').textContent='Previous response unconfirmed. Details restored; Retry uses the same request.'}}catch{}
  }
@@ -431,7 +555,11 @@
     editor(`<form class="bh-form" data-hotel-form="group"><h2>Group reservation</h2>${field('name','Group name *','text','','required maxlength="120"')}${select('guest_id','Shared payer / lead guest',option('','New lead guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone)).join(''))}<div class="bh-form-grid">${field('full_name','New lead guest name','text','','maxlength="120"')}${field('phone','New lead guest phone','tel','','maxlength="20"')}${field('arrival','Arrival *','date',today(),'required')}${field('departure','Departure *','date',datePlus(1),'required')}</div><h3>Rooms & occupancy</h3>${data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>`<div class="bh-panel"><label class="bh-check"><input type="checkbox" name="room_ids" value="${esc(r.id)}"> Room ${esc(r.number)} · ${money(r.nightly_rate)} / night</label><div class="bh-form-grid">${field('adults_'+r.id,'Adults in this room','number',1,'min="1" max="'+r.adults+'"')}${field('children_'+r.id,'Children in this room','number',0,'min="0" max="'+r.children+'"')}</div></div>`).join('')}<p class="bh-note">All rooms reserve together, or none do. Each room keeps its own folio and invoice linked to this shared payer. Check rooms in individually after readiness inspection.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button type="submit" class="btn">Reserve selected rooms</button></div></form>`);
    }
    else if(action==='folio'){selectedFolio=id;await ctx.navigate('folios')}
-   else if(action==='folio-list'){selectedFolio=null;renderFolios()}
+   else if(action==='folio-list'){selectedFolio=null;foodFolio=null;renderFolios()}
+   else if(action==='food-menu')await openFoodPicker();
+   else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
+   else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
+   else if(action==='food-save')await postFoodToBill();
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}
    else if(action==='save-draft'){const f=$('bhCheckinForm');f.querySelector('.bh-message').textContent=persistDraft(f)?'Draft saved on this device. Not checked in.':'Draft could not be saved.'}
    else if(action==='close-editor')$('bhActionEditor')?.remove();
@@ -440,7 +568,7 @@
    else if(action==='reverse'||action==='verify-payment')entryForm(action==='reverse'?'reverse':'payment_confirm',id);
    else if(action==='void-payment')entryForm('payment_void',id);
    else if(action==='checkout'){
-    if(!root.confirm('Review the entire folio and recorded collections. Settle and check out now?'))return;
+    if(!root.confirm('Guest ka bill aur payment check kar liya? Ab checkout karke final bill save karein?'))return;
     await command('checkout',{folio_id:id});await reload();renderFolios();
    }else if(action==='checkin'){await command('checkin',{id});await reload();renderPage('reservations')}
    else if(action==='preview')printStatement(id);
@@ -583,7 +711,7 @@
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
  root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,dashboardSnapshot,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0,
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
