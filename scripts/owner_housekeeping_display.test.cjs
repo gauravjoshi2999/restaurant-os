@@ -32,7 +32,7 @@ test('Owner Settings controls visibility separately from modules and preserves d
  assert.doesNotMatch(owner,/delete\s+from\s+(?:public\.)?bite_rooms/i);
 });
 test('Preference table is tenant-readable but only property Owner can insert/update',()=>{
- const sql=read('supabase/migrations/20261117010000_owner_housekeeping_ui_preferences.sql');
+ const sql=read('supabase/migrations/20261116170330_owner_housekeeping_ui_preferences_20261116.sql');
  assert.match(sql,/property_id uuid primary key references public\.bite_properties\(id\)/);
  assert.match(sql,/show_housekeeping boolean not null default false/);
  assert.match(sql,/enable row level security/);
