@@ -14,7 +14,7 @@ declare p uuid;r uuid;g uuid;v jsonb;begin
  perform public.bite_property_command(p,'billing_settings','{"prefix":"H","next_number":42,"primary_account":"Owner A","tax_profile":{"reviewed":true,"gstin":"08ABCDE1234F1Z5","room_rate":5,"food_rate":5,"incidental_rate":5}}',gen_random_uuid());
  v:=public.bite_property_command(p,'room_save','{"number":"104","room_type":"Deluxe","nightly_rate":1500,"adults":3,"children":2}',gen_random_uuid());r:=(v->>'id')::uuid;
  v:=public.bite_property_command(p,'guest_save','{"full_name":"Synthetic Accounts Guest","phone":"9999999999","country":"India","address":"Synthetic permanent address"}',gen_random_uuid());g:=(v->>'id')::uuid;
- insert into hotel_account_state values('p',p),('r',r),('g',g),('doc',gen_random_uuid());
+ insert into hotel_account_state values('p',p),('r',r),('g',g),('doc',gen_random_uuid()),('baseline',(public.bite_daily_book(p,(now()at time zone 'Asia/Kolkata')::date,(now()at time zone 'Asia/Kolkata')::date)->'days'->0)::text),('baseline_invoices',jsonb_array_length(public.bite_daily_book(p,(now()at time zone 'Asia/Kolkata')::date,(now()at time zone 'Asia/Kolkata')::date)->'gst_invoices')::text);
 end$$;
 reset role;
 -- A synthetic ready file record stands in for the separately tested private upload API.
@@ -23,8 +23,8 @@ select (select value::uuid from hotel_account_state where key='doc'),(select val
  (select value from hotel_account_state where key='p')||'/'||(select value from hotel_account_state where key='g')||'/'||(select value from hotel_account_state where key='doc')||'.png','ready','11111111-1111-4111-8111-111111111111',now();
 set local role authenticated;
 do $$
-declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q jsonb;args jsonb;t jsonb;rep jsonb;day jsonb;inv jsonb;d date:=(now()at time zone 'Asia/Kolkata')::date;bill text;begin
- select value::uuid into p from hotel_account_state where key='p';select value::uuid into r from hotel_account_state where key='r';select value::uuid into g from hotel_account_state where key='g';select value::uuid into doc from hotel_account_state where key='doc';
+declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q jsonb;args jsonb;t jsonb;rep jsonb;day jsonb;base_day jsonb;inv jsonb;d date:=(now()at time zone 'Asia/Kolkata')::date;bill text;begin
+ select value::uuid into p from hotel_account_state where key='p';select value::uuid into r from hotel_account_state where key='r';select value::uuid into g from hotel_account_state where key='g';select value::uuid into doc from hotel_account_state where key='doc';select value::jsonb into base_day from hotel_account_state where key='baseline';
  args:=jsonb_build_object('room_id',r,'arrival',d,'departure',d+1,'adults',2,'children',1,'mode','checkin','nightly_rate',1200);
  q:=public.bite_reservation_quote(p,args);if(q->>'total')::numeric<>1260 then raise exception 'Agreed rent quote failed: %',q;end if;
  args:=args||jsonb_build_object('guest_id',g,'booking_mode','checkin','quote_hash',q->>'quote_hash','advance_amount',300,'advance_method','Cash','registration',jsonb_build_object('male',1,'female',1,'children',1,'arrived_from','Udaipur','next_destination','Jaipur','transport','Car','vehicle_number','RJ01AB1234','id_front',doc));
@@ -50,9 +50,9 @@ declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q json
  perform public.bite_property_command(p,'daybook_entry',jsonb_build_object('entry_date',d,'kind','salary_expense','category','Salary','description','Earned salary','staff_name','Synthetic Worker','amount',500,'method','Non-cash'),gen_random_uuid());
  perform public.bite_property_command(p,'daybook_entry',jsonb_build_object('entry_date',d,'kind','salary_payment','category','Salary','description','Salary balance','staff_name','Synthetic Worker','amount',300,'method','Cash'),gen_random_uuid());
  rep:=public.bite_daily_book(p,d,d);day:=rep->'days'->0;
- if(day->>'gross_sales')::numeric<>1575 or(day->>'expenses')::numeric<>600 or(day->>'staff_advance')::numeric<>200 or(day->>'profit')::numeric<>900 then raise exception 'Sale/expense/advance/profit double count: %',day;end if;
- if(day->>'cash_balance')::numeric<>1675 or(day->>'online_balance')::numeric<>300 then raise exception 'Cash/online mismatch: %',day;end if;
- if jsonb_array_length(rep->'gst_invoices')<>1 then raise exception 'Invoice report duplicate/missing';end if;
+ if(day->>'gross_sales')::numeric-(base_day->>'gross_sales')::numeric<>1575 or(day->>'expenses')::numeric-(base_day->>'expenses')::numeric<>600 or(day->>'staff_advance')::numeric-(base_day->>'staff_advance')::numeric<>200 or(day->>'profit')::numeric-(base_day->>'profit')::numeric<>900 then raise exception 'Sale/expense/advance/profit double count: %',day;end if;
+ if(day->>'cash_balance')::numeric-(base_day->>'cash_balance')::numeric<>1675 or(day->>'online_balance')::numeric-(base_day->>'online_balance')::numeric<>300 then raise exception 'Cash/online mismatch: %',day;end if;
+ if jsonb_array_length(rep->'gst_invoices')-(select value::int from hotel_account_state where key='baseline_invoices')<>1 then raise exception 'Invoice report duplicate/missing';end if;
  if not exists(select 1 from jsonb_array_elements(rep->'accounts')x where x->>'account'='Owner B'and(x->>'balance')::numeric=300)then raise exception 'Second-account note lost';end if;
  perform pg_temp.accounts_denied(format('select public.bite_property_command(%L,''billing_settings'',''{"prefix":"H","next_number":42,"tax_profile":{"reviewed":true,"gstin":"08ABCDE1234F1Z5","room_rate":5,"food_rate":5,"incidental_rate":5}}'',gen_random_uuid())',p));
  insert into hotel_account_state values('bill',bill);
