@@ -28,3 +28,44 @@ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-workspace .btn
  body[data-role="owner"][data-universal-owner="true"] #mainApp>.main>.top .bh-property-switch{order:10;flex:0 0 100%;margin:0;max-width:100%}
  body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field input,body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field select{font-size:16px!important}
 }
+
+
+/* Optional Housekeeping visibility: one owner-only, per-property checkbox in Settings. */
+body[data-role="owner"] #biteHousekeepingVisibilitySetting{
+ display:block;max-width:850px;margin:0 0 17px;padding:18px;
+ border-radius:18px;border:1px solid #e8d8cc;background:linear-gradient(140deg,#fffdfa,#fff5eb);
+ box-shadow:0 5px 20px #3c23250b;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-setting-title h2{
+ margin:0 0 5px;color:#382730;font-size:18px;font-weight:850;letter-spacing:-.02em;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-setting-title p{
+ font-size:12px;line-height:1.55;margin:0 0 14px;color:#76656c;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option{
+ display:flex;align-items:center;gap:14px;min-height:65px;cursor:pointer;
+ padding:12px;border:1px solid #edddd2;border-radius:12px;background:white;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option input{
+ width:22px;height:22px;min-width:22px;accent-color:#e9802a;margin:0;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option input:focus-visible{
+ outline:3px solid #e9802a;outline-offset:3px;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option span{display:grid;gap:3px}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option strong{
+ font-size:14px;color:#382730;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option small{
+ font-size:12px;line-height:1.5;color:#786b70;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-setting-note{
+ min-height:18px;margin:11px 2px 0;color:#786b70;font-size:12px;
+}
+body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetry{
+ min-height:44px;margin-top:10px;
+}
+@media(max-width:760px){
+ body[data-role="owner"] #biteHousekeepingVisibilitySetting{padding:14px;margin:0 0 14px}
+ body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option{padding:11px}
+}
