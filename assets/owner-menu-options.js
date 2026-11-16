@@ -116,7 +116,7 @@
   if(!area||!button||!previewResult)return;
   previewQuoteTicket++;
   previewResult.replaceChildren();
-  const active=root.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+  const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
   const available=new Set(active.flatMap(group=>group.options.map(c=>c.id)));
   for(const id of previewSelection)if(!available.has(id))previewSelection.delete(id);
   if(!active.length){
@@ -126,7 +126,7 @@
   button.disabled=false;
   const item=deps.getMenuItems().find(m=>m.id===selected?.itemId);
   const base=Number(item?.price);
-  const baseLabel=Number.isFinite(base)?root.BiteOwnerOptionPreview.amount(base):'Unavailable';
+  const baseLabel=Number.isFinite(base)?globalThis.BiteOwnerOptionPreview.amount(base):'Unavailable';
   area.innerHTML='<p class="bite-options-base">Dish base price: <strong>'+esc(baseLabel)+'</strong></p>'+
    active.map(group=>{
     const isSingle=group.max_select===1;
@@ -139,7 +139,7 @@
         '" name="preview-'+esc(group.id)+'" value="'+esc(choice.id)+'" data-option-preview-choice'+
         (previewSelection.has(choice.id)?' checked':'')+'>'+
         '<span>'+esc(choice.name)+'</span><strong>+'+
-        esc(root.BiteOwnerOptionPreview.amount(choice.price_delta))+'</strong></label>').join('')+
+        esc(globalThis.BiteOwnerOptionPreview.amount(choice.price_delta))+'</strong></label>').join('')+
       '</div></fieldset>';
    }).join('');
  }
@@ -148,8 +148,8 @@
   if(!panel)return;
   const ticket=++previewQuoteTicket;
   panel.textContent='Verifying price from Bite server…';
-  const active=root.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
-  const selectedIds=root.BiteOwnerOptionPreview.validateSelections(active,Array.from(previewSelection));
+  const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+  const selectedIds=globalThis.BiteOwnerOptionPreview.validateSelections(active,Array.from(previewSelection));
   const {data,error}=await deps.sb.rpc('bite_quote_menu_options_v2',{
    p_restaurant_id:ctx.restaurantId,p_lines:[{
     menu_item_id:ctx.itemId,quantity:1,option_choice_ids:selectedIds
@@ -158,14 +158,14 @@
   if(ticket!==previewQuoteTicket||!selected||
     selected.itemId!==ctx.itemId||selected.restaurantId!==ctx.restaurantId)return;
   if(error)throw error;
-  const priced=root.BiteOwnerOptionPreview.verifyServerQuote(
+  const priced=globalThis.BiteOwnerOptionPreview.verifyServerQuote(
    data,ctx.restaurantId,ctx.itemId,selectedIds
   );
   panel.innerHTML='<div class="bite-options-verified"><div><small>Verified food price (1 item)</small>'+
-   '<strong>'+esc(root.BiteOwnerOptionPreview.amount(priced.total))+'</strong></div>'+
+   '<strong>'+esc(globalThis.BiteOwnerOptionPreview.amount(priced.total))+'</strong></div>'+
    '<span class="pill green">Server quote ✓</span></div>'+
-   '<p class="small">Menu base '+esc(root.BiteOwnerOptionPreview.amount(priced.base))+
-   ' + selected extras '+esc(root.BiteOwnerOptionPreview.amount(priced.extras))+
+   '<p class="small">Menu base '+esc(globalThis.BiteOwnerOptionPreview.amount(priced.base))+
+   ' + selected extras '+esc(globalThis.BiteOwnerOptionPreview.amount(priced.extras))+
    '. Delivery, taxes and discounts are not included. Payment is disabled for this preview.</p>';
  }
  function render(){
@@ -354,7 +354,7 @@
   byId('menuOptionsPreviewForm').addEventListener('change',event=>{
    if(!event.target.matches('[data-option-preview-choice]'))return;
    const input=event.target,id=input.value;
-   const active=root.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
+   const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
    const group=active.find(g=>g.options.some(o=>o.id===id));
    if(!group)return;
    if(group.max_select===1){
