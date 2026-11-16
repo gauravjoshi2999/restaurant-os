@@ -23,7 +23,7 @@
  function hotelSubnav(title){
   if(prop()?.business_type!=='hybrid'||!has('hotel_rooms'))return '';
   const byTitle={'Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Housekeeping':'housekeeping','Folios & Bills':'folios'};
-  const page=byTitle[title]||document.querySelector('#mainApp .page.active')?.id;
+  const page=byTitle[title];
   const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios'];
   if(!routes.includes(page))return '';
   const labels={rooms:'Room board','hotel-register':'Check-in',reservations:'Reservations',guests:'Guests',housekeeping:'Housekeeping',folios:'Bills'};
