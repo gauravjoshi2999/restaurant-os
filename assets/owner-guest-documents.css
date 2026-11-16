@@ -1,0 +1,8 @@
+/* Scoped to private-copy controls; the approved Owner dashboard stays intact. */
+#biteGuestDocuments{max-width:900px;min-width:0}
+#biteGuestDocuments input[type=file]{max-width:100%;width:100%;min-height:44px}
+#biteGuestDocuments .bh-check{align-items:flex-start;line-height:1.6}
+#biteGuestDocuments .bh-check input{flex:0 0 20px;margin-top:4px}
+#biteGuestDocuments .bh-heading h2{margin:0}
+#biteGuestDocuments [data-document-list]{margin:16px 0}
+@media print{#biteGuestDocuments{display:none!important}}

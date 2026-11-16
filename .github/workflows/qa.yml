@@ -41,6 +41,7 @@ jobs:
           python scripts/owner_mobile_navigation_smoke.py
           python scripts/universal_owner_browser.py
           python scripts/owner_remaining_browser.py
+          python scripts/guest_documents_browser.py
 
       - name: Upload synthetic QA evidence
         if: always()
@@ -53,6 +54,7 @@ jobs:
             dist/launch-qa/owner-feedback-mobile-evidence.json
             dist/launch-qa/universal-owner-browser-evidence.json
             dist/launch-qa/owner-remaining-browser-evidence.json
+            dist/launch-qa/guest-documents-browser-evidence.json
             dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
             dist/launch-qa/guest-hotel-bill.pdf
@@ -162,6 +164,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/owner_pos_guard_fixture.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_remaining_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116135719_owner_remaining_workflows.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/guest_documents_storage_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116162449_guest_document_privacy.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
@@ -171,3 +175,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/owner_remaining_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_remaining_closing_pg_test.sql
           bash scripts/owner_combined_closing_race.sh
+          psql -v ON_ERROR_STOP=1 -f scripts/guest_documents_pg_test.sql
+          bash scripts/guest_documents_limit_race.sh

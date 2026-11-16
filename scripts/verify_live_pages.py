@@ -28,6 +28,13 @@ PUBLIC_FILES = (
     "assets/owner-capabilities.js",
     "assets/owner-hospitality.js",
     "assets/owner-hospitality.css",
+    "assets/owner-operations.js",
+    "assets/customer-guest-stay.js",
+    "assets/customer-guest-stay.css",
+    "assets/owner-premium-shell.js",
+    "assets/owner-premium-shell.css",
+    "assets/owner-guest-documents.js",
+    "assets/owner-guest-documents.css",
     "bite-deploy-version.json",
 )
 MAX_BYTES = 3_000_000
