@@ -780,7 +780,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   if p_action='charge'then
    update public.bite_folio_entries set tax_rate=case when coalesce((pr.tax_profile->>'reviewed')::boolean,false)then coalesce((pr.tax_profile->>'incidental_rate')::numeric,0)else 0 end where id=entity and property_id=p_property;
   elsif p_action in('checkin','extend','apply_checkout_policy')then
-   update public.bite_folio_entries e set tax_rate=case when e.policy_tag in('early_checkin','late_checkout')then coalesce((s.policy_snapshot->>'fee_tax_rate')::numeric,0)else s.room_tax_rate end from public.bite_folios bf join public.bite_stays s on s.id=bf.stay_id where bf.property_id=p_property and e.folio_id=bf.id and e.category='room'and e.kind='charge'and e.tax_rate is null;
+   update public.bite_folio_entries e set tax_rate=case when e.policy_tag in('early_checkin','late_checkout')then coalesce((s.policy_snapshot->>'fee_tax_rate')::numeric,0)else s.room_tax_rate end from public.bite_folios bf join public.bite_stays s on s.id=bf.stay_id where bf.property_id=p_property and bf.id=fid and e.folio_id=bf.id and e.category='room'and e.kind='charge'and e.tax_rate is null;
   end if;
   update public.bite_property_commands set result=v where property_id=p_property and request_id=p_request;
  end if;
