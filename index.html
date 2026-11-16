@@ -3424,12 +3424,21 @@ async function checkOwnerPushHealth(){
      !devices||!events||!['registered','enabled','supports_order_actions','seen_within_48h'].every(k=>count(devices[k]))||
      !['sampled_events','submitted_to_fcm','failed','queued','retry','processing','no_devices'].every(k=>count(events[k]))||
      data?.delivered_to_phone!=='NOT_VERIFIED')throw Error('Invalid push diagnostic');
+  // Distinguish this phone's installed native bridge from the server-wide
+  // registered-device count. No token is read or sent by this diagnostic.
+  const native=typeof window==='undefined'?null:window.Capacitor?.Plugins?.BiteOwnerPush;
+  const phoneStatus=!native?.enable?
+   'This device: native push not detected (browser or older Partner APK).':
+   native?.openNotificationSettings?
+    'This device: native push and notification settings available.':
+    'This device: native push available; notification settings shortcut requires newer APK.';
   const status=devices.enabled===0?
-   'No active Partner device. Signed Bite Partner APK kholkar notification permission aur login check karein.':
-   'Registered devices: '+devices.enabled+' · Lock-screen actions capable: '+devices.supports_order_actions+
-   ' · Seen recently (48h): '+devices.seen_within_48h+'.';
-  out.textContent=status+' Recent event sample: '+events.submitted_to_fcm+' FCM submissions, '+
-   events.failed+' failed, '+(events.queued+events.retry+events.processing)+' pending. Phone delivery NOT verified.';
+   'Server: no active registered Partner device. Partner app dobara kholkar permission check karein.':
+   'Server: '+devices.enabled+' active device(s), '+devices.supports_order_actions+
+   ' action-capable, '+devices.seen_within_48h+' seen in 48h.';
+  out.textContent=phoneStatus+' '+status+' Push history: '+events.submitted_to_fcm+
+   ' submitted, '+events.failed+' failed, '+
+   (events.queued+events.retry+events.processing)+' pending. Phone delivery NOT verified.';
  }catch(error){
   if(request!==ownerPushHealthRequest||currentUser?.id!==userId||access.restaurantId!==restaurantId)return;
   out.textContent='Push health check unavailable. Partner APK login, internet, and notification permission check karein.';
