@@ -80,7 +80,7 @@
     assertScope(key,version);if(result.error||!form.isConnected||form.elements.guest_id.value!==guestId)return;
     const ready=(result.data||[]).filter(d=>d.status==='ready'&&d.kind==='masked_id');
     const prior=(db().stays||[]).filter(s=>s.guest_id===guestId&&s.registration?.id_front).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]?.registration;
-    const front=ready.find(d=>d.id===prior?.id_front)||ready[0];
+    const front=ready.find(d=>d.id===prior?.id_front);
     if(front&&!form.elements.id_front.files[0]){
      form.elements.id_front_id.value=front.id;form.elements.id_front.required=false;
      form.querySelector('[data-front-status]').textContent='Saved ID front selected. Verify it, or upload a replacement.';
