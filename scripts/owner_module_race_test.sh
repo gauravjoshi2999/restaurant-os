@@ -34,7 +34,7 @@ if psql -v ON_ERROR_STOP=1 -c "insert into public.bite_live_checkout_intents val
  echo 'FAIL: checkout passed a concurrent module disable';exit 1
 fi
 wait "$task_job"
-rg -q 'Business module disabled' "$task_tmp/intent.log"
+grep -q 'Business module disabled' "$task_tmp/intent.log"
 psql -v ON_ERROR_STOP=1 -qc "update public.bite_properties set capabilities=private.bite_default_capabilities('restaurant') where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd'"
 psql -v ON_ERROR_STOP=1 >"$task_tmp/intent-first.log" 2>&1 <<'SQL' &
 begin;
@@ -54,6 +54,6 @@ commit;
 SQL
 then echo 'FAIL: disable ignored the concurrent pending checkout';exit 1;fi
 wait "$task_job"
-rg -q 'pending online checkouts' "$task_tmp/config.log"
+grep -q 'pending online checkouts' "$task_tmp/config.log"
 [[ $(psql -Atqc "select 'online_food_orders'=any(capabilities) from public.bite_properties where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd'") == t ]]
 echo 'PASS: module disable and checkout creation serialize correctly in both directions'

@@ -3,7 +3,7 @@ begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 do $$
-declare p uuid;r uuid;r2 uuid;g uuid;s uuid;f uuid;e uuid;o uuid;out jsonb;tot jsonb;k uuid;args jsonb;inv jsonb;before_food numeric;
+declare p uuid;r uuid;r2 uuid;r3 uuid;g uuid;s uuid;f uuid;e uuid;o uuid;out jsonb;tot jsonb;k uuid;args jsonb;inv jsonb;group_info jsonb;unit jsonb;first_invoice text;before_food numeric;
 begin
  select id into p from public.bite_properties where origin_restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  perform public.bite_property_command(p,'config',jsonb_build_object('name','Completion synthetic','business_type','hybrid','capabilities','["hotel_rooms","guest_register","reservations","folios","housekeeping","hotel_incidentals","restaurant_pos","restaurant_menu","dine_in","takeaway","online_food_orders","room_service","charge_to_room","expenses","staff_management","reporting"]'::jsonb),gen_random_uuid());
@@ -37,6 +37,11 @@ begin
  -- Some-night extras and last-minute minibar are itemized manual charges.
  perform public.bite_property_command(p,'charge',jsonb_build_object('folio_id',f,'amount',3,'description','Extra bed: one of two nights'),gen_random_uuid());
  perform public.bite_property_command(p,'charge',jsonb_build_object('folio_id',f,'amount',2,'description','Minibar at checkout'),gen_random_uuid());
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":true}',gen_random_uuid());
+ perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+ begin perform public.bite_property_command(p,'discount',jsonb_build_object('folio_id',f,'amount',1,'description','Unauthorized discount'),gen_random_uuid());raise exception 'Expected receptionist discount denial';exception when insufficient_privilege then null;end;
+ perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+ perform public.bite_property_command(p,'member','{"id":"33333333-3333-4333-8333-333333333333","role":"receptionist","active":false}',gen_random_uuid());
  perform public.bite_property_command(p,'guest_save',jsonb_build_object('id',g,'full_name','Corrected billing name','phone','9999999900','address','Corrected billing address'),gen_random_uuid());
  perform public.bite_property_command(p,'split_bill',jsonb_build_object('folio_id',f,'first_name','Company A','second_name','Guest B','first_percent',33.33),gen_random_uuid());
  out:=public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',1,'method','Card','description','Split card settlement'),gen_random_uuid());e:=(out->>'id')::uuid;
@@ -51,6 +56,29 @@ begin
  perform public.bite_property_command(p,'room_save',jsonb_build_object('id',r,'number','C-1-renamed','room_type','Deluxe','nightly_rate',100.01,'adults',2,'children',1,'active',false),gen_random_uuid());
  assert (select room_id from public.bite_stays where id=s)=r;
  assert inv->'room'->>'number'='C-1';
+ -- Blocked assigned room, safe reassignment, no-show inventory and independent
+ -- group-room settlement are separate operational paths, not visual mockups.
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r2,'status','ready'),gen_random_uuid());
+ out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r2,'arrival',current_date,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());s:=(out->>'id')::uuid;f:=(out->>'folio_id')::uuid;
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r2,'status','blocked','note','AC maintenance'),gen_random_uuid());
+ begin perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());raise exception 'Expected blocked assigned room denial';exception when raise_exception then if sqlerrm='Expected blocked assigned room denial' then raise;end if;end;
+ out:=public.bite_property_command(p,'room_save','{"number":"C-3","room_type":"Deluxe","nightly_rate":100.01,"adults":2,"children":1}',gen_random_uuid());r3:=(out->>'id')::uuid;
+ perform public.bite_property_command(p,'move',jsonb_build_object('id',s,'room_id',r3),gen_random_uuid());
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+ perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',100.01,'method','Cash','description','Reassigned room paid'),gen_random_uuid());
+ perform public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid());
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r2,'status','ready','note','AC repaired and inspected'),gen_random_uuid());
+ out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r2,'arrival',current_date-1,'departure',current_date+1,'adults',1,'children',0),gen_random_uuid());s:=(out->>'id')::uuid;
+ perform public.bite_property_command(p,'no_show',jsonb_build_object('id',s),gen_random_uuid());assert (select status from public.bite_stays where id=s)='no_show';
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r3,'status','ready'),gen_random_uuid());
+ group_info:=public.bite_property_command(p,'reserve_group',jsonb_build_object('name','Completion group','guest_id',g,'arrival',current_date,'departure',current_date+1,'rooms',jsonb_build_array(jsonb_build_object('room_id',r2,'adults',1),jsonb_build_object('room_id',r3,'adults',1))),gen_random_uuid());
+ for unit in select value from jsonb_array_elements(group_info->'stays') loop
+  s:=(unit->>'id')::uuid;f:=(unit->>'folio_id')::uuid;
+  perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
+  perform public.bite_property_command(p,'payment',jsonb_build_object('folio_id',f,'amount',100.01,'method','Cash','description','Individual group room settlement'),gen_random_uuid());
+  out:=public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f),gen_random_uuid());
+  if first_invoice is null then first_invoice:=out->'invoice'->>'number';else assert first_invoice<>out->'invoice'->>'number';end if;
+ end loop;
  -- Registered cashier is granted ONLY staff restaurant membership; no hotel IDs.
  perform public.bite_property_command(p,'member','{"id":"77777777-7777-4777-8777-777777777777","role":"cashier","active":true}',gen_random_uuid());
  perform set_config('request.jwt.claim.sub','77777777-7777-4777-8777-777777777777',true);
