@@ -3072,7 +3072,11 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
    const result=await window.BiteHospitality.createRoomPOS(items);data=result.order_id;
   }else if(channel.startsWith('POS - ')&&access.property&&(channel!=='POS - Counter'||['cashier','manager'].includes(access.property.role))){
    if(document.getElementById('posReplaceOrderId')?.value)throw Error('Use the original owner correction workflow for this bill.');
+   const wantsWhatsApp=f.get('whatsapp_bill_consent')==='on';
+   if(wantsWhatsApp&&!window.BiteDirectOrder?.normalizeIndianMobile(f.get('customer_phone')))throw Error('WhatsApp bill ke liye 10 digit valid customer mobile number zaroori hai.');
    const result=await window.BiteHospitality.createPOSSale(items,f);data=result.order_id;
+   if(wantsWhatsApp){const restaurant=state.restaurants.find(r=>r.id===access.restaurantId),total=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0);sharePayload={restaurantId:access.restaurantId,restaurantName:restaurant?.name||'Restaurant',restaurantAddress:restaurant?.address||'',restaurantPhone:restaurant?.phone||'',date:new Date().toISOString(),customerName:f.get('customer_name')||'',phone:f.get('customer_phone')||'',items,total,paid:total,due:0,waived:0,orderCode:result.order_code}}
+
   }else if(channel.startsWith('POS - ')){
    const paid=Number(f.get('paid_amount')||0),
     billTotal=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0),

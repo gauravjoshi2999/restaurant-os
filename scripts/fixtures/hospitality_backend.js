@@ -27,6 +27,7 @@
   client.rpc=async(name,args={})=>{
    if(!name.startsWith('bite_')||!['bite_owner_context','bite_create_property','bite_hotel_workspace','bite_property_command','bite_room_charge_targets','bite_property_report','bite_audit_search'].includes(name))return rpc(name,args);
    window.__BITE_HOTEL_QA.calls.push({name,args});
+   if(name==='bite_hotel_workspace'&&window.__BITE_HOTEL_QA.delayMs)await new Promise(done=>setTimeout(done,window.__BITE_HOTEL_QA.delayMs));
    if(name==='bite_owner_context')return {data:exists?[structuredClone(p)]:[],error:null};
    if(name==='bite_create_property'){exists=true;p.name=args.p_name;p.business_type=args.p_type;p.capabilities=[...window.BiteCapabilities.defaults[args.p_type]];p.configured_capabilities=[...p.capabilities];return {data:pid,error:null}}
    if(name==='bite_hotel_workspace')return {data:structuredClone({...db,folios:db.folios.map(f=>({...f,totals:totals(f)}))}),error:null};

@@ -59,7 +59,10 @@ try:
      check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().height)')),f'{kind} 44px navigation targets at {width}px')
     if kind=='hotel':
      check(page.locator('#overview [data-owner-dashboard]').is_hidden(),'Hotel Home hides restaurant workflow')
-     nav(page,'rooms');check(page.locator('#rooms .bh-room-title').count()==2,'Real configured room cards render in shell')
+     if width==360:page.evaluate('window.__BITE_HOTEL_QA.delayMs=800')
+     nav(page,'rooms')
+     if width==360:check('Loading current property' in page.locator('#rooms').inner_text(),'Slow property response displays a loading state');page.locator('#rooms .bh-room-title').first.wait_for(state='visible');page.evaluate('window.__BITE_HOTEL_QA.delayMs=0')
+     check(page.locator('#rooms .bh-room-title').count()==2,'Real configured room cards render in shell')
      screenshot(page,f'{kind}-rooms-{width}')
      nav(page,'hotel-register');f=page.locator('#bhCheckinForm');f.locator('[name=full_name]').fill('Synthetic Walk-in');f.locator('[name=phone]').fill('9999999999');f.locator('[name=room_id]').select_option('room-a')
      f.locator('[data-hotel-action=save-draft]').click();check('Draft saved' in f.locator('.bh-message').inner_text(),'Registration draft is explicitly not checked in')
@@ -85,12 +88,15 @@ try:
      if width==390:
       page.locator('#folios [data-hotel-action=split-bill]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=first_name]').fill('Synthetic Company');ed.locator('[name=second_name]').fill('Synthetic Guest Payer');ed.locator('[name=first_percent]').fill('40');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check('Synthetic Company' in page.locator('#folios').inner_text(),'Payer split saves without creating a second folio or receipt')
      screenshot(page,f'hotel-folio-{width}')
+     if width==390:
+      page.context.set_offline(True);page.locator('#folios [data-hotel-action=checkout]').click();check('Offline' in page.locator('#folios .bh-message').first.inner_text(),'Offline checkout never claims settlement');check(page.evaluate("window.__BITE_HOTEL_QA.db.stays[0].status==='in_house'"),'Interrupted checkout preserves the active stay');page.context.set_offline(False);page.locator('#folios [data-hotel-action=checkout]').wait_for(state='visible')
      page.locator('#folios [data-hotel-action=checkout]').click();page.wait_for_function("window.__BITE_HOTEL_QA.db.stays[0].status==='checked_out'")
      check(page.evaluate("window.__BITE_HOTEL_QA.db.rooms[0].housekeeping==='dirty'"),'Checkout leaves room Dirty')
      check(page.locator('#folios [data-hotel-action=checkout]').count()==0,'Settled folio has no second checkout action')
      if width==390:
       with page.expect_popup() as split:page.locator('#folios [data-hotel-action=split-preview]').first.click()
       check('Synthetic Company' in split.value.locator('body').inner_text(),'Settled split statement opens the first payer bill');split.value.close()
+      nav(page,'hotel-register');ret=page.locator('#bhCheckinForm');ret.locator('[name=guest_search]').fill('9999999999');ret.locator('[name=guest_id]').select_option(index=1);check(ret.locator('[name=full_name]').input_value()=='Synthetic Walk-in','Returning guest lookup safely reuses the saved profile');check(page.evaluate('window.__BITE_HOTEL_QA.db.guests.length')==1,'Returning guest lookup creates no duplicate profile')
      nav(page,'rooms');page.locator('[data-hotel-action=room-status][data-id=room-a]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=status]').select_option('cleaning');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached')
      check(page.evaluate("window.__BITE_HOTEL_QA.db.rooms[0].housekeeping==='cleaning'"),'Housekeeping action updates existing room')
      nav(page,'settings');page.locator('#settings [data-hotel-action=modules]').click();page.locator('#business-modules.active').wait_for(state='visible')

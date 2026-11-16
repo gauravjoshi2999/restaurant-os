@@ -3,7 +3,7 @@ begin;
 set local role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 do $$
-declare p uuid;r uuid;g uuid;s uuid;f uuid;e uuid;o uuid;out jsonb;tot jsonb;k uuid;args jsonb;inv jsonb;before_food numeric;
+declare p uuid;r uuid;r2 uuid;g uuid;s uuid;f uuid;e uuid;o uuid;out jsonb;tot jsonb;k uuid;args jsonb;inv jsonb;before_food numeric;
 begin
  select id into p from public.bite_properties where origin_restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  perform public.bite_property_command(p,'config',jsonb_build_object('name','Completion synthetic','business_type','hybrid','capabilities','["hotel_rooms","guest_register","reservations","folios","housekeeping","hotel_incidentals","restaurant_pos","restaurant_menu","dine_in","takeaway","online_food_orders","room_service","charge_to_room","expenses","staff_management","reporting"]'::jsonb),gen_random_uuid());
@@ -14,6 +14,12 @@ begin
  perform public.bite_property_command(p,'room_privacy',jsonb_build_object('id',r,'do_not_disturb',true,'cleaning_requested',true,'note','Clean after permission'),gen_random_uuid());
  assert (select do_not_disturb and cleaning_requested from public.bite_rooms where id=r);
  begin perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r,'status','cleaning'),gen_random_uuid());raise exception 'Expected DND denial';exception when raise_exception then if sqlerrm='Expected DND denial' then raise;end if;end;
+ out:=public.bite_property_command(p,'room_save','{"number":"C-2","room_type":"Suite","nightly_rate":100.01,"adults":2,"children":1}',gen_random_uuid());r2:=(out->>'id')::uuid;
+ perform public.bite_property_command(p,'move',jsonb_build_object('id',s,'room_id',r2),gen_random_uuid());
+ assert (select do_not_disturb and cleaning_requested from public.bite_rooms where id=r2);
+ assert not (select do_not_disturb or cleaning_requested from public.bite_rooms where id=r);
+ perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r,'status','ready'),gen_random_uuid());
+ perform public.bite_property_command(p,'move',jsonb_build_object('id',s,'room_id',r),gen_random_uuid());
  perform public.bite_property_command(p,'room_privacy',jsonb_build_object('id',r,'do_not_disturb',false),gen_random_uuid());
  perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r,'status','cleaning'),gen_random_uuid());
  perform public.bite_property_command(p,'room_status',jsonb_build_object('id',r,'status','ready'),gen_random_uuid());

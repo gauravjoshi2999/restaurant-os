@@ -175,7 +175,7 @@ begin
   select sum(round((value->>'quantity')::numeric*(value->>'unit_price')::numeric,2)) into amount from jsonb_array_elements(p_payload->'items');
   if (p_payload->>'paid_amount')::numeric is distinct from amount then raise exception 'Dine-in, takeaway and cashier Pay Now bills require full recorded payment. Use room billing for an occupied guest';end if;
   entity:=public.create_pos_order_with_payment(rid,'POS-'||p_request::text,p_payload->>'channel',left(p_payload->>'customer_name',120),left(p_payload->>'customer_phone',20),p_payload->'items',amount,p_payload->>'payment_method',(now() at time zone prop.timezone)::date,p_payload->>'reference',nullif(p_payload->>'table_id','')::uuid);
-  result:=jsonb_build_object('id',entity,'order_id',entity,'confirmed',true);
+  result:=jsonb_build_object('id',entity,'order_id',entity,'order_code','POS-'||p_request::text,'confirmed',true);
  elsif p_action='expense' then
   if (p_payload->>'amount')::numeric<>round((p_payload->>'amount')::numeric,2) then raise exception 'Maximum two decimal places'; end if;
   insert into public.bite_property_expenses(property_id,description,amount,expense_date,method,created_by)
@@ -292,7 +292,10 @@ begin
    if room.id=stay.room_id then raise exception 'Select another room'; end if;
    if room.adults<stay.adults or room.children<stay.children then raise exception 'Room occupancy limit exceeded'; end if;
    if exists(select 1 from public.bite_stays s where s.room_id=room.id and s.status in ('reserved','in_house') and daterange(s.arrival,s.departure,'[)') && daterange(stay.arrival,stay.departure,'[)')) then raise exception 'Target room has conflicting stay'; end if;
-   if stay.status='in_house' then update public.bite_rooms set housekeeping='dirty' where id=stay.room_id; end if;
+   if stay.status='in_house' then
+    update public.bite_rooms d set do_not_disturb=o.do_not_disturb,cleaning_requested=o.cleaning_requested from public.bite_rooms o where d.id=room.id and o.id=stay.room_id;
+    update public.bite_rooms set housekeeping='dirty',do_not_disturb=false,cleaning_requested=false where id=stay.room_id;
+   end if;
    update public.bite_stays set room_id=room.id where id=stay.id;
   elsif p_action='extend' then
    if stay.status not in ('reserved','in_house') then raise exception 'Stay cannot be extended'; end if;
