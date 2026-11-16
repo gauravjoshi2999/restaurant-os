@@ -30,3 +30,25 @@ jobs:
           name: maharani-photo-network-${{ github.sha }}
           path: dist/launch-qa/maharani-photo-network-audit.json
           if-no-files-found: warn
+
+  retry-spotcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Recheck seven failed images sequentially on clean runner
+        run: python scripts/maharani_image_network_audit.py --spotcheck
+      - name: Upload retry results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maharani-photo-retry-${{ github.sha }}
+          path: dist/launch-qa/maharani-photo-retry-spotcheck.json
+          if-no-files-found: warn
