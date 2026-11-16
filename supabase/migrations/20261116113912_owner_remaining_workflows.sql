@@ -8,6 +8,14 @@ alter table public.bite_stays add column expected_checkout_at timestamptz;
 alter table public.bite_stays add column late_fee_waived boolean not null default false;
 alter table public.bite_stays add column booking_source text not null default 'walk_in' check(booking_source in ('walk_in','phone','external_booking'));
 alter table public.bite_stays add column booking_reference text not null default '' check(length(booking_reference)<=120);
+-- Existing stays keep their original clock settings and zero automatic fees.
+-- Only newly added metadata is filled; rates, balances and original rows persist.
+update public.bite_stays s set policy_snapshot=jsonb_build_object('reviewed',false,'checkin_time',pr.checkin_time,'checkout_time',pr.checkout_time,'turnover_minutes',0),
+ scheduled_arrival_at=(s.arrival+pr.checkin_time)at time zone pr.timezone,
+ standard_checkout_at=(s.departure+pr.checkout_time)at time zone pr.timezone,
+ expected_checkout_at=(s.departure+pr.checkout_time)at time zone pr.timezone
+from public.bite_properties pr where pr.id=s.property_id;
+
 alter table public.bite_folios add column checkout_policy jsonb;
 alter table public.bite_folio_entries add column service_from date;
 alter table public.bite_folio_entries add column service_to date;
