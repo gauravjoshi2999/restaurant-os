@@ -78,3 +78,23 @@ test('Hybrid mobile has five focused tabs; Hotel remains a group, not duplicate 
  assert.deepEqual(tabs.map(t=>t.label),['Home','Hotel','Orders','POS','More']);
  assert.deepEqual(tabs.map(t=>t.page),['overview','rooms','orders','pos','more']);
 });
+
+test('Owner attention state stays compact only after verified zero pending work',()=>{
+  const {attentionStatus}=require('../assets/owner-premium-shell.js');
+  assert.equal(attentionStatus([],{ready:true,restaurant:true,newOrders:0}),'clear');
+  assert.equal(attentionStatus([],{ready:true,restaurant:false}),'clear');
+  assert.equal(attentionStatus([],{ready:false,restaurant:true,newOrders:null}),'loading');
+  assert.equal(attentionStatus([],{ready:true,restaurant:true,newOrders:null}),'unavailable');
+  assert.equal(attentionStatus([],{ready:true,restaurant:true,newOrders:undefined}),'unavailable');
+  assert.equal(attentionStatus([],null),'loading');
+  assert.equal(attentionStatus([{page:'orders',count:2}],{ready:true,restaurant:true,newOrders:2}),'urgent');
+});
+
+test('Empty attention presentation does not hide urgent action buttons',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'../assets/owner-premium-shell.css'),'utf8');
+  const js=fs.readFileSync(path.join(__dirname,'../assets/owner-premium-shell.js'),'utf8');
+  assert.match(css,/bite-premium-attention\[data-state="clear"\]/);
+  assert.doesNotMatch(css,/bite-premium-attention\[data-state="urgent"\][^{]*\{[^}]*display:none/);
+  assert.match(js,/attention\.dataset\.state=attentionMode/);
+  assert.match(js,/attentionMode==='urgent'/);
+});

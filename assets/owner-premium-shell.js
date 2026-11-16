@@ -81,6 +81,12 @@
   }
   return {metrics,rows};
  }
+ function attentionStatus(rows,snapshot){
+  if(Array.isArray(rows)&&rows.length)return 'urgent';
+  if(!snapshot||snapshot.ready===false)return 'loading';
+  if(snapshot.restaurant&&snapshot.newOrders==null)return 'unavailable';
+  return 'clear';
+ }
  function render(){
   const doc=root.document,home=doc?.getElementById('overview');
   const hotel=root.BiteHospitality,property=hotel?.prop?.(),role=doc?.body?.dataset?.role;
@@ -132,10 +138,13 @@
   if(!vm.metrics.length)grid.append(el('p','bite-premium-neutral','Your enabled business tools will appear here.'));
   overview.append(grid);node.append(overview);
   const attention=el('section','bite-premium-attention');
-  const attHead=el('div','bite-premium-section-heading');attHead.append(el('h2','','Needs attention'),el('span','bite-premium-live-label','Live status'));
+  const attentionMode=attentionStatus(vm.rows,snapshot);
+  attention.dataset.state=attentionMode;
+  const attHead=el('div','bite-premium-section-heading');
+  attHead.append(el('h2','',attentionMode==='clear'?'All caught up':'Needs attention'),el('span','bite-premium-live-label',attentionMode==='urgent'?'Action required':'Latest available status'));
   attention.append(attHead);
   const list=el('div','bite-premium-attention-list');
-  if(vm.rows.length){
+  if(attentionMode==='urgent'){
    for(const item of vm.rows){
     const b=routeButton(item.page,'','bite-premium-attention-item');
     const ico=el('span','bite-premium-attention-icon');ico.innerHTML=svg(item.icon);
@@ -144,12 +153,12 @@
     const arrow=el('span','bite-premium-attention-arrow');arrow.innerHTML=svg('arrow');
     b.append(ico,content,arrow);list.append(b);
    }
-  }else if(snapshot?.ready===false){
-   list.append(el('p','bite-premium-neutral','Loading your hotel status…'));
-  }else if(type==='restaurant'&&snapshot?.newOrders==null){
-   list.append(el('p','bite-premium-neutral','Order verification status will appear when connected.'));
+  }else if(attentionMode==='loading'){
+   list.append(el('p','bite-premium-neutral','Checking your current business status…'));
+  }else if(attentionMode==='unavailable'){
+   list.append(el('p','bite-premium-neutral','Order status is not yet verified. Open Orders to check.'));
   }else{
-   const clean=el('p','bite-premium-all-clear');clean.innerHTML=svg('check')+'<span>No urgent tasks found in the available live data.</span>';list.append(clean);
+   const clean=el('p','bite-premium-all-clear');clean.innerHTML=svg('check')+'<span>No urgent tasks in the latest available data.</span>';list.append(clean);
   }
   attention.append(list);node.append(attention);
   const work=el('section','bite-premium-workspaces');
@@ -187,6 +196,6 @@
   root.addEventListener('bite:capabilities',render);
   root.addEventListener('bite:owner-summary',render);
  }
- if(typeof module!=='undefined'&&module.exports)module.exports={actionsFor,viewModel,presets,copy};
+ if(typeof module!=='undefined'&&module.exports)module.exports={actionsFor,viewModel,attentionStatus,presets,copy};
  if(root.document){if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',start,{once:true});else start()}
 })(typeof window!=='undefined'?window:globalThis);

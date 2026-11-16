@@ -664,3 +664,34 @@ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs but
  body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs{margin-top:-4px;margin-bottom:13px}
  body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-hotel-tabs button{min-height:43px}
 }
+
+
+/* Owner V2 small-step #1: only urgent work receives a full action panel.
+   Empty results are a compact confirmation, not a large card. */
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"]{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ border-radius:0!important;padding:0!important;align-self:start;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"] .bite-premium-section-heading{
+ display:none!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"] .bite-premium-attention-list{
+ display:block!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"] .bite-premium-all-clear{
+ min-height:50px;display:flex;align-items:center;padding:11px 13px;
+ margin:0!important;font-size:12px;line-height:1.3;border-radius:13px!important;
+ background:#eff8f2!important;border:1px solid #d6e9de!important;
+ color:#39724d!important;box-shadow:none!important;
+}
+body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="unavailable"] .bite-premium-neutral{
+ background:#fff5e9;border-color:#ead7bd;color:#815b36!important;
+}
+@media(max-width:760px){
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"]{
+  min-height:0!important;margin:0!important;
+ }
+ body[data-role="owner"][data-universal-owner="true"] #bitePremiumHome .bite-premium-attention[data-state="clear"] .bite-premium-all-clear{
+  min-height:48px!important;padding:10px 12px!important;
+ }
+}

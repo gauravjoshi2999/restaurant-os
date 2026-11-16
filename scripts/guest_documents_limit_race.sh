@@ -25,8 +25,8 @@ SQL
 attempt first & first_pid=$!
 attempt second & second_pid=$!
 winners=0
-if wait "$first_pid";then winners=$((winners+1));else rg -q 'Five copies already exist' "$qa_tmp/first.log";fi
-if wait "$second_pid";then winners=$((winners+1));else rg -q 'Five copies already exist' "$qa_tmp/second.log";fi
+if wait "$first_pid";then winners=$((winners+1));else grep -Fq 'Five copies already exist' "$qa_tmp/first.log";fi
+if wait "$second_pid";then winners=$((winners+1));else grep -Fq 'Five copies already exist' "$qa_tmp/second.log";fi
 test "$winners" -eq 1
 psql -v ON_ERROR_STOP=1 >"$qa_tmp/check" <<'SQL'
 do $$begin assert (select count(*) from public.bite_guest_documents where property_id in(select p from public.document_race))=5;end $$;
