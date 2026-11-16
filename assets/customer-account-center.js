@@ -6,7 +6,7 @@
  const section=byId('accountView');
  if(!section||!byId('biteAccountHub'))return;
  const known=new Set(['overview','profile','addresses','support','preferences','notifications','about']);
- const state={userId:null,sessionUser:null,profile:null,epoch:0,subpage:'overview',saving:false,preferenceBusy:false,emailBusy:false,deletionBusy:false};
+ const state={userId:null,sessionUser:null,profile:null,epoch:0,subpage:'overview',saving:false,preferenceBusy:false,emailBusy:false,deletionBusy:false,exportBusy:false};
  const titles={overview:'Your account',profile:'Edit profile',addresses:'Saved addresses',support:'Help & support',preferences:'Food preferences',notifications:'Notifications',about:'About Bite'};
  function sameUser(id=state.userId){return Boolean(id)&&id===state.userId;}
  function text(id,value){const el=byId(id);if(el)el.textContent=String(value??'');}
@@ -176,6 +176,25 @@
      if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage',error.message||'Could not submit deletion request.');
    }finally{state.deletionBusy=false;button.disabled=false;}
  }
+ async function requestExport(){
+   if(state.exportBusy||!state.userId)return;
+   const id=state.userId,epoch=state.epoch,button=byId('biteDownloadAccountData');
+   state.exportBusy=true;if(button)button.disabled=true;
+   text('biteDataExportStatus','Preparing your private account snapshot…');
+   const current=()=>sameUser(id)&&epoch===state.epoch&&
+     !section.classList.contains('hidden');
+   try{
+     if(!root.BiteAccountExport)throw new Error('Data download is temporarily unavailable. Please refresh and retry.');
+     const snapshot=await root.BiteAccountExport.buildSnapshot(sb,id,current);
+     if(!current())return;
+     root.BiteAccountExport.downloadSnapshot(snapshot);
+     text('biteDataExportStatus','Download started. Store this private JSON file securely.');
+   }catch(error){
+     if(current())text('biteDataExportStatus',error.message||'Could not export your data. No file was created.');
+   }finally{
+     state.exportBusy=false;if(button)button.disabled=false;
+   }
+ }
  function requestSupport(kind){
    show('support');
    const category=byId('customerSupportCategory');
@@ -197,6 +216,7 @@
    e.preventDefault();
    const destination=go.dataset.biteAccountGo;
    if(destination==='deletion')void requestDeletion();
+   else if(destination==='export')void requestExport();
    else if(destination==='support'&&go.dataset.biteAccountSupportRequest)requestSupport(go.dataset.biteAccountSupportRequest);
    else show(destination);
  }
