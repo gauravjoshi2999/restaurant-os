@@ -73,6 +73,22 @@
    for(const side of ['front','back']){form.elements['id_'+side].value='';form.elements['id_'+side+'_id'].value=''}
    form.elements.id_front.required=true;form.querySelector('[data-front-status]').textContent='Choose this guest’s ID front.';
   });
+  form.elements.guest_id.addEventListener('change',async()=>{
+   const guestId=form.elements.guest_id.value,key=scope(),version=generation;if(!guestId)return;
+   try{
+    const result=await ctx.sb.rpc('bite_guest_document_list',{p_property:p().id,p_guest:guestId});
+    assertScope(key,version);if(result.error||!form.isConnected||form.elements.guest_id.value!==guestId)return;
+    const ready=(result.data||[]).filter(d=>d.status==='ready'&&d.kind==='masked_id');
+    const prior=(db().stays||[]).filter(s=>s.guest_id===guestId&&s.registration?.id_front).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]?.registration;
+    const front=ready.find(d=>d.id===prior?.id_front)||ready[0];
+    if(front&&!form.elements.id_front.files[0]){
+     form.elements.id_front_id.value=front.id;form.elements.id_front.required=false;
+     form.querySelector('[data-front-status]').textContent='Saved ID front selected. Verify it, or upload a replacement.';
+     const back=ready.find(d=>d.id===prior?.id_back);form.elements.id_back_id.value=back?.id||'';
+     form.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+   }catch{}
+  });
   if(draft.stay_id){for(const key of ['male','female','transport','vehicle_number','arrived_from','next_destination','id_front','id_back','nightly_rate'])form.elements[key].disabled=true;form.elements.id_checked.required=false}
  }
  function prepareRegister(form,f){
