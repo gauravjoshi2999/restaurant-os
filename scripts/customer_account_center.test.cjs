@@ -160,3 +160,16 @@ test('account settings expose functional appearance controls and motion opt-out'
  assert.match(source,/auth\.updateUser\(\{data:\{bite_preferences_v1:next\}\}\)/);
  assert.match(source,/applyVisualPreferences\(\)/);
 });
+
+test('opt-out of cart suggestions is account-scoped and preserves vegetarian settings',async()=>{
+ const t=fixture();t.hub.open({user:t.state.user});
+ t.el('biteAccountVeg').checked=true;
+ await t.handlers['biteAccountVeg:change']({currentTarget:t.el('biteAccountVeg')});
+ t.el('biteAccountSuggestions').checked=false;
+ await t.handlers['biteAccountSuggestions:change']({currentTarget:t.el('biteAccountSuggestions')});
+ const last=t.writes.filter(w=>w.type==='metadata').at(-1);
+ assert.equal(last.data.bite_preferences_v1.veg_only,true);
+ assert.equal(last.data.bite_preferences_v1.show_cart_suggestions,false);
+ assert.equal(t.hub.recommendationsEnabled(),false);
+ assert.match(account,/id="biteAccountSuggestions"/);
+});
