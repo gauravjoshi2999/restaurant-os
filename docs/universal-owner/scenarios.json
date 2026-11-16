@@ -3233,14 +3233,18 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "scripts/owner_remaining_pg_test.sql; docs/universal-owner/production_remaining_rollback.sql"
+      "scripts/guest_documents_pg_test.sql",
+      "scripts/guest_documents_limit_race.sh",
+      "scripts/guest_documents_browser.py",
+      "scripts/guest_document_copy_handler.test.cjs",
+      "docs/universal-owner/private-copy-live-evidence.json"
     ],
-    "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
-    "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Anonymous guest-table/token-table access and guest-link identity leakage are denied. Bite does not store guest identity scans, so a guest-document URL storage workflow is not implemented or certified.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "simulation": "The unauthorized-URL goal was exercised against actual APIs with synthetic identities/files; no real guest document was used.",
+    "evidence_scope": "Actual Supabase Auth, Storage, RPC and Edge HTTP with synthetic accounts and a 68-byte PNG; disposable PostgreSQL role/policy execution; actual UI controllers with synthetic transport. No real identity scan, payment or legal-retention certification.",
+    "limitation": "Optional redacted JPEG/PNG/PDF only. Downloads require a fresh server permission check and no-store response; raw Storage and bearer URLs are denied. Previously authorized downloads cannot be recalled. Legal retention and identity verification remain the property's responsibility.",
+    "verified_ci": "Source QA 43914892295 at f09afa4cbf7a730407adeda5e18d45d1c8eae20e passed all four jobs; live API run c49c836d-f51e-4c07-85a7-79c6acffce4f passed 30 checks with verified cleanup. Final deployment tracked in PR #153."
   },
   {
     "id": "A109",
@@ -3323,12 +3327,15 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Guest profile; reserved stay; one folio; check-in posts room nights once",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PARTIAL",
+    "evidence": [
+      "scripts/owner_mobile_forms.test.cjs",
+      "scripts/guest_documents_browser.py"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
-    "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Mobile widths and reachable form controls are browser-tested. An actual Android software keyboard and viewport resize have not been exercised.",
-    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
+    "evidence_scope": "Actual Owner check-in controllers and viewport resize to 390x480 in Chromium, plus visualViewport/layout geometry unit tests. This is keyboard emulation, not a physical Android IME.",
+    "limitation": "Save/Review and the focused field remain reachable during emulated keyboard shrink, and navigation returns afterward. Actual Android keyboard/IME and installed-APK viewport behavior still require device verification.",
+    "verified_ci": "QA 43911200910 at c3ca4d5738c38f11ee1d13948c5c667b908e9a86; final source reruns on PR #153. Physical-device case remains partial."
   },
   {
     "id": "A112",

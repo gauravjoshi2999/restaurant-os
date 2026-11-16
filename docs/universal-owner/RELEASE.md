@@ -38,12 +38,12 @@ The [JSON ledger](scenarios.json) and [CSV ledger](scenarios.csv) retain each ca
 
 | Status | Count | Scope |
 | --- | ---: | --- |
-| PASS | 113 | Only the recorded isolated/browser/rollback scope passed |
+| PASS | 114 | Only the recorded isolated/browser/rollback scope passed |
 | PARTIAL | 3 | Supporting behavior works; the complete case is not certified |
-| NOT_RUN | 1 | Complete case remains unexecuted |
+| NOT_RUN | 0 | The keyboard case now has partial emulation evidence |
 | BLOCKED_EXTERNAL | 3 | Actual native/device verification needed |
 
-The executable web workflows now include reviewed arrival/checkout policies, prepaid registration, assigned service queues, guest-facing hotel refund/bill access, approved additional outlets, staff/property handoff, combined journal locking and unified audit search. Seven cases remain explicitly limited: foreign reporting (A009), native cross-outlet notifications (A107), guest-document storage (A108), an actual Android keyboard (A111), lock-screen sound/actions (A072/A073) and cross-device sessions (A115). No blanket “all 120 passed” claim is made.
+The executable web workflows now include reviewed arrival/checkout policies, prepaid registration, assigned service queues, guest-facing hotel refund/bill access, approved additional outlets, staff/property handoff, combined journal locking and unified audit search. Six cases remain explicitly limited: foreign reporting (A009), native cross-outlet notifications (A107), an actual Android keyboard (A111), lock-screen sound/actions (A072/A073) and cross-device sessions (A115). A108 now has actual private-copy API evidence. No blanket “all 120 passed” claim is made.
 
 ## Operational extension — PR #147
 
@@ -57,6 +57,21 @@ The executable web workflows now include reviewed arrival/checkout policies, pre
 
 The [production rollback-only probe](production_remaining_rollback.sql) passed against the real POS engine: once-only advance/credit/return record, service queue, guest-link privacy/revoke, Hotel Only → Hybrid preserves an occupied guest folio, approved outlet attachment, and both hotel/POS journal locks. Every synthetic row and configuration change rolled back. This is neither a real-money test nor physical-device certification.
 
+## Private guest copies and keyboard recovery — PR #153
+
+[PR #153](https://github.com/gauravjoshi2999/restaurant-os/pull/153) completes A108 within explicit test scope and adds supporting A111 keyboard behavior inside the existing Owner application. The approved Owner V2 CSS/JS, including the concurrent compact mobile attention panel at `fff3b77c0332c3b7f2d033e158604c2439727015`, remain unchanged by this feature.
+
+- **Guests → Private copies:** optional redacted JPEG/PNG/PDF, up to 4 MB each and five copies per guest, random non-personal paths, stable upload retry IDs, confirmed Storage metadata before completion and confirmed deletion before metadata retirement. Original filenames/bytes are excluded from RPC metadata and browser persistence. No real identity scan was used in QA.
+- **Current permission on every download:** private bucket, exact property/guest scope, owner/manager/reception permissions, denied cashier/housekeeping/accountant/outsider/platform-admin access. Public and signed/bearer URLs, raw bucket listing, copy and overwrite are denied. Direct authenticated Storage downloads are also disabled. `guest-document-copy` Edge Function version **1** is ACTIVE with JWT verification, validates Auth/current DB permission, fetches a server-approved path, validates size/signature, rechecks access after reading and returns a forced attachment with `private, no-store` headers. Source readback matches the repository.
+- **A real integration issue was caught and fixed:** the SDK metadata preflight needed explicit handling; direct Storage responses could also outlive a role revocation in cache. The final implementation uses the freshly authorized proxy, and the live test proves a repeated download with the same revoked session is denied. Older permissive info policies are tightened by the final migration; do not deploy only an intermediate migration.
+- **30 actual API checks passed** with the same Supabase SDK **2.119.0** as the frontend: upload, byte-for-byte download, raw/public/bearer URL denial, cross-property denial, role changes/revocation with the same session, removal and repeated requests. [Recorded live evidence](private-copy-live-evidence.json). Only synthetic accounts/property/guest and a 68-byte PNG were created. Database checks confirm all were removed. The expiring probe endpoint was then replaced by a handler returning HTTP **410** (version 6, JWT verification retained); it has no remaining privileged test code.
+- [Source QA 43914892295](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43914892295) passed all four jobs at `f09afa4cbf7a730407adeda5e18d45d1c8eae20e`; **770 Node tests pass** locally and in CI. Disposable PostgreSQL validates actual policies even under an unrelated broad permissive Storage policy, current roles, revocation and upload limits; the PostgreSQL 17 CI also races two fifth uploads. Browser source QA [43914892295](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/43914892295) recorded **284 Owner assertions** (153 universal + 80 operational + 51 private-copy/keyboard), zero page errors. These include the final proxy controller. The evidence-only final commit reruns QA; exact final run/merge/Pages proof is recorded on PR #153.
+- **Keyboard recovery:** VisualViewport/layout-resize handling retains the existing Save/Review actions above a shrunk viewport, keeps the focused field visible, temporarily hides the bottom navigation and restores it afterward. Real check-in controllers passed at an emulated 390×480 viewport, with geometry tests for visual-only and layout-resizing keyboards. A111 stays **PARTIAL** until a physical Android keyboard/APK is exercised.
+
+Copies remain optional. The property decides its lawful collection/retention needs and removes unnecessary files; no automated retention schedule, official identity verification or legal certification is claimed. A previously authorized download cannot be recalled from its recipient.
+
+During normal live use, the database had grown to **103 orders / ₹31,895, 96 financial rows, 3 rooms, 2 stays, 2 folios and 1 guest** before this feature's synthetic probes. Existing 10 POS payment rows and 3 refund jobs remained. All original 101 order amount/status records and all 133 menu name/price records still matched the earlier baseline; the two later orders were preserved. A later order status changed while verification was running, so a current whole-table status digest is not forced back to an old value. No original guest, stay, folio, payment or order was deleted to restore an older count.
+
 ## Database preservation and release migrations
 
 Applied migrations, in order:
@@ -65,6 +80,10 @@ Applied migrations, in order:
 2. `20261116104349_owner_operational_completion`: DND/request/payer fields, two RLS tables for tracked staff grants/closing snapshots, authenticated report/audit reads and guarded operational commands.
 3. `20261116105700_owner_room_discount_guard`: exact protected-folio proof for initial POS discount/coordinated reversal, integrated with the real existing owner-field trigger.
 4. `20261116135719_owner_remaining_workflows`: additive policy/service/refund/link/checklist/application tables and guarded APIs; approved portfolio association, journal locks and unified audit. Applied successfully; file contents retain SHA-256 `e571e44da56357385eea2f58898517fa1fb3cf5f91adb058b4fec748f9280240`.
+
+5. `20261116164724_guest_document_privacy`: private optional-copy metadata/bucket, current role/guest checks, bounded idempotent upload/removal. SQL SHA-256 `7ba7735b54849df2661164bcd570fc73adb6de339bdfd19ebfab4abf641a7442`.
+6. `20261116165500_guest_document_storage_info`: SDK metadata preflight compatibility.
+7. `20261116170140_guest_document_proxy_download`: disables raw authenticated/info URL reads and adds guarded/audited server download authorization; required final privacy boundary.
 
 Repository filenames match the versions returned by the database. Duplicate unapplied filenames were removed. No business history is deleted or reseeded. Five existing property configurations were backfilled; **no sample rooms/stays/folios/guests were retained by implementation or QA**. At the later operational release, the live system contained 3 rooms, 1 stay, 1 folio and 1 guest; these original records were preserved.
 
@@ -80,7 +99,7 @@ Repository filenames match the versions returned by the database. Duplicate unap
 
 Order digest: `773e1941cd727f4a91519cc403b20816`. Menu digest: `580b079270b8efbd89f1202cadf14f56`. The rollback tests independently check both and the payment/financial counts. The later upgrade also preserved the original hotel-row digest `a3eae97a65d6ae33ae33f65a61ab1850`, excluding only newly added metadata columns. These are preservation checks, **not a full database backup**.
 
-Property commands serialize and store request UUID/payload/result for recovery. Current membership, role checks and cross-property keys/RLS protect data. Staff email maps to an existing account; metadata is display-only. Owner-granted cashier/manager membership links to approved owned outlets without overwriting independent existing memberships. Revocation removes only the tracked grant. No invitation or message is sent. Guest scans are not uploaded or publicly served.
+Property commands serialize and store request UUID/payload/result for recovery. Current membership, role checks and cross-property keys/RLS protect data. Staff email maps to an existing account; metadata is display-only. Owner-granted cashier/manager membership links to approved owned outlets without overwriting independent existing memberships. Revocation removes only the tracked grant. No invitation or message is sent. The original release retained only minimal identity fields. The later private-copy release adds optional redacted supporting files, never a public/bearer URL or mandatory scan collection.
 
 Security review found no newly exposed guest/ledger tables. Internal businesses/commands/staff-grant tables intentionally have no browser write policy/grant. The deliberately public boolean function returns no guest/money rows. The added hash-only link table intentionally has no browser policy/grant; the token-scoped reader intentionally uses SECURITY DEFINER for anonymous guest access. Security advisories changed from 8 to 9 no-policy INFO findings, 6 to 7 anonymous SECURITY DEFINER warnings and 53 to 54 authenticated warnings, exactly for these reviewed surfaces. Existing advisories, including [disabled leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), remain explicit platform gates.
 
@@ -95,4 +114,4 @@ Rollback a frontend release using a reviewed revert and the existing exact-SHA Q
 5. Test actual installed Partner APK lock-screen sound, native Accept/Reject, persistent sessions and property-switch notification handoff. Source/synthetic tests cannot certify physical-device behavior.
 6. Finish external provider/payment/refund/split-settlement and remaining platform gates separately. No live-money Cashfree test was run for this Owner release.
 
-Final merged SHAs, main QA and verified live Pages deployment are recorded on the corresponding PR #145/#146/#147 and their Actions runs. The live `bite-deploy-version.json` exposes the deployed SHA for exact comparison. Describe this as verified staged implementation with the ledger above, not all-workflow, legal/tax or native-device certification.
+Final merged SHAs, main QA and verified live Pages deployment are recorded on the corresponding PR #145/#146/#147/#153 and their Actions runs. The live `bite-deploy-version.json` exposes the deployed SHA for exact comparison. Describe this as verified staged implementation with the ledger above, not all-workflow, legal/tax or native-device certification.
