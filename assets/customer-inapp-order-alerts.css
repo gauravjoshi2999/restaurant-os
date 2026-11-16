@@ -1,0 +1,17 @@
+/* Bite premium in-app order updates: only visible during authenticated web session. */
+body[data-bite-app="customer"] .bite-inapp-order-alert{
+ position:fixed;z-index:6500;bottom:calc(94px + env(safe-area-inset-bottom,0px));
+ left:max(16px,calc(50% - 300px));right:max(16px,calc(50% - 300px));
+ display:flex;align-items:center;gap:14px;min-height:64px;box-sizing:border-box;
+ background:#173d2c;color:#fff;padding:13px 14px 13px 17px;
+ border:1px solid #276e4e;border-radius:17px;
+ box-shadow:0 15px 35px #07321d36;font-family:inherit
+}
+body[data-bite-app="customer"] .bite-inapp-order-alert-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px;line-height:1.3}
+body[data-bite-app="customer"] .bite-inapp-order-alert-copy small{color:#a5dac0;font-size:9px;font-weight:830;letter-spacing:.11em}
+body[data-bite-app="customer"] .bite-inapp-order-alert-copy strong{font-size:13px;font-weight:740;overflow-wrap:anywhere}
+body[data-bite-app="customer"] .bite-inapp-order-alert button{flex:0 0 auto;min-height:42px;padding:8px 13px;border:1px solid #7eb699;border-radius:10px;background:#fff;color:#125a36;font:inherit;font-weight:760;font-size:12px;cursor:pointer}
+body[data-bite-app="customer"] .bite-inapp-order-alert button.bite-inapp-order-alert-close{width:34px;min-width:34px;min-height:42px;padding:0;background:transparent;border:0;color:#e0f2e7;font-size:21px;font-weight:400}
+body[data-bite-app="customer"] .bite-inapp-order-alert button:focus-visible{outline:3px solid #d2eed9;outline-offset:3px}
+@media(max-width:400px){body[data-bite-app="customer"] .bite-inapp-order-alert{left:10px;right:10px;gap:8px;padding:12px}}
+@media(prefers-reduced-motion:reduce){body[data-bite-app="customer"] .bite-inapp-order-alert{transition:none;animation:none}}
