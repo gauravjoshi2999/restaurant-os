@@ -51,7 +51,7 @@
    settings.prepend(card);
   }
   const field=card.querySelector('#biteShowHousekeeping');
-  field.checked=housekeepingVisible();
+  field.checked=housekeepingDisplay.saving&&typeof housekeepingDisplay.pendingEnabled==='boolean'?housekeepingDisplay.pendingEnabled:housekeepingVisible();
   field.disabled=housekeepingDisplay.propertyId!==p.id||!housekeepingDisplay.loaded||housekeepingDisplay.saving;
   const retry=card.querySelector('#biteHousekeepingRetry');
   retry.hidden=!housekeepingDisplay.error||housekeepingDisplay.saving;
@@ -84,7 +84,7 @@
   if(!p?.can_configure||!has('hotel_rooms')||housekeepingDisplay.propertyId!==p.id||
      !housekeepingDisplay.loaded||housekeepingDisplay.saving)return;
   const propertyId=p.id,original=housekeepingDisplay.enabled;
-  housekeepingDisplay.saving=true;housekeepingDisplay.error='';
+  housekeepingDisplay.saving=true;housekeepingDisplay.pendingEnabled=enabled;housekeepingDisplay.error='';
   renderHousekeepingPreference();
   try{
    const result=await ctx.sb.from('bite_property_ui_preferences')
@@ -99,7 +99,7 @@
    housekeepingDisplay.error=String(e.message||'Save failed');
   }finally{
    if(prop()?.id===propertyId){
-    housekeepingDisplay.saving=false;applyShell();
+    housekeepingDisplay.saving=false;housekeepingDisplay.pendingEnabled=null;applyShell();
     renderHome();
     root.dispatchEvent(new Event('bite:owner-summary'));
    }
