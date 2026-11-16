@@ -757,46 +757,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   end if;
   if p_action='config'and p_payload?'tax_profile'and coalesce((p_payload->'tax_profile'->>'reviewed')::boolean,false)then
    cfg:=p_payload->'tax_profile';
-   if (coalesce((cfg->>'room_rate')::numeric,0)>0 or coalesce((cfg->>'food_rate')::numeric,0)>0 or coalesce((cfg->>'incidental_rate')::numeric,0)>0)and coalesce(upper(cfg->>'gstin'),'')!~'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]entity:=(v->>'id')::uuid;fid:=nullif(v->>'folio_id','')::uuid;
-  if p_action='reserve'and p_payload?'registration'then
-   update public.bite_stays set register_number=(select coalesce(max(register_number),0)+1 from public.bite_stays where property_id=p_property),registration=(p_payload->'registration')||jsonb_build_object('registered_at',now())where id=entity;
-   select v||jsonb_build_object('register_number',register_number)into v from public.bite_stays where id=entity;
-  end if;
-  if p_action='reserve'then
-   update public.bite_folio_entries set account_note=left(trim(coalesce(p_payload->>'advance_account',pr.tax_profile->>'primary_account','')),80)where property_id=p_property and folio_id=fid and kind='advance';
-  elsif p_action in('payment','payment_confirm','deposit_hold','refund','deposit_return')then
-   update public.bite_folio_entries set account_note=left(trim(coalesce(p_payload->>'account_note',nullif(account_note,''),pr.tax_profile->>'primary_account','')),80)where property_id=p_property and id=entity;
-  elsif p_action in('room_pos','room_post')and coalesce((pr.tax_profile->>'reviewed')::boolean,false)and nullif(pr.tax_profile->>'gstin','')is not null then
-   update public.bite_folio_entries e set tax_rate=coalesce((pr.tax_profile->>'food_rate')::numeric,0),tax_amount=round(e.amount*coalesce((pr.tax_profile->>'food_rate')::numeric,0)/100,2)where e.property_id=p_property and (e.id=coalesce(nullif(v->>'entry_id','')::uuid,entity)or e.source_order_id=nullif(v->>'order_id','')::uuid)and e.kind='charge'and e.category='food';
-  elsif p_action='checkout'and not coalesce((v->>'already_complete')::boolean,false)then
-   select * into strict f from public.bite_folios where property_id=p_property and id=fid;
-   cfg:=f.invoice_snapshot||jsonb_build_object('number',private.bite_next_invoice_number(p_property),'reverse_charge',false,'place_of_supply',left(coalesce(pr.tax_profile->>'gstin',''),2));
-   cfg:=cfg#-'{stay,registration}';
-   cfg:=jsonb_set(cfg,'{tax_profile}',coalesce(cfg->'tax_profile','{}'::jsonb)-'primary_account');
-   cfg:=cfg||jsonb_build_object('entries',(select coalesce(jsonb_agg(e-'account_note'),'[]'::jsonb)from jsonb_array_elements(cfg->'entries')e));
-   cfg:=cfg||jsonb_build_object('gst',private.bite_invoice_gst(cfg));
-   cfg:=cfg||jsonb_build_object('splits',private.bite_split_invoice(cfg,f.payer_split));
-   update public.bite_folios set invoice_number=cfg->>'number',invoice_snapshot=cfg where id=f.id;
-   v:=v||jsonb_build_object('invoice',cfg);
-  end if;
-  if p_action='charge'then
-   update public.bite_folio_entries set tax_rate=case when coalesce((pr.tax_profile->>'reviewed')::boolean,false)then coalesce((pr.tax_profile->>'incidental_rate')::numeric,0)else 0 end where id=entity and property_id=p_property;
-  elsif p_action in('checkin','extend','apply_checkout_policy')then
-   update public.bite_folio_entries e set tax_rate=case when e.policy_tag in('early_checkin','late_checkout')then coalesce((st_row.policy_snapshot->>'fee_tax_rate')::numeric,0)else st_row.room_tax_rate end from public.bite_folios bf join public.bite_stays st_row on st_row.id=bf.stay_id where bf.property_id=p_property and bf.id=fid and e.folio_id=bf.id and e.category='room'and e.kind='charge'and e.tax_rate is null;
-  end if;
-  update public.bite_property_commands set result=v where property_id=p_property and request_id=p_request;
- end if;
- if custom then
-  v:=coalesce(v,jsonb_build_object('id',entity,'folio_id',fid,'confirmed',true));
-  insert into public.bite_property_commands values(p_property,p_request,p_action,p_payload,v,auth.uid(),now());
-  insert into public.bite_property_audit(property_id,actor_id,action,entity_id,request_id)values(p_property,auth.uid(),p_action,entity,p_request);
- end if;return v;
-end$$;
-create or replace function public.bite_property_command(p_property uuid,p_action text,p_payload jsonb,p_request uuid)returns jsonb
-language sql set search_path='' as $$select private.bite_hotel_account_command(p_property,p_action,p_payload,p_request)$$;
-revoke all on function private.bite_hotel_account_command(uuid,text,jsonb,uuid)from public,anon;
-grant execute on function private.bite_hotel_account_command(uuid,text,jsonb,uuid)to authenticated;
-then raise exception 'Review a valid GSTIN before enabling GST rates';end if;
+   if (coalesce((cfg->>'room_rate')::numeric,0)>0 or coalesce((cfg->>'food_rate')::numeric,0)>0 or coalesce((cfg->>'incidental_rate')::numeric,0)>0)and coalesce(upper(cfg->>'gstin'),'')!~'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'then raise exception 'Review a valid GSTIN before enabling GST rates';end if;
   end if;
   v:=private.bite_property_command(p_property,p_action,p_payload,p_request);entity:=(v->>'id')::uuid;fid:=nullif(v->>'folio_id','')::uuid;
   if p_action='reserve'and p_payload?'registration'then
