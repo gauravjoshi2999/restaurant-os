@@ -104,6 +104,8 @@ def check_account_layout(page, width):
     page.evaluate("""() => {
         for (const id of ['homeView','menuView','ordersView']) document.getElementById(id).classList.add('hidden');
         document.getElementById('accountView').classList.remove('hidden');
+        // Legacy form layout test intentionally renders both real forms; hub subpages are tested below.
+        document.getElementById('accountView').removeAttribute('data-section');
         document.body.dataset.view='account';
         document.getElementById('cartFloating').classList.remove('show');
         document.getElementById('accountProfile').textContent='Layout check only';
@@ -155,6 +157,30 @@ def check_account_layout(page, width):
       accountAddressRows=[];
       document.getElementById('accountAddresses').textContent='No saved address yet.';
     }""")
+
+    # New Account Center: actual navigation and responsive layout, no authenticated writes.
+    page.evaluate("document.getElementById('accountView').dataset.section='overview'")
+    check(page.locator('#biteAccountHub').is_visible(),
+          f"Premium account overview is visible at {width}px")
+    check(page.locator('#biteAccountAvatar').is_visible()
+          and page.locator('#biteAccountHub .bite-account-group').count() >= 2,
+          f"Profile hero and grouped actions appear at {width}px")
+    page.locator('#biteAccountHub [data-bite-account-go="addresses"]').click()
+    check(page.locator('.account-address-card').is_visible()
+          and page.locator('.account-support-card').is_hidden(),
+          f"Address Book opens its real existing form from Account Center at {width}px")
+    page.locator('#accountBackBtn').click()
+    check(page.locator('#biteAccountHub').is_visible(),
+          f"Back returns to Account Center without leaving the page at {width}px")
+    page.locator('#biteAccountHub [data-bite-account-go="preferences"]').click()
+    check(page.locator('#biteAccountVeg').is_visible(),
+          f"Vegetarian preference is reachable at {width}px")
+    page.locator('#accountBackBtn').click()
+    page.locator('#biteAccountHub [data-bite-account-go="support"]').first.click()
+    check(page.locator('#customerSupportForm').is_visible(),
+          f"Customer Help opens existing real ticket form at {width}px")
+    page.locator('#accountBackBtn').click()
+    page.evaluate("document.getElementById('accountView').removeAttribute('data-section')")
 
 
 def check_scheduled_picker_no_charge(page):
