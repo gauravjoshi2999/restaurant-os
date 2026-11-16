@@ -22,6 +22,7 @@ test('Kids Choice only includes owner-approved available dishes',()=>{
 test('suggestions use only same supplied restaurant menu without fake popularity or mutation',()=>{
  const original={a:1},result=m.selectRecommendations(cards,original);
  assert.deepEqual(original,{a:1});
+ assert.deepEqual(m.selectRecommendations(cards,original,{enabled:false}),[],'opt-out must hide suggestions');
  assert.ok(result.length>0&&result.length<=6);
  assert.ok(result.every(item=>cards.includes(item)&&item.is_available!==false&&item.price>0&&item.id!=='a'));
  assert.ok(result.every(item=>item.is_vegetarian===true),'vegetarian cart must not suggest non-veg');
@@ -35,7 +36,7 @@ test('owner can mark dish Kids Choice, and customer fetches the same field',()=>
  assert.match(owner,/name="is_kids_choice"/);
  assert.match(owner,/is_kids_choice:f\.get\('is_kids_choice'\)==='true'/);
  assert.match(owner,/f\.elements\.is_kids_choice\.value=String\(item\.is_kids_choice===true\)/);
- assert.match(html,/assets\/customer-menu-personalization\.js\?v=20261115-kids1/);
+ assert.match(html,/assets\/customer-menu-personalization\.js\?v=20261116-choice1/);
  assert.match(html,/assets\/customer-menu-personalization\.css\?v=20261115-kids1/);
  assert.match(html,/select\('id,category_id,name,description,price,is_vegetarian,is_kids_choice,image_url'\)/);
  assert.match(html,/window\.BiteMenuPersonalization\?\.selectKids/);

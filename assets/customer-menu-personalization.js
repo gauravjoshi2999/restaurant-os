@@ -9,7 +9,7 @@
  'use strict';
  function selectRecommendations(items,cart={},options={}){
   const limit=Math.max(0,Math.min(6,Number(options.limit)||6));
-  if(!Array.isArray(items)||limit===0)return [];
+  if(!Array.isArray(items)||limit===0||options.enabled===false)return [];
   const eligible=items.filter(x=>x&&x.id&&x.is_available!==false&&
     Number.isFinite(Number(x.price))&&Number(x.price)>0&&Number(cart[x.id]||0)<99);
   const chosen=eligible.filter(x=>Number(cart[x.id]||0)>0);
@@ -51,6 +51,9 @@
  }
  function renderRecommendations(items,cart,restaurant){
   if(!restaurant||!Array.isArray(items))return reset();
+  if(window.BiteAccountHub?.recommendationsEnabled?.()===false){
+    panel.hidden=true;list.replaceChildren();return;
+  }
   if(restaurant.id!==lastRestaurantId){lastRestaurantId=restaurant.id;input.checked=false;}
   const kidsCount=items.filter(x=>x.is_kids_choice===true&&x.is_available!==false).length;
   kids.hidden=kidsCount===0;
@@ -80,6 +83,11 @@
    article.append(image,info,button);list.append(article);
   }
  }
+ document.addEventListener?.('bite:personalization-change',()=>{
+  if(typeof menuItems!=='undefined'&&typeof cart!=='undefined'&&typeof activeRestaurant!=='undefined'&&activeRestaurant)
+    renderRecommendations(menuItems,cart,activeRestaurant);
+  else{panel.hidden=true;list.replaceChildren();}
+ });
  input.addEventListener('change',()=>{
   if(typeof renderMenuItems==='function')renderMenuItems();
  });
