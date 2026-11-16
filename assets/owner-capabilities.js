@@ -42,7 +42,7 @@
     if(e.category==='food')out.foodOnFolios+=sign*amount;
     else out[e.category==='room'?'room':'incidentals']+=sign*amount;
    }
-   if(e.kind==='payment')out.collections+=amount;
+   if(['payment','advance'].includes(e.kind))out.collections+=amount;
    if(e.kind==='refund')out.collections-=amount;
    if(e.kind==='deposit_hold')out.deposits+=amount;
    if(['deposit_return','deposit_apply'].includes(e.kind))out.deposits-=amount;

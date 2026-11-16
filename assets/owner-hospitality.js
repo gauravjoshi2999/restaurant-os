@@ -4,7 +4,7 @@
  const C=root.BiteCapabilities;
  const titles={'hotel-register':'Hotel Register','reservations':'Reservations','rooms':'Rooms','guests':'Guests','folios':'Folios & Bills','housekeeping':'Housekeeping','business-modules':'Business Modules'};
  let ctx,properties=[],data=empty(),selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0;
- function empty(){return {rooms:[],guests:[],stays:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
+ function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
  const today=()=>root.BiteOwner.day();
@@ -78,10 +78,13 @@
  function routeList(access){return access.role==='owner'?(access.property?allowed():access.needsProperty?['overview','business-modules','settings']:null):null}
  function applyShell(){
   const p=prop(),owner=ctx.getAccess().role==='owner';
-  if(!owner||!p){delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;if($('biteHotelHome'))$('biteHotelHome').hidden=true;
+  if(!owner||!p){delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true;
+   document.body.dataset.ownerOnboarding=String(owner&&ctx.getAccess().needsProperty===true);
    if(owner&&ctx.getAccess().needsProperty)document.querySelectorAll('#mainApp .nav button[data-page]').forEach(b=>{b.hidden=true;b.style.display='none'});
    return}
   document.body.dataset.businessType=p.business_type;document.body.dataset.universalOwner='true';
+  delete document.body.dataset.ownerOnboarding;
+  document.body.dataset.restaurantAccess=String(restaurantAccess());
   const pages=allowed();
   document.querySelectorAll('#mainApp .nav button[data-page]').forEach(b=>{const ok=pages.includes(b.dataset.page);b.hidden=!ok;b.style.display=ok?'flex':'none'});
   document.querySelectorAll('#mainApp .nav-group').forEach(g=>{const visible=[...g.querySelectorAll('button')].some(b=>!b.hidden);g.hidden=!visible;g.style.display=visible?'':'none'});
@@ -137,10 +140,11 @@
    (!prop().tax_profile?.reviewed?'<p class="bh-note">Tax setup needs review. Draft statements do not certify GST compliance. Configure rates in Business Modules.</p>':'');
  }
  function stayCard(s,tag=''){
-  const g=data.guests.find(g=>g.id===s.guest_id),r=data.rooms.find(r=>r.id===s.room_id),f=data.folios.find(f=>f.stay_id===s.id);
-  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)} → ${esc(s.departure)}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
+  const g=data.guests.find(g=>g.id===s.guest_id),r=data.rooms.find(r=>r.id===s.room_id),f=data.folios.find(f=>f.stay_id===s.id),group=data.groups.find(g=>g.id===s.group_id);
+  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
  }
  function renderPage(id){
+  if(!prop()&&id!=='business-modules'){void ctx.navigate('business-modules');return}
   if(id==='overview'){if(!prop()){void ctx.navigate('business-modules');return}renderHome();return}
   if(id==='business-modules'){renderSetup();return}
   const target=$(id);if(!target)return;
@@ -150,7 +154,7 @@
     '<div class="bh-room-grid">'+data.rooms.map(r=>`<article class="bh-panel"><div class="bh-room-title"><h2>${esc(r.number)}</h2><span class="bh-chip ${roomState(r)}">${esc(roomState(r))}</span></div><p>${esc(r.room_type)} · Floor ${esc(r.floor||'—')}</p><p>${money(r.nightly_rate)} / night · ${r.adults} adults, ${r.children} children</p><p>${esc(r.status_note)}</p><div class="bh-actions">${r.active?btn('room-status','Update status',r.id):''}${['owner','manager'].includes(prop().role)?btn('edit-room','Edit',r.id):''}</div></article>`).join('')+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add the real room numbers and rates to begin.'):'' );return;
   }
   if(id==='reservations'){
-   target.innerHTML=header('Reservations','Choose a stay to check in, extend, move or review its folio.',btn('register','＋ New reservation'))+notice()+searchBox('Search guest, room or status')+data.stays.map(s=>stayCard(s)).join('')+(!data.stays.length?stateCard('No reservations in this property.'):'' );return;
+   target.innerHTML=header('Reservations','Choose a stay to check in, extend, move or review its folio.',btn('register','＋ New reservation')+btn('group-booking','Group booking'))+notice()+searchBox('Search guest, room or status')+data.stays.map(s=>stayCard(s)).join('')+(!data.stays.length?stateCard('No reservations in this property.'):'' );return;
   }
   if(id==='guests'){
    target.innerHTML=header('Guests','Returning guest profiles remain separate from individual stays.')+searchBox('Search name or phone')+data.guests.map(g=>`<article class="bh-record" data-hotel-search-card="${esc([g.full_name,g.phone].join(' ').toLowerCase())}"><div><strong>${esc(g.full_name)}</strong><p>${esc(g.phone)} · ${esc(g.country)}</p></div><div class="bh-actions">${btn('guest-use','New stay',g.id)}${btn('edit-guest','Edit details',g.id)}</div></article>`).join('')+(!data.guests.length?stateCard('No guest profiles yet.'):'' );return;
@@ -175,7 +179,7 @@
   const g=data.guests.find(g=>g.id===draft.guest_id);
   $('hotel-register').innerHTML=header('Hotel Register','Search an existing guest or enter essential details, then review the room and dates.')+
    `<form id="bhCheckinForm" class="bh-form bh-panel" data-hotel-form="register" data-stay-id="${esc(draft.stay_id||'')}">
-   <h2>1 · Guest</h2>${select('guest_id','Returning guest',option('','New guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===draft.guest_id)).join(''),'data-guest-picker')}
+   <h2>1 · Guest</h2>${field('guest_search','Search returning guest by name / phone','search','','autocomplete="off" data-guest-search')}${select('guest_id','Returning guest',option('','New guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===draft.guest_id)).join(''),'data-guest-picker')}
    <div class="bh-form-grid">${field('full_name','Guest name *','text',g?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')}${field('phone','Phone *','tel',g?.phone||draft.phone||'','required minlength="7" maxlength="20" inputmode="tel"')}${field('country','Nationality / country *','text',g?.country||draft.country||'India','required maxlength="60"')}${field('email','Email (optional)','email',g?.email||draft.email||'','maxlength="120"')}${field('address','Address','text',g?.address||draft.address||'','maxlength="500"')}${field('id_type','Identity type','text',g?.id_type||draft.id_type||'','maxlength="40"')}${field('id_last4','ID last 4 characters only','text',g?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')}</div>
    <p class="bh-note">Retain only necessary guest information. For a foreign guest, complete the required FRRO reporting separately; Bite does not submit Form III.</p>
    <h2>2 · Stay & room</h2><div class="bh-form-grid">${field('arrival','Arrival *','date',draft.arrival||today(),'required')}${field('departure','Departure *','date',draft.departure||datePlus(1),'required')}${field('adults','Adults *','number',draft.adults||1,'required min="1" max="20"')}${field('children','Children','number',draft.children||0,'required min="0" max="20"')}${select('room_id','Room *',option('','Choose a room')+data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type+' · '+money(r.nightly_rate)+'/night · '+roomState(r),r.id===draft.room_id)).join(''),'required')}${field('compliance_note','Compliance / arrival note','text',draft.compliance_note||'','maxlength="250"')}</div>
@@ -186,9 +190,18 @@
    if(g)for(const key of ['full_name','phone','country','email','address','id_type','id_last4'])f.elements[key].value=g[key]||'';
    f.dataset.stayId='';f.dataset.reviewed='';f.querySelector('.bh-review')?.remove();persistDraft(f);
   });
+  $('bhCheckinForm').querySelector('[data-guest-search]').addEventListener('input',e=>{
+   const q=e.target.value.trim().toLowerCase(),picker=$('bhCheckinForm').elements.guest_id,selected=picker.value;
+   picker.innerHTML=option('','New guest')+data.guests.filter(g=>g.id===selected||[g.full_name,g.phone].join(' ').toLowerCase().includes(q)).slice(0,30).map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===selected)).join('');
+  });
+  if(draft.stay_id){
+   const form=$('bhCheckinForm');form.elements.guest_id.disabled=true;
+   for(const key of ['full_name','phone','country','email','address','id_type','id_last4','guest_search'])form.elements[key].readOnly=true;
+   form.querySelector('.bh-message').textContent='Reservation already saved. You can correct its room/dates before retrying check-in. Guest corrections are in Guests.';
+  }
  }
  function persistDraft(form){
-  try{const fields=Object.fromEntries(new FormData(form));fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
+  try{const fields=Object.fromEntries(new FormData(form));fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
  }
  function renderFolios(){
   const target=$('folios'),f=data.folios.find(f=>f.id===selectedFolio);
@@ -201,7 +214,7 @@
   target.innerHTML=header(g?.full_name||'Guest folio','Room '+(r?.number||'—')+' · '+(s?.arrival||'')+' → '+(s?.departure||''),btn('folio-list','All folios'))+
    '<div class="bh-metrics">'+[['Charges',money(t.charges)],['Applied payments',money(t.paid)],['Balance due',money(t.balance)],['Held deposit',money(t.deposit_held)]].map(([k,v])=>`<div class="bh-metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')+'</div>'+notice()+
    (Number(t.pending)>0?`<p class="bh-note">${money(t.pending)} verification pending. Pending transfers do not settle this bill.</p>`:'')+
-   '<div class="bh-ledger">'+entries.map(e=>`<article class="bh-record"><div><strong>${esc(e.description)}</strong><p>${esc(e.kind)} · ${esc(e.category)}${e.method?' · '+esc(e.method):''} · ${esc(e.status)}<br>${esc(new Date(e.created_at).toLocaleString('en-IN'))}</p>${e.source_order_id?'<small>Linked POS sale — collect here once</small>':''}</div><strong>${['payment','discount','reversal','deposit_apply'].includes(e.kind)?'−':''}${money(Number(e.amount)+Number(e.tax_amount||0))}</strong><div class="bh-actions">${writable&&e.status==='pending'&&['owner','manager'].includes(prop().role)?btn('verify-payment','Verify received',e.id):''}${writable&&e.kind==='charge'&&['owner','manager'].includes(prop().role)&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Reverse food sale':'Reverse',e.id):''}</div></article>`).join('')+'</div>'+(!entries.length?stateCard('No charges yet. Room nights are posted once at check-in.'):'' )+
+   '<div class="bh-ledger">'+entries.map(e=>`<article class="bh-record"><div><strong>${esc(e.description)}</strong><p>${esc(e.kind)} · ${esc(e.category)}${e.method?' · '+esc(e.method):''} · ${esc(e.status)}<br>${esc(new Date(e.created_at).toLocaleString('en-IN'))}</p>${e.source_order_id?'<small>Linked POS sale — collect here once</small>':''}</div><strong>${['payment','advance','discount','reversal','deposit_apply'].includes(e.kind)?'−':''}${money(Number(e.amount)+Number(e.tax_amount||0))}</strong><div class="bh-actions">${writable&&e.status==='pending'&&['owner','manager'].includes(prop().role)?btn('verify-payment','Verify received',e.id)+btn('void-payment','Not received',e.id):''}${writable&&e.kind==='charge'&&['owner','manager'].includes(prop().role)&&!entries.some(x=>x.reversal_of===e.id)?btn('reverse',e.source_order_id?'Reverse food sale':'Reverse',e.id):''}</div></article>`).join('')+'</div>'+(!entries.length?stateCard('No charges yet. Room nights are posted once at check-in.'):'' )+
    `<div class="bh-actions bh-folio-actions">${writable?btn('entry','＋ Add charge','charge')+btn('entry','Collect payment','payment')+btn('entry','Deposit','deposit_hold')+btn('entry','Return deposit','deposit_return')+btn('entry','Apply deposit','deposit_apply'):''}${writable&&['owner','manager'].includes(prop().role)?btn('entry','Discount','discount')+btn('entry','Record credit refund','refund'):''}${btn('preview','Preview / Print',f.id)}${btn('share','Share statement',f.id)}${writable&&s?.status==='in_house'?btn('checkout','Settle & Check Out',f.id):''}</div><div id="bhFolioEditor"></div>`;
  }
  function renderReports(target){
@@ -223,6 +236,7 @@
    notice()+`<div class="bh-form-actions">${setupStep>1?btn('setup-back','Back'):''}<button type="submit" class="btn">${setupStep===4?'Save configuration':'Continue'}</button></div></form>`;
  }
  async function command(action,payload){
+  if(navigator.onLine===false)throw Error('Offline. Draft stays on this device; this action has not been confirmed. Reconnect and retry.');
   const key='bite_property_request:'+identity()+':'+action+':'+(payload.id||payload.folio_id||'new');
   let attempt;try{attempt=JSON.parse(localStorage.getItem(key)||'null')}catch{throw Error('Saved request unreadable. Contact support before repeating this action.')}
   const signature=JSON.stringify(payload);
@@ -231,15 +245,15 @@
   try{
    activeWrites++;
    const response=await ctx.sb.rpc('bite_property_command',{p_property:prop().id,p_action:action,p_payload:payload,p_request:attempt.id});
-   if(response.error){if(['P0001','42501','23514','23503','23505','22P02','P0002','22007','22008'].includes(response.error.code))localStorage.removeItem(key);throw response.error}
+   if(response.error){if(['P0001','42501','P0002'].includes(response.error.code)||/^(22|23)/.test(response.error.code||''))localStorage.removeItem(key);throw response.error}
    localStorage.removeItem(key);return response.data;
   }catch(error){throw Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.')}finally{activeWrites=Math.max(0,activeWrites-1)}
  }
  function showError(error){const active=document.querySelector('.page.active');const msg=active?.querySelector('.bh-message');if(msg)msg.textContent=error.message||String(error);else root.alert(error.message||String(error))}
  function editor(html){const page=document.querySelector('.page.active');const mount=page?.querySelector('#bhFolioEditor')||page;const old=$('bhActionEditor');old?.remove();const box=document.createElement('div');box.id='bhActionEditor';box.className='bh-panel';box.innerHTML=html;mount.append(box);box.scrollIntoView({block:'nearest',behavior:'smooth'});box.querySelector('input,select,button')?.focus()}
  function entryForm(action,entryId=''){
-  const labels={charge:'Add incidental charge',payment:'Record received payment',deposit_hold:'Record held deposit',deposit_return:'Record returned deposit',deposit_apply:'Apply held deposit to bill',discount:'Authorized discount',refund:'Record credit refund already returned',reverse:'Reverse incorrect charge',payment_confirm:'Verify bank receipt'};
-  editor(`<form class="bh-form" data-hotel-form="entry" data-action="${esc(action)}" data-entry-id="${esc(entryId)}"><h2>${labels[action]}</h2>${!['reverse','payment_confirm'].includes(action)?field('amount','Amount (₹) *','number','','required min="0.01" step="0.01" inputmode="decimal"'):''}${field('description','Description / reason *','text','','required maxlength="250"')}${['payment','deposit_hold','deposit_return','refund'].includes(action)?select('method','Collection / return method',['Cash','UPI','Card','Bank Transfer','Other'].map(m=>option(m,m)).join('')):''}${field('reference',action==='payment_confirm'?'Verified bank/provider reference *':'Reference (optional)','text','',action==='payment_confirm'?'required maxlength="100"':'maxlength="100"')}<p class="bh-note">UPI, card and bank receipts stay Pending until the owner/manager verifies receipt. This records front-desk transactions; it does not charge a card or trigger a gateway refund.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Confirm</button></div></form>`);
+  const labels={charge:'Add incidental charge',payment:'Record received payment / advance',deposit_hold:'Record held deposit',deposit_return:'Record returned deposit',deposit_apply:'Apply held deposit to bill',discount:'Authorized discount',refund:'Record credit refund already returned',reverse:'Reverse incorrect charge',payment_confirm:'Verify bank receipt',payment_void:'Mark pending transfer not received'};
+  editor(`<form class="bh-form" data-hotel-form="entry" data-action="${esc(action)}" data-entry-id="${esc(entryId)}"><h2>${labels[action]}</h2>${!['reverse','payment_confirm','payment_void'].includes(action)?field('amount','Amount (₹) *','number','','required min="0.01" step="0.01" inputmode="decimal"'):''}${field('description','Description / reason *','text','','required maxlength="250"')}${['payment','deposit_hold','deposit_return','refund'].includes(action)?select('method','Collection / return method',['Cash','UPI','Card','Bank Transfer','Other'].map(m=>option(m,m)).join('')):''}${field('reference',action==='payment_confirm'?'Verified bank/provider reference *':'Reference (optional)','text','',action==='payment_confirm'?'required maxlength="100"':'maxlength="100"')}<p class="bh-note">UPI, card and bank receipts stay Pending until the owner/manager verifies receipt. This records front-desk transactions; it does not charge a card or trigger a gateway refund.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Confirm</button></div></form>`);
  }
  async function handleClick(event){
   const b=event.target.closest('[data-hotel-action]');if(!b||b.disabled)return;
@@ -248,6 +262,9 @@
    if(action==='route'||action==='retry')await ctx.navigate(id);
    else if(action==='modules'){setupDraft=null;setupStep=1;await ctx.navigate('business-modules')}
    else if(action==='register')await ctx.navigate('hotel-register');
+   else if(action==='group-booking'){
+    editor(`<form class="bh-form" data-hotel-form="group"><h2>Group reservation</h2>${field('name','Group name *','text','','required maxlength="120"')}${select('guest_id','Shared payer / lead guest',option('','New lead guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone)).join(''))}<div class="bh-form-grid">${field('full_name','New lead guest name','text','','maxlength="120"')}${field('phone','New lead guest phone','tel','','maxlength="20"')}${field('arrival','Arrival *','date',today(),'required')}${field('departure','Departure *','date',datePlus(1),'required')}</div><h3>Rooms & occupancy</h3>${data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>`<div class="bh-panel"><label class="bh-check"><input type="checkbox" name="room_ids" value="${esc(r.id)}"> Room ${esc(r.number)} · ${money(r.nightly_rate)} / night</label><div class="bh-form-grid">${field('adults_'+r.id,'Adults in this room','number',1,'min="1" max="'+r.adults+'"')}${field('children_'+r.id,'Children in this room','number',0,'min="0" max="'+r.children+'"')}</div></div>`).join('')}<p class="bh-note">All rooms reserve together, or none do. Each room keeps its own folio and invoice linked to this shared payer. Check rooms in individually after readiness inspection.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button type="submit" class="btn">Reserve selected rooms</button></div></form>`);
+   }
    else if(action==='folio'){selectedFolio=id;await ctx.navigate('folios')}
    else if(action==='folio-list'){selectedFolio=null;renderFolios()}
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}
@@ -255,6 +272,7 @@
    else if(action==='close-editor')$('bhActionEditor')?.remove();
    else if(action==='entry')entryForm(id);
    else if(action==='reverse'||action==='verify-payment')entryForm(action==='reverse'?'reverse':'payment_confirm',id);
+   else if(action==='void-payment')entryForm('payment_void',id);
    else if(action==='checkout'){
     if(!root.confirm('Review the entire folio and recorded collections. Settle and check out now?'))return;
     await command('checkout',{folio_id:id});await reload();renderFolios();
@@ -270,7 +288,7 @@
     editor(`<form class="bh-form" data-hotel-form="room-status" data-room-id="${esc(id)}"><h2>Update room status</h2>${select('status','Status',['dirty','cleaning',...(['owner','manager','receptionist'].includes(prop().role)?['ready']:[]),...(['owner','manager'].includes(prop().role)?['blocked']:[])].map(s=>option(s,s)).join(''))}${field('note','Reason / cleaning note','text','','maxlength="250"')}${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Update status</button></div></form>`);
    }else if(action==='stay-options'){
     const s=data.stays.find(s=>s.id===id);if(!s)return;
-    editor(`<form class="bh-form" data-hotel-form="stay" data-stay-id="${esc(id)}"><h2>Manage stay</h2>${select('action','Action',(s.status==='in_house'?option('extend','Extend stay')+option('move','Move room'):option('cancel','Cancel reservation')+option('no_show','Mark no-show')+option('extend','Extend reservation')))}${field('departure','New departure (for extension)','date',datePlus(2))}${select('room_id','New room (for move)',option('','Choose')+data.rooms.filter(r=>r.active&&r.id!==s.room_id).map(r=>option(r.id,r.number+' · '+roomState(r))).join(''))}<p class="bh-note">Extension uses the existing nightly rate. Manager can post a documented adjustment separately. Advances/deposits must be resolved before cancellation.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Review & apply</button></div></form>`);
+    editor(`<form class="bh-form" data-hotel-form="stay" data-stay-id="${esc(id)}"><h2>Manage stay</h2>${select('action','Action',(s.status==='in_house'?option('extend','Extend stay')+option('move','Move room'):option('cancel','Cancel reservation')+option('no_show','Mark no-show')+option('extend','Extend reservation')+option('move','Reassign room')))}${field('departure','New departure (for extension)','date',datePlus(2))}${select('room_id','New room (for move)',option('','Choose')+data.rooms.filter(r=>r.active&&r.id!==s.room_id).map(r=>option(r.id,r.number+' · '+roomState(r))).join(''))}<p class="bh-note">Extension uses the existing nightly rate. Manager can post a documented adjustment separately. Advances/deposits must be resolved before cancellation.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Review & apply</button></div></form>`);
    }else if(action==='edit-guest'){
     const g=data.guests.find(g=>g.id===id);if(!g)return;
     editor(`<form class="bh-form" data-hotel-form="guest" data-guest-id="${esc(id)}"><h2>Correct guest details</h2>${['full_name','phone','country','email','address','id_type','id_last4'].map(k=>field(k,k.replaceAll('_',' '),k==='email'?'email':'text',g[k]||'',(k==='id_last4'?'maxlength="4"':k==='id_type'?'maxlength="40"':'maxlength="120"')+(['full_name','phone','country'].includes(k)?' required':''))).join('')}${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Save correction</button></div></form>`);
@@ -303,7 +321,17 @@
     if(attempt&&attempt.signature!==JSON.stringify(f))throw Error('Previous property request pending. Restore its name/type.');
     if(!attempt){attempt={id:crypto.randomUUID(),signature:JSON.stringify(f)};localStorage.setItem(key,JSON.stringify(attempt))}
     const result=await ctx.sb.rpc('bite_create_property',{p_name:f.name,p_type:f.type,p_request:attempt.id});if(result.error)throw result.error;localStorage.removeItem(key);await loadContext();ctx.getAccess().properties=properties;await ctx.switchProperty(result.data);
+   }else if(type==='group'){
+    let guest_id=f.guest_id;
+    if(!guest_id){if(!f.full_name?.trim()||!f.phone?.trim())throw Error('Enter a lead guest name and phone.');const g=await command('guest_save',{full_name:f.full_name,phone:f.phone,country:'India'});guest_id=g.id;const o=document.createElement('option');o.value=guest_id;o.textContent=f.full_name;form.elements.guest_id.append(o);form.elements.guest_id.value=guest_id;}
+    const ids=new FormData(form).getAll('room_ids');if(!ids.length)throw Error('Select at least one room.');
+    await command('reserve_group',{name:f.name,guest_id,arrival:f.arrival,departure:f.departure,rooms:ids.map(id=>({room_id:id,adults:Number(f['adults_'+id]),children:Number(f['children_'+id])}))});await reload();renderPage('reservations');
    }else if(type==='register'){
+    if(form.dataset.stayId){
+     await reload();
+     const existing=data.stays.find(s=>s.id===form.dataset.stayId);
+     if(existing?.status==='in_house'||existing?.status==='checked_out'){selectedFolio=data.folios.find(x=>x.stay_id===existing.id)?.id||null;await ctx.navigate('folios');return}
+    }
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
      const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000);
@@ -313,6 +341,7 @@
     if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
     let stayId=form.dataset.stayId,folioId;
     if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
+    else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children)})}
     if(f.mode==='checkin'){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
     localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=folioId||null;await ctx.navigate('folios');
    }else{
@@ -372,7 +401,7 @@
   if(!prop()||!restaurantAccess())return;
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  root.BiteHospitality={init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,postedOrder,busy:()=>activeWrites>0,
   getTabs:()=>C.tabs(prop(),restaurantAccess()),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

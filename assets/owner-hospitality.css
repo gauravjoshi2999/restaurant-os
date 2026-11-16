@@ -15,3 +15,15 @@ body[data-universal-owner=true] #mainApp .main>.top{flex-wrap:wrap;gap:10px}body
 #orderModal[data-room-charge=true] #posPaymentFields,#orderModal[data-room-charge=true] #posPaymentDetails,#orderModal[data-room-charge=true] #posBalanceActionFields,#orderModal[data-room-charge=true] label:has(#posWhatsAppConsent){display:none!important}
 #biteRoomPOSTender{padding:14px 0}#biteRoomPOSTender [hidden]{display:none!important}
 body[data-business-type=hotel] #overview>:not(#biteHotelHome){display:none!important}
+body[data-owner-onboarding=true] #mainApp .bite-owner-bottom-nav,body[data-owner-onboarding=true] #mainApp .bh-property-switch{display:none!important}
+body[data-restaurant-access=false] #overview>[data-owner-dashboard]{display:none!important}
+.bh-property-switch>.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-workspace .btn{min-height:44px;border-radius:11px;background:#ed6419!important;border:1px solid #ed6419!important;color:#fff!important}
+body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-workspace .btn.secondary{background:#fffaf5!important;border-color:#e7d7c6!important;color:#733d1c!important}
+@media(max-width:760px){
+ body[data-role="owner"][data-universal-owner="true"] #mainApp>.main>.top{height:auto!important;min-height:56px!important;max-height:none!important;padding:8px 12px!important;flex-wrap:wrap!important;gap:8px!important;background:#fff8f0!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp>.main>.top #pageTitle{color:#353e34!important;order:1;min-height:28px;display:flex!important;align-items:center}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp>.main>.top .bite-owner-back{width:44px!important;height:44px!important;flex-basis:44px!important;background:#fff0e1!important;border-color:#e2c9ad!important;color:#a64d1b!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp>.main>.top .bh-property-switch{order:10;flex:0 0 100%;margin:0;max-width:100%}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field input,body[data-role="owner"][data-universal-owner="true"] #mainApp .bh-field select{font-size:16px!important}
+}

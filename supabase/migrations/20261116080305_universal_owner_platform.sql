@@ -56,9 +56,15 @@ create table public.bite_guests (
  created_at timestamptz not null default now(), unique(property_id,id)
 );
 create index bite_guests_phone on public.bite_guests(property_id,phone);
+create table public.bite_booking_groups (
+ id uuid primary key default gen_random_uuid(),property_id uuid not null references public.bite_properties(id),
+ name text not null check(length(trim(name)) between 1 and 120),payer_guest_id uuid not null,
+ created_at timestamptz not null default now(),unique(property_id,id),
+ foreign key(property_id,payer_guest_id) references public.bite_guests(property_id,id)
+);
 create table public.bite_stays (
  id uuid primary key default gen_random_uuid(), property_id uuid not null references public.bite_properties(id),
- guest_id uuid not null, room_id uuid not null,
+ guest_id uuid not null, room_id uuid not null, group_id uuid,
  arrival date not null, departure date not null check(departure>arrival),
  adults integer not null check(adults between 1 and 20), children integer not null default 0 check(children between 0 and 20),
  nightly_rate numeric(14,2) not null check(nightly_rate between 0 and 999999999999.99),
@@ -67,6 +73,7 @@ create table public.bite_stays (
  checked_in_at timestamptz, checked_out_at timestamptz,
  compliance_note text not null default '', created_at timestamptz not null default now(),
  unique(property_id,id),
+ foreign key(property_id,group_id) references public.bite_booking_groups(property_id,id),
  foreign key(property_id,guest_id) references public.bite_guests(property_id,id),
  foreign key(property_id,room_id) references public.bite_rooms(property_id,id)
 );
@@ -79,7 +86,7 @@ create table public.bite_folios (
 );
 create table public.bite_folio_entries (
  id uuid primary key default gen_random_uuid(), property_id uuid not null, folio_id uuid not null,
- kind text not null check(kind in ('charge','discount','reversal','payment','refund','deposit_hold','deposit_return','deposit_apply')),
+ kind text not null check(kind in ('charge','discount','reversal','payment','advance','refund','deposit_hold','deposit_return','deposit_apply')),
  category text not null check(category in ('room','incidental','food','payment','deposit')),
  description text not null check(length(trim(description)) between 1 and 250),
  amount numeric(14,2) not null check(amount>0 and amount<=999999999999.99),
@@ -143,8 +150,8 @@ create function private.bite_folio_totals(p_folio uuid) returns jsonb
 language sql stable set search_path='' as $$
  select jsonb_build_object(
   'charges',coalesce(sum(case when kind='charge' then amount+tax_amount when kind in ('discount','reversal') then -amount-tax_amount else 0 end) filter(where status='confirmed'),0),
-  'paid',coalesce(sum(case when kind in ('payment','deposit_apply') then amount when kind='refund' then -amount else 0 end) filter(where status='confirmed'),0),
-  'balance',coalesce(sum(case when kind='charge' then amount+tax_amount when kind in ('discount','reversal','payment','deposit_apply') then -amount-tax_amount when kind='refund' then amount else 0 end) filter(where status='confirmed'),0),
+  'paid',coalesce(sum(case when kind in ('payment','advance','deposit_apply') then amount when kind='refund' then -amount else 0 end) filter(where status='confirmed'),0),
+  'balance',coalesce(sum(case when kind='charge' then amount+tax_amount when kind in ('discount','reversal','payment','advance','deposit_apply') then -amount-tax_amount when kind='refund' then amount else 0 end) filter(where status='confirmed'),0),
   'deposit_held',coalesce(sum(case when kind='deposit_hold' then amount when kind in ('deposit_return','deposit_apply') then -amount else 0 end) filter(where status='confirmed'),0),
   'pending',coalesce(sum(amount) filter(where status='pending'),0))
  from public.bite_folio_entries where folio_id=p_folio
@@ -153,13 +160,15 @@ $$;
 -- No direct browser writes. RLS is defense in depth for reads; commands below
 -- check auth, role and capabilities before accessing any private data.
 do $$ declare t text; begin
- foreach t in array array['bite_businesses','bite_properties','bite_property_members','bite_property_outlets','bite_rooms','bite_guests','bite_stays','bite_folios','bite_folio_entries','bite_property_commands','bite_property_audit','bite_property_expenses'] loop
+ foreach t in array array['bite_businesses','bite_properties','bite_property_members','bite_property_outlets','bite_rooms','bite_guests','bite_booking_groups','bite_stays','bite_folios','bite_folio_entries','bite_property_commands','bite_property_audit','bite_property_expenses'] loop
   execute format('alter table public.%I enable row level security',t);
   execute format('revoke all on public.%I from anon,authenticated',t);
  end loop;
 end $$;
 grant select on public.bite_properties,public.bite_property_members,public.bite_property_outlets,public.bite_rooms,public.bite_guests,public.bite_stays,public.bite_folios,public.bite_folio_entries,public.bite_property_audit to authenticated;
 grant select on public.bite_property_expenses to authenticated;
+grant select on public.bite_booking_groups to authenticated;
+create policy booking_groups_read on public.bite_booking_groups for select to authenticated using(private.bite_can(property_id,'reservations'));
 create policy property_expenses_read on public.bite_property_expenses for select to authenticated using(private.bite_can(property_id,'expenses'));
 create policy property_read on public.bite_properties for select to authenticated using(private.bite_can(id,'membership'));
 create policy property_members_read on public.bite_property_members for select to authenticated using(user_id=(select auth.uid()) or private.bite_can(property_id,'manage_modules'));
@@ -232,7 +241,7 @@ declare
  caps text[]; cap text; role_name text; entity uuid; guest uuid; room_id uuid; folio_id uuid;
  amount numeric(14,2); tax numeric(14,2); rate numeric(6,3); total jsonb; result jsonb;
  v_arrival date; v_departure date; n integer; a integer; c integer; old_room uuid; kind text; stat text; desc_text text;
- invoice jsonb; rid uuid; order_id uuid; ord public.orders;
+ invoice jsonb; rid uuid; order_id uuid; ord public.orders; unit jsonb;v_group uuid;group_stays jsonb:='[]'::jsonb;
 begin
  if auth.uid() is null or p_request is null or p_payload is null or jsonb_typeof(p_payload)<>'object' then raise exception 'Authenticated request ID and payload required' using errcode='42501'; end if;
  role_name:=private.bite_property_role(p_property);
@@ -241,13 +250,13 @@ begin
   when p_action in ('config','member') then 'manage_modules'
   when p_action in ('room_save','room_status') then 'housekeeping'
   when p_action='guest_save' then 'guest_register'
-  when p_action in ('reserve','checkin','move','extend','cancel','no_show') then 'reservations'
+  when p_action in ('reserve','reserve_group','reservation_edit','checkin','move','extend','cancel','no_show') then 'reservations'
   when p_action in ('room_post','room_pos') then 'charge_to_room'
   when p_action='expense' then 'expenses'
   else 'folios' end;
  if not private.bite_can(p_property,cap) then raise exception 'Module or role does not permit this action' using errcode='42501'; end if;
  if role_name='accountant' then raise exception 'Read-only accounting access' using errcode='42501'; end if;
- if p_action in ('room_save','discount','reverse','refund','payment_confirm','expense') and role_name not in ('owner','manager') then raise exception 'Owner or manager authorization required' using errcode='42501'; end if;
+ if p_action in ('room_save','discount','reverse','refund','payment_confirm','payment_void','expense') and role_name not in ('owner','manager') then raise exception 'Owner or manager authorization required' using errcode='42501'; end if;
  -- One property's writes serialize: allocation, ledger writes, config disable and
  -- checkout cannot race. No locks on unrelated restaurant/payment workflows.
  select * into strict prop from public.bite_properties where id=p_property for update;
@@ -262,6 +271,8 @@ begin
   select coalesce(array_agg(value),'{}'::text[]) into caps from jsonb_array_elements_text(p_payload->'capabilities');
   if caps is null or not caps <@ private.bite_default_capabilities('hybrid') then raise exception 'Unknown business module'; end if;
   if p_payload->>'business_type' not in ('restaurant','hotel','hybrid') then raise exception 'Choose a valid business type'; end if;
+  if p_payload->>'business_type' in ('hotel','hybrid') and not 'hotel_rooms'=any(caps) then raise exception 'Hotel business type requires the hotel module bundle'; end if;
+  if p_payload->>'business_type' in ('restaurant','hybrid') and not 'restaurant_menu'=any(caps) then raise exception 'Restaurant business type requires its menu module'; end if;
   if ('hotel_rooms'=any(caps)) <> ('folios'=any(caps)) or ('hotel_rooms'=any(caps)) <> ('reservations'=any(caps)) or ('hotel_rooms'=any(caps)) <> ('guest_register'=any(caps)) or ('hotel_rooms'=any(caps)) <> ('housekeeping'=any(caps)) or ('hotel_rooms'=any(caps)) <> ('hotel_incidentals'=any(caps)) then raise exception 'Hotel rooms, register, reservations, folios, housekeeping and incidentals must stay enabled together'; end if;
   if ('charge_to_room'=any(caps) or 'room_service'=any(caps)) and not (array['hotel_rooms','folios','restaurant_pos','restaurant_menu'] <@ caps) then raise exception 'Room service and room charging require hotel folios and restaurant POS/menu'; end if;
   if ('restaurant_pos'=any(caps) or 'online_food_orders'=any(caps)) and not 'restaurant_menu'=any(caps) then raise exception 'POS and online orders require Menu'; end if;
@@ -272,7 +283,7 @@ begin
    (exists(select 1 from public.bite_stays where property_id=p_property and status in ('reserved','in_house')) or exists(select 1 from public.bite_folios f where f.property_id=p_property and (f.status='open' or (private.bite_folio_totals(f.id)->>'deposit_held')::numeric<>0))) then raise exception 'Active stays, reservations or unsettled folios prevent disabling hotel modules'; end if;
   if not array['restaurant_pos','restaurant_menu','online_food_orders'] <@ caps and exists(
    select 1 from public.bite_property_outlets o join public.orders r on r.restaurant_id=o.restaurant_id
-   where o.property_id=p_property and (r.status in ('Received','Accepted','Preparing','Ready','Handed Over') or exists(select 1 from public.bite_refund_jobs j where j.order_id=r.id and j.status not in ('succeeded','cancelled')))) then raise exception 'Resolve active orders/refunds before disabling food modules'; end if;
+   where o.property_id=p_property and not r.is_demo and (r.status in ('Received','Accepted','Preparing','Ready','Handed Over') or exists(select 1 from public.bite_refund_jobs j where j.order_id=r.id and j.status not in ('succeeded','cancelled')))) then raise exception 'Resolve active orders/refunds before disabling food modules'; end if;
   if 'restaurant_pos'=any(prop.capabilities) and not 'restaurant_pos'=any(caps) and exists(
    select 1 from public.bite_property_outlets o join public.restaurant_order_payment_summaries s on s.restaurant_id=o.restaurant_id
    where o.property_id=p_property and s.balance_amount>0) then raise exception 'Resolve unpaid POS balances before disabling POS'; end if;
@@ -322,6 +333,16 @@ begin
    update public.bite_guests set full_name=trim(p_payload->>'full_name'),phone=trim(p_payload->>'phone'),country=coalesce(nullif(trim(p_payload->>'country'),''),'India'),email=left(coalesce(p_payload->>'email',''),120),address=left(coalesce(p_payload->>'address',''),500),id_type=coalesce(p_payload->>'id_type',''),id_last4=coalesce(p_payload->>'id_last4','') where id=entity and property_id=p_property;
    if not found then raise exception 'Guest not found'; end if;
   end if;
+ elsif p_action='reserve_group' then
+  if coalesce(jsonb_typeof(p_payload->'rooms'),'')<>'array' or jsonb_array_length(p_payload->'rooms') not between 1 and 50 then raise exception 'Choose 1 to 50 rooms for a group'; end if;
+  insert into public.bite_booking_groups(property_id,name,payer_guest_id)
+  values(p_property,trim(p_payload->>'name'),(p_payload->>'guest_id')::uuid) returning id into v_group;
+  for unit in select value from jsonb_array_elements(p_payload->'rooms') loop
+   result:=private.bite_property_command(p_property,'reserve',jsonb_build_object('guest_id',p_payload->>'guest_id','room_id',unit->>'room_id','adults',coalesce(unit->'adults','1'::jsonb),'children',coalesce(unit->'children','0'::jsonb),'arrival',p_payload->>'arrival','departure',p_payload->>'departure','compliance_note',coalesce(p_payload->>'compliance_note','')),gen_random_uuid());
+   update public.bite_stays set group_id=v_group where id=(result->>'id')::uuid;
+   group_stays:=group_stays||jsonb_build_array(result);
+  end loop;
+  entity:=v_group;result:=jsonb_build_object('id',v_group,'stays',group_stays,'confirmed',true);
  elsif p_action='reserve' then
   guest:=(p_payload->>'guest_id')::uuid; room_id:=(p_payload->>'room_id')::uuid;
   v_arrival:=(p_payload->>'arrival')::date; v_departure:=(p_payload->>'departure')::date;
@@ -337,11 +358,20 @@ begin
   insert into public.bite_stays(property_id,guest_id,room_id,arrival,departure,adults,children,nightly_rate,room_tax_rate,compliance_note)
   values(p_property,guest,room.id,v_arrival,v_departure,a,c,amount,rate,left(coalesce(p_payload->>'compliance_note',''),250)) returning id into entity;
   insert into public.bite_folios(property_id,stay_id) values(p_property,entity) returning id into folio_id;
- elsif p_action in ('checkin','move','extend','cancel','no_show') then
+ elsif p_action in ('reservation_edit','checkin','move','extend','cancel','no_show') then
   select * into strict stay from public.bite_stays where id=entity and property_id=p_property;
   select * into strict folio from public.bite_folios where stay_id=stay.id and property_id=p_property;
   if folio.status<>'open' then raise exception 'Folio already settled'; end if;
-  if p_action='checkin' then
+  if p_action='reservation_edit' then
+   if stay.status<>'reserved' then raise exception 'Only an unarrived reservation can be corrected'; end if;
+   v_arrival:=(p_payload->>'arrival')::date;v_departure:=(p_payload->>'departure')::date;
+   room_id:=(p_payload->>'room_id')::uuid;a:=(p_payload->>'adults')::integer;c:=(p_payload->>'children')::integer;
+   if v_departure<=v_arrival or v_departure-v_arrival>365 then raise exception 'Choose valid stay dates'; end if;
+   select * into strict room from public.bite_rooms where id=room_id and property_id=p_property and active and housekeeping<>'blocked';
+   if a>room.adults or c>room.children then raise exception 'Room occupancy limit exceeded'; end if;
+   if exists(select 1 from public.bite_stays s where s.id<>stay.id and s.room_id=room.id and s.status in ('reserved','in_house') and daterange(s.arrival,s.departure,'[)') && daterange(v_arrival,v_departure,'[)')) then raise exception 'Room already reserved for corrected dates'; end if;
+   update public.bite_stays set room_id=room.id,arrival=v_arrival,departure=v_departure,adults=a,children=c where id=stay.id;
+  elsif p_action='checkin' then
    if stay.status='in_house' then result:=jsonb_build_object('id',stay.id,'folio_id',folio.id,'already_complete',true);
    else
     if stay.status<>'reserved' then raise exception 'Reservation is not available for check-in'; end if;
@@ -354,13 +384,14 @@ begin
     if amount>0 then insert into public.bite_folio_entries(property_id,folio_id,kind,category,description,amount,tax_amount,created_by) values(p_property,folio.id,'charge','room',(stay.departure-stay.arrival)||' nights · room '||room.number,amount,tax,auth.uid()); end if;
    end if;
   elsif p_action='move' then
-   if stay.status<>'in_house' then raise exception 'Only an occupied stay can move rooms'; end if;
+   if stay.status not in ('reserved','in_house') then raise exception 'Only an active stay/reservation can move rooms'; end if;
    room_id:=(p_payload->>'room_id')::uuid;
-   select * into strict room from public.bite_rooms where id=room_id and property_id=p_property and active and housekeeping='ready';
+   select * into strict room from public.bite_rooms where id=room_id and property_id=p_property and active and housekeeping<>'blocked';
+   if stay.status='in_house' and room.housekeeping<>'ready' then raise exception 'Target room must be inspected Ready'; end if;
    if room.id=stay.room_id then raise exception 'Select another room'; end if;
    if room.adults<stay.adults or room.children<stay.children then raise exception 'Room occupancy limit exceeded'; end if;
    if exists(select 1 from public.bite_stays s where s.room_id=room.id and s.status in ('reserved','in_house') and daterange(s.arrival,s.departure,'[)') && daterange(stay.arrival,stay.departure,'[)')) then raise exception 'Target room has conflicting stay'; end if;
-   update public.bite_rooms set housekeeping='dirty' where id=stay.room_id;
+   if stay.status='in_house' then update public.bite_rooms set housekeeping='dirty' where id=stay.room_id; end if;
    update public.bite_stays set room_id=room.id where id=stay.id;
   elsif p_action='extend' then
    if stay.status not in ('reserved','in_house') then raise exception 'Stay cannot be extended'; end if;
@@ -372,6 +403,7 @@ begin
    update public.bite_stays set departure=v_departure where id=stay.id;
   else
    if stay.status<>'reserved' then raise exception 'Only an unarrived reservation can be cancelled/no-show'; end if;
+   if p_action='no_show' and (stay.arrival>(now() at time zone prop.timezone)::date or (stay.arrival=(now() at time zone prop.timezone)::date and (now() at time zone prop.timezone)::time<prop.checkin_time)) then raise exception 'No-show cannot be marked before the arrival cutoff'; end if;
    total:=private.bite_folio_totals(folio.id);
    if (total->>'paid')::numeric<>0 or (total->>'deposit_held')::numeric<>0 or (total->>'pending')::numeric<>0 or (total->>'balance')::numeric<>0 then raise exception 'Resolve advance, deposit and balance before cancellation'; end if;
    update public.bite_stays set status=case when p_action='cancel' then 'cancelled' else 'no_show' end where id=stay.id;
@@ -398,12 +430,17 @@ begin
    update public.bite_stays set status='checked_out',checked_out_at=now() where id=stay.id;
    update public.bite_rooms set housekeeping='dirty' where id=stay.room_id;
    entity:=stay.id; result:=jsonb_build_object('id',stay.id,'folio_id',folio.id,'invoice',invoice);
-  elsif p_action='payment_confirm' then
+  elsif p_action in ('payment_confirm','payment_void') then
    select * into strict entry from public.bite_folio_entries where id=entity and folio_id=folio.id and property_id=p_property;
-   if entry.kind not in ('payment','deposit_hold') or entry.status<>'pending' then raise exception 'Only pending payments or deposits can be confirmed'; end if;
+   if entry.kind not in ('payment','advance','deposit_hold') or entry.status<>'pending' then raise exception 'Only pending payments or deposits can be verified'; end if;
+   if p_action='payment_void' then
+    if desc_text='' then raise exception 'Reason for not-received payment required'; end if;
+    update public.bite_folio_entries set status='void',reference=left('Not received: '||desc_text,100) where id=entry.id;
+   else
    if entry.kind='payment' and entry.amount>(total->>'balance')::numeric then raise exception 'Payment exceeds current balance'; end if;
    if length(trim(coalesce(p_payload->>'reference','')))=0 then raise exception 'Verified bank/provider reference required'; end if;
    update public.bite_folio_entries set status='confirmed',reference=left(p_payload->>'reference',100) where id=entry.id;
+   end if;
   elsif p_action in ('room_post','room_pos') then
    if stay.status<>'in_house' then raise exception 'Select an occupied guest stay'; end if;
    if p_action='room_pos' then
@@ -448,7 +485,12 @@ begin
    elsif p_action in ('payment','deposit_hold') then
     if p_payload->>'method' not in ('Cash','UPI','Card','Bank Transfer','Other') then raise exception 'Select collection method'; end if;
     stat:=case when p_payload->>'method' in ('UPI','Card','Bank Transfer') then 'pending' else 'confirmed' end;
-    if p_action='payment' and amount>(total->>'balance')::numeric then raise exception 'Payment exceeds outstanding balance'; end if;
+    if p_action='payment' then
+     if stay.status='reserved' then
+      if amount>round(stay.nightly_rate*(stay.departure-stay.arrival)*(1+stay.room_tax_rate/100),2)-(total->>'paid')::numeric-(total->>'pending')::numeric then raise exception 'Advance exceeds current room quote'; end if;
+      kind:='advance';
+     elsif amount>(total->>'balance')::numeric then raise exception 'Payment exceeds outstanding balance'; end if;
+    end if;
    elsif p_action in ('deposit_return','deposit_apply') then
     if amount>(total->>'deposit_held')::numeric then raise exception 'Amount exceeds held deposit'; end if;
     if p_action='deposit_apply' and amount>(total->>'balance')::numeric then raise exception 'Applied deposit exceeds balance'; end if;
@@ -458,7 +500,7 @@ begin
     if amount>greatest(0,-(total->>'balance')::numeric) then raise exception 'Only existing overpayment/credit can be recorded as refunded'; end if;
    end if;
    insert into public.bite_folio_entries(property_id,folio_id,kind,category,description,amount,tax_amount,status,method,reference,created_by)
-   values(p_property,folio.id,kind,case when kind in ('deposit_hold','deposit_return','deposit_apply') then 'deposit' when kind in ('payment','refund') then 'payment' else 'incidental' end,desc_text,amount,tax,stat,p_payload->>'method',left(coalesce(p_payload->>'reference',''),100),auth.uid()) returning id into entity;
+   values(p_property,folio.id,kind,case when kind in ('deposit_hold','deposit_return','deposit_apply') then 'deposit' when kind in ('payment','advance','refund') then 'payment' else 'incidental' end,desc_text,amount,tax,stat,p_payload->>'method',left(coalesce(p_payload->>'reference',''),100),auth.uid()) returning id into entity;
   else raise exception 'Unknown property action'; end if;
  end if;
  result:=coalesce(result,jsonb_build_object('id',entity,'folio_id',folio_id,'confirmed',true));
@@ -478,7 +520,8 @@ declare result jsonb; begin
  if private.bite_can(p_property,'manage_modules') then result:=result||jsonb_build_object('members',(select coalesce(jsonb_agg(m),'[]'::jsonb) from public.bite_property_members m where property_id=p_property)); end if;
  if private.bite_can(p_property,'expenses') then result:=result||jsonb_build_object('expenses',(select coalesce(jsonb_agg(e order by e.expense_date desc),'[]'::jsonb) from public.bite_property_expenses e where property_id=p_property)); end if;
  if private.bite_can(p_property,'guest_register') then result:=result||jsonb_build_object('guests',(select coalesce(jsonb_agg(g order by g.created_at desc),'[]'::jsonb) from public.bite_guests g where property_id=p_property)); end if;
- if private.bite_can(p_property,'reservations') then result:=result||jsonb_build_object('stays',(select coalesce(jsonb_agg(s order by s.created_at desc),'[]'::jsonb) from public.bite_stays s where property_id=p_property)); end if;
+ if private.bite_can(p_property,'reservations') then result:=result||jsonb_build_object('stays',(select coalesce(jsonb_agg(s order by s.created_at desc),'[]'::jsonb) from public.bite_stays s where property_id=p_property),
+ 'groups',(select coalesce(jsonb_agg(g),'[]'::jsonb) from public.bite_booking_groups g where property_id=p_property)); end if;
  if private.bite_can(p_property,'folios') then result:=result||jsonb_build_object('folios',(select coalesce(jsonb_agg(to_jsonb(f)||jsonb_build_object('totals',private.bite_folio_totals(f.id))),'[]'::jsonb) from public.bite_folios f where property_id=p_property),
  'entries',(select coalesce(jsonb_agg(e order by e.created_at),'[]'::jsonb) from public.bite_folio_entries e where property_id=p_property)); end if;
  if private.bite_can(p_property,'reporting') then result:=result||jsonb_build_object('audit',(select coalesce(jsonb_agg(a),'[]'::jsonb) from (select id,action,entity_id,created_at from public.bite_property_audit where property_id=p_property order by id desc limit 100) a)); end if;

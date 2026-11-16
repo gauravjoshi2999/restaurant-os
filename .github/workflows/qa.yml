@@ -154,4 +154,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116080305_universal_owner_platform.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
           bash scripts/universal_owner_concurrency.sh
