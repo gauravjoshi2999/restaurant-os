@@ -32,7 +32,7 @@
    '<button type="button" data-hotel-action="route" data-id="'+id+'"'+(page===id?' aria-current="page"':'')+'>'+esc(labels[id])+'</button>'
   ).join('')+'</nav>';
  }
- const header=(title,detail,actions='')=>\`<div class="bh-heading"><div><p class="bh-eyebrow">\${esc(prop()?.name||'Bite Partner')}</p><h1>\${esc(title)}</h1><p>\${esc(detail)}</p></div><div class="bh-actions">\${actions}</div></div>\`+hotelSubnav(title);
+ const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`+hotelSubnav(title);
  const stateCard=(text)=>`<div class="bh-empty">${esc(text)}</div>`;
  function init(context){
   ctx=context;root.BiteOwnerOperations?.init(context);
