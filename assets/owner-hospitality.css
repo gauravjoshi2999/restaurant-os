@@ -69,3 +69,68 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
  body[data-role="owner"] #biteHousekeepingVisibilitySetting{padding:14px;margin:0 0 14px}
  body[data-role="owner"] #biteHousekeepingVisibilitySetting .bh-housekeeping-option{padding:11px}
 }
+
+
+/* Guest billing: receptionist-first view; finance adjustments remain under details. */
+.bh-guest-bill-top,.bh-guest-bill-summary,.bh-guest-bill-steps,.bh-guest-bill-activity,
+.bh-guest-food-picker,.bh-guest-advanced{
+ background:#fff;border:1px solid #e8ddd0;border-radius:19px;padding:19px;
+ margin:0 0 16px;box-shadow:0 4px 15px rgba(45,32,20,.04)
+}
+.bh-guest-bill-top{background:linear-gradient(115deg,#fff8f0,#fff);display:grid;gap:5px}
+.bh-guest-bill-top h2{font-size:clamp(22px,3.5vw,29px);line-height:1.2;margin:0;color:#28362d}
+.bh-guest-bill-top p{margin:0;color:#647168}
+.bh-guest-bill-top .bh-guest-bill-overline{font-size:12px;color:#b4571b;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.bh-guest-bill-top .bh-chip{justify-self:start;margin-top:6px}
+.bh-guest-bill-summary{display:grid;gap:0}
+.bh-guest-bill-summary>div{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;padding:11px 0}
+.bh-guest-bill-summary>div+div{border-top:1px solid #eee9e2}
+.bh-guest-bill-summary span{color:#60716a;font-weight:600}
+.bh-guest-bill-summary strong{font-weight:850;font-size:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bh-guest-bill-summary .bh-guest-bill-due{background:#fff3e5;color:#7b381b;padding:16px;border-radius:13px;margin-top:9px}
+.bh-guest-bill-summary .bh-guest-bill-due span{color:#7b381b;font-weight:800}
+.bh-guest-bill-summary .bh-guest-bill-due strong{font-size:25px}
+.bh-guest-bill-steps h2,.bh-guest-bill-activity h2,.bh-guest-food-picker h2{font-size:18px;margin:0 0 14px;color:#28362d}
+.bh-guest-bill-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bh-workspace .bh-guest-bill-buttons .btn{min-height:53px;white-space:normal;font-size:14px;font-weight:750}
+.bh-workspace .bh-guest-bill-buttons [data-hotel-action="food-menu"]{grid-column:1/-1;background:#e97121;color:#fff;border-color:#e97121}
+.bh-workspace .bh-guest-bill-buttons [data-hotel-action="entry"]{background:#f4faf7;border-color:#bed9c9;color:#155b3d}
+.bh-workspace .bh-guest-bill-buttons [data-hotel-action="checkout"]{grid-column:1/-1;background:#273b31;border-color:#273b31;color:#fff}
+.bh-workspace .bh-guest-bill-buttons [data-hotel-action="checkout"]:disabled{opacity:.5;cursor:not-allowed}
+.bh-guest-bill-line{display:flex;justify-content:space-between;align-items:start;gap:15px;padding:13px 0;border-bottom:1px solid #f0eae3}
+.bh-guest-bill-line:last-child{border-bottom:0}
+.bh-guest-bill-line>div{min-width:0;display:grid;gap:3px}
+.bh-guest-bill-line strong{font-weight:750;overflow-wrap:anywhere}
+.bh-guest-bill-line>strong{white-space:nowrap;font-size:16px;font-variant-numeric:tabular-nums}
+.bh-guest-bill-line small,.bh-guest-food-row small{font-size:12px;color:#67736c}
+.bh-guest-food-lines{display:grid;gap:2px;color:#607168;font-size:13px;margin:4px 0}
+.bh-guest-advanced>summary{cursor:pointer;font-weight:800;min-height:44px;display:list-item;padding:9px 0}
+.bh-guest-advanced[open]{background:#fffcf8}
+.bh-advanced-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eee}
+.bh-advanced-entry span{flex:1 1 190px;min-width:0;overflow-wrap:anywhere}
+.bh-guest-food-picker{border-color:#e8b68c;background:#fffaf5}
+.bh-food-picker-heading{display:flex;justify-content:space-between;align-items:start;gap:14px}
+.bh-food-picker-heading p{margin:-8px 0 14px;color:#66766b}
+.bh-guest-food-list{display:grid;gap:0;max-height:min(46dvh,420px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #eaded1;border-radius:12px;margin:10px 0 15px}
+.bh-guest-food-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid #f1eae4}
+.bh-guest-food-row[hidden]{display:none!important}
+.bh-guest-food-row>div:first-child{display:grid;gap:2px;min-width:0}
+.bh-guest-food-row strong{overflow-wrap:anywhere}
+.bh-guest-qty{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bh-workspace .bh-guest-qty .btn{display:grid;place-items:center;min-width:40px;min-height:42px;padding:2px 8px;font-size:22px}
+.bh-guest-qty span{min-width:20px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.bh-guest-food-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.bh-workspace .bh-guest-food-bottom .btn{background:#e97121;color:#fff;border-color:#e97121}
+.bh-guest-list{align-items:center}
+.bh-guest-payment-form>p{color:#607168}
+@media(max-width:520px){
+ .bh-guest-bill-top,.bh-guest-bill-summary,.bh-guest-bill-steps,.bh-guest-bill-activity,.bh-guest-food-picker,.bh-guest-advanced{padding:15px;border-radius:16px}
+ .bh-guest-bill-summary>div{gap:8px}
+ .bh-guest-bill-summary strong{font-size:17px}
+ .bh-guest-bill-summary .bh-guest-bill-due strong{font-size:23px}
+ .bh-guest-bill-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bh-guest-food-row{padding:10px}
+ .bh-guest-food-bottom .btn{width:100%}
+ .bh-guest-list{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+ .bh-guest-list .btn{grid-column:1/-1}
+}
