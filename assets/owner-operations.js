@@ -135,7 +135,7 @@
    if(type==='application-edit'){action='outlet_application_edit';payload={...f,restaurant_id:id}}
    if(!action)throw Error('Unknown operation.');await H().command(action,payload);if(identity!==scope())return;
    if(type==='policy'||type==='application'){await H().refreshContext(false)}
-   await H().reload();
+   await H().reload();H().redraw();
    if(type==='policy'){settings(document.getElementById('settings'));document.querySelector('#biteOperationalSettings .bh-message').textContent='Policy saved for new reservations.'}
    else{document.getElementById('bhActionEditor')?.remove();const m=document.querySelector('.page.active .bh-message');if(m)m.textContent=type==='application-edit'?'Correction submitted for Admin review.':'Saved.';if(document.querySelector('#settings.active'))settings(document.getElementById('settings'))}
   }catch(error){form.querySelector('.bh-message').textContent=error.message||String(error)}finally{b.disabled=false}
