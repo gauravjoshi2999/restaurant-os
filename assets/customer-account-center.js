@@ -6,7 +6,7 @@
  const section=byId('accountView');
  if(!section||!byId('biteAccountHub'))return;
  const known=new Set(['overview','profile','addresses','support','preferences','notifications','about']);
- const state={userId:null,sessionUser:null,profile:null,epoch:0,subpage:'overview',saving:false,preferenceBusy:false};
+ const state={userId:null,sessionUser:null,profile:null,epoch:0,subpage:'overview',saving:false,preferenceBusy:false,emailBusy:false,deletionBusy:false};
  const titles={overview:'Your account',profile:'Edit profile',addresses:'Saved addresses',support:'Help & support',preferences:'Food preferences',notifications:'Notifications',about:'About Bite'};
  function sameUser(id=state.userId){return Boolean(id)&&id===state.userId;}
  function text(id,value){const el=byId(id);if(el)el.textContent=String(value??'');}
@@ -45,6 +45,13 @@
    }
  }
  function show(next){
+   if(next==='favorites'){
+     if(typeof showCustomerView==='function')showCustomerView('home');
+     const favourite=byId('filterFavourites');
+     if(favourite&&favourite.getAttribute('aria-pressed')!=='true')favourite.click();
+     root.scrollTo?.({top:0,behavior:'instant'});
+     return;
+   }
    if(next==='orders'){
      const tab=document.querySelector('#homeBottomNav [data-nav="orders"]');
      if(tab)tab.click();
@@ -124,6 +131,51 @@
      }
    }finally{state.preferenceBusy=false;control.disabled=false;}
  }
+ async function requestEmailChange(event){
+   event.preventDefault();
+   if(state.emailBusy)return;
+   const desired=byId('biteEmailChangeTo')?.value.trim().toLowerCase()||'';
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(desired)||desired.length>254){
+     text('biteEmailChangeStatus','Please enter a valid email address.');return;
+   }
+   if(desired===String(state.sessionUser?.email||'').toLowerCase()){
+     text('biteEmailChangeStatus','This is already your login email.');return;
+   }
+   const id=state.userId,epoch=state.epoch,button=byId('biteEmailChangeSubmit');
+   if(!id)return;
+   state.emailBusy=true;button.disabled=true;
+   text('biteEmailChangeStatus','Requesting verification…');
+   try{
+     const verified=await sb.auth.getUser();
+     if(verified.error)throw verified.error;
+     if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed. Please reopen settings.');
+     const result=await sb.auth.updateUser({email:desired});
+     if(result.error)throw result.error;
+     if(!sameUser(id)||epoch!==state.epoch)return;
+     // Do not announce that an email was changed: confirmation may still be required.
+     text('biteEmailChangeStatus','Verification requested. Check your email inbox for any required confirmation links before using the new address.');
+   }catch(error){
+     if(sameUser(id)&&epoch===state.epoch)text('biteEmailChangeStatus',error.message||'Could not request email change.');
+   }finally{state.emailBusy=false;button.disabled=false;}
+ }
+ async function requestDeletion(){
+   if(state.deletionBusy||!state.userId)return;
+   if(!root.confirm('Request deletion of your Bite account? Orders may be restricted while your request and financial records are reviewed. This does not delete the account immediately.'))return;
+   const id=state.userId,epoch=state.epoch,button=byId('biteRequestAccountDeletion');
+   state.deletionBusy=true;button.disabled=true;
+   text('biteProfileMessage','Submitting your deletion request…');
+   try{
+     const verified=await sb.auth.getUser();
+     if(verified.error)throw verified.error;
+     if(!sameUser(id)||epoch!==state.epoch||verified.data?.user?.id!==id)throw new Error('Account changed. Please reopen your profile.');
+     // Existing server-side RPC verifies auth.uid and rejects business/admin identities.
+     const response=await sb.rpc('bite_request_account_deletion');
+     if(response.error)throw response.error;
+     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage','Account deletion request recorded. Your account has not been deleted. Support will review your request and required records.');
+   }catch(error){
+     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage',error.message||'Could not submit deletion request.');
+   }finally{state.deletionBusy=false;button.disabled=false;}
+ }
  function requestSupport(kind){
    show('support');
    const category=byId('customerSupportCategory');
@@ -144,11 +196,13 @@
    if(!go||!section.contains(go))return;
    e.preventDefault();
    const destination=go.dataset.biteAccountGo;
-   if(destination==='support'&&go.dataset.biteAccountSupportRequest)requestSupport(go.dataset.biteAccountSupportRequest);
+   if(destination==='deletion')void requestDeletion();
+   else if(destination==='support'&&go.dataset.biteAccountSupportRequest)requestSupport(go.dataset.biteAccountSupportRequest);
    else show(destination);
  }
  section.addEventListener('click',handleClick);
  byId('biteProfileForm')?.addEventListener('submit',saveProfile);
+ byId('biteEmailChangeForm')?.addEventListener('submit',requestEmailChange);
  byId('biteAccountVeg')?.addEventListener('change',saveVeg);
  // Intercept the existing Back button only for account subpages.
  byId('accountBackBtn')?.addEventListener('click',e=>{
