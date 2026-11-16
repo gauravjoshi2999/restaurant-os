@@ -1366,7 +1366,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261116-1"></script>
-<script src="assets/owner-hospitality.js?v=20261116-1"></script>
+<script src="assets/owner-hospitality.js?v=20261116-2"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -1439,14 +1439,15 @@ async function loadAccessContext(){
  access.properties=await window.BiteHospitality.loadContext();
  access.property=window.BiteHospitality.preferredProperty(currentUser.id);
  const owners=access.memberships.filter(m=>m.role==='owner');
+ const propertyFoodStaff=access.property&&['cashier','manager'].includes(access.property.role);
  if(access.property){
   access.role='owner';
-  access.restaurantId=(access.property.outlets||[]).find(id=>owners.some(m=>m.restaurant_id===id))||null;
+  access.restaurantId=(access.property.outlets||[]).find(id=>(propertyFoodStaff?access.memberships:owners).some(m=>m.restaurant_id===id&&['owner','manager','staff'].includes(m.role)))||null;
  }else if(owners.length===1){access.role='owner';access.restaurantId=owners[0].restaurant_id}
  else if(owners.length>1)throw new Error('This account is linked to more than one restaurant without a verified property context.');
  else if(access.memberships.length===0){access.role='owner';access.restaurantId=null;access.needsProperty=true}
  else throw new Error('No authorized property context. Ask the property owner to assign your department access.');
- if(access.restaurantId){
+ if(access.restaurantId&&!propertyFoodStaff){
   const {data:assignedOwners,error}=await sb.from('restaurant_members').select('user_id').eq('restaurant_id',access.restaurantId).eq('role','owner');
   if(error)throw error;
   if((assignedOwners||[]).length!==1||assignedOwners[0].user_id!==currentUser.id)throw new Error('This restaurant has more than one Owner assignment. Platform Admin must resolve the Owner mapping before access is enabled.');
@@ -2899,7 +2900,7 @@ async function loadPosMenuItems(restaurantId){
 async function openOrder(){
  if(access.role!=='owner'||!access.restaurantId){alert('POS billing sirf linked Restaurant Owner ke liye hai.');return;}
  const restaurantId=access.restaurantId;
- const linkedOwner=(access.memberships||[]).some(m=>m.role==='owner'&&m.restaurant_id===restaurantId);
+ const linkedOwner=(access.memberships||[]).some(m=>(m.role==='owner'||(['cashier','manager'].includes(access.property?.role)&&['manager','staff'].includes(m.role)))&&m.restaurant_id===restaurantId);
  if(!linkedOwner||!state.restaurants.some(r=>r.id===restaurantId)){alert('Is login ke saath koi active restaurant link nahi mila. Restaurant Owner login check karein.');return;}
  const modal=document.getElementById('orderModal');
  if(modal.classList.contains('show'))return; // A second tap must not reset an unfinished bill.
@@ -3069,6 +3070,9 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
   let data,error,sharePayload=null;
   if(channel.startsWith('POS - ')&&window.BiteHospitality?.roomPOSSelected()){
    const result=await window.BiteHospitality.createRoomPOS(items);data=result.order_id;
+  }else if(channel.startsWith('POS - ')&&access.property&&(channel!=='POS - Counter'||['cashier','manager'].includes(access.property.role))){
+   if(document.getElementById('posReplaceOrderId')?.value)throw Error('Use the original owner correction workflow for this bill.');
+   const result=await window.BiteHospitality.createPOSSale(items,f);data=result.order_id;
   }else if(channel.startsWith('POS - ')){
    const paid=Number(f.get('paid_amount')||0),
     billTotal=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0),

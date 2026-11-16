@@ -2,13 +2,15 @@
 (function(){
  const factory=window.supabase.createClient;
  window.supabase.createClient=(...args)=>{
-  const client=factory(...args),rpc=client.rpc.bind(client),requested=window.__BITE_HOSPITALITY_TYPE||'hotel',type=requested==='new'?'hotel':requested;
+  const client=factory(...args),rpc=client.rpc.bind(client),requested=window.__BITE_HOSPITALITY_TYPE||'hotel',type=requested==='new'?'hotel':requested==='cashier'?'restaurant':requested;
   let exists=requested!=='new';
   const pid='12121212-1212-4212-8212-121212121212',rid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const p={id:pid,name:'Synthetic '+type+' property',business_type:type,capabilities:[...window.BiteCapabilities.defaults[type]],configured_capabilities:[...window.BiteCapabilities.defaults[type]],can_configure:true,role:'owner',outlets:type==='hotel'?[]:[rid],address:'Synthetic QA road',phone:'9999999999',tax_profile:{reviewed:false}};
   const day=()=>window.BiteOwner.day();
   const db={rooms:exists?[{id:'room-a',property_id:pid,number:'101',room_type:'Deluxe',nightly_rate:1000,adults:2,children:2,housekeeping:'ready',active:true},{id:'room-b',property_id:pid,number:'102',room_type:'Suite',nightly_rate:1500,adults:3,children:2,housekeeping:'ready',active:true}]:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]};
   const commands=new Map();window.__BITE_HOTEL_QA={db,commands,property:p,calls:[]};
+  if(requested==='cashier'){p.role='cashier';p.can_configure=false;p.capabilities=['restaurant_pos','restaurant_menu','dine_in','takeaway'];}
+  db.closings=[];db.sales=[];
   function totals(f){
    const out={charges:0,paid:0,balance:0,deposit_held:0,pending:0};
    for(const e of db.entries.filter(e=>e.folio_id===f.id)){
@@ -23,11 +25,16 @@
    out.balance=out.charges-out.paid;return out;
   }
   client.rpc=async(name,args={})=>{
-   if(!name.startsWith('bite_')||!['bite_owner_context','bite_create_property','bite_hotel_workspace','bite_property_command','bite_room_charge_targets'].includes(name))return rpc(name,args);
+   if(!name.startsWith('bite_')||!['bite_owner_context','bite_create_property','bite_hotel_workspace','bite_property_command','bite_room_charge_targets','bite_property_report','bite_audit_search'].includes(name))return rpc(name,args);
    window.__BITE_HOTEL_QA.calls.push({name,args});
    if(name==='bite_owner_context')return {data:exists?[structuredClone(p)]:[],error:null};
    if(name==='bite_create_property'){exists=true;p.name=args.p_name;p.business_type=args.p_type;p.capabilities=[...window.BiteCapabilities.defaults[args.p_type]];p.configured_capabilities=[...p.capabilities];return {data:pid,error:null}}
    if(name==='bite_hotel_workspace')return {data:structuredClone({...db,folios:db.folios.map(f=>({...f,totals:totals(f)}))}),error:null};
+   if(name==='bite_audit_search')return {data:db.audit.filter(a=>a.action.includes(args.p_query||'')&&(!args.p_before||a.id<args.p_before)).slice(0,100),error:null};
+   if(name==='bite_property_report'){
+    const t=window.BiteCapabilities.hotelTotals(db.entries),food=db.entries.filter(e=>e.category==='food').reduce((n,e)=>n+e.amount,0)+db.sales.reduce((n,e)=>n+e.amount,0),cash=db.entries.filter(e=>e.status==='confirmed'&&e.method==='Cash'&&['payment','advance','deposit_hold','refund','deposit_return'].includes(e.kind)).reduce((n,e)=>n+(['refund','deposit_return'].includes(e.kind)?-e.amount:e.amount),0)+db.sales.filter(e=>e.method==='Cash').reduce((n,e)=>n+e.amount,0);
+    return {data:{room_revenue:t.room,incidentals_revenue:t.incidentals,food_revenue:food,total_revenue:t.room+t.incidentals+food,cash_movement:cash,source_hash:'synthetic-'+db.entries.length,methods:[{payment_method:'Cash',net:cash}],closings:db.closings},error:null};
+   }
    if(name==='bite_room_charge_targets')return {data:db.stays.filter(s=>s.status==='in_house').map(s=>({stay_id:s.id,folio_id:db.folios.find(f=>f.stay_id===s.id).id,room:db.rooms.find(r=>r.id===s.room_id).number,guest:db.guests.find(g=>g.id===s.guest_id).full_name})),error:null};
    if(name==='bite_property_command'){
     const {p_action:a,p_payload:v,p_request:k}=args;
@@ -44,7 +51,11 @@
      const amount=v.items.reduce((n,i)=>n+i.quantity*i.unit_price,0),oid=result.id;
      await client.from('orders').insert({id:oid,restaurant_id:rid,order_code:'SYNTHETIC-ROOM-POS',channel:'POS - Counter',amount,status:'Received',order_date:new Date().toISOString(),is_demo:false});
      await client.from('order_items').insert(v.items.map(i=>({order_id:oid,item_name:i.name,quantity:i.quantity,unit_price:i.unit_price})));
-     db.entries.push({id:crypto.randomUUID(),folio_id:v.folio_id,kind:'charge',category:'food',source_order_id:oid,amount,tax_amount:0,status:'confirmed',description:'POS SYNTHETIC-ROOM-POS',created_at:new Date().toISOString()});result.order_id=oid;result.folio_id=v.folio_id;
+     db.entries.push({id:crypto.randomUUID(),folio_id:v.folio_id,kind:'charge',category:'food',source_order_id:oid,amount:amount-Number(v.discount||0),tax_amount:0,status:'confirmed',description:'POS SYNTHETIC-ROOM-POS',created_at:new Date().toISOString()});result.order_id=oid;result.folio_id=v.folio_id;
+    }else if(a==='pos_sale'){
+     const amount=v.items.reduce((n,i)=>n+i.quantity*i.unit_price,0);if(v.paid_amount!==amount)return {data:null,error:{code:'P0001',message:'Full recorded payment required'}};
+     await client.from('orders').insert({id:result.id,restaurant_id:rid,order_code:'SYNTHETIC-TYPED-POS',channel:v.channel,amount,status:'Received',order_date:new Date().toISOString(),is_demo:false});
+     db.sales.push({amount,method:v.payment_method,channel:v.channel});result.order_id=result.id;
     }else if(a==='checkin'){
      const s=db.stays.find(s=>s.id===v.id),r=db.rooms.find(r=>r.id===s.room_id),f=db.folios.find(f=>f.stay_id===s.id);if(r.housekeeping!=='ready')return {data:null,error:{code:'P0001',message:'Room is not Ready'}};
      if(s.status!=='in_house'){s.status='in_house';const nights=(new Date(s.departure)-new Date(s.arrival))/86400000;db.entries.push({id:crypto.randomUUID(),folio_id:f.id,kind:'charge',category:'room',amount:nights*r.nightly_rate,tax_amount:0,status:'confirmed',description:nights+' room nights',created_at:new Date().toISOString()})}result.folio_id=f.id;
@@ -53,8 +64,15 @@
     }else if(a==='payment_confirm'){const e=db.entries.find(e=>e.id===v.id);e.status='confirmed';e.reference=v.reference;}
     else if(a==='checkout'){
      const f=db.folios.find(f=>f.id===v.folio_id),t=totals(f);if(t.balance||t.pending||t.deposit_held)return {data:null,error:{code:'P0001',message:'Settle balance, pending payments and deposit before checkout'}};
-     const s=db.stays.find(s=>s.id===f.stay_id);s.status='checked_out';db.rooms.find(r=>r.id===s.room_id).housekeeping='dirty';f.status='settled';f.invoice_number='SYNTHETIC-INVOICE';
-    }else if(a==='room_status')db.rooms.find(r=>r.id===v.id).housekeeping=v.status;
+     const s=db.stays.find(s=>s.id===f.stay_id),room=db.rooms.find(r=>r.id===s.room_id),guest=db.guests.find(g=>g.id===s.guest_id);s.status='checked_out';room.housekeeping='dirty';room.do_not_disturb=false;room.cleaning_requested=false;f.status='settled';f.invoice_number='SYNTHETIC-INVOICE';
+     f.invoice_snapshot={number:f.invoice_number,property:p,guest:{name:guest.full_name},stay:s,room,entries:db.entries.filter(e=>e.folio_id===f.id),totals:t,tax_profile:p.tax_profile};
+     if(f.payer_split)f.invoice_snapshot.splits=['first_name','second_name'].map((name,i)=>({...f.invoice_snapshot,number:f.invoice_number+'-'+i,guest:{name:f.payer_split[name]},totals:{...t,charges:t.charges*(i?100-f.payer_split.first_percent:f.payer_split.first_percent)/100}}));
+    }else if(a==='room_status'){
+     const r=db.rooms.find(r=>r.id===v.id);if(r.do_not_disturb&&v.status==='cleaning')return {data:null,error:{code:'P0001',message:'Do Not Disturb is active'}};r.housekeeping=v.status;
+    }
+    else if(a==='room_privacy')Object.assign(db.rooms.find(r=>r.id===v.id),v);
+    else if(a==='split_bill')db.folios.find(f=>f.id===v.folio_id).payer_split=v;
+    else if(a==='close_shift'){const report=(await client.rpc('bite_property_report',{})).data;db.closings.push({...v,id:result.id,expected_cash:Number(v.opening_cash)+report.cash_movement,difference:Number(v.counted_cash)-Number(v.opening_cash)-report.cash_movement,snapshot:report})}
     else if(a==='room_save')db.rooms.push({...v,id:result.id,active:true,housekeeping:'ready'});
     else if(a==='member'){const m=db.members.find(m=>m.user_id===v.id||m.email===v.email);if(m)Object.assign(m,v);else db.members.push({...v,user_id:result.id,display_name:v.email})}
     else if(a==='config'){Object.assign(p,v);p.configured_capabilities=[...v.capabilities]}
