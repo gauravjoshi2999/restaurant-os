@@ -51,7 +51,7 @@
  }
  function renderRecommendations(items,cart,restaurant){
   if(!restaurant||!Array.isArray(items))return reset();
-  if(root.BiteAccountHub?.recommendationsEnabled?.()===false){
+  if(window.BiteAccountHub?.recommendationsEnabled?.()===false){
     panel.hidden=true;list.replaceChildren();return;
   }
   if(restaurant.id!==lastRestaurantId){lastRestaurantId=restaurant.id;input.checked=false;}
