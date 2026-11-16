@@ -17,3 +17,5 @@
 #daily-book .bh-record>div{min-width:0;flex:1 1 180px;overflow-wrap:anywhere}
 #haBillingSettings .bh-form-grid{align-items:start}
 @media(max-width:600px){.ha-register-meta{gap:10px}.ha-book-actions .btn{flex:1 1 140px}.ha-guest-counts{gap:10px!important}#bhCheckinForm[data-enhanced=true] .bh-form-grid:not(.ha-guest-counts){grid-template-columns:1fr}.ha-register-meta input{min-width:0;width:100%}.ha-table-wrap{margin:0 -4px}.ha-book-table td,.ha-book-table th{padding:10px 8px}}
+
+.bh-workspace label[hidden]{display:none!important}

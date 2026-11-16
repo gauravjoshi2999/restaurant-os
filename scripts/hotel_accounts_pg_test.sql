@@ -1,5 +1,9 @@
 -- Synthetic account/register integration; every write rolls back.
 begin;
+do $declare g jsonb;begin
+ g:=private.bite_invoice_gst('{"entries":[{"kind":"charge","status":"confirmed","category":"food","amount":333.33,"tax_amount":16.67,"tax_rate":5}]}');
+ if (g->0->>'rate')::numeric<>5 then raise exception 'Rounded tax amounts must not change the stated GST rate';end if;
+end$;
 create temp table hotel_account_state(key text primary key,value text);
 grant all on hotel_account_state to authenticated;
 create function pg_temp.accounts_denied(statement text)returns void language plpgsql as $$begin

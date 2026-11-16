@@ -4,6 +4,7 @@ begin;
 alter table public.bite_stays add column if not exists register_number bigint;
 alter table public.bite_stays add column if not exists registration jsonb;
 create unique index if not exists bite_stay_register_number on public.bite_stays(property_id,register_number)where register_number is not null;
+alter table public.bite_folio_entries add column if not exists tax_rate numeric(6,3) check(tax_rate between 0 and 100);
 alter table public.bite_folio_entries add column if not exists account_note text not null default '' check(length(account_note)<=80);
 create table public.bite_invoice_series(
  property_id uuid not null references public.bite_properties(id),financial_year text not null,
@@ -55,7 +56,7 @@ language sql immutable set search_path='' as $$
  select e,case when e->>'kind' in ('discount','reversal')then -1 else 1 end s from jsonb_array_elements(p_invoice->'entries')e where e->>'status'='confirmed' and e->>'kind' in ('charge','discount','reversal')
  ), grouped as(
  select coalesce(e->>'category','incidental')category,
- case when (e->>'amount')::numeric>0 then round((e->>'tax_amount')::numeric*100/(e->>'amount')::numeric,3)else 0 end rate,
+ coalesce((e->>'tax_rate')::numeric,case when (e->>'amount')::numeric>0 then round((e->>'tax_amount')::numeric*100/(e->>'amount')::numeric,1)else 0 end) rate,
  sum(s*(e->>'amount')::numeric)taxable,sum(s*coalesce((e->>'tax_amount')::numeric,0))tax from lines group by 1,2
  )
  select coalesce(jsonb_agg(jsonb_build_object('category',category,'sac',case when category='room'then '996311'when category='food'then '996331'else ''end,'rate',rate,'taxable',taxable,'cgst',round(tax/2,2),'sgst',tax-round(tax/2,2),'total',taxable+tax)order by category,rate),'[]'::jsonb)from grouped
@@ -764,7 +765,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   elsif p_action in('payment','payment_confirm','deposit_hold','refund','deposit_return')then
    update public.bite_folio_entries set account_note=left(trim(coalesce(p_payload->>'account_note',nullif(account_note,''),pr.tax_profile->>'primary_account','')),80)where property_id=p_property and id=entity;
   elsif p_action in('room_pos','room_post')and coalesce((pr.tax_profile->>'reviewed')::boolean,false)and nullif(pr.tax_profile->>'gstin','')is not null then
-   update public.bite_folio_entries e set tax_amount=round(e.amount*coalesce((pr.tax_profile->>'food_rate')::numeric,0)/100,2)where e.property_id=p_property and (e.id=coalesce(nullif(v->>'entry_id','')::uuid,entity)or e.source_order_id=nullif(v->>'order_id','')::uuid)and e.kind='charge'and e.category='food';
+   update public.bite_folio_entries e set tax_rate=coalesce((pr.tax_profile->>'food_rate')::numeric,0),tax_amount=round(e.amount*coalesce((pr.tax_profile->>'food_rate')::numeric,0)/100,2)where e.property_id=p_property and (e.id=coalesce(nullif(v->>'entry_id','')::uuid,entity)or e.source_order_id=nullif(v->>'order_id','')::uuid)and e.kind='charge'and e.category='food';
   elsif p_action='checkout'and not coalesce((v->>'already_complete')::boolean,false)then
    select * into strict f from public.bite_folios where property_id=p_property and id=fid;
    cfg:=f.invoice_snapshot||jsonb_build_object('number',private.bite_next_invoice_number(p_property),'reverse_charge',false,'place_of_supply',left(coalesce(pr.tax_profile->>'gstin',''),2));
@@ -775,6 +776,11 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
    cfg:=cfg||jsonb_build_object('splits',private.bite_split_invoice(cfg,f.payer_split));
    update public.bite_folios set invoice_number=cfg->>'number',invoice_snapshot=cfg where id=f.id;
    v:=v||jsonb_build_object('invoice',cfg);
+  end if;
+  if p_action='charge'then
+   update public.bite_folio_entries set tax_rate=case when coalesce((pr.tax_profile->>'reviewed')::boolean,false)then coalesce((pr.tax_profile->>'incidental_rate')::numeric,0)else 0 end where id=entity and property_id=p_property;
+  elsif p_action in('checkin','extend','apply_checkout_policy')then
+   update public.bite_folio_entries e set tax_rate=case when e.policy_tag in('early_checkin','late_checkout')then coalesce((s.policy_snapshot->>'fee_tax_rate')::numeric,0)else s.room_tax_rate end from public.bite_folios bf join public.bite_stays s on s.id=bf.stay_id where bf.property_id=p_property and e.folio_id=bf.id and e.category='room'and e.kind='charge'and e.tax_rate is null;
   end if;
   update public.bite_property_commands set result=v where property_id=p_property and request_id=p_request;
  end if;
