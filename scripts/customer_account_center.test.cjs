@@ -128,3 +128,35 @@ test('in-app alert preference is saved across logins without erasing existing ve
  });
  assert.match(t.el('biteAccountOrderAlertsMessage').textContent,/enabled/i);
 });
+
+test('appearance setting persists per signed-in account without clobbering vegetarian preference',async()=>{
+ const f=fixture();f.hub.open({user:f.state.user});
+ f.el('biteAccountVeg').checked=true;
+ await f.handlers['biteAccountVeg:change']({currentTarget:f.el('biteAccountVeg')});
+ f.el('biteAccountAppearance').value='dark';
+ await f.handlers['biteAccountAppearance:change']({currentTarget:f.el('biteAccountAppearance')});
+ const writes=f.writes.filter(x=>x.type==='metadata');
+ assert.equal(writes.length,2);
+ assert.deepEqual(JSON.parse(JSON.stringify(writes[1].data.bite_preferences_v1)),{veg_only:true,appearance:'dark'});
+ assert.equal(f.el('biteAccountAppearance').value,'dark');
+ assert.match(f.el('biteAccountVisualMessage').textContent,/saved/i);
+});
+test('reduced motion persists and a failed account verification cannot save',async()=>{
+ const f=fixture();f.hub.open({user:f.state.user});
+ f.el('biteAccountReduceMotion').checked=true;
+ await f.handlers['biteAccountReduceMotion:change']({currentTarget:f.el('biteAccountReduceMotion')});
+ assert.equal(f.writes.find(x=>x.type==='metadata').data.bite_preferences_v1.reduced_motion,true);
+ assert.match(f.el('biteAccountVisualMessage').textContent,/saved/i);
+ const other={id:'other-user',email:'other@example.test',user_metadata:{}};
+ f.state.user=other;
+ f.el('biteAccountAppearance').value='dark';
+ await f.handlers['biteAccountAppearance:change']({currentTarget:f.el('biteAccountAppearance')});
+ assert.equal(f.writes.filter(x=>x.type==='metadata').length,1);
+});
+test('account settings expose functional appearance controls and motion opt-out',()=>{
+ assert.match(account,/id="biteAccountAppearance"/);
+ assert.match(account,/id="biteAccountReduceMotion"/);
+ assert.match(html,/customer-account-appearance-20261116\.css/);
+ assert.match(source,/auth\.updateUser\(\{data:\{bite_preferences_v1:next\}\}\)/);
+ assert.match(source,/applyVisualPreferences\(\)/);
+});
