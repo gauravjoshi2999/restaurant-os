@@ -15,7 +15,7 @@
  const identity=()=>[ctx?.getUser()?.id,prop()?.id].join(':');
  const restaurantAccess=()=>!!ctx?.getAccess().restaurantId;
  const housekeepingVisible=()=>!!(prop()&&housekeepingDisplay.propertyId===prop().id&&housekeepingDisplay.loaded&&housekeepingDisplay.enabled);
- const allowed=()=>prop()?.role==='cashier'?['overview','pos',...(has('room_service')?['room-service']:[])]:C.routes(prop(),restaurantAccess()).filter(id=>id!=='housekeeping'||housekeepingVisible());
+ const allowed=()=>prop()?.role==='cashier'?['overview','pos',...(has('room_service')?['room-service']:[])]:C.routes(prop(),restaurantAccess())?.filter(id=>id!=='housekeeping'||housekeepingVisible());
  const $=id=>document.getElementById(id);
  const btn=(action,label,id='',extra='')=>`<button type="button" class="btn secondary" data-hotel-action="${action}" data-id="${esc(id)}" ${extra}>${esc(label)}</button>`;
  const field=(name,label,type='text',value='',extra='')=>`<label class="bh-field"><span>${esc(label)}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
