@@ -42,7 +42,8 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 6.13b Confirm actual pickup address, map coordinates, business hours and geography; do not fabricate geolocation.
 - [x] 6.14a Check membership mapping: one Maharani Owner membership, zero cross-restaurant linked users and zero multi-owner restaurants at inspection.
 - [ ] 6.14b Authenticate dedicated Owner on real Partner APK, verify menu actions/session and lockscreen alerts.
-- [ ] 6.15 Run an isolated no-money Customer → Owner → Delivery OTP rehearsal with role-scoped test data.
+- [x] 6.15a Isolated PostgreSQL integration: synthetic Owner, Customer, delivery token and OTP complete exactly once, no money/production writes (PR #136).
+- [ ] 6.15b Exercise full Customer → Owner → WhatsApp delivery handoff on real apps with a test order; distinguish this from isolated RPC simulation.
 - [ ] 6.16 Record named duty operator, support procedure, restaurant consent and verified operating window.
 - [ ] 6.17 Verify legal/customer-facing disclosures, refunds, FSSAI/tax applicability with qualified parties.
 - [ ] 6.18 Obtain separate GO decisions for code publication, paid checkout and public marketing.
@@ -57,13 +58,17 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 5.03b Verify intended person's identity/actual Partner login using authorized sign-in; do not infer identity from count.
 - [x] 5.04a Inspect approval, publication and commission triggers: non-admin field updates raise exceptions; RLS enabled.
 - [ ] 5.04b Execute authenticated Owner vs Admin negative E2E with isolated test account, no live approval mutation.
-- [ ] 5.05 Confirm customer data and another restaurant's orders cannot be read by Owner.
+- [x] 5.05a Execute transaction-scoped live **read-only** Owner RLS smoke over five existing memberships, asserting no cross-restaurant private restaurant row, membership, unrelated-customer orders, cashbook or inventory balance access. ROLLBACK, no business-data writes. Evidence: `docs/sql/owner_tenant_rls_readonly_20261116.sql`.
+- [ ] 5.05b Verify Owner A vs Owner B under actual independent authenticated browser/Partner app sessions and direct HTTP API (not just simulated JWT claims).
 - [ ] 5.06 Test Admin owner reset and role-change authorization negative cases.
-- [ ] 5.07 Review privileged SECURITY DEFINER functions and explicit grants.
+- [x] 5.07a Inventory 79 SECURITY DEFINER functions, five anonymous-callable and 52 authenticated-callable, all with explicit search_path; read the five anonymous function purposes and eight high-impact Admin/finance guards. Evidence: `docs/launch/DELIVERY_AND_RLS_ACCEPTANCE_20261116.md`.
+- [ ] 5.07b Review every remaining privileged callable function for authorization, input restrictions, grants, return fields and data access with negative test coverage.
 - [ ] 5.08 Review password protection, login recovery and rate limits.
 - [x] 5.09a Read-only server RPC/permissions audit: token SHA-256 hashed; default 24h expiry; five wrong OTP attempts; owner-only link creation; no direct handoff table grants; bearer link exposes customer address until expiry. See `docs/launch/DELIVERY_HANDOFF_SECURITY_REVIEW_20261116.md`.
-- [ ] 5.09b Exercise signed/anonymous, wrong OTP (five tries), expired/reused token and concurrency cases in isolated real test; protect sensitive recipient information.
-- [ ] 5.10 Complete physical delivery OTP success and invalid/expired-link tests.
+- [x] 5.09b Run actual deployed delivery RPC definitions in isolated PostgreSQL 17 with synthetic Owner/Customer/anon roles: wrong OTP five tries, sixth blocked, Owner B denial, bearer/token rotation, expired/consumed links, customer-only OTP, exactly-one status event; PR #136, Bite QA passed.
+- [ ] 5.09c Test simultaneous deliveries/OTP submissions and lock races, invalid token exposure, physical-device network delays; not covered by sequential isolated SQL.
+- [x] 5.10a Improve real delivery page OTP-first mobile UX and add in-page handover status refresh; remove broken demo link. Mock RPC Chromium 390px test passed, PR #137 merged.
+- [ ] 5.10b Complete physical Android Owner → WhatsApp delivery link → 4-digit OTP and invalid/expired link tests without changing any real-money order.
 - [ ] 5.11 Review refund/commission/settlement audit logs with evidence.
 - [ ] 5.12 Backup and isolated restore rehearsal; record recovery owner.
 
@@ -125,4 +130,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**5.01b, 5.04b, 5.05 and 5.09b**: authenticated negative tests for tenant isolation and delivery OTP/expiry using safe isolated test identities/data. Photo credit source page is merged but its live GitHub Pages deployment is not independently confirmed; keep 6.11d media/license and human/device/payment gates open.
+**5.04b, 5.05b, 5.07b and 5.09c**: targeted authenticated authorization negative tests and concurrent OTP race checks. Isolated PG delivery RPC suite and production read-only Owner RLS smoke have passed; still need true APK/HTTP acceptance and provider finance gates. See `docs/launch/DELIVERY_AND_RLS_ACCEPTANCE_20261116.md`.
