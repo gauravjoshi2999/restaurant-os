@@ -37,7 +37,7 @@ def screenshot(page,label):
  page.screenshot(path=str(OUT/f'ui-universal-{label}.png'),full_page=page.viewport_size['width']>=1000)
 def entry(page,action,amount,description,method=None):
  b=page.locator(f'#folios [data-hotel-action=entry][data-id="{action}"]')
- if not b.is_visible():page.locator('#folios details.bh-guest-advanced').first.evaluate('(el)=>el.open=true')
+ if not b.is_visible():b.evaluate('(el)=>el.closest("details").open=true')
  b.click()
  f=page.locator('#bhActionEditor form');f.locator('[name=amount]').fill(str(amount));f.locator('[name=description]').fill(description)
  if method:f.locator('[name=method]').select_option(method)
@@ -134,10 +134,10 @@ try:
      entry(page,'charge',100,'Laundry')
      entry(page,'payment',500,'UPI received pending','UPI')
      check('verification pending' in page.locator('#folios').inner_text(),'Pending bank receipt is visible separately')
-     page.locator('#folios details.bh-guest-advanced').first.evaluate('(el)=>el.open=true');page.locator('#folios [data-hotel-action=verify-payment]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=description]').fill('Verified UPI');ed.locator('[name=reference]').fill('SYNTHETIC-REFERENCE');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached')
+     page.locator('#folios [data-hotel-action=verify-payment]').first.evaluate('(el)=>el.closest("details").open=true');page.locator('#folios [data-hotel-action=verify-payment]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=description]').fill('Verified UPI');ed.locator('[name=reference]').fill('SYNTHETIC-REFERENCE');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached')
      entry(page,'payment',600,'Remaining cash','Cash')
      if width==390:
-      page.locator('#folios details.bh-guest-advanced').first.evaluate('(el)=>el.open=true');page.locator('#folios [data-hotel-action=split-bill]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=first_name]').fill('Synthetic Company');ed.locator('[name=second_name]').fill('Synthetic Guest Payer');ed.locator('[name=first_percent]').fill('40');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check('Synthetic Company' in page.locator('#folios').inner_text(),'Payer split saves without creating a second folio or receipt')
+      page.locator('#folios [data-hotel-action=split-bill]').first.evaluate('(el)=>el.closest("details").open=true');page.locator('#folios [data-hotel-action=split-bill]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=first_name]').fill('Synthetic Company');ed.locator('[name=second_name]').fill('Synthetic Guest Payer');ed.locator('[name=first_percent]').fill('40');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check('Synthetic Company' in page.locator('#folios').inner_text(),'Payer split saves without creating a second folio or receipt')
      screenshot(page,f'hotel-folio-{width}')
      if width==390:
       page.context.set_offline(True);page.locator('#folios [data-hotel-action=checkout]').click();check('Offline' in page.locator('#folios .bh-message').first.inner_text(),'Offline checkout never claims settlement');check(page.evaluate("window.__BITE_HOTEL_QA.db.stays[0].status==='in_house'"),'Interrupted checkout preserves the active stay');page.context.set_offline(False);page.locator('#folios [data-hotel-action=checkout]').wait_for(state='visible')
