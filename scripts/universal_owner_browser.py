@@ -65,6 +65,7 @@ try:
     check(True,f'{kind} premium quick action opens existing {quick} workspace at {width}px')
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
+    check(page.locator('#biteHotelHome .bh-hotel-tabs').count()==0,f'{kind} home does not duplicate Hotel navigation')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
      check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
