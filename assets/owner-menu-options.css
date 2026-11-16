@@ -38,3 +38,27 @@
  #menuOptionsModal #menuOptionsGroupForm>.bite-options-group-fields label:first-child{grid-column:1/-1}
  #menuOptionsModal .bite-option-group-card{padding:12px}
 }
+
+/* Read-only price verification is intentionally visually distinct from ordering. */
+#menuOptionsModal .bite-options-preview-panel{margin:18px 0;padding:15px;border:1px solid #c9e1d2;border-radius:16px;background:#f6faf8}
+#menuOptionsModal .bite-options-preview-heading{display:flex;gap:12px;justify-content:space-between;align-items:start}
+#menuOptionsModal .bite-options-preview-heading h3{margin:0;font-size:16px;color:#174d34}
+#menuOptionsModal .bite-options-preview-heading p{font-size:12px;color:#53695c;line-height:1.55;margin:5px 0 12px}
+#menuOptionsModal .bite-options-preview-heading .pill{flex:none}
+#menuOptionsModal .bite-options-base{font-size:12px;margin:4px 0 14px;color:#315943}
+#menuOptionsModal .bite-options-preview-group{border:0;border-top:1px solid #ddeae0;margin:0 0 12px;padding:12px 0 0;min-width:0}
+#menuOptionsModal .bite-options-preview-group legend{font-size:14px;font-weight:800;color:#174d34;padding:0 5px}
+#menuOptionsModal .bite-options-preview-group p{margin:2px 0 8px}
+#menuOptionsModal .bite-options-preview-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+#menuOptionsModal .bite-options-preview-choice{display:flex;align-items:center;gap:9px;padding:10px 11px;background:#fff;border:1px solid #d7e3da;border-radius:11px;cursor:pointer;min-height:46px;box-sizing:border-box}
+#menuOptionsModal .bite-options-preview-choice:has(input:checked){border-color:#158451;background:#e9f7ee}
+#menuOptionsModal .bite-options-preview-choice:focus-within{outline:2px solid #128652;outline-offset:2px}
+#menuOptionsModal .bite-options-preview-choice input{accent-color:#087e49;flex:none}
+#menuOptionsModal .bite-options-preview-choice span{font-size:13px;font-weight:700;min-width:0;flex:1;overflow-wrap:anywhere}
+#menuOptionsModal .bite-options-preview-choice strong{font-size:12px;white-space:nowrap;color:#2b6147}
+#menuOptionsModal .bite-options-preview-result{font-size:13px;min-height:0;margin:8px 0 0;line-height:1.5;overflow-wrap:anywhere}
+#menuOptionsModal .bite-options-verified{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#e5f6eb;border-radius:11px;padding:11px 13px}
+#menuOptionsModal .bite-options-verified small{display:block;font-size:11px;color:#356b4a}
+#menuOptionsModal .bite-options-verified strong{display:block;font-size:22px;line-height:1.4;color:#075932}
+#menuOptionsModal #menuOptionsPreviewCheck[disabled]{opacity:.5;cursor:not-allowed}
+@media(max-width:700px){#menuOptionsModal .bite-options-preview-panel{padding:12px}#menuOptionsModal .bite-options-preview-choice-grid{grid-template-columns:1fr}#menuOptionsModal .bite-options-preview-heading{flex-wrap:wrap}}
