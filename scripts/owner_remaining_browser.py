@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1];os.chdir(ROOT)
 OUT=ROOT/'dist/launch-qa';OUT.mkdir(parents=True,exist_ok=True)
 subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=True)
 html=(ROOT/'dist/qa/owner-flow.html').read_text();fixture=(ROOT/'scripts/fixtures/hospitality_backend.js').read_text()
-needle='<script src="assets/owner-hospitality.js?v=20261116-owner-v2"></script>'
+needle='<script src="assets/owner-hospitality.js?v=20261116-housekeeping1"></script>'
 multi_fixture="""<script>
 +const multiFactory=window.supabase.createClient;window.supabase.createClient=(...args)=>{const c=multiFactory(...args),base=c.rpc.bind(c),qa=window.__BITE_HOTEL_QA;const second={...structuredClone(qa.property),id:'34343434-3434-4434-8434-343434343434',name:'Second hotel QA',business_type:'hotel',outlets:[],capabilities:[...BiteCapabilities.defaults.hotel],configured_capabilities:[...BiteCapabilities.defaults.hotel]};c.rpc=async(name,args)=>{if(localStorage.getItem('qa_multiple_properties')==='on'){if(name==='bite_owner_context')return{data:[structuredClone(qa.property),second],error:null};if(name==='bite_hotel_workspace'&&args.p_property===second.id)return{data:{rooms:[{id:'second-room',number:'S-201',room_type:'Suite',nightly_rate:999,adults:2,children:0,housekeeping:'ready',active:true}],guests:[],stays:[],folios:[],entries:[],audit:[],expenses:[],members:[]},error:null};}return base(name,args)};return c};
 +</script>""".replace('\n+','\n')
@@ -83,6 +83,10 @@ try:
    page.locator('[data-ops-action=copy-link]').click();page.locator('[data-ops-action=revoke-link]').click();page.get_by_text('Guest link revoked',exact=True).wait_for(state='visible')
    check(page.evaluate("window.__BITE_HOTEL_QA.calls.some(c=>c.args.p_action==='guest_link_revoke')"),'Revocation calls the authorized property endpoint')
    nav(page,'rooms');page.locator('#rooms [data-hotel-action=room-privacy][data-id=room-a]').click();f=page.locator('#bhActionEditor form');f.locator('[name=do_not_disturb]').check();f.locator('[name=cleaning_requested]').check();finish(page)
+   page.evaluate("showPage('settings')")
+   page.locator('#biteShowHousekeeping').wait_for(state='visible')
+   page.locator('#biteShowHousekeeping').check()
+   page.wait_for_function("BiteHospitality.housekeepingVisible()===true")
    nav(page,'housekeeping');page.locator('[data-ops-action=task-step]').first.click();page.get_by_text('Do Not Disturb is active',exact=True).wait_for(state='visible')
    check(page.evaluate("window.__BITE_HOTEL_QA.db.tasks[0].status==='requested'"),'DND keeps cleaning task waiting')
    nav(page,'rooms');page.locator('#rooms [data-hotel-action=room-privacy][data-id=room-a]').click();page.locator('#bhActionEditor [name=do_not_disturb]').uncheck();finish(page)
