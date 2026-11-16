@@ -33,10 +33,14 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [x] 6.10a Read-only evidence: 25 rows currently unavailable and updated in the Nov 15 cluster; 13 categories, Kofta empty. No changes made.
 - [ ] 6.10b Confirm whether 25 disabled items reflect genuine kitchen availability before re-enabling any.
 - [x] 6.11a Read-only media inventory: 91 externally hosted Wikimedia Commons URLs, 1 blank Choklet image, photo licensing documented in 9 repo credit files. See `docs/launch/MAHARANI_MEDIA_SOURCE_AUDIT_20261116.md`.
-- [ ] 6.11b Verify actual image HTTP loading, dish relevance, Pure Veg representation and public-facing credits in an isolated browser; link existence is not image success.
-- [ ] 6.12 Confirm minimum-order and delivery-fee commercial values with restaurant owner (currently ₹1 / ₹0).
-- [ ] 6.13 Check serving PINs, delivery range, pickup details and opening/closing times against real operations.
-- [ ] 6.14 Verify a dedicated, non-conflicted Owner account can control this restaurant from the Partner APK.
+- [x] 6.11b Run real Chromium network tests of all 91 URLs: 33/91 bulk-load, 58 transient-looking errors; separate clean-runner serial retest loaded 7/7. See `docs/launch/MAHARANI_IMAGE_LOAD_DIAGNOSTIC_20261116.md`.
+- [ ] 6.11c Certify each image and exact license/attribution and physical-device relevance; 7/7 spotcheck does not prove 91/91.
+- [x] 6.12a Read-only verification: restaurant and Rajsamand delivery zone both specify minimum order ₹1 and delivery fee ₹0; no production changes.
+- [ ] 6.12b Get confirmed commercial order minimum and fee rules from restaurant operator; do not guess replacements.
+- [x] 6.13a Read-only verification: 1 active Rajsamand delivery zone, PIN 313324, pickup/delivery enabled, 10:00–23:00 hours and 30-minute prep; **restaurant address and map coordinates NULL**.
+- [ ] 6.13b Confirm actual pickup address, map coordinates, business hours and geography; do not fabricate geolocation.
+- [x] 6.14a Check membership mapping: one Maharani Owner membership, zero cross-restaurant linked users and zero multi-owner restaurants at inspection.
+- [ ] 6.14b Authenticate dedicated Owner on real Partner APK, verify menu actions/session and lockscreen alerts.
 - [ ] 6.15 Run an isolated no-money Customer → Owner → Delivery OTP rehearsal with role-scoped test data.
 - [ ] 6.16 Record named duty operator, support procedure, restaurant consent and verified operating window.
 - [ ] 6.17 Verify legal/customer-facing disclosures, refunds, FSSAI/tax applicability with qualified parties.
@@ -46,9 +50,11 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 
 ## Phase 5 — Admin, security and delivery
 - [ ] 5.01 Inventory all Admin/Super Admin roles and routes; keep Owner features separate.
-- [ ] 5.02 Audit conflicting restaurant membership mappings; preserve existing data.
-- [ ] 5.03 Verify Hotel Maharani Palace has precisely the intended authorized Owner.
-- [ ] 5.04 Verify restaurant approval/suspension cannot be changed by Owner.
+- [x] 5.02 Audit production mappings read-only: 5 memberships, 5 distinct users, 5 restaurants; no multi-restaurant or multiple-owner conflicts; no Admin/Owner membership overlap on inspected rows.
+- [x] 5.03a Verify Maharani has exactly 1 owner membership in database.
+- [ ] 5.03b Verify intended person's identity/actual Partner login using authorized sign-in; do not infer identity from count.
+- [x] 5.04a Inspect approval, publication and commission triggers: non-admin field updates raise exceptions; RLS enabled.
+- [ ] 5.04b Execute authenticated Owner vs Admin negative E2E with isolated test account, no live approval mutation.
 - [ ] 5.05 Confirm customer data and another restaurant's orders cannot be read by Owner.
 - [ ] 5.06 Test Admin owner reset and role-change authorization negative cases.
 - [ ] 5.07 Review privileged SECURITY DEFINER functions and explicit grants.
@@ -116,4 +122,4 @@ Project: gauravjoshi2999/restaurant-os; Supabase: wedbgpybbgsszcmffoha
 - [ ] 1.12 Execute documented sandbox then strictly approved low-value real-money acceptance with secure bank reconciliation.
 
 ## Next smallest task
-**6.11b**: isolated browser image-load and attribution verification for the 91 external Commons links. Keep 6.08b (physical Android), 6.09b (verified commercial menu), and 6.10b (kitchen availability intent) open until confirmed. No production menu writes without verified approval.
+**5.01 and 5.04b**: finish role/route inventory and safe account-isolation negative tests. Photo bulk/serial diagnosis is complete; 6.11c remains open for real-device and licensing QA, along with 6.08b, 6.09b, 6.10b, 6.12b, 6.13b and 6.14b.
