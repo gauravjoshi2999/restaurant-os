@@ -75,6 +75,10 @@
     const subtitle=doc.createElement('p');subtitle.textContent=copy[type].subtitle;
     const propertyChip=doc.createElement('span');propertyChip.className='bite-premium-property';propertyChip.textContent=property.name||'Your property';
     brand.append(eyebrow,headline,subtitle,propertyChip);
+    if(routes.includes(copy[type].route)){
+      const cta=doc.createElement('button');cta.type='button';cta.className='bite-premium-hero-cta';cta.dataset.page=copy[type].route;
+      cta.textContent=copy[type].button+' →';brand.append(cta);
+    }
     const motif=doc.createElement('div');motif.className='bite-premium-motif';motif.setAttribute('aria-hidden','true');
     motif.innerHTML='<span class="bite-premium-motif-orbit"></span><span class="bite-premium-motif-icon">'+svg(type==='restaurant'?'menu':type==='hotel'?'bed':'sparkles')+'</span>';
     hero.append(brand,motif);
@@ -100,7 +104,8 @@
     const property=root.BiteHospitality?.prop?.();
     const current=root.BiteHospitality?.routeList?.({role:'owner',property})||[];
     if(!current.includes(button.dataset.page))return;
-    if(typeof root.showPage==='function')void Promise.resolve(root.showPage(button.dataset.page)).catch(error=>root.console?.warn?.('Owner page could not be opened',error));
+    const handler=button.classList.contains('bite-premium-hero-cta')&&button.dataset.page==='pos'&&typeof root.openPosFromOverview==='function'?root.openPosFromOverview:root.showPage;
+    if(typeof handler==='function')void Promise.resolve(button.classList.contains('bite-premium-hero-cta')&&button.dataset.page==='pos'&&handler===root.openPosFromOverview?handler(button):handler(button.dataset.page)).catch(error=>root.console?.warn?.('Owner page could not be opened',error));
   }
   function start(){
     if(!root.document)return;
