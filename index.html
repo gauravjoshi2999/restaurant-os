@@ -612,7 +612,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 
 <meta name="theme-color" content="#f1f2f5">
 <link rel="stylesheet" href="assets/owner-layout.css?v=20261113-pos-enabled">
-<link rel="stylesheet" href="assets/owner-menu-options.css?v=20261113-size1">
+<link rel="stylesheet" href="assets/owner-menu-options.css?v=20261116-preview1">
 <link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
 <script src="assets/owner-mobile-navigation.js?v=20261114-more-back2" defer></script>
@@ -1254,6 +1254,18 @@ body.bite-session-check #biteSessionSplash{
   <div class="bite-options-feedback" role="status" aria-live="polite" id="menuOptionsFeedback"></div>
   <div class="section-head"><h3 style="margin:8px 0">Configured groups</h3><span class="pill" id="menuOptionsGroupCount">0 groups</span></div>
   <div id="menuOptionsGroupList"><div class="empty">Loading…</div></div>
+  <section class="bite-options-preview-panel" aria-labelledby="menuOptionsPreviewTitle">
+   <div class="bite-options-preview-heading">
+    <div><h3 id="menuOptionsPreviewTitle">Price preview</h3>
+     <p>Size aur extras select karke server se final food price verify karein. Ye read-only hai—koi payment nahi hoga.</p></div>
+    <span class="pill">READ ONLY</span>
+   </div>
+   <form id="menuOptionsPreviewForm" aria-label="Preview selected menu options">
+    <div id="menuOptionsPreviewChoices"></div>
+    <button type="submit" class="btn secondary" id="menuOptionsPreviewCheck">Check final food price</button>
+   </form>
+   <div class="bite-options-preview-result" id="menuOptionsPreviewResult" aria-live="polite" role="status"></div>
+  </section>
   <form id="menuOptionsGroupForm">
    <h3 style="margin:0 0 7px">＋ Create new group</h3>
    <div class="bite-options-intro">Example: <strong>Size</strong> (Min 1, Max 1), ya <strong>Extras</strong> (Min 0, Max 3). Group ko ek menu item par set karein.</div>
@@ -1346,7 +1358,8 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
 <script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
 <script src="assets/owner-dashboard.js"></script>
-<script src="assets/owner-menu-options.js?v=20261113-size1"></script>
+<script src="assets/owner-menu-options-preview.js?v=20261116-preview1"></script>
+<script src="assets/owner-menu-options.js?v=20261116-preview1"></script>
 <script src="assets/owner-exports.js"></script>
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
