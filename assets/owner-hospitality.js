@@ -36,7 +36,7 @@
    nav.prepend(g);g.addEventListener('click',e=>{const b=e.target.closest('button[data-page]');if(b)void ctx.navigate(b.dataset.page)});
   }
   if(!$('bitePropertySelect')){
-   const holder=document.createElement('label');holder.className='bh-property-switch';holder.innerHTML='<span class="sr-only">Current property</span><select id="bitePropertySelect" aria-label="Current property"></select>';
+   const holder=document.createElement('label');holder.className='bh-property-switch';holder.hidden=true;holder.innerHTML='<span class="sr-only">Current property</span><select id="bitePropertySelect" aria-label="Current property"></select>';
    document.querySelector('#mainApp .main>.top')?.append(holder);
    $('bitePropertySelect').addEventListener('change',async e=>{const id=e.target.value;try{await ctx.switchProperty(id)}catch(err){e.target.value=prop()?.id||'';showError(err)}});
   }
@@ -81,6 +81,8 @@
  function applyShell(){
   const p=prop(),owner=ctx.getAccess().role==='owner';
   if(!owner||!p){delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true;
+   if($('bitePropertySelect')){$('bitePropertySelect').replaceChildren();$('bitePropertySelect').closest('label').hidden=true}
+   if($('biteModulesShortcut'))$('biteModulesShortcut').hidden=true;
    document.body.dataset.ownerOnboarding=String(owner&&ctx.getAccess().needsProperty===true);
    if(owner&&ctx.getAccess().needsProperty)document.querySelectorAll('#mainApp .nav button[data-page]').forEach(b=>{b.hidden=true;b.style.display='none'});
    return}
@@ -418,6 +420,6 @@
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
  function clear(){loadVersion++;data=empty();properties=[];selectedFolio=null;if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
- root.BiteHospitality={init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,postedOrder,busy:()=>activeWrites>0,
+ root.BiteHospitality={init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,postedOrder,printStatement,busy:()=>activeWrites>0,
   getTabs:()=>C.tabs(prop(),restaurantAccess()),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

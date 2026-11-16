@@ -3426,7 +3426,7 @@ function renderPOSWorkspace(){
  const rid=access.role==='owner'?access.restaurantId:null;
  const orders=rid?state.orders.filter(o=>o.channel.startsWith('POS - ')&&o.restaurant===rid):[];
  const active=orders.filter(o=>!['Cancelled','Rejected'].includes(o.status));
- const sum=key=>active.filter(o=>!window.BiteHospitality?.postedOrder(o.id)).reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
+ const sum=key=>active.filter(o=>!String(o.code||'').startsWith('POS-ROOM-')&&!window.BiteHospitality?.postedOrder(o.id)).reduce((n,o)=>n+Number(paymentSummaryFor(o.id)[key]||0),0);
  document.getElementById('posOrderCount').textContent=String(active.length);
  document.getElementById('posSalesTotal').textContent=money(active.reduce((n,o)=>n+o.amount,0));
  document.getElementById('posCollectedTotal').textContent=money(sum('paid_amount'));
@@ -3434,16 +3434,17 @@ function renderPOSWorkspace(){
  document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{
   const p=paymentSummaryFor(o.id);
   const posted=window.BiteHospitality?.postedOrder(o.id);
-  const canCorrect=!posted&&access.role==='owner'&&!o.isDemo&&o.channel==='POS - Counter'&&o.status==='Received'&&o.waivedOffAmount===0
+  const roomLinked=!!posted||String(o.code||'').startsWith('POS-ROOM-');
+  const canCorrect=!roomLinked&&access.role==='owner'&&!o.isDemo&&o.channel==='POS - Counter'&&o.status==='Received'&&o.waivedOffAmount===0
    &&!state.orderPayments.some(x=>x.order_id===o.id)&&!state.orderRefunds.some(x=>x.order_id===o.id);
   const isVoid=['Rejected','Cancelled'].includes(o.status);
-  const payment=posted?'<span class="pill">Room folio</span>':isVoid?'<span class="pill amber">Voided</span>':Number(p.balance_amount)>0?
+  const payment=roomLinked?'<span class="pill">Room folio</span>':isVoid?'<span class="pill amber">Voided</span>':Number(p.balance_amount)>0?
     '<button class="btn secondary" onclick="openPaymentModal(&quot;'+esc(o.id)+'&quot;)">Add payment</button>':'<span class="pill green">Paid</span>';
-  const invoice='<button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
+  const invoice=roomLinked?(posted?'<button type="button" class="btn secondary" data-room-folio-invoice onclick="BiteHospitality.printStatement(&quot;'+esc(posted.folio_id)+'&quot;)">Guest folio / PDF</button>':'<button type="button" class="btn secondary" onclick="showPage(&quot;settings&quot;)">Review hotel modules</button>'):'<button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
   const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
    '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
   const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
-  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(posted?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(o.amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
  }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
 }

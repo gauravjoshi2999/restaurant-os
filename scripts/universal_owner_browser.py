@@ -107,6 +107,9 @@ try:
       with page.expect_popup() as popup:page.locator('#folios [data-hotel-action=preview]').click()
       check('Synthetic Room Diner' in popup.value.locator('body').inner_text(),'Invoice preview opens the correct guest statement');popup.value.close()
       screenshot(page,'hybrid-checkout-390')
+      nav(page,'pos')
+      with page.expect_popup() as linked_invoice:page.locator('#posRows [data-room-folio-invoice]').click()
+      check('Synthetic Room Diner' in linked_invoice.value.locator('body').inner_text() and '1,250' in linked_invoice.value.locator('body').inner_text(),'Room-linked POS PDF uses the guest folio statement after settlement');linked_invoice.value.close()
     nav(page,'overview');screenshot(page,f'{kind}-home-{width}')
     page.close()
   page=browser.new_page(viewport={'width':390,'height':900});page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort())
@@ -115,6 +118,7 @@ try:
   check(page.evaluate('window.__BITE_HOTEL_QA.db.rooms.length')==0,'New hotel onboarding creates no invented rooms')
   nav(page,'rooms');page.locator('#rooms [data-hotel-action=new-room]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=number]').fill('301');ed.locator('[name=nightly_rate]').fill('1200');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check(page.locator('#rooms .bh-room-title').count()==1,'New hotel owner adds a real room through existing app')
   nav(page,'hr');staff=page.locator('#hr [data-hotel-form=member]');staff.locator('[name=email]').fill('accountant@example.test');staff.locator('[name=role]').select_option('accountant');staff.locator('button[type=submit]').click();page.wait_for_function("window.__BITE_HOTEL_QA.db.members.length===1");check('accountant@example.test' in page.locator('#hr .bh-record').inner_text(),'Staff account access uses verified email instead of internal identifiers');page.close()
+  page=browser.new_page(viewport={'width':1440,'height':900});page.on('pageerror',lambda e:errors.append(str(e)));page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4185/qa/admin-flow.html',wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.role==='super_admin'");check(page.locator('#bitePropertySelect').is_hidden(),'Admin shell hides the Owner property selector');check(page.locator('#biteHotelHome').is_hidden(),'Admin shell does not display hotel operations');page.close()
   check(not errors,'Universal Owner browser journeys have no JavaScript page errors')
   browser.close()
 finally:
