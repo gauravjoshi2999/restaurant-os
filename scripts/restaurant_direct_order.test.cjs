@@ -130,7 +130,7 @@ test('Customer menu reset restores all dishes and cart buttons remain accessible
  assert.ok(customer.includes('function resetMenuFilters(){'));
  assert.ok(customer.includes('data-reset-menu>Show all dishes'));
  assert.ok(customer.includes("button.setAttribute('aria-pressed',String(selected))"));
- assert.ok(customer.includes("$('menuVegToggle').checked=false"));
+ assert.ok(customer.includes("$('menuVegToggle').checked=window.BiteAccountHub?.vegOnly?.()===true"));
  assert.ok(customer.includes("$('menuResetFilters').hidden=!filtersActive"));
  assert.ok(customer.includes('aria-label="Close cart"'));
  assert.ok(customer.includes('aria-label="Remove one '));

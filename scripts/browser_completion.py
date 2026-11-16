@@ -486,14 +486,18 @@ try:
   check(customer.locator('#checkoutOutcomePanel').is_visible() and not customer.locator('#checkoutFormPanel').is_visible(), 'Success screen replaces checkout fields rather than repeating Pay button')
   customer.locator('#checkoutOutcomeBrowse').click()
   check(not customer.locator('#checkoutModal').is_visible() and customer.locator('#menuView').is_visible(), 'Checkout close returns to menu instead of reopening payment')
-  customer.locator('#homeBottomNav [data-nav="account"]').click();customer.locator('#customerProfileEdit').wait_for(state='visible')
-  customer.locator('#editProfileName').fill('QA updated name');customer.locator('#editProfilePhone').fill('9999999999');customer.locator('#editCustomerProfile button[type=submit]').click()
-  check('saved' in customer.locator('#profileEditStatus').inner_text().lower(),'Customer profile form exposes save feedback')
+  customer.locator('#homeBottomNav [data-nav="account"]').click();customer.locator('#biteAccountHub').wait_for(state='visible')
+  customer.locator('#biteAccountHub [data-bite-account-go="profile"]').first.click()
+  customer.locator('#biteProfileEditor').wait_for(state='visible')
+  customer.locator('#biteProfileName').fill('QA updated name');customer.locator('#biteProfilePhone').fill('9999999999')
+  customer.locator('#biteProfileForm button[type=submit]').click()
+  customer.wait_for_function("document.getElementById('biteProfileMessage').textContent.toLowerCase().includes('saved')",timeout=8000)
+  check('saved' in customer.locator('#biteProfileMessage').inner_text().lower(),'Premium profile form saves the real account fields and shows feedback')
   check(customer.locator('[data-bite-language]').count()==0
     and customer.locator('.bite-language-row').count()==0
     and customer.evaluate("document.documentElement.lang")=='en',
     'Customer UI no longer has the unwanted Hindi/English language strip')
-  check(customer.locator('#editProfilePhone').input_value()=='9999999999',
+  check(customer.locator('#biteProfilePhone').input_value()=='9999999999',
     'Removing the language switch preserves the customer profile input')
   owner=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(owner)
   owner.goto('http://127.0.0.1:4174/dist/qa/owner-flow.html?bite_page=pos&v=qa-pos',wait_until='domcontentloaded');owner.locator('#mainApp').wait_for(state='visible');

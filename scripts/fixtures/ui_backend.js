@@ -26,7 +26,7 @@
   if(name==='bite_request_account_deletion')value=null;
   return{data:structuredClone(value),error:null};
  };
- const client={from:query,rpc,auth:{getSession:async()=>({data:{session}}),getUser:async()=>({data:{user}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({data:{session,user}})},channel:()=>{const c={on:()=>c,subscribe:()=>c};return c;},removeChannel(){},functions:{invoke:async(name,args={})=>{
+ const client={from:query,rpc,auth:{getSession:async()=>({data:{session}}),getUser:async()=>({data:{user}}),updateUser:async({data:values})=>{if(values?.data)Object.assign(user.user_metadata,values.data);if(values?.email)user.email=values.email;return {data:{user},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({data:{session,user}})},channel:()=>{const c={on:()=>c,subscribe:()=>c};return c;},removeChannel(){},functions:{invoke:async(name,args={})=>{
   // Isolated browser fixture: fake status/cancellation, never a real Cashfree request.
   if(window.__BITE_QA_PENDING&&name==='bite-live-verify-checkout'){
    const state=data.bite_live_checkout_intents?.[0]?.status||'expired';
