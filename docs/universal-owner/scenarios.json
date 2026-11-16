@@ -27,7 +27,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A002",
@@ -57,7 +57,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Reservation/advance entry is manual; there is no hotel OTA/online-reservation connector.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A003",
@@ -80,12 +80,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Guest profile; reserved stay; one folio; check-in posts room nights once",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A004",
@@ -113,7 +115,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A005",
@@ -143,7 +145,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A006",
@@ -173,7 +175,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A007",
@@ -203,7 +205,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A008",
@@ -233,7 +235,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A009",
@@ -263,7 +265,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Minimal nationality/identity recording and FRRO reminder are available. Prescribed foreign-guest reporting fields/filing are not certified.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A010",
@@ -293,7 +295,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A011",
@@ -323,7 +325,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A012",
@@ -346,12 +348,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Property-locked stay/availability change; preserve folio and history",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A013",
@@ -381,7 +385,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A014",
@@ -411,7 +415,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Extension conflicts are guarded; a dedicated late-checkout policy and incoming-arrival walkthrough remain.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A015",
@@ -434,14 +438,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Property-locked stay/availability change; preserve folio and history",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Extension preserves the agreed nightly rate; new-rate adjustment uses manager-authorized manual entries.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A016",
@@ -471,7 +475,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A017",
@@ -501,7 +505,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A018",
@@ -531,7 +535,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A019",
@@ -554,12 +558,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Property-locked stay/availability change; preserve folio and history",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A020",
@@ -582,12 +588,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Property-locked stay/availability change; preserve folio and history",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A021",
@@ -617,7 +625,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A022",
@@ -647,7 +655,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A023",
@@ -677,7 +685,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A024",
@@ -700,12 +708,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Manual itemized extra-bed charge for the selected night(s). An automatic nightly extra-bed policy is not configured.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A025",
@@ -728,12 +738,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A026",
@@ -756,12 +768,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A027",
@@ -791,7 +805,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A028",
@@ -814,12 +828,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Split-payer invoices for one stay are not implemented. Partial/split receipts and separate group-room folios are available.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Two itemized payer charge-allocation statements on one settled folio. Shared receipts stay on that folio; these do not certify separate statutory GST invoices or individual payer receipts.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A029",
@@ -849,7 +865,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A030",
@@ -872,14 +888,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Group rooms have independent folios; two fully settled group-room invoices have not both been exercised.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A031",
@@ -909,7 +925,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A032",
@@ -939,7 +955,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A033",
@@ -969,7 +985,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A034",
@@ -992,12 +1008,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A035",
@@ -1027,7 +1045,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A036",
@@ -1057,7 +1075,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A037",
@@ -1087,7 +1105,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A038",
@@ -1117,7 +1135,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A039",
@@ -1147,7 +1165,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Existing marketplace refund progress is preserved. A guest-facing hotel stay portal is not enabled.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A040",
@@ -1177,7 +1195,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A041",
@@ -1207,7 +1225,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A042",
@@ -1238,7 +1256,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Full source-controller browser flow and actual production RPC/legacy POS integration passed with synthetic data rolled back. No live provider transaction.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A043",
@@ -1268,7 +1286,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A044",
@@ -1298,7 +1316,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Early checkout uses explicit authorized adjustments; an automatic policy engine is not implemented.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A045",
@@ -1328,7 +1346,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Manual extra charges are available; automatic configurable late-checkout fees are not implemented.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A046",
@@ -1351,12 +1369,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A047",
@@ -1385,8 +1405,8 @@
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Invoice preview/print/share is implemented; final browser preview and guest dispatch evidence is pending.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Invoice and split-statement browser preview/printing passed. Actual guest dispatch and a physical printer are not certified.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A048",
@@ -1409,12 +1429,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Append-only confirmed ledger; pending bank receipts; immutable settled statement; Dirty room on checkout",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A049",
@@ -1444,7 +1466,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A050",
@@ -1474,7 +1496,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A051",
@@ -1504,7 +1526,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A052",
@@ -1534,7 +1556,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A053",
@@ -1564,7 +1586,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A054",
@@ -1594,7 +1616,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A055",
@@ -1623,8 +1645,8 @@
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Occupied-room housekeeping status/note can be updated; a separate stayover request queue is not implemented.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Stayover cleaning requests and DND appear on room cards and follow the guest on a move. A separate staff assignment/completion queue is not implemented.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A056",
@@ -1647,12 +1669,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Room readiness/note changes with timestamped audit; no guest payment mutation",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Dedicated Do Not Disturb workflow is not implemented; a manual room note is available.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A057",
@@ -1675,12 +1699,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Room readiness/note changes with timestamped audit; no guest payment mutation",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A058",
@@ -1703,12 +1729,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Room readiness/note changes with timestamped audit; no guest payment mutation",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A059",
@@ -1738,7 +1766,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A060",
@@ -1766,7 +1794,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A061",
@@ -1796,7 +1824,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Existing restaurant owners keep their setup. A brand-new restaurant still needs platform approval and outlet association.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A062",
@@ -1826,7 +1854,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A063",
@@ -1849,12 +1877,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; One canonical POS sale; no second POS receipt when transferred; one linked folio charge",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Property cashier accounts do not yet open the legacy restaurant POS UI; the existing linked restaurant-owner POS remains supported.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Cashier uses the existing POS for fully recorded Pay Now or authorized room posting. Owner Counter POS retains its existing credit/waive-off workflow.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A064",
@@ -1884,7 +1914,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A065",
@@ -1914,7 +1944,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A066",
@@ -1937,12 +1967,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; One canonical POS sale; no second POS receipt when transferred; one linked folio charge",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "The current owner POS remains its existing Counter bill workflow. Dedicated dine-in/takeaway entry classification is not implemented in the new shell.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A067",
@@ -1972,7 +2004,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Capability-driven navigation and server dine-in gate are implemented; dedicated cloud-kitchen bill-type UI needs completion.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A068",
@@ -2002,7 +2034,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A069",
@@ -2032,7 +2064,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A070",
@@ -2062,7 +2094,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A071",
@@ -2092,7 +2124,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A072",
@@ -2122,7 +2154,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Actual Android lock-screen delivery requires the installed Partner APK and a physical device.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A073",
@@ -2152,7 +2184,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Notification action source/regressions are preserved, but native accept/reject needs a physical APK check.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A074",
@@ -2182,7 +2214,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A075",
@@ -2212,7 +2244,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A076",
@@ -2242,7 +2274,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A077",
@@ -2272,7 +2304,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A078",
@@ -2302,7 +2334,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A079",
@@ -2332,7 +2364,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A080",
@@ -2362,7 +2394,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A081",
@@ -2393,7 +2425,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Full source-controller browser flow and actual production RPC/legacy POS integration passed with synthetic data rolled back. No live provider transaction.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A082",
@@ -2424,7 +2456,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Full source-controller browser flow and actual production RPC/legacy POS integration passed with synthetic data rolled back. No live provider transaction.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A083",
@@ -2454,7 +2486,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A084",
@@ -2484,7 +2516,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A085",
@@ -2514,7 +2546,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "POS food can be billed to a stay; a separate room-service fulfilment queue is not implemented.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A086",
@@ -2544,7 +2576,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A087",
@@ -2574,7 +2606,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A088",
@@ -2597,12 +2629,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; One canonical POS sale; no second POS receipt when transferred; one linked folio charge",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "A dedicated POS-discount-to-folio allocation workflow is not implemented. Paid/adjusted legacy bills are blocked from room transfer.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A089",
@@ -2632,7 +2666,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A090",
@@ -2662,7 +2696,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Online-disabled server gates are tested. Full offline-marketplace/hybrid POS browser context remains separate.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A091",
@@ -2692,7 +2726,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A092",
@@ -2722,7 +2756,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A093",
@@ -2752,7 +2786,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A094",
@@ -2782,7 +2816,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A095",
@@ -2812,7 +2846,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A096",
@@ -2842,7 +2876,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A097",
@@ -2872,7 +2906,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Enabling restaurant capabilities preserves folios; adding/associating an additional outlet still needs a trusted mapping step.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A098",
@@ -2902,7 +2936,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A099",
@@ -2932,7 +2966,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A100",
@@ -2962,7 +2996,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A101",
@@ -2992,7 +3026,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A102",
@@ -3015,12 +3049,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Additive property configuration or membership change; unsafe disabling rejected; no history deletion",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unverified payment treated as collected",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A103",
@@ -3050,7 +3086,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A104",
@@ -3078,7 +3114,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A105",
@@ -3108,7 +3144,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Multiple property memberships/context data are tested; browser/native property-switch handoff is not fully exercised.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A106",
@@ -3138,7 +3174,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Different business types per owner are represented; the complete two-property UI/native walkthrough is not run.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A107",
@@ -3166,7 +3202,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A108",
@@ -3194,7 +3230,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A109",
@@ -3224,7 +3260,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A110",
@@ -3254,7 +3290,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A111",
@@ -3282,7 +3318,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A112",
@@ -3312,7 +3348,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A113",
@@ -3342,7 +3378,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A114",
@@ -3372,7 +3408,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A115",
@@ -3402,7 +3438,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Session persistence source tests pass; cross-device authentication needs real-device verification.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A116",
@@ -3432,7 +3468,7 @@
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
     "limitation": "Pass applies only to the recorded isolated test scope; deployment and actual device evidence are tracked separately.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A117",
@@ -3455,12 +3491,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Read-only home metrics/navigation; actual mutations use the selected route command",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_RUN",
-    "evidence": [],
+    "test_status": "PASS",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Relevant controls/guards exist, but the complete scenario has not been executed and is not a pass.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A118",
@@ -3483,12 +3521,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Read-only report/export; food-linked folio references are not another restaurant sale",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "NOT_IMPLEMENTED",
-    "evidence": [],
+    "test_status": "PARTIAL",
+    "evidence": [
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py"
+    ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Combined hotel/restaurant shift closing is not implemented. Existing restaurant closing and separate property money-method reports retain explicit scopes.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "A combined immutable closing snapshot reconciles recorded cash and separates room/incidentals/source food/deposits. Later entries are flagged. Existing restaurant day locks remain independent; both department journals are not locked together.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A119",
@@ -3511,14 +3551,14 @@
     "success": "The scenario goal is satisfied with the selected property records and truthful authoritative state; Read-only report/export; food-linked folio references are not another restaurant sale",
     "likely_mistakes": "Wrong property/guest/room, stale availability, repeated action, unsupported role, unsaved form interrupted",
     "recovery": "Preserve the scoped nonfinancial draft; show denial/error; uncertain mutations retain a stable request UUID. Confirm only the returned server state.",
-    "test_status": "PARTIAL",
+    "test_status": "PASS",
     "evidence": [
-      "See applicable SQL/browser/source assertions; full acceptance is not certified."
+      "scripts/owner_completion_pg_test.sql; scripts/universal_owner_browser.py; docs/universal-owner/production_completion_rollback.sql (applicable rollback scope)"
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Source POS sale and folio collection link are deduplicated. There is no single combined sales-total/closing widget.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Scoped isolated SQL/browser evidence; not live-money, statutory-tax or physical-device certification.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   },
   {
     "id": "A120",
@@ -3547,7 +3587,7 @@
     ],
     "simulation": "Walkthrough completed from stated initial state; acceptance contract recorded, not a test pass",
     "evidence_scope": "Isolated PostgreSQL 17 assertions and/or actual controllers with synthetic browser transport. This is not a live-money or physical-device certification.",
-    "limitation": "Mutation audit rows and timestamps are retained. The UI shows the latest 100 actions; full audit search is not implemented.",
-    "verified_ci": "43840965237 (source b74bdf0a5d19da3c2ed3b9d434ba5961eae14277); 736 Node checks and 76 new browser assertions"
+    "limitation": "Property command audits are searchable with timestamp, actor, entity and pagination. Existing legacy restaurant audit records remain in their original scope, not one fully merged audit search.",
+    "verified_ci": "QA 43852828203; case status and stated evidence scope remain authoritative"
   }
 ]
