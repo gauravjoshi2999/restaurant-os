@@ -726,7 +726,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
 <link rel="stylesheet" href="assets/admin-cashfree-audit.css?v=20261115-mobile-result-card1">
-<script src="assets/admin-cashfree-audit.js?v=20261115-mobile-result-card1" defer></script>
+<script src="assets/admin-cashfree-audit.js?v=20261116-auto-refund-center1" defer></script>
 <link rel="stylesheet" href="assets/owner-cancellation-alerts.css?v=20261115-live1"></head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -853,10 +853,11 @@ body.bite-session-check #biteSessionSplash{
   <div class="section-head"><div><h3 id="biteRefundReviewHeading">Refund status review <span id="biteRefundReviewCount" class="small">—</span></h3>
    <p class="small">Super Admin · Existing provider record check only · No refund created</p></div>
    <button class="btn secondary" type="button" id="biteRefundReviewLoad">Load refund requests</button></div>
+  <div class="bite-auto-refund-summary" role="group" aria-label="Automatic refund rollout status"><span class="bite-auto-refund-summary-icon" aria-hidden="true">↻</span><div class="bite-auto-refund-summary-body"><strong>Automatic refunds</strong><p class="small" role="status" aria-live="polite" id="biteRefundAutoStatus">Auto-refund rollout requires Cashfree verification. Check live status below.</p></div><button class="btn secondary" type="button" id="biteRefundAutoCheck">Check automation status</button></div>
   <p class="small" role="status" aria-live="polite" id="biteRefundReviewStatus">Load pending and approved refunds to check existing Cashfree records without sending money.</p>
   <div class="table-wrap"><table><thead><tr><th>Order</th><th>Refund amount</th><th>Approval</th><th>Cashfree result</th><th>Safe action</th></tr></thead>
    <tbody id="biteRefundReviewRows"></tbody></table></div>
-  <p class="notice">A reference can exist in Bite even when a refund was never issued. Checking Cashfree is read-only. Never issue a second refund until existing provider status, approval and bank reconciliation are verified.</p>
+  <p class="notice">New approved-policy cancellations can become automatic only after production rollout is explicitly enabled and provider safety checks pass. Previously queued or manually approved refunds do not become automatic retroactively. Each "Check automatic refund readiness" button performs Cashfree GET-only checks; it never approves or sends a refund. A reference can exist in Bite even when a refund was never issued. Never issue a duplicate refund.</p>
  </div>
 </section><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
  <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
