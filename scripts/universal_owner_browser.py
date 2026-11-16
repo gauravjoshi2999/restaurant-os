@@ -79,6 +79,7 @@ try:
       page.locator('#overview.active').wait_for(state='visible')
       if kind=='hotel':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()>0,'Hotel Home readiness panel returns on opt-in')
       if kind=='hybrid':check('Housekeeping queue' in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home shows housekeeping metric on opt-in')
+      if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()>0,'Hybrid Hotel Home readiness also returns when enabled')
       page.evaluate("showPage('settings')")
       page.locator('#biteShowHousekeeping').uncheck()
       page.wait_for_function("window.BiteHospitality.housekeepingVisible()===false")
@@ -88,6 +89,7 @@ try:
       page.locator('#overview.active').wait_for(state='visible')
       if kind=='hotel':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hotel Home readiness panel disappears when unchecked')
       if kind=='hybrid':check('Housekeeping queue' not in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home does not show housekeeping when unchecked')
+      if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hybrid Hotel Home readiness disappears when unchecked')
     quick='orders' if kind=='restaurant' else 'hotel-register'
     page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
     page.locator(f'#{quick}.active').wait_for(state='visible')
