@@ -52,7 +52,6 @@
    const {data,error}=await q.maybeSingle();
    if(error)throw error;
    if(token!==restoreToken||activeCustomerId!==userId)return;
-   verifiedRead=true;
    if(!data||['activated','failed','expired'].includes(data.status)){
     // Only a successful own-account server read may retire a local recovery.
     pendingLiveCheckout=null;checkoutRequestKey=null;
@@ -94,6 +93,7 @@
     }))$(id).value=address[key]||'';
    }
    renderPendingPaymentBanner();
+   verifiedRead=true;
   }catch(error){
    if(token!==restoreToken||activeCustomerId!==userId)return;
    // Background restoration failure is not proof of payment success/failure.
