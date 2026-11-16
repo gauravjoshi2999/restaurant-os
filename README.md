@@ -4,6 +4,8 @@ Bite is an India-focused, full-stack restaurant marketplace connecting Customers
 
 ## Authoritative product requirements
 
+For the Owner/Partner scope, the user's consolidated Universal Owner Platform specification of 16 November 2026 supersedes the older restaurant-only exclusions below. The [Universal Owner implementation report](docs/universal-owner/RELEASE.md) records actual changes, migration, test/deployment evidence, all 120 scenario statuses and remaining gaps. Restaurant-only defaults and the customer online-payment-only marketplace policy are preserved. The older phase notes below are historical and do not certify current launch readiness.
+
 The current requirements baseline is [Master Product Specification](docs/PRODUCT_BLUEPRINT.md). It was replaced on 2026-11-07 by the user's **Complete Master Prompt — Restaurant Marketplace Website**. It supersedes the older 120-question interview and earlier product decisions. If older code or database structures conflict with the current specification, the current specification wins.
 
 ## Three product panels

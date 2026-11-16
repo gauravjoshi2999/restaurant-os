@@ -152,7 +152,7 @@ jobs:
       - name: Verify hotel ledger, tenant and role boundaries on isolated PostgreSQL 17
         run: |
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_fixture.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116080305_universal_owner_platform.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116094006_universal_owner_platform.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_hybrid_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/universal_owner_advanced_pg_test.sql
