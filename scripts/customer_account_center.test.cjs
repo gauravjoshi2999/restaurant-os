@@ -91,7 +91,7 @@ test('account switch invalidates old profile and handles signed out without pers
 });
 test('notification options are honest; no unsupported channel or security promises',()=>{
  assert.match(account,/Customer channel subscriptions are not active/);
- assert.match(account,/submitting a request does not delete your account immediately/);
+ assert.match(account,/Requests do not immediately erase your account or financial records/);
  assert.doesNotMatch(source,/service_role|auth\.admin\.deleteUser|removeUser\(.*userId/);
  assert.match(source,/verified\.data\?\.user\?\.id!==id/);
  assert.match(source,/state\.epoch/);
