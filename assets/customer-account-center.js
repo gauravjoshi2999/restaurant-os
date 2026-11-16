@@ -5,9 +5,9 @@
  const byId=id=>document.getElementById(id);
  const section=byId('accountView');
  if(!section||!byId('biteAccountHub'))return;
- const known=new Set(['overview','profile','addresses','support','preferences','notifications','about']);
+ const known=new Set(['overview','settings','profile','addresses','support','preferences','notifications','about']);
  const state={userId:null,sessionUser:null,profile:null,epoch:0,subpage:'overview',saving:false,preferenceBusy:false,emailBusy:false,deletionBusy:false,exportBusy:false};
- const titles={overview:'Your account',profile:'Edit profile',addresses:'Saved addresses',support:'Help & support',preferences:'Food preferences',notifications:'Notifications',about:'About Bite'};
+ const titles={overview:'Your account',settings:'Account settings',profile:'Edit profile',addresses:'Saved addresses',support:'Help & support',preferences:'Food preferences',notifications:'Notifications',about:'About Bite'};
  function sameUser(id=state.userId){return Boolean(id)&&id===state.userId;}
  function text(id,value){const el=byId(id);if(el)el.textContent=String(value??'');}
  function profileName(){return String(state.profile?.full_name||state.sessionUser?.user_metadata?.full_name||'Customer').trim();}
@@ -97,6 +97,7 @@
    const heading=byId('accountPageTitle');if(heading)heading.textContent=titles[next];
    const back=byId('accountBackBtn');if(back)back.textContent=next==='overview'?'← Explore':'← Account';
    if(next==='profile'){renderProfile();text('biteProfileMessage','');}
+   if(next==='settings'){text('biteSettingsActionMessage','');}
    if(next==='preferences'){updateVegUI();applyVisualPreferences();text('biteAccountVegMessage','');text('biteAccountVisualMessage','');}
    if(next==='support'&&!byId('customerSupportCategory')?.value)byId('customerSupportCategory').value='Account';
    root.scrollTo?.({top:0,behavior:'instant'});
