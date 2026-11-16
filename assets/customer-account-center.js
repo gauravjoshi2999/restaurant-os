@@ -199,7 +199,7 @@
    if(!root.confirm('Request deletion of your Bite account? Orders may be restricted while your request and financial records are reviewed. This does not delete the account immediately.'))return;
    const id=state.userId,epoch=state.epoch,button=byId('biteRequestAccountDeletion');
    state.deletionBusy=true;button.disabled=true;
-   text('biteProfileMessage','Submitting your deletion request…');
+   text('biteProfileMessage','Submitting your deletion request…');text('biteSettingsActionMessage','Submitting deletion request for review…');
    try{
      const verified=await sb.auth.getUser();
      if(verified.error)throw verified.error;
@@ -207,16 +207,16 @@
      // Existing server-side RPC verifies auth.uid and rejects business/admin identities.
      const response=await sb.rpc('bite_request_account_deletion');
      if(response.error)throw response.error;
-     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage','Account deletion request recorded. Your account has not been deleted. Support will review your request and required records.');
+     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage','Account deletion request recorded. Your account has not been deleted. Support will review your request and required records.');text('biteSettingsActionMessage','Deletion request recorded for review; your account is still active.');
    }catch(error){
-     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage',error.message||'Could not submit deletion request.');
+     if(sameUser(id)&&epoch===state.epoch)text('biteProfileMessage',error.message||'Could not submit deletion request.');text('biteSettingsActionMessage',error.message||'Could not submit deletion request.');
    }finally{state.deletionBusy=false;button.disabled=false;}
  }
  async function requestExport(){
    if(state.exportBusy||!state.userId)return;
    const id=state.userId,epoch=state.epoch,button=byId('biteDownloadAccountData');
    state.exportBusy=true;if(button)button.disabled=true;
-   text('biteDataExportStatus','Preparing your private account snapshot…');
+   text('biteDataExportStatus','Preparing your private account snapshot…');text('biteSettingsActionMessage','Preparing your private account download…');
    const current=()=>sameUser(id)&&epoch===state.epoch&&
      !section.classList.contains('hidden');
    try{
@@ -224,9 +224,9 @@
      const snapshot=await root.BiteAccountExport.buildSnapshot(sb,id,current);
      if(!current())return;
      root.BiteAccountExport.downloadSnapshot(snapshot);
-     text('biteDataExportStatus','Download started. Store this private JSON file securely.');
+     text('biteDataExportStatus','Download started. Store this private JSON file securely.');text('biteSettingsActionMessage','Download started. Keep your private file secure.');
    }catch(error){
-     if(current())text('biteDataExportStatus',error.message||'Could not export your data. No file was created.');
+     if(current())text('biteDataExportStatus',error.message||'Could not export your data. No file was created.');text('biteSettingsActionMessage',error.message||'Could not export your data.');
    }finally{
      state.exportBusy=false;if(button)button.disabled=false;
    }
