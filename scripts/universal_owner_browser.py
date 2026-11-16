@@ -49,6 +49,13 @@ try:
     page.goto(f'http://127.0.0.1:4185/qa/{kind}-owner.html',wait_until='domcontentloaded')
     page.wait_for_function("document.body.dataset.businessType === '"+kind+"'")
     page.locator('#mainApp').wait_for(state='visible')
+    page.locator('#bitePremiumHome .bite-premium-action').first.wait_for(state='visible')
+    check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium home has correct business mode at {width}px')
+    links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
+    check(len(set(links))>=1,f'{kind} premium shortcuts rendered at {width}px')
+    check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
+    check(('orders' in links)==(kind!='hotel'),f'{kind} restaurant shortcut capability at {width}px')
+    screenshot(page,f'{kind}-premium-home-{width}')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
      check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
