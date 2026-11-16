@@ -42,7 +42,7 @@ function client(){
  const context={window:w,document:{querySelector:()=>null},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},console,Date,Event:class{},navigator:{}};
  vm.runInNewContext(fs.readFileSync('assets/owner-hospitality.js','utf8'),context);
  w.BiteHospitality.init({sb:{rpc:async(name,args)=>{calls.push({name,args});return handler(name,args)}},getAccess:()=>access,getState:()=>({orders:[]}),getUser:()=>user});
- return {api:w.BiteHospitality,store,calls,access,setHandler:f=>handler=f,setUser:u=>user=u};
+ return {api:w.BiteHospitality,store,calls,access,setHandler:f=>handler=f,setUser:u=>user=u,setOffline:()=>context.navigator.onLine=false};
 }
 test('uncertain ledger response retains the same request UUID and rejects edited retries',async()=>{
  const c=client();c.setHandler(async()=>{throw Error('network interrupted')});
@@ -67,4 +67,18 @@ test('recovery markers are scoped to both authenticated user and property',async
  c.setUser({id:'user-b'});
  await assert.rejects(c.api.command('payment',{folio_id:'f',amount:5}));
  assert.equal(c.store.size,3);assert(c.calls.every(c=>c.args.p_property));
+});
+test('offline check-in confirmation never sends a server mutation',async()=>{
+ const c=client();c.setOffline();
+ await assert.rejects(c.api.command('checkin',{id:'stay-a'}),/Offline/);
+ assert.equal(c.calls.length,0);assert.equal(c.store.size,0);
+});
+test('numeric validation rejection can be corrected without an indefinite pending marker',async()=>{
+ const c=client();c.setHandler(async()=>({data:null,error:{code:'22003',message:'numeric overflow'}}));
+ await assert.rejects(c.api.command('charge',{folio_id:'f',amount:1e30,description:'invalid'}));
+ assert.equal(c.store.size,0);
+});
+test('pre-arrival advances are collections, not room or food revenue',()=>{
+ const t=C.hotelTotals([{kind:'advance',category:'payment',amount:500,status:'confirmed'}]);
+ assert.equal(t.collections,500);assert.equal(t.room,0);assert.equal(t.foodOnFolios,0);
 });

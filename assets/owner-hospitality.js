@@ -52,8 +52,9 @@
    const form=e.target.closest('#bhCheckinForm');if(form){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();persistDraft(form)}
   });
   root.addEventListener('online',()=>{if(has('hotel_rooms'))void reload().catch(showError)});
-  if(poll)root.clearInterval(poll);poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&has('hotel_rooms')&&!document.querySelector('.bh-workspace form:focus-within'))void reload().catch(()=>{});syncOrderBadge()},30000);
+  startPolling();
  }
+ function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&has('hotel_rooms')&&!document.querySelector('.bh-workspace form:focus-within'))void reload().catch(()=>{});syncOrderBadge()},30000)}
  async function loadContext(){
   const {data:rows,error}=await ctx.sb.rpc('bite_owner_context');
   if(error){
@@ -71,6 +72,7 @@
  function setProperty(property){
   loadVersion++;data=empty();selectedFolio=null;setupDraft=null;setupStep=1;
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
+  startPolling();
   // Clear the old property immediately, before any new network response.
   for(const id of Object.keys(titles))if($(id))$(id).replaceChildren();
   applyShell();
