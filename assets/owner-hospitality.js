@@ -408,7 +408,7 @@
    (writable&&!canFood&&s?.status==='in_house'&&!has('charge_to_room')?'<p class="bh-note">Food billing needs Hotel + Restaurant / Charge to Room enabled.</p>':'')+'</section>':
    '<section class="bh-guest-bill-steps"><div class="bh-guest-bill-buttons">'+btn('preview','View bill',f.id)+btn('share','Share bill',f.id)+(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+'</div></section>';
   const activity=entries.map(e=>{
-   const amount=Number(e.amount||0)+Number(e.tax_amount||0),negative=['payment','advance','discount','reversal','deposit_apply'].includes(e.kind);
+   const amount=Number(e.amount||0)+Number(e.tax_amount||0),negative=e.status!=='pending'&&['payment','advance','discount','reversal','deposit_apply'].includes(e.kind);
    const foodItems=e.source_order_id&&(e.source_items||[]).length?'<div class="bh-guest-food-lines">'+e.source_items.map(i=>'<span>'+esc(i.quantity)+' × '+esc(i.name)+' · '+money(Number(i.quantity)*Number(i.unit_price))+'</span>').join('')+'</div>':'';
    const label=e.kind==='charge'&&e.category!=='room'&&!e.source_order_id?'Other charge':simpleEntryLabel(e);
    const desc=String(e.description||'').trim();
