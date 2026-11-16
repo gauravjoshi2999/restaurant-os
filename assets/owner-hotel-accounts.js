@@ -149,14 +149,19 @@
 
  function reportRows(v){
   const heading=['Date','POS sales','Room + food bills','Other income','Total billed sales','Output GST','Net sales','Expenses / salary cost','Staff advance paid','Cash received','Cash paid','Cash closing','Online received','Online paid','Online closing','Recorded profit / loss'];
-  return [heading,...(v.days||[]).map(d=>[d.day,d.pos_sales,d.hotel_sales,d.other_income,d.gross_sales,d.tax,d.net_sales,d.expenses,d.staff_advance,d.cash_in,d.cash_out,d.cash_balance,d.online_in,d.online_out,d.online_balance,d.profit])];
+  const days=v.days||[],sum=k=>days.reduce((n,d)=>n+Number(d[k]||0),0),last=days.at(-1)||{};
+  const rows=days.map(d=>[d.day,d.pos_sales,d.hotel_sales,d.other_income,d.gross_sales,d.tax,d.net_sales,d.expenses,d.staff_advance,d.cash_in,d.cash_out,d.cash_balance,d.online_in,d.online_out,d.online_balance,d.profit]);
+  return [heading,...rows,['TOTAL',sum('pos_sales'),sum('hotel_sales'),sum('other_income'),sum('gross_sales'),sum('tax'),sum('net_sales'),sum('expenses'),sum('staff_advance'),sum('cash_in'),sum('cash_out'),Number(last.cash_balance||0),sum('online_in'),sum('online_out'),Number(last.online_balance||0),sum('profit')]];
  }
  function gstRows(v){
-  const rows=[['Bill date','Bill number','Guest','Hotel GSTIN','Category','SAC','Taxable value','CGST %','CGST amount','SGST %','SGST amount','Bill total']];
+  const rows=[['Bill date','Bill number','Guest','Hotel GSTIN','Room taxable','Food taxable','Extra taxable','Total taxable','SAC codes','CGST rate(s)','CGST amount','SGST rate(s)','SGST amount','Bill total']];
   for(const bill of v.gst_invoices||[]){
-   const lines=bill.tax_lines?.length?bill.tax_lines:[{category:'Unconfigured / no GST',sac:'',taxable:bill.total,rate:0,cgst:0,sgst:0}];
-   for(const g of lines)rows.push([bill.date,bill.number,bill.guest,bill.gstin||'',g.category,g.sac,Number(g.taxable),Number(g.rate)/2,Number(g.cgst),Number(g.rate)/2,Number(g.sgst),Number(bill.total)]);
-  }return rows;
+   const lines=bill.tax_lines?.length?bill.tax_lines:[{category:'other',sac:'',taxable:bill.total,rate:0,cgst:0,sgst:0}];
+   const sum=fn=>lines.reduce((n,g)=>n+fn(g),0),rates=[...new Set(lines.map(g=>Number(g.rate)/2+'%'))].join(' / '),sac=[...new Set(lines.map(g=>g.sac).filter(Boolean))].join(', ');
+   rows.push([bill.date,bill.number,bill.guest,bill.gstin||'',sum(g=>g.category==='room'?Number(g.taxable):0),sum(g=>g.category==='food'?Number(g.taxable):0),sum(g=>!['room','food'].includes(g.category)?Number(g.taxable):0),sum(g=>Number(g.taxable)),sac,rates,sum(g=>Number(g.cgst)),rates,sum(g=>Number(g.sgst)),Number(bill.total)]);
+  }
+  const total=Array(14).fill('');total[0]='TOTAL';for(const i of [4,5,6,7,10,12,13])total[i]=rows.slice(1).reduce((n,row)=>n+Number(row[i]||0),0);
+  return [...rows,total];
  }
  async function renderDailyBook(target){
   if(!target||!p())return;
@@ -174,7 +179,7 @@
    '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
    '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
    '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Monthly Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
-   (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody></table></div></section>'+
+   (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Month total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
    '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
    '<section class="bh-panel"><h2>Transactions</h2>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this month.</p>')+'</section>';
