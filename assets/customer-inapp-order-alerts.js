@@ -80,8 +80,13 @@ function attachBrowser(){
   core.setEnabled(user?.user_metadata?.bite_preferences_v1?.in_app_updates===true);
   if(old!==core.currentUser())dismiss();
  }
- sb.auth.onAuthStateChange((_event,session)=>useSession(session));
- sb.auth.getSession().then(({data})=>useSession(data?.session||null)).catch(()=>{});
+ let authRevision=0;
+ sb.auth.onAuthStateChange((_event,session)=>{authRevision++;useSession(session);});
+ const bootstrapRevision=authRevision;
+ sb.auth.getSession().then(({data})=>{
+  // Never restore stale Account A after a newer sign-out or Account B switch.
+  if(authRevision===bootstrapRevision)useSession(data?.session||null);
+ }).catch(()=>{});
  root.BiteCustomerOrderAlerts={
   seedOrders:(rows,customerId)=>core.seed(rows,customerId),
   onOrderUpdate:(payload,customerId)=>core.onUpdate(payload,customerId),
