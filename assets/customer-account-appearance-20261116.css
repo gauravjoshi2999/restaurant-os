@@ -1,0 +1,75 @@
+/* Bite Account accessibility preferences: intentionally scoped to customer
+   account and order history. Checkout, Cashfree and admin/owner retain their
+   tested light layout until their separate dark palettes are verified. */
+#accountView .bite-account-settings-heading{font-size:16px;font-weight:800;color:var(--bac-ink);margin:18px 0 10px}
+#accountView .bite-account-setting-divider{height:1px;background:var(--bac-border);margin:21px 0 6px}
+#accountView .bite-account-select-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--bac-border);color:var(--bac-ink)}
+#accountView .bite-account-select-row>span{flex:1;min-width:0}
+#accountView .bite-account-select-row strong{font-size:14px;display:block;font-weight:760}
+#accountView .bite-account-select-row small{display:block;font-size:12px;color:var(--bac-muted);margin:4px 0 0;line-height:1.45}
+#accountView .bite-account-select-row select{max-width:47%;min-height:44px;border-radius:11px;border:1px solid var(--bac-border);background:var(--bac-surface);color:var(--bac-ink);font:inherit;font-size:13px;padding:7px 10px}
+#accountView .bite-account-select-row select:focus-visible{outline:3px solid #358d6480;outline-offset:2px}
+html[data-bite-account-appearance="dark"] body[data-view="account"],
+html[data-bite-account-appearance="dark"] body[data-view="orders"],
+html[data-bite-account-appearance="dark"] body[data-view="order-details"]{background:#111c17;color:#e4f0e8;color-scheme:dark}
+html[data-bite-account-appearance="dark"] #accountView{--bac-ink:#e5f2e8;--bac-muted:#abc1b2;--bac-brand:#84dcb0;--bac-border:#3d5346;--bac-ground:#15231b;--bac-surface:#1d2d23}
+html[data-bite-account-appearance="dark"] #accountView .bite-account-hub .bite-account-hero,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-group,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-shortcuts button,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-subpage,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-row,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-help-panel,
+html[data-bite-account-appearance="dark"] #accountView .account-panel{background:#1d2d23!important;color:#e5f2e8!important;border-color:#3d5346!important;box-shadow:none!important}
+html[data-bite-account-appearance="dark"] #accountView input,
+html[data-bite-account-appearance="dark"] #accountView textarea,
+html[data-bite-account-appearance="dark"] #accountView select{background:#17251c!important;color:#edf7ef!important;border-color:#4d6553!important}
+html[data-bite-account-appearance="dark"] #accountView .bite-account-row,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-shortcuts button{color:#e5f2e8!important}
+html[data-bite-account-appearance="dark"] #accountView .bite-account-avatar,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-row-icon{background:#294c37;color:#b5e8c7}
+html[data-bite-account-appearance="dark"] #accountView .bite-account-row small,
+html[data-bite-account-appearance="dark"] #accountView .bite-account-subtle{color:#aebfb2}
+html[data-bite-account-appearance="dark"] #ordersView .ordercard,
+html[data-bite-account-appearance="dark"] #ordersView .bite-history-search,
+html[data-bite-account-appearance="dark"] #ordersView .bite-history-chips button:not([aria-pressed="true"]),
+html[data-bite-account-appearance="dark"] #ordersView #refreshOrdersBtn,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-panel,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-status,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-topbar{background:#203127!important;border-color:#395344!important;color:#e6f1e8!important;box-shadow:none!important}
+html[data-bite-account-appearance="dark"] #ordersView .orderrestaurant,
+html[data-bite-account-appearance="dark"] #ordersView .orderamount,
+html[data-bite-account-appearance="dark"] #orderDetailsView h3,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-status strong,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-restaurant h3,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-item strong,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-grandtotal{color:#e6f1e8!important}
+html[data-bite-account-appearance="dark"] #ordersView .bite-history-item,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-item,
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-address,
+html[data-bite-account-appearance="dark"] #ordersView #biteHistorySearch{color:#d2e6d7!important}
+html[data-bite-account-appearance="dark"] #orderDetailsView .bite-detail-support-footer{background:#294535;border-color:#426d50}
+html[data-bite-account-appearance="dark"] #ordersView .orderactions>button.bite-order-detail-action{background:#2a4935!important;color:#c2f0d2!important;border-color:#40684c!important}
+html[data-bite-account-appearance="dark"] #ordersView .bite-order-ellipsis .order-more-items,
+html[data-bite-account-appearance="dark"] #ordersView .bite-order-ellipsis .order-more-items>button{background:#203127;color:#e6f1e8;border-color:#395344}
+html[data-bite-reduce-motion="true"] body *,
+html[data-bite-reduce-motion="true"] body *::before,
+html[data-bite-reduce-motion="true"] body *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+@media (prefers-color-scheme:dark){
+ html[data-bite-account-appearance="system"] body[data-view="account"],
+ html[data-bite-account-appearance="system"] body[data-view="orders"],
+ html[data-bite-account-appearance="system"] body[data-view="order-details"]{background:#111c17;color:#e4f0e8;color-scheme:dark}
+ html[data-bite-account-appearance="system"] #accountView{--bac-ink:#e5f2e8;--bac-muted:#abc1b2;--bac-brand:#84dcb0;--bac-border:#3d5346;--bac-ground:#15231b;--bac-surface:#1d2d23}
+ html[data-bite-account-appearance="system"] #accountView .bite-account-hero,
+ html[data-bite-account-appearance="system"] #accountView .bite-account-group,
+ html[data-bite-account-appearance="system"] #accountView .bite-account-row,
+ html[data-bite-account-appearance="system"] #accountView .bite-account-subpage,
+ html[data-bite-account-appearance="system"] #accountView .bite-account-shortcuts button,
+ html[data-bite-account-appearance="system"] #accountView .bite-account-help-panel,
+ html[data-bite-account-appearance="system"] #accountView .account-panel,
+ html[data-bite-account-appearance="system"] #ordersView .ordercard,
+ html[data-bite-account-appearance="system"] #orderDetailsView .bite-detail-panel{background:#1d2d23!important;color:#e5f2e8!important;border-color:#3d5346!important}
+ html[data-bite-account-appearance="system"] #ordersView .orderrestaurant,
+ html[data-bite-account-appearance="system"] #ordersView .orderamount,
+ html[data-bite-account-appearance="system"] #orderDetailsView h3{color:#e5f2e8!important}
+}
+@media(max-width:520px){#accountView .bite-account-select-row{align-items:flex-start;flex-direction:column}#accountView .bite-account-select-row select{max-width:100%;width:100%}}
