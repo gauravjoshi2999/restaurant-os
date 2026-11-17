@@ -156,7 +156,7 @@ try:
    check(f.locator('[name=id_back]').evaluate('(x)=>x.required'),'ID back is compulsory')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Check-in fits '+str(width)+'px')
    page.screenshot(path=str(OUT/f'ui-hotel-checkin-{width}.png'),full_page=width>760)
-   f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
+   f.locator('[name=id_checked]').check();f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
    check('07:17' in f.locator('.bh-review').inner_text(),'Check-in review includes the selected arrival date and time')
    page.evaluate('__BITE_HOTEL_QA.rejectArrivalTimeOnce=true')
    f.locator('button[type=submit]').click();field_error(page,f,'arrival_time','Arrival-time save rejected by the server')

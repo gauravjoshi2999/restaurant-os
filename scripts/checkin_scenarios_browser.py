@@ -180,7 +180,7 @@ try:
    card.locator('[name$=_name]').fill('Synthetic Companion '+str(i+1));upload_dialog(p,f,key=key)
    if i==1:
     pre='party_'+key+'_foreign_';foreign(f,pre)
-  review(f);confirm(p,f)
+  check(not f.locator('[name=id_checked]').is_checked(),'Changed guest photos require a fresh visual check');f.locator('[name=id_checked]').check();review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays[0].registration.additional_ids.length===2&&!!__BITE_HOTEL_QA.db.stays[0].registration.additional_ids[1].foreign_details'),'Named companions, compulsory backs and foreign companion persist independently')
   record('S22','Three guests with separate named ID copies');c.close()
 
