@@ -53,6 +53,18 @@
   guard(scope,version);if(r.error)throw r.error;return r.data;
  }
  async function command(guest,id,action,details,scope,version){return call('bite_guest_document_command',guest,{p_document:id,p_action:action,p_details:details||{}},scope,version)}
+ async function readCopy(guest,id){
+  const scope=identity(),version=generation;active++;
+  try{
+   const list=await call('bite_guest_document_list',guest,{},scope,version),d=list.find(row=>row.id===id&&row.status==='ready');
+   if(!d)throw Error('Copy no longer available. Retake it or ask the manager.');
+   const r=await ctx.sb.functions.invoke('guest-document-copy',{body:{p_property:property().id,p_guest:guest,p_document:id}});guard(scope,version);
+   if(r.error)throw Error('Could not open this private copy. Check your access and retry.');
+   if(r.data?.size!==d.byte_size)throw Error('Saved copy size differs. Contact the property owner.');
+   await validate(r.data,d.mime_type);guard(scope,version);
+   return new Blob([r.data],{type:d.mime_type});
+  }finally{active--}
+ }
  function copyLabel(d){
   for(const stay of H().getWorkspace().stays||[])for(const person of stay.registration?.additional_ids||[]){
    if([person.id_front,person.id_back].includes(d.id))return person.name+' · ID '+(person.id_front===d.id?'front':'back');
@@ -124,6 +136,6 @@
   }catch(error){if(scope===identity()&&version===generation)setMessage(error.message||String(error));}
   finally{active--;b.disabled=false}
  }
- const api={init,clear,open,busy:()=>active>0,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,prepare,MAX_BYTES};
+ const api={init,clear,open,readCopy,busy:()=>active>0,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,prepare,MAX_BYTES};
  root.BiteGuestDocuments=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

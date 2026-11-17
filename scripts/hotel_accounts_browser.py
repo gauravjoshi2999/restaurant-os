@@ -50,12 +50,15 @@ def nav(page,route):
 def photo(page,button,skip=False):
  with page.expect_file_chooser() as chooser:button.click()
  chooser.value.set_files([] if skip else {'name':'synthetic-id.png','mimeType':'image/png','buffer':PNG})
+ page.wait_for_function("!document.querySelector('.ha-id-dialog [data-id-stage]').textContent.includes('Preparing a clear')")
 def capture_id(page,form,key='lead',skip_back=False):
  form.locator('[data-id-open="'+key+'"]').click();dialog=page.locator('.ha-id-dialog')
- photo(page,dialog.locator('[data-capture]'));dialog.locator('.ha-id-preview').wait_for()
+ photo(page,dialog.locator('[data-capture]'));dialog.locator('[data-select-side=front] img').wait_for()
  check(dialog.locator('[data-id-camera]').get_attribute('capture')=='environment','Mobile camera requests the rear lens')
- photo(page,dialog.locator('[data-next]'),skip=skip_back)
- check('Add the ID back' in dialog.inner_text(),'Continue opens the back-photo step in the same dialog')
+ if dialog.locator('[data-select-side=front]').get_attribute('aria-pressed')=='true':dialog.locator('[data-next]').click()
+ if skip_back and dialog.locator('[data-remove-photo]').count():dialog.locator('[data-remove-photo]').click()
+ photo(page,dialog.locator('[data-capture]'),skip=skip_back)
+ check('Add the ID back' in dialog.inner_text(),'Front capture automatically opens the back-photo step in the same dialog')
  if skip_back:
   check(dialog.locator('[data-next]').is_disabled(),'Back photo cannot be skipped');photo(page,dialog.locator('[data-upload]'));dialog.locator('[data-next]').click()
  else:dialog.locator('[data-next]').click()
@@ -156,7 +159,7 @@ try:
    check(f.locator('[name=id_back]').evaluate('(x)=>x.required'),'ID back is compulsory')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Check-in fits '+str(width)+'px')
    page.screenshot(path=str(OUT/f'ui-hotel-checkin-{width}.png'),full_page=width>760)
-   f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
+   f.locator('[name=id_checked]').check();f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
    check('07:17' in f.locator('.bh-review').inner_text(),'Check-in review includes the selected arrival date and time')
    page.evaluate('__BITE_HOTEL_QA.rejectArrivalTimeOnce=true')
    f.locator('button[type=submit]').click();field_error(page,f,'arrival_time','Arrival-time save rejected by the server')

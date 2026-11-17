@@ -1,7 +1,7 @@
 /* Check-in interactions: saved guest suggestions and private, sequential party-ID capture. */
 (function(root){
  'use strict';
- let dialog=null,dialogForm=null;const urls=new Set(),previews=new WeakMap();
+ let dialog=null,dialogForm=null,viewer=null,dialogCleanup=null;const urls=new Set(),previews=new WeakMap();
  const H=()=>root.BiteHospitality;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const uuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s||'');
@@ -16,7 +16,9 @@
   const prior=stays.filter(s=>s.guest_id===guest.id&&s.registration).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]?.registration||{};
   return {...Object.fromEntries(['full_name','phone','address','country','email','id_type','id_last4'].map(k=>[k,guest[k]||''])),...Object.fromEntries(['arrived_from','next_destination','transport','vehicle_number'].map(k=>[k,prior[k]||'']))};
  }
+ function closeViewer(){if(viewer){viewer.close();viewer.remove()}viewer=null}
  function close(){
+  closeViewer();dialogCleanup?.();dialogCleanup=null;
   if(dialog){dialog.close();dialog.remove()}dialog=null;dialogForm=null;
  }
  function clear(){close();for(const url of urls)root.URL.revokeObjectURL(url);urls.clear()}
@@ -30,48 +32,78 @@
  }
  function extraRows(form){return [...form.querySelectorAll('[data-ha-party-list] [data-ha-id-card]')]}
  function additional(form){return extraRows(form).map(row=>{const key=row.dataset.haIdCard,n=names(key),foreign=root.BiteCheckinGuard?.readForeign(form,key);return{subject_key:key,name:form.elements[n.name].value.trim(),id_front:form.elements[n.frontId].value||null,id_back:form.elements[n.backId].value||null,...(foreign?{foreign_details:foreign}:{})}})}
+ function sideValue(form,n,side){return {file:form.elements[n[side]].files[0]||null,id:form.elements[n[side+'Id']].value||''}}
+ function forget(file){const url=file&&previews.get(file);if(url){root.URL.revokeObjectURL(url);urls.delete(url);previews.delete(file)}}
+ function removePhoto(form,key,side){
+  const n=names(key),input=form.elements[n[side]],saved=!!form.elements[n[side+'Id']].value;forget(input.files[0]);input.value='';form.elements[n[side+'Id']].value='';
+  if(form.elements.id_checked)form.elements.id_checked.checked=false;
+  input.dispatchEvent(new Event('change',{bubbles:true}));changed(form);return saved;
+ }
+ function thumbnail(file,side){return file?.type==='application/pdf'?'<span class="ha-id-pdf-thumb">PDF</span>':file?picture(file,true,side+' ID photo'):'<span class="ha-id-empty-thumb" aria-hidden="true">▣</span>'}
  function sync(form){
   form.elements.additional_ids.value=JSON.stringify(additional(form));
   for(const row of form.querySelectorAll('[data-ha-id-card]')){
-   const key=row.dataset.haIdCard==='lead'?null:row.dataset.haIdCard,n=names(key),front=form.elements[n.front].files[0]||form.elements[n.frontId].value,back=form.elements[n.back].files[0]||form.elements[n.backId].value;
-   row.querySelector('[data-id-title]').textContent=front?'ID front added':'Add ID photos';
-   row.querySelector('[data-id-status]').textContent=front?(back?'Front and back added':'Add the required back photo'):'Front and back required';
-   row.querySelector('[data-id-open]').textContent=front?(back?'Review ID':'Add back photo'):'Add photos';form.elements[n.front].required=!form.elements[n.frontId].value;form.elements[n.back].required=!form.elements[n.backId].value;
-   row.querySelector('[data-id-open]').dataset.haFocus=front&&!back?n.back:n.front;
+   const key=row.dataset.haIdCard==='lead'?null:row.dataset.haIdCard,n=names(key),front=sideValue(form,n,'front'),back=sideValue(form,n,'back'),hasFront=!!(front.file||front.id),hasBack=!!(back.file||back.id);
+   row.querySelector('[data-id-title]').textContent=hasFront||hasBack?'Guest ID photos':'Add ID photos';
+   row.querySelector('[data-id-status]').textContent=hasFront?(hasBack?'Front and back added':'Add the required back photo'):hasBack?'Add the required front photo':'Front and back required';
+   row.querySelector('[data-id-open]').textContent=hasFront?(hasBack?'Review ID':'Add back photo'):'Add photos';
+   form.elements[n.front].required=!front.id;form.elements[n.back].required=!back.id;row.querySelector('[data-id-open]').dataset.haFocus=hasFront&&!hasBack?n.back:n.front;
+   const files=[front.file,back.file];for(const old of row.__photoFiles||[])if(old&&!files.includes(old))forget(old);row.__photoFiles=files;
+   let tiles=row.querySelector('[data-id-thumbnails]');if(!tiles){tiles=document.createElement('div');tiles.dataset.idThumbnails='';tiles.className='ha-id-thumbnails';row.append(tiles)}
+   tiles.hidden=!hasFront&&!hasBack;
+   const signature=[front.file,front.id,back.file,back.id];if(!row.__photoSignature||signature.some((v,i)=>row.__photoSignature[i]!==v)){
+    row.__photoSignature=signature;tiles.innerHTML=['front','back'].map(side=>{const v=side==='front'?front:back,has=!!(v.file||v.id),label=side==='front'?'Front':'Back';return '<div class="ha-id-side"><button type="button" class="ha-id-thumb" data-id-side="'+side+'" data-id-key="'+esc(key||'lead')+'" aria-label="'+(has?'View ':'Add ')+side+' photo">'+thumbnail(v.file,side)+'<strong>'+label+'</strong><small>'+(has?(v.id?'Saved copy · View':'View photo'):'Required · Add photo')+'</small></button>'+(has?'<button type="button" class="ha-text-button ha-id-remove-photo" data-id-remove-side="'+side+'" data-id-key="'+esc(key||'lead')+'" aria-label="Remove '+side+' photo">Remove'+(v.id?' from check-in':'')+'</button>':'')+'</div>'}).join('');
+   }
   }
   const counter=form.querySelector('[data-id-counter]');if(counter)counter.textContent=(1+extraRows(form).length)+' ID '+(1+extraRows(form).length===1?'record':'records')+' · '+count(form)+' guests';
  }
  function changed(form){sync(form);form.dispatchEvent(new Event('input',{bubbles:true}))}
- function picture(file){
-  if(!file)return '';if(file.type==='application/pdf')return '<div class="ha-id-preview-pdf">PDF copy selected</div>';
+ function picture(file,small=false,label='Selected private ID photo'){
+  if(!file)return '';if(file.type==='application/pdf')return '<div class="ha-id-preview-pdf">PDF copy ready · View larger to inspect</div>';
   let url=previews.get(file);if(!url){url=root.URL.createObjectURL(file);previews.set(file,url);urls.add(url)}
-  return '<img class="ha-id-preview" src="'+url+'" alt="Selected private ID photo">';
+  return '<img class="'+(small?'ha-id-thumb-image':'ha-id-preview')+'" src="'+url+'" alt="'+esc(label)+'">';
  }
- function open(form,key){
+ function enlarge(file,side,returnTo){
+  closeViewer();viewer=document.createElement('dialog');viewer.className='ha-photo-viewer';viewer.setAttribute('aria-label',(side==='front'?'Front':'Back')+' ID photo');
+  picture(file);const url=previews.get(file)||root.URL.createObjectURL(file);if(!previews.has(file)){previews.set(file,url);urls.add(url)}
+  viewer.innerHTML='<div class="ha-photo-viewer-head"><strong>'+(side==='front'?'Front':'Back')+' photo</strong><button type="button" class="btn secondary" data-viewer-close>Back to ID photos</button></div><div class="ha-photo-zoom-area">'+(file.type==='application/pdf'?'<iframe src="'+url+'" title="Private ID PDF" sandbox></iframe>':'<img src="'+url+'" alt="Private '+side+' ID photo">')+'</div>'+(file.type!=='application/pdf'?'<button type="button" class="btn secondary" data-photo-zoom aria-pressed="false">Zoom in</button>':'');
+  const box=viewer;document.body.append(box);box.querySelector('[data-viewer-close]').onclick=()=>{closeViewer();if(returnTo?.isConnected)returnTo.focus()};box.addEventListener('cancel',e=>{e.preventDefault();closeViewer();if(returnTo?.isConnected)returnTo.focus()});
+  box.querySelector('[data-photo-zoom]')?.addEventListener('click',e=>{const zoom=!box.classList.contains('zoomed');box.classList.toggle('zoomed',zoom);e.target.textContent=zoom?'Fit photo':'Zoom in';e.target.setAttribute('aria-pressed',String(zoom))});box.showModal();
+ }
+ function open(form,key,preferred){
   close();const n=names(key),row=form.querySelector('[data-ha-id-card="'+(key||'lead')+'"]'),trigger=row.querySelector('[data-id-open]');
   if(key&&!form.elements[n.name].value.trim()){root.BiteHotelAccounts.showRegisterError(form,fail(n.name,'Enter the guest name on this ID.'));return}
-  dialog=document.createElement('dialog');dialog.className='ha-id-dialog';dialogForm=form;
+  dialog=document.createElement('dialog');dialog.className='ha-id-dialog';dialog.setAttribute('aria-label','Guest ID photos');dialogForm=form;
   dialog.innerHTML='<div class="ha-id-dialog-head"><div><p class="bh-eyebrow">'+esc(key?form.elements[n.name].value:'Lead guest')+'</p><h2>ID photos</h2></div><button type="button" class="ha-dialog-close" aria-label="Close ID photos">×</button></div><div data-id-stage></div><input type="file" data-id-camera accept="image/jpeg,image/png" capture="environment" hidden><input type="file" data-id-upload accept="image/jpeg,image/png,application/pdf" hidden>';
-  document.body.append(dialog);let stage=(form.elements[n.front].files[0]||form.elements[n.frontId].value)&&!(form.elements[n.back].files[0]||form.elements[n.backId].value)?'back':'front',checking=false;const box=dialog,body=box.querySelector('[data-id-stage]'),camera=box.querySelector('[data-id-camera]'),upload=box.querySelector('[data-id-upload]');
-  const done=()=>{close();if(form.isConnected)trigger.focus({preventScroll:true})};
-  box.querySelector('.ha-dialog-close').addEventListener('click',done);box.addEventListener('cancel',e=>{e.preventDefault();done()});
+  document.body.append(dialog);let stage=preferred||((sideValue(form,n,'front').file||sideValue(form,n,'front').id)&&!(sideValue(form,n,'back').file||sideValue(form,n,'back').id)?'back':'front'),checking=false,message='';
+  const box=dialog,body=box.querySelector('[data-id-stage]'),camera=box.querySelector('[data-id-camera]'),upload=box.querySelector('[data-id-upload]'),cache=new Map(),loading=new Set(),failed=new Map(),guest=form.elements.guest_id.value,property=H().prop().id;
+  const current=()=>dialog===box&&form.isConnected&&form.elements.guest_id.value===guest&&H().prop()?.id===property;
+  const value=side=>{const v=sideValue(form,n,side);return {...v,photo:v.file||cache.get(v.id),has:!!(v.file||v.id)}};
+  dialogCleanup=()=>{for(const photo of cache.values())forget(photo);cache.clear()};
+  const done=()=>{close();if(form.isConnected)trigger.focus({preventScroll:true})};box.querySelector('.ha-dialog-close').addEventListener('click',done);box.addEventListener('cancel',e=>{e.preventDefault();done()});
+  async function loadSaved(side){const id=sideValue(form,n,side).id;if(!id||cache.has(id)||loading.has(id)||failed.has(id))return;loading.add(id);
+   try{const file=await root.BiteGuestDocuments.readCopy(guest,id);if(!current()||sideValue(form,n,side).id!==id)return;cache.set(id,file)}catch(e){if(current())failed.set(id,e.message||'Photo unavailable. Retry or retake it.')}finally{loading.delete(id);if(current())draw()}
+  }
   function draw(){
-   const input=form.elements[n[stage]],saved=!!form.elements[n[stage+'Id']].value,file=input.files[0],front=stage==='front';
-   body.innerHTML='<div class="ha-id-progress"><span class="'+(front?'active':'complete')+'">1 · Front</span><span class="'+(!front?'active':'')+'">2 · Back · Required</span></div><h3>'+ (front?'Capture the ID front':'Add the ID back')+'</h3><p>'+ (front?'Keep the photo clear and mask information that is not needed. Large JPEG / PNG photos are resized on this device.':'Take a clear photo of the ID back to finish.')+'</p>'+picture(file)+(saved&&!file?'<p class="ha-saved-id">Copy already saved privately</p>':'')+'<p class="ha-camera-error" role="alert"></p><div class="ha-id-choice"><button type="button" class="btn" data-capture>Take photo</button><button type="button" class="btn secondary" data-upload>Upload from device</button></div><div class="ha-id-dialog-actions">'+(!front?'<button type="button" class="btn secondary" data-prev>Back</button>':'')+'<button type="button" class="btn" data-next '+(!file&&!saved?'disabled':'')+'>'+(front?'Continue':'Done')+'</button></div>';
+   if(!current())return;const v=value(stage),front=stage==='front',both=value('front').has&&value('back').has;
+   body.innerHTML='<p class="ha-id-flow-note">Front → Back → Check both photos</p><div class="ha-id-review-pair">'+['front','back'].map(side=>{const x=value(side);return '<button type="button" class="ha-id-review-tab '+(stage===side?'active':'')+'" data-select-side="'+side+'" aria-pressed="'+(stage===side)+'">'+thumbnail(x.photo,side)+'<strong>'+(side==='front'?'1 · Front':'2 · Back')+'</strong><small>'+(x.has?(x.photo?'View / change':'Saved privately'):'Required')+'</small></button>'}).join('')+'</div><h3>'+(front?(v.has?'Check the ID front':'Capture the ID front'):'Add the ID back')+'</h3><p>'+(front?'Check the photo before continuing to the back.':'Check both photos above. You can change either side before finishing.')+'</p>'+
+    (v.photo?'<button type="button" class="ha-id-large-preview" data-enlarge aria-label="View '+stage+' photo enlarged">'+picture(v.photo)+'</button>':v.id?'<p class="ha-saved-id" role="status">'+esc(failed.get(v.id)||'Opening saved private photo…')+'</p>':'')+
+    (v.id&&failed.has(v.id)?'<button type="button" class="btn secondary" data-retry-photo>Retry saved photo</button>':'')+'<p class="ha-camera-error" role="status">'+esc(checking?'Preparing a clear ID copy…':message)+'</p><div class="ha-id-choice"><button type="button" class="btn" data-capture>'+(v.has?'Retake photo':'Take photo')+'</button><button type="button" class="btn secondary" data-upload>'+(v.has?'Replace from device':'Upload from device')+'</button></div>'+
+    (v.has?'<div class="ha-id-photo-tools">'+(v.photo?'<button type="button" class="ha-text-button" data-view-large>View larger</button>':'')+'<button type="button" class="ha-text-button ha-id-remove-photo" data-remove-photo>'+(v.id?'Remove from this check-in':'Remove photo')+'</button></div>':'')+
+    '<div class="ha-id-dialog-actions">'+(!front?'<button type="button" class="btn secondary" data-prev>Back to front</button>':'')+'<button type="button" class="btn" data-next '+(!(front?v.has:both)||checking?'disabled':'')+'>'+(front?'Continue to back':'Use these photos')+'</button></div>';
+   body.querySelectorAll('[data-select-side]').forEach(b=>b.onclick=()=>{stage=b.dataset.selectSide;message='';draw()});
    body.querySelector('[data-capture]').onclick=()=>{camera.value='';camera.click()};body.querySelector('[data-upload]').onclick=()=>{upload.value='';upload.click()};
-   body.querySelector('[data-prev]')?.addEventListener('click',()=>{stage='front';draw()});
-   body.querySelector('[data-next]').onclick=()=>{if(checking)return;if(stage==='back'){changed(form);done();return}stage='back';draw();camera.value='';camera.click()};
+   const zoom=b=>enlarge(v.photo,stage,b);body.querySelector('[data-enlarge]')?.addEventListener('click',e=>zoom(e.currentTarget));body.querySelector('[data-view-large]')?.addEventListener('click',e=>zoom(e.currentTarget));
+   body.querySelector('[data-remove-photo]')?.addEventListener('click',()=>{if(checking)return;closeViewer();const saved=removePhoto(form,key,stage);if(v.id&&cache.has(v.id)){forget(cache.get(v.id));cache.delete(v.id)}message=saved?'Removed from this check-in. The saved copy remains in guest history.':'Photo removed. Add the correct photo to continue.';draw()});
+   body.querySelector('[data-retry-photo]')?.addEventListener('click',()=>{failed.delete(v.id);void loadSaved(stage);draw()});
+   body.querySelector('[data-prev]')?.addEventListener('click',()=>{stage='front';message='';draw()});
+   body.querySelector('[data-next]').onclick=()=>{if(checking)return;if(stage==='back'){if(!both)return;changed(form);done();return}stage='back';message='';draw();if(!value('back').has){camera.value='';camera.click()}};
+   if(checking)body.querySelectorAll('button').forEach(b=>b.disabled=true);
+   for(const side of ['front','back'])if(sideValue(form,n,side).id)void loadSaved(side);
   }
   async function choose(input){
-   const original=input.files[0];if(!original||checking)return;const chosenStage=stage;checking=true;body.querySelectorAll('button').forEach(b=>b.disabled=true);body.querySelector('.ha-camera-error').textContent='Preparing a clear ID copy…';
-   try{
-    const file=await root.BiteGuestDocuments.prepare(original);if(dialog!==box||!form.isConnected)return;
-    const transfer=new DataTransfer();transfer.items.add(file);form.elements[n[chosenStage]].files=transfer.files;
-    form.elements[n[chosenStage+'Id']].value='';
-    if(chosenStage==='front'){form.elements[n.back].value='';form.elements[n.backId].value=''}
-    form.elements[n[chosenStage]].dispatchEvent(new Event('change',{bubbles:true}));changed(form);draw();
-   }catch(error){if(dialog===box)body.querySelector('.ha-camera-error').textContent=error.message||String(error)}
-   finally{checking=false;if(dialog===box){body.querySelectorAll('button').forEach(b=>b.disabled=false);body.querySelector('[data-next]').disabled=!form.elements[n[stage]].files[0]&&!form.elements[n[stage+'Id']].value}}
+   const original=input.files[0];if(!original||checking)return;const chosenStage=stage;checking=true;message='';draw();
+   try{const file=await root.BiteGuestDocuments.prepare(original);if(!current())return;const transfer=new DataTransfer();transfer.items.add(file);forget(form.elements[n[chosenStage]].files[0]);form.elements[n[chosenStage]].files=transfer.files;form.elements[n[chosenStage+'Id']].value='';if(form.elements.id_checked)form.elements.id_checked.checked=false;form.elements[n[chosenStage]].dispatchEvent(new Event('change',{bubbles:true}));changed(form);if(chosenStage==='front'&&!value('back').has)stage='back'}catch(error){if(current())message=error.message||String(error)}finally{checking=false;if(current())draw()}
   }
   camera.onchange=()=>void choose(camera);upload.onchange=()=>void choose(upload);draw();box.showModal();
  }
@@ -126,12 +158,14 @@
   section.append(consent);section.insertAdjacentHTML('beforeend','<small class="ha-id-private-note">ID copies stay private to authorized hotel staff.</small>');
   const holder=section.querySelector('[data-ha-party-list]');
   form.addEventListener('click',e=>{
+   const side=e.target.closest('[data-id-side]');if(side){e.preventDefault();open(form,side.dataset.idKey==='lead'?null:side.dataset.idKey,side.dataset.idSide);return}
+   const removeSide=e.target.closest('[data-id-remove-side]');if(removeSide){e.preventDefault();removePhoto(form,removeSide.dataset.idKey==='lead'?null:removeSide.dataset.idKey,removeSide.dataset.idRemoveSide);return}
    const opener=e.target.closest('[data-id-open]');if(opener){e.preventDefault();open(form,opener.dataset.idOpen==='lead'?null:opener.dataset.idOpen)}
    if(e.target.closest('[data-add-id]')){
     if(extraRows(form).length>=Math.min(39,count(form)-1)){root.BiteHotelAccounts.showRegisterError(form,fail('male','Increase the guest count before adding another guest ID.'));return}
     const key=root.crypto.randomUUID();holder.insertAdjacentHTML('beforeend',card(key));root.BiteCheckinGuard?.person(form,key);changed(form);const input=form.elements[names(key).name];input.focus({preventScroll:true});input.closest('[data-ha-id-card]').scrollIntoView({block:'center'});
    }
-   const remove=e.target.closest('[data-id-remove]');if(remove){remove.closest('[data-ha-id-card]').remove();changed(form)}
+   const remove=e.target.closest('[data-id-remove]');if(remove){const card=remove.closest('[data-ha-id-card]');for(const file of card.__photoFiles||[])forget(file);card.remove();changed(form)}
   });
   form.addEventListener('input',()=>sync(form));form.addEventListener('change',e=>{if(e.target.type==='file'&&e.target.files[0]){const name=e.target.name;if(form.elements[name+'_id'])form.elements[name+'_id'].value=''}sync(form)});
   picker.addEventListener('change',()=>{selected=db.guests.find(g=>g.id===picker.value)||null;for(const extra of extraRows(form)){const n=names(extra.dataset.haIdCard);form.elements[n.frontId].value='';form.elements[n.backId].value=''}selection();sync(form)});
