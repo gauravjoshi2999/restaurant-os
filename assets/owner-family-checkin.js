@@ -57,7 +57,7 @@
    }
    const nights=Math.max(0,Math.round((Date.parse(departure)-Date.parse(arrival))/86400000)||0);
    holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · Estimated room rent '+money(base*nights)+(nights>0?' for '+nights+' night(s)':'')+' (tax/fees shown at review)':'';
-   root.BiteCheckinFlow?.sync?.(form);
+   if(form.elements.additional_ids&&form.querySelector('[data-ha-id-card]'))root.BiteCheckinFlow?.sync?.(form);
   };
   holder.addEventListener('change',e=>{
    update();form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();
