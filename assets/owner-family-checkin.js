@@ -31,6 +31,7 @@
     const id=String(r.id),checked=previous.includes(id),capAdults=Math.min(20,Math.max(1,Number(r.adults)||20)),capChildren=Math.min(20,Math.max(0,Number(r.children)||20));
     return '<div class="bf-room" data-family-room="'+esc(id)+'"><label class="bf-room-switch"><input type="checkbox" name="family_room_ids" value="'+esc(id)+'" '+(checked?'checked':'')+'><span><strong>Room '+esc(r.number)+'</strong><small>'+esc(r.room_type||'Room')+' · '+money(r.nightly_rate)+'/night</small></span></label>'+
      '<div class="bf-room-fields" '+(checked?'':'hidden')+'><label>Adults<input name="family_adults_'+esc(id)+'" type="number" min="1" max="'+capAdults+'" step="1" value="'+esc(draft['family_adults_'+id]||1)+'"></label>'+
+     '<label>Women (included in adults)<input name="family_female_'+esc(id)+'" type="number" min="0" max="'+capAdults+'" step="1" value="'+esc(draft['family_female_'+id]||0)+'"></label>'+ 
      '<label>Children<input name="family_children_'+esc(id)+'" type="number" min="0" max="'+capChildren+'" step="1" value="'+esc(draft['family_children_'+id]||0)+'"></label>'+
      '<label>Rate / night (₹)<input name="family_rate_'+esc(id)+'" type="number" min="0" step=".01" value="'+esc(draft['family_rate_'+id]??r.nightly_rate)+'" inputmode="decimal"></label>'+
      '<label class="bf-room-name">Guests staying in this room (optional)<input name="family_note_'+esc(id)+'" type="text" maxlength="120" value="'+esc(draft['family_note_'+id]||'')+'" placeholder="e.g. Parents and children"></label></div>'+
@@ -95,8 +96,10 @@
    const adults=Number(form.elements['family_adults_'+id]?.value),children=Number(form.elements['family_children_'+id]?.value),rate=Number(form.elements['family_rate_'+id]?.value);
    if(!Number.isInteger(adults)||adults<1||adults>Number(room.adults||20)||
       !Number.isInteger(children)||children<0||children>Number(room.children??20))throw fail('family_adults_'+id,'Check the room occupancy limits.');
-   if(!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.round(rate*100)!==rate*100)throw fail('family_rate_'+id,'Enter a valid room rate with two decimal places.');
-   rows.push({room_id:id,adults,children,nightly_rate:rate,note:String(form.elements['family_note_'+id]?.value||'').trim().slice(0,120)});
+   if(!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.abs(Math.round(rate*100)-rate*100)>0.000001)throw fail('family_rate_'+id,'Enter a valid room rate with two decimal places.');
+   const female=Number(form.elements['family_female_'+id]?.value||0);
+   if(!Number.isInteger(female)||female<0||female>adults)throw fail('family_female_'+id,'Women count cannot exceed adult guests.');
+   rows.push({room_id:id,adults,children,female,nightly_rate:rate,note:String(form.elements['family_note_'+id]?.value||'').trim().slice(0,120)});
   }
   const adults=rows.reduce((n,r)=>n+r.adults,0),people=rows.reduce((n,r)=>n+r.adults+r.children,0);
   if(people>40)throw fail('family_room_ids','For groups above 40 people, make separate registered bookings.');
@@ -108,17 +111,42 @@
   return {name,mode:f.mode,arrival:f.arrival,departure:f.departure,arrival_time:f.arrival_time||'',
    booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',rooms:rows};
  }
+
+ // Guest-ID photos are uploaded once to the lead's protected guest-document profile.
+ // Each room gets its own register entry, the verified payer ID, the correct
+ // male/female counts, and a bounded subset of additional guest IDs.
+ // Full family IDs remain referenced in the first register's private snapshot.
+ function withRoomRegistrations(payload){
+  if(!payload?.registration||!Array.isArray(payload.rooms))return payload;
+  const reg=payload.registration,party=Array.isArray(reg.additional_ids)?reg.additional_ids:[];
+  let cursor=0;
+  const rows=payload.rooms.map((room,index)=>{
+   const adult=Number(room.adults||0),capacity=adult+Number(room.children||0);
+   const take=Math.max(0,Math.min(capacity-1,party.length-cursor));
+   const roomPeople=party.slice(cursor,cursor+take);cursor+=take;
+   const women=index===0?Number(reg.female||0):Number(room.female||0);
+   const roomReg={...reg,male:adult-women,female:women,children:Number(room.children||0),
+    additional_ids:roomPeople,
+    guest_snapshot:{...reg.guest_snapshot,room_occupants:room.note||''},
+    room_occupants:room.note||'',
+    ...(index===0?{family_guest_ids:party}:{}),
+   };
+   return {...room,registration:roomReg};
+  });
+  return {...payload,rooms:rows,registration:undefined};
+ }
  function canonical(value){return JSON.stringify((function sort(x){return Array.isArray(x)?x.map(sort):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,sort(x[k])])):x})(value));}
  async function commit(payload,propertyId,identity,sb){
   if(root.navigator?.onLine===false)throw Error('Offline. Family draft is saved; no rooms were reserved. Reconnect and retry.');
   const key='bite_family_request:'+identity;
-  const signature=canonical(payload);
+  const signature=canonical(withRoomRegistrations(payload));
   let attempt;
   try{attempt=JSON.parse(root.localStorage.getItem(key)||'null')}catch{throw Error('Saved family request unreadable. Do not repeat booking; contact support.')}
   if(attempt&&attempt.signature!==signature)throw Error('Earlier family booking confirmation is pending. Resume the same guest/rooms before changing details.');
   if(!attempt){attempt={id:root.crypto.randomUUID(),signature};
    root.localStorage.setItem(key,JSON.stringify(attempt));}
-  const result=await sb.rpc('bite_family_booking',{p_property:propertyId,p_payload:payload,p_request:attempt.id});
+  const request=withRoomRegistrations(payload);
+  const result=await sb.rpc('bite_family_booking',{p_property:propertyId,p_payload:request,p_request:attempt.id});
   if(result.error){
    if(['P0001','42501','P0002'].includes(result.error.code)||/^(22|23)/.test(result.error.code||''))root.localStorage.removeItem(key);
    throw Error(result.error.message||'Family booking was not confirmed. Retry the same details.');
@@ -126,7 +154,7 @@
   return {booking:result.data,requestKey:key};
  }
  function clearAttempt(key){if(key)root.localStorage?.removeItem(key);}
- const api={decorate,saveDraft,plan,commit,clearAttempt,totalPeople,canonical};
+ const api={decorate,saveDraft,plan,commit,clearAttempt,totalPeople,canonical,withRoomRegistrations};
  root.BiteFamilyCheckin=api;
  if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
