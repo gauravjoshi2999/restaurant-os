@@ -15,10 +15,12 @@ test('Signed Android workflow pulls latest reviewed Firebase patch from main, no
  assert.ok(copyIndex>=0&&applyIndex>copyIndex,'approved main patch must be copied before Firebase service generation');
  assert.match(native,/manager\.notify\(notificationTag,0,builder\.build\(\)\)/);
  assert.match(native,/public void openNotificationSettings\(PluginCall call\)/);
+ assert.match(native,/public void consumeApprovalOpen\(PluginCall call\)/);
+ assert.match(yml,/isApproval\?"bite-approval-"\+approvalId/);
 });
 test('Signed APK build provides a fresh upgrade versionCode and runs on workflow file update',()=>{
- assert.match(yml,/default: '17'/);
- assert.equal((yml.match(/inputs\.version_code \|\| '17'/g)||[]).length,2);
+ assert.match(yml,/default: '18'/);
+ assert.equal((yml.match(/inputs\.version_code \|\| '18'/g)||[]).length,2);
  assert.match(yml,/push:[\s\S]*?branches: \[main\][\s\S]*?\.github\/workflows\/bite-android-signed-manual\.yml/);
  assert.match(yml,/Sign release APK with stable private key/);
  assert.match(yml,/matrix:[\s\S]*?app: \[customer, partner, admin\]/);
@@ -34,8 +36,8 @@ test('Partner release fails closed without Firebase secrets or generated native 
  assert.match(yml,/grep -Fq 'activityIntent\(id,restaurant,"Accepted"\)' "\$SERVICE_FILE"/);
  assert.match(yml,/grep -Fq 'activityIntent\(id,restaurant,"Rejected"\)' "\$SERVICE_FILE"/);
  assert.match(yml,/grep -Fq '\.BiteFirebaseMessagingService' android\/app\/src\/main\/AndroidManifest\.xml/);
- assert.match(yml,/Partner v17 notification settings plugin method not compiled/);
- const checkIndex=yml.indexOf('Verified Partner v17 native FCM');
+ assert.match(yml,/Partner v18 notification settings plugin method not compiled/);
+ const checkIndex=yml.indexOf('Verified Partner v18 native FCM');
  const signingIndex=yml.indexOf('- name: Sign release APK with stable private key');
  assert.ok(checkIndex>=0 && signingIndex>checkIndex,'Partner native verification must happen before signing');
 });
