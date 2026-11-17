@@ -21,7 +21,13 @@
   const message=document.createElement('span');message.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'Restaurant confirmation pending · No payment collected':pendingLiveCheckout.restoreUnavailable?'Previous payment status unavailable':'Previous payment not confirmed';
   const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'View confirmation':'Check status';check.dataset.pendingCheck='';
   const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='bite-pending-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment reminder');
-  check.addEventListener('click',()=>window.BiteCheckoutUX?.showPending?.());
+  check.addEventListener('click',()=>{
+   if(pendingLiveCheckout?.confirmationRequired&&!pendingLiveCheckout.started&&
+      !window.BiteCheckoutUX?.freshCartRequested){
+    if(window.BiteCustomerConfirmationOpen?.())return;
+   }
+   window.BiteCheckoutUX?.showPending?.();
+  });
   dismiss.addEventListener('click',()=>dismissPendingPaymentBanner(pendingLiveCheckout?.id));
   bar.append(message,check,dismiss);
  }
