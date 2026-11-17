@@ -101,7 +101,7 @@ check("const ownerPages=['overview','orders','pos','menu','tables','khata','cash
       and 'data-page="pos"' in owner and 'id="posNewSaleBtn"' in owner
       and "pos:loadPOSWorkspace" in owner and "onclick=\"openOrder()\"" in owner
       and "if(access.role!=='owner'||!access.restaurantId)" in owner
-      and "create_pos_order_with_balance_action" in owner
+      and "bite_create_pos_bill_with_service_v1" in owner
       and "id=\"posWhatsAppConsent\"" in owner,
       "Owner navigation exposes guarded POS & Billing with WhatsApp bill while refunds remain excluded")
 check("This account is linked to more than one restaurant" in owner,
@@ -149,7 +149,7 @@ check(blocked_pos_handler or guarded_pos_handler,
 check('id="pos">' in owner and 'id="posNewSaleBtn"' in owner
       and "onclick=\"openOrder()\"" in owner
       and re.search(r"async function openOrder\(\)\s*\{\s*if\s*\(access\.role\s*!==\s*'owner'\s*\|\|\s*!access\.restaurantId\)", owner) is not None
-      and "create_pos_order_with_balance_action" in owner
+      and "bite_create_pos_bill_with_service_v1" in owner
       and 'id="posWhatsAppConsent"' in owner,
       "Owner POS page provides an enabled, role-guarded sales form with optional WhatsApp bill")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
