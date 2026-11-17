@@ -2947,8 +2947,8 @@ async function openOrder(){
  if(modal.classList.contains('show'))return; // A second tap must not reset an unfinished bill.
  const form=document.getElementById('orderForm');
  form.reset();
- window.BitePOSVisits?.init?.();window.BitePOSVisits?.reset?.();
  document.getElementById('posPaidAmount').value='';
+ window.BitePOSVisits?.init?.();window.BitePOSVisits?.reset?.();
  document.getElementById('orderChannel').value='POS - Counter';
  document.getElementById('orderRestaurant').value=restaurantId;
  document.getElementById('posPaymentSection').style.display='block';
