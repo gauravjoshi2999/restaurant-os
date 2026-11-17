@@ -37,7 +37,12 @@
   const billed=same.reduce((n,o)=>n+Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0)),0);
   const received=same.reduce((n,o)=>n+Math.max(0,Number(o.receivedAmount||0)),0);
   const due=same.reduce((n,o)=>n+Math.max(0,Number(o.dueAmount||0)),0);
-  return {same,all:real,bills:same.length,billed,received,due};
+  const withVisit=same.filter(o=>o.posVisit&&['dine_in','takeaway'].includes(o.posVisit.visit_type));
+  const dineIn=withVisit.filter(o=>o.posVisit.visit_type==='dine_in');
+  const people=dineIn.reduce((n,o)=>n+Number(o.posVisit.guest_count||0),0);
+  return {same,all:real,bills:same.length,billed,received,due,people,
+   dineInBills:dineIn.length,takeawayBills:withVisit.length-dineIn.length,
+   untrackedBills:same.length-withVisit.length};
  }
  function ensure(){
   const pos=doc.getElementById('pos');
@@ -98,12 +103,15 @@
    '<div class="bpv2-stat is-green">'+ic("rupee")+'<small>POS billed</small><strong>'+money(n.billed)+'</strong></div>'+
    '<div class="bpv2-stat is-purple">'+ic("rupee")+'<small>Received</small><strong>'+money(n.received)+'</strong></div>'+
    '<div class="bpv2-stat is-blue">'+ic("clock")+'<small>Balance due</small><strong>'+money(n.due)+'</strong></div></div>'+
-   '<div class="bpv2-people-note">'+ic("people")+'<span><strong>People served</strong><small>Actual guest count will appear here after bill-level counting is enabled. Old bills are not estimated.</small></span></div>';
+   '<div class="bpv2-people-note'+(n.dineInBills?' is-recorded':'')+'">'+ic("people")+
+   '<span><strong>'+n.people+' people served</strong><small>'+n.dineInBills+' dine-in bill(s) · '+n.takeawayBills+' takeaway bill(s)'+
+   (n.untrackedBills?' · '+n.untrackedBills+' older/unrecorded bill(s) excluded':'')+'</small></span></div>';
   recent.innerHTML='<div class="bpv2-section-heading"><strong>Recent bills</strong><button type="button" data-bpv2-go="bills">View all '+ic('forward')+'</button></div>'+
    (last.length?'<div class="bpv2-recents">'+last.map(o=>{
     const amount=Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0));
     return '<article class="bpv2-recent"><span class="bpv2-recent-icon">'+ic('bill')+'</span>'+
-     '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+'</small></span>'+
+     '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+'</small>'+
+     (o.posVisit?'<small class="bpv2-visit-tag">'+safe(o.posVisit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+o.posVisit.guest_count+' people')+'</small>':'')+'</span>'+
      '<strong class="bpv2-amount">'+money(amount)+'</strong>'+
      '<button type="button" data-bpv2-print="'+safe(o.id)+'" aria-label="Open bill '+safe(o.code||'')+'">'+ic('forward')+'</button></article>';
    }).join('')+'</div>':'<p class="bpv2-empty">No POS bills recorded today. Tap <strong>New POS Bill</strong> to begin.</p>');
