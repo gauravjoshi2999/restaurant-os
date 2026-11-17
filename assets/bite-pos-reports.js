@@ -149,7 +149,9 @@ function onClick(e){
 function mount({el,client,restaurant,user}){
  if(!el||!client||!restaurant||!user)return;
  const changed=restaurantId!==restaurant||userId!==user;
+ const replacedPanel=container!==el;
  if(changed){epoch++;report=null;month=istToday().slice(0,7);selected=istToday();mode='today';loading=false;}
+ else if(replacedPanel){epoch++;report=null;loading=false;} // Reopening Reports fetches fresh saved bills.
  if(container&&container!==el)container.removeEventListener('click',onClick);
  container=el;sb=client;restaurantId=restaurant;userId=user;
  if(el.dataset.bprBound!=='true'){el.dataset.bprBound='true';el.addEventListener('click',onClick);}
