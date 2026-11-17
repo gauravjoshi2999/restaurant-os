@@ -58,6 +58,17 @@ class ReleaseAttestationTests(unittest.TestCase):
                 finally:
                     self.contents[asset] = original
 
+    def test_fail_closed_on_stale_home_header_assets(self):
+        for asset in ("assets/owner-mobile-navigation.js", "assets/owner-reference-v3.css"):
+            with self.subTest(asset=asset):
+                original = self.contents[asset]
+                try:
+                    self.contents[asset] = b"stale owner Home UI asset"
+                    with self.assertRaisesRegex(ValueError, "Live Pages file differs"):
+                        verify_release(SHA, DEFAULT_SITE, self.dist, self.fetch)
+                finally:
+                    self.contents[asset] = original
+
     def test_fail_closed_on_stale_customer_page(self):
         self.contents["customer.html"] = b"old customer html"
         with self.assertRaisesRegex(ValueError, "customer.html"):
