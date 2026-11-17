@@ -119,8 +119,9 @@
    '</div>':'';
   const weekly=hasFood?'<div class="bv3-bottom-panel bv3-sales"><div class="bv3-card-title"><strong>7-day online paid trend</strong><button data-bv3-route="reports" type="button">'+icon('arrow')+'</button></div>'+
    chartSvg(data?.week)+'<small>Paid orders only; POS excluded</small></div>':'';
-  return '<div class="bv3-intro"><span class="bv3-owner-mark">B</span><span><strong>'+escapeHtml(propertyName())+'</strong><small>Hotel &amp; restaurant control</small></span><button type="button" class="bv3-bell" data-bv3-route="orders" data-bv3-filter="new" aria-label="Open new order notifications">'+icon('bell')+
-   (waiting.length?'<i>'+waiting.length+'</i>':'')+'</button></div>'+
+  return '<div class="bv3-intro"><span class="bv3-owner-mark">B</span><span><strong>'+escapeHtml(propertyName())+'</strong><small>'+escapeHtml(hasHotel&&!hasFood?'Hotel operations':'Hotel & restaurant control')+'</small></span>'+
+   (hasFood?'<button type="button" class="bv3-bell" data-bv3-route="orders" data-bv3-filter="new" aria-label="Open new order notifications">'+icon('bell')+
+   (waiting.length?'<i>'+waiting.length+'</i>':'')+'</button>':'')+'</div>'+
    (hasFood?attentionCard(waiting,paidNew):'')+
    '<div class="bv3-section-label">Business snapshot <span>Today · Live data</span></div>'+
    '<section class="bv3-kpis" aria-label="Today business statistics">'+kpis.join('')+'</section>'+
@@ -148,6 +149,7 @@
   const home=root.document.getElementById('biteV3Home');if(!home)return;
   const data=summary(),snap=hotelSnapshot(),waiting=approvals();
   if(!data)return;
+  const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=snap?.restaurant===false;
   const signature=JSON.stringify([currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
     waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount])]);
