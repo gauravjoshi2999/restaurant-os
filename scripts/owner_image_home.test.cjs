@@ -103,7 +103,7 @@ test('Hotel-only Owner boots V3 Home without an online restaurant outlet or stal
  const badge={hidden:true,textContent:''};
  const bell={hidden:true,querySelector:key=>key==='i'?badge:null};
  const doc={body:{dataset:{role:'owner'},classList:{add(){},remove(){}}},visibilityState:'visible',
-  getElementById:id=>id==='biteV3Home'?home:id==='biteV3HeaderBell'?bell:id==='overview'?{}:null};
+  getElementById:id=>id==='biteV3Home'?home:id==='biteV3HeaderBell'?bell:id==='overview'?{dataset:{}}:null};
  const root={console,document:doc,Date,BiteOwner:{day:()=> '2026-11-18'},
   BiteHospitality:{prop:()=>({id:'hotel-only',business_type:'hotel',name:'Standalone Hotel',tax_profile:{}}),
    dashboardSnapshot:()=>({hotel:true,restaurant:false,ready:true,occupied:2,available:5,cleaning:1}),
