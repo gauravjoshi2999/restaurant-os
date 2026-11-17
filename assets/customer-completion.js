@@ -4,7 +4,7 @@
  const pendingKey='bite_pending_checkout_v2',dismissedPendingKey='bite_hidden_payment_reminder';let favouritesUser=null,offersToken=0,restoreToken=0,recoveryBusy=false,lastRestoreAttemptKey=null;
  const notice=(message)=>{let el=document.getElementById('biteCustomerNotice');if(!el){el=document.createElement('div');el.id='biteCustomerNotice';el.className='bite-toast';el.setAttribute('role','status');document.body.append(el);}el.textContent=message;el.hidden=false;clearTimeout(notice.timer);notice.timer=setTimeout(()=>el.hidden=true,7000);};
  const readPending=()=>{try{return JSON.parse(localStorage.getItem(pendingKey)||'null');}catch{return null;}};
- function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,cartSignature:pendingLiveCheckout.cartSignature||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired}));}catch{}}
+ function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,cartSignature:pendingLiveCheckout.cartSignature||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,confirmationRequired:!!pendingLiveCheckout.confirmationRequired,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired}));}catch{}}
  function saveCheckoutKey(key){try{localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,key}));}catch{}}
  function dismissPendingPaymentBanner(id){
   if(id)try{sessionStorage.setItem(dismissedPendingKey,id);}catch{}
@@ -18,8 +18,8 @@
   if(dismissed||window.BiteCheckoutUX?.freshCartRequested){bar?.remove();return;}
   if(!bar){bar=document.createElement('div');bar.id='pendingPaymentBanner';bar.className='bite-pending-banner';$('homeView').prepend(bar);}
   bar.replaceChildren();
-  const message=document.createElement('span');message.textContent=pendingLiveCheckout.restoreUnavailable?'Previous payment status unavailable':'Previous payment not confirmed';
-  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent='Check status';check.dataset.pendingCheck='';
+  const message=document.createElement('span');message.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'Restaurant confirmation pending · No payment collected':pendingLiveCheckout.restoreUnavailable?'Previous payment status unavailable':'Previous payment not confirmed';
+  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'View confirmation':'Check status';check.dataset.pendingCheck='';
   const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='bite-pending-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment reminder');
   check.addEventListener('click',()=>window.BiteCheckoutUX?.showPending?.());
   dismiss.addEventListener('click',()=>dismissPendingPaymentBanner(pendingLiveCheckout?.id));
@@ -41,12 +41,12 @@
   if(saved.id)pendingLiveCheckout={
    id:saved.id,restaurantId:saved.restaurantId||null,
    cartSignature:saved.cartSignature||null,intentCreatedAt:saved.intentCreatedAt||null,
-   session:null,started:!!saved.started,verifyOnly:true,
+   session:null,started:!!saved.started,verifyOnly:true,confirmationRequired:!!saved.confirmationRequired,
    expectedAmount:Number.isFinite(Number(saved.expectedAmount))?Number(saved.expectedAmount):null
   };
   try{
    let q=sb.from('bite_live_checkout_intents')
-    .select('id,status,provider_order_id,amount,restaurant_id,created_at,delivery_type,priced_items,food_subtotal,delivery_fee,discount_amount,coupon_code,address_snapshot,customer_snapshot,customer_note')
+    .select('id,status,provider_order_id,provider_attempted_at,confirmation_required,amount,restaurant_id,created_at,delivery_type,priced_items,food_subtotal,delivery_fee,discount_amount,coupon_code,address_snapshot,customer_snapshot,customer_note')
     .eq('customer_id',userId);
    q=saved.id?q.eq('id',saved.id):q.eq('checkout_key',saved.key);
    const {data,error}=await q.maybeSingle();
@@ -65,8 +65,9 @@
     cartSignature:biteCheckoutCartSignature(data.restaurant_id,
       lines.map(i=>[i.menu_item_id,i.quantity])),
     intentCreatedAt:data.created_at,session:null,
-    started:!!data.provider_order_id||!!saved.started,
-    verifyOnly:!!data.provider_order_id,expectedAmount:Number(data.amount)
+    started:!!data.provider_order_id||!!data.provider_attempted_at||!!saved.started,
+    verifyOnly:!!data.provider_order_id||!!data.provider_attempted_at||!!saved.started,
+    confirmationRequired:!!data.confirmation_required||!!saved.confirmationRequired,expectedAmount:Number(data.amount)
    };
    savePendingCheckout();
    $('checkoutRestaurant').textContent=(restaurants.find(r=>r.id===data.restaurant_id)?.name||'Pending restaurant checkout')+' · Saved payment';
@@ -92,7 +93,9 @@
      state:'addressState',postal_code:'addressPostal'
     }))$(id).value=address[key]||'';
    }
+   if(pendingLiveCheckout.confirmationRequired)window.BiteOrderConfirmation?.watch(sb,data.id,()=>syncCheckoutPaymentButton());
    renderPendingPaymentBanner();
+   syncCheckoutPaymentButton();
    verifiedRead=true;
   }catch(error){
    if(token!==restoreToken||activeCustomerId!==userId)return;
@@ -109,7 +112,7 @@
    if(token===restoreToken){
     recoveryBusy=false;
     // Never launch a second provider request after a failed database restore.
-    if(verifiedRead&&pendingLiveCheckout?.id===saved.id){
+    if(verifiedRead&&pendingLiveCheckout?.id===saved.id&&(!pendingLiveCheckout.confirmationRequired||pendingLiveCheckout.started)){
      void checkPendingCustomerPayment({background:true});
     }
    }
