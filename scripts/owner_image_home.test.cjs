@@ -77,3 +77,23 @@ test('Illustrated design is CSS/SVG, mobile-only with reduced motion and no inse
  assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/);
  assert.doesNotMatch(styles,/https?:\/\/|data:image\/base64/);
 });
+
+test('Final Home tabs match actual server-permitted hotel, restaurant and hybrid routes',()=>{
+ const Mobile=require('../assets/owner-mobile-navigation.js');
+ const pages=(type,allowed)=>Mobile.approvedHomeTabs({business_type:type},allowed).map(t=>t.page);
+ assert.deepEqual(pages('hotel',['overview','rooms','hotel-register','folios','hr','expenses']),['overview','rooms','more']);
+ assert.deepEqual(pages('restaurant',['overview','pos','orders','menu','hr']),['overview','orders','pos','more']);
+ assert.deepEqual(pages('hybrid',['overview','rooms','orders','pos','menu','hr']),['overview','rooms','orders','pos','more']);
+ assert.deepEqual(pages('restaurant',['overview','pos','menu']),['overview','pos','more'],'no restaurant Orders tab without permission');
+ assert.deepEqual(pages('hybrid',['overview','rooms','hotel-register']),['overview','rooms','more'],'no restaurant tabs without outlet rights');
+});
+test('Approved Home hides old KPIs on mobile without deleting payments or reports',()=>{
+ assert.match(styles,/#overview > :not\(#biteV3Home\)/);
+ for(const old of ['od-metrics','od-pos-breakdown','od-finance-boundary','od-dashboard-grid','od-footer']){
+  assert.ok(styles.includes('#overview .'+old),old);
+  assert.ok(markup.includes('class="'+old)||markup.includes(' '+old),'original underlying bindings remain intact '+old);
+ }
+ assert.match(source,/overview\.dataset\.biteHomeCompact='true'/);
+ assert.match(styles,/mask-image:linear-gradient/);
+ assert.match(styles,/\.boh-feature>strong/);
+});
