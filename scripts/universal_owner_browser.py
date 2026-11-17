@@ -55,10 +55,17 @@ try:
     # Owner sessions can restore a non-Home route: navigate to Home explicitly for the visual contract.
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
-    page.locator('#bitePremiumHome .bite-premium-hero-cta').first.wait_for(state='visible')
-    check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium home has correct business mode at {width}px')
-    links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
-    check(len(set(links))>=1,f'{kind} premium shortcuts rendered at {width}px')
+    # Screenshot V3 replaces premium Home on mobile; desktop remains unchanged.
+    v3=width<760 and page.locator('#biteV3Home').is_visible()
+    if v3:
+     check(page.locator('#biteV3Home .bv3-kpi').count()==4,f'{kind} mobile V3 shows four real business metrics at {width}px')
+     check(page.locator('#bitePremiumHome').is_hidden(),f'{kind} no duplicate premium Home on mobile')
+     links=page.locator('#biteV3Home button[data-bv3-route]').evaluate_all('(es)=>es.map(e=>e.dataset.bv3Route)')
+    else:
+     page.locator('#bitePremiumHome .bite-premium-hero-cta').first.wait_for(state='visible')
+     check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium desktop Home correct at {width}px')
+     links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
+    check(len(set(links))>=1,f'{kind} working shortcuts at {width}px')
     check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
     check(('orders' in links)==(kind!='hotel'),f'{kind} restaurant shortcut capability at {width}px')
     screenshot(page,f'{kind}-premium-home-{width}')
@@ -81,7 +88,9 @@ try:
       page.evaluate("showPage('overview')")
       page.locator('#overview.active').wait_for(state='visible')
       if kind=='hotel':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()>0,'Hotel Home readiness panel returns on opt-in')
-      if kind=='hybrid':check('Housekeeping queue' in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home shows housekeeping metric on opt-in')
+      if kind=='hybrid':
+       if v3:check('Cleaning' in page.locator('#biteV3Home').inner_text(),'Hybrid mobile Home displays cleaning only on opt-in')
+       else:check('Housekeeping queue' in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home shows housekeeping metric on opt-in')
       if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()>0,'Hybrid Hotel Home readiness also returns when enabled')
       page.evaluate("showPage('settings')")
       page.locator('#biteShowHousekeeping').uncheck()
@@ -91,18 +100,23 @@ try:
       page.evaluate("showPage('overview')")
       page.locator('#overview.active').wait_for(state='visible')
       if kind=='hotel':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hotel Home readiness panel disappears when unchecked')
-      if kind=='hybrid':check('Housekeeping queue' not in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home does not show housekeeping when unchecked')
+      if kind=='hybrid':
+       if v3:check('Cleaning' not in page.locator('#biteV3Home').inner_text(),'Hybrid mobile Home removes cleaning when unchecked')
+       else:check('Housekeeping queue' not in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home does not show housekeeping when unchecked')
       if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hybrid Hotel Home readiness disappears when unchecked')
     quick='orders' if kind=='restaurant' else 'hotel-register'
-    page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
+    if v3:page.locator(f'#biteV3Home button[data-bv3-route="{quick}"]').first.click()
+    else:page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
     page.locator(f'#{quick}.active').wait_for(state='visible')
-    check(True,f'{kind} premium quick action opens existing {quick} workspace at {width}px')
+    check(True,f'{kind} quick action opens existing {quick} workspace at {width}px')
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
     check(page.locator('#biteHotelHome .bh-hotel-tabs').count()==0,f'{kind} home does not duplicate Hotel navigation')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
-     check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
+     if v3:
+      check(page.locator('#mainApp>.main>.top').evaluate('(e)=>getComputedStyle(e).backgroundImage.includes("linear-gradient")'),f'{kind} warm branded header is readable at {width}px')
+     else:check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
     if width<760:
      actual=page.locator('#biteOwnerBottomNav [data-bite-page]').evaluate_all('(es)=>es.map(e=>e.dataset.bitePage)')
      expected=['overview','orders','pos','menu','more'] if kind=='restaurant' else ['overview','rooms','orders','pos','more'] if kind=='hybrid' else ['overview','hotel-register','rooms','folios','more']
