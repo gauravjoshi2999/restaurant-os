@@ -157,7 +157,8 @@
    '<span class="boh-quick-icon">'+icon(ico)+'</span><strong>'+escapeHtml(label)+'</strong></button>';
  }
  function homeHtml(data,snap,waiting){
-  const hotel=!!snap?.hotel,food=permitted('pos')||permitted('orders');
+  const hotel=!!snap?.hotel&&permitted('rooms'),food=permitted('pos')||permitted('orders');
+  const propertyType=hotel&&food?'hybrid':hotel?'hotel':'restaurant';
   const tax=root.BiteHospitality?.prop?.()?.tax_profile||{};
   const register=hotel?monthRegisterSummary():{count:null,label:''};
   const tiles=[];
@@ -177,7 +178,7 @@
    '<span><strong>Hotel Register</strong><small>'+(register.count===null?'Loading entries…':escapeHtml(register.label)+' · '+num(register.count)+' entr'+(register.count===1?'y':'ies'))+'</small></span>'+
    '<span class="boh-register-arrow">'+icon('arrow')+'</span></button>':'';
   return '<div class="boh-home" aria-label="Hotel and restaurant operations">'+
-   '<section class="boh-feature-grid" aria-label="Main hotel and restaurant actions">'+tiles.join('')+'</section>'+
+   '<section class="boh-feature-grid" data-business-type="'+propertyType+'" aria-label="Main hotel and restaurant actions">'+tiles.join('')+'</section>'+
    (quick.length?'<h2 class="boh-section-title">Quick Actions</h2><section class="boh-quick-grid" aria-label="Quick actions">'+quick.join('')+'</section>':'')+
    registerRow+
    '<span class="boh-home-end" aria-hidden="true"></span></div>';
@@ -205,6 +206,8 @@
     waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
+  const overview=root.document.getElementById('overview');
+  if(overview)overview.dataset.biteHomeCompact='true';
   root.document.body.classList.add('bite-v3-active');
   setNotices(notices);
   tick();
