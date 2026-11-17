@@ -58,7 +58,7 @@ try:
     # Screenshot V3 replaces premium Home on mobile; desktop remains unchanged.
     v3=width<760 and page.locator('#biteV3Home').is_visible()
     if v3:
-     check(page.locator('#biteV3Home .bv3-kpi').count()==4,f'{kind} mobile V3 shows four real business metrics at {width}px')
+     check(page.locator('#biteV3Home .boh-feature-grid').is_visible() and page.locator('#biteV3Home .boh-feature').count()>=3,f'{kind} mobile Home shows permitted operational tiles at {width}px')
      check(page.locator('#bitePremiumHome').is_hidden(),f'{kind} no duplicate premium Home on mobile')
      links=page.locator('#biteV3Home button[data-bv3-route]').evaluate_all('(es)=>es.map(e=>e.dataset.bv3Route)')
     else:
@@ -67,7 +67,8 @@ try:
      links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
     check(len(set(links))>=1,f'{kind} working shortcuts at {width}px')
     check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
-    check(('orders' in links)==(kind!='hotel'),f'{kind} restaurant shortcut capability at {width}px')
+    orders_access=('orders' in links or page.locator('#biteOwnerBottomNav [data-bite-page="orders"]').count()>0)
+    check(orders_access==(kind!='hotel'),f'{kind} restaurant Orders remains accessible at {width}px')
     screenshot(page,f'{kind}-premium-home-{width}')
     if kind in ['hotel','hybrid']:
      page.wait_for_function("document.querySelector('#biteShowHousekeeping')&&!document.querySelector('#biteShowHousekeeping').disabled")

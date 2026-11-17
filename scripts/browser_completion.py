@@ -598,16 +598,27 @@ try:
     bodyClass:document.body.className,
     overviewText:document.getElementById('biteV3Home')?.innerText?.slice(0,450)
   })"""))
-  check(owner.locator('#biteV3Home .bv3-kpi').count()==4
-    and owner.locator('#biteV3Home .bv3-flow').is_visible()
+  check(owner.locator('#biteV3Home .boh-feature').count()>=2
+    and owner.locator('#biteV3Home .boh-feature-grid').is_visible()
+    and owner.locator('#biteV3Home [data-bv3-new-pos="true"]').is_visible()
+    and not owner.locator('#biteV3Home .bv3-quiet').count()
     and owner.locator('#bitePremiumHome').is_hidden()
     and owner.locator('#overview .od-owner-priority').is_hidden(),
-    'Owner Home has one compact KPI snapshot, a live queue and no duplicated premium dashboard')
+    'Owner Home renders approved operational cards without old KPI, All caught up or duplicated premium UI')
   check(owner.locator('.bite-language-row').is_hidden()
     and owner.locator('.side').is_hidden()
     and owner.locator('#mainApp>.main>.top').evaluate(
-       "(el)=>getComputedStyle(el).backgroundImage.includes('linear-gradient') && el.getBoundingClientRect().height<=60"),
-    'Owner mobile header uses the approved brown gradient; no language strip or sidebar')
+       "(el)=>getComputedStyle(el).backgroundImage.includes('linear-gradient') && el.getBoundingClientRect().height>=80 && el.getBoundingClientRect().height<=110"),
+    'Owner mobile header uses approved premium gradient with readable room for property identity')
+  bell=owner.locator('#biteV3HeaderBell')
+  bell.click()
+  check(owner.locator('#biteOwnerNoticeTray').is_visible()
+    and bell.get_attribute('aria-expanded')=='true',
+    'Notification bell opens accessible tray of actionable orders')
+  owner.locator('#biteOwnerNoticeTray [data-bv3-close-notices]').click()
+  check(owner.locator('#biteOwnerNoticeTray').is_hidden()
+    and bell.get_attribute('aria-expanded')=='false',
+    'Notification tray closes cleanly without navigating away')
   owner.screenshot(path=str(OUT/'ui-owner-home.png'),full_page=False)
   check(owner.locator('#biteV3Home [data-bv3-new-pos="true"]').is_visible(),
     'Mobile Home has a live New POS Bill shortcut without a duplicated POS dashboard')

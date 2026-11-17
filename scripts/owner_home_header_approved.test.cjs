@@ -11,7 +11,7 @@ test('Approved Home header uses selected Bite logo and current property name, re
  assert.match(css,/#biteOwnerHomeProperty/);
  assert.match(css,/#pageTitle\{\s*display:none!important/);
  assert.match(css,/#biteV3Home \.bv3-intro\{\s*display:none!important/);
- assert.match(fs.readFileSync('assets/owner-reference-v3.js','utf8'),/bell\.addEventListener\('click',\(\)=>route\('orders','new',false\)\)/);
+ assert.match(fs.readFileSync('assets/owner-reference-v3.js','utf8'),/bell\.addEventListener\('click',\(\)=>toggleNoticeTray\(\)\)/);
 });
 test('Property selector remains functional in More for businesses with multiple properties',()=>{
  assert.match(nav,/propertySlot\.id='biteOwnerPropertySwitchSection'/);

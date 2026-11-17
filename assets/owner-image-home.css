@@ -1,0 +1,288 @@
+/* The new image-based command center is mobile-only; preserve the existing desktop Home. */
+@media(min-width:761px){
+ body[data-role="owner"] #overview #biteV3Home{display:none!important}
+ body[data-role="owner"] #biteOwnerNoticeTray{display:none!important}
+}
+/* Bite Owner · image-aligned premium Home 2026-11-18.
+   CSS presentation only: no business data, order mutations or payment changes. */
+@media(max-width:760px){
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main{
+  background:
+   radial-gradient(ellipse 120% 44% at 50% 2%,#e6beb495,transparent 74%),
+   linear-gradient(180deg,#fbf1eb 0%,#fffaf7 56%,#f7e5d9 100%)!important;
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top{
+  display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+  min-height:86px!important;max-height:none!important;padding:10px 14px 12px!important;
+  gap:7px!important;isolation:isolate;
+  background:
+   radial-gradient(circle at 85% -20%,#b76736a8,transparent 45%),
+   linear-gradient(119deg,#8d351d 0%,#672124 26%,#431822 64%,#341c27 100%)!important;
+  border-bottom:1px solid #f2aa55!important;border-radius:0 0 23px 23px!important;
+  box-shadow:0 10px 20px #63241e36,inset 0 -2px 0 #ffbf6922!important;
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top:before{
+  content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+  background:linear-gradient(157deg,transparent 0 65%,#f9a44a25 76%,transparent 90%);
+  border-radius:inherit
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeLogo{
+  order:0!important;width:38px!important;height:38px!important;flex:0 0 38px!important;
+  margin:0!important;background:linear-gradient(145deg,#ffb141,#fb7006);
+  box-shadow:0 4px 12px #270b1655;border-radius:12px;object-fit:contain
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeBrand{
+  order:1;flex:0 0 auto;display:grid;gap:1px;min-width:55px;color:white;line-height:1;letter-spacing:-.04em
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeBrand strong{font-size:20px;font-weight:900}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeBrand small{
+  font-size:8px;letter-spacing:.29em;font-weight:850;padding-left:2px;color:#fff0e2
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeBrand[hidden]{display:none!important}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeProperty{
+  order:2!important;flex:1 1 0!important;min-width:0!important;display:block;
+  padding:17px 0 0!important;margin:0!important;
+  text-align:center!important;color:#fff8f0!important;font-size:clamp(12px,3.3vw,16px)!important;
+  font-weight:800!important;line-height:1.2!important;letter-spacing:-.025em!important;
+  text-wrap:balance;overflow-wrap:normal;white-space:normal!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeProperty:before{
+  content:"✧";position:absolute;top:9px;left:53%;color:#f4c975;font-size:20px;line-height:1
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeProperty[hidden]{display:none!important}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell{
+  order:3!important;flex:0 0 42px!important;width:42px!important;height:43px!important;min-height:43px!important;
+  border:1px solid #ffedcb88!important;border-radius:14px!important;
+  background:linear-gradient(150deg,#ffffff25,#ffffff0d)!important;
+  box-shadow:inset 0 1px 1px #ffffff3e,0 5px 11px #240e1645!important;
+  transition:transform .18s ease,background .18s ease
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell:active{transform:scale(.94)}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell i{
+  border-color:#6f2621!important;background:linear-gradient(150deg,#ff651d,#e83416)!important;
+  min-width:20px!important;height:20px!important;font-size:10px!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteHotelOrderAlert,
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top .bh-property-switch{display:none!important}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.content{
+  padding:16px 12px calc(105px + env(safe-area-inset-bottom))!important
+ }
+ body[data-role="owner"] #biteV3Home .boh-home{
+  display:grid;gap:17px;min-width:0;padding:0 1px 18px;
+  color:#371b24;font-family:inherit
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+  grid-auto-flow:row;min-width:0
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature{
+  position:relative;isolation:isolate;overflow:hidden;display:flex;
+  flex-direction:column;align-items:stretch;text-align:left;gap:0;
+  min-width:0;min-height:167px;padding:14px 12px;
+  border-radius:20px;border:1.5px solid #fffdf9!important;
+  box-shadow:0 7px 16px #703d3431,0 2px 3px #fff inset,inset 0 -1px 0 #dba46a52;
+  color:#3b1c21;background:#fff4e9;cursor:pointer;
+  transform:translateZ(0);transition:transform .2s ease,box-shadow .2s ease;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature:active{
+  transform:translateY(1px) scale(.985);box-shadow:0 3px 9px #6e2e2e35
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature:focus-visible,
+ body[data-role="owner"] #biteV3Home .boh-quick:focus-visible,
+ body[data-role="owner"] #biteV3Home .boh-register:focus-visible{
+  outline:3px solid #d75e0a;outline-offset:3px
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature:before{
+  content:"";position:absolute;inset:0;z-index:-2;pointer-events:none;
+  background:linear-gradient(148deg,#fdf1eb,#fff3e4 61%,#efcbad);
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature:after{
+  content:"";position:absolute;right:-25%;bottom:-44%;width:145%;height:70%;
+  border-radius:50%;z-index:-1;pointer-events:none;
+  border-top:1px solid #fff9f1a8;background:linear-gradient(178deg,#fff9ec78,transparent)
+ }
+ body[data-role="owner"] #biteV3Home .boh-card-illustration{
+  position:absolute;top:3px;right:-10px;width:91%;height:55%;z-index:-1;
+  background-repeat:no-repeat;background-size:contain;background-position:right top;pointer-events:none;
+  opacity:.9;filter:drop-shadow(0 5px 9px #9f593f38)
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-icon{
+  display:grid;place-items:center;flex:0 0 auto;width:45px;height:45px;margin-bottom:24px;
+  border-radius:15px;border:1px solid #fff8f1;background:linear-gradient(140deg,#ffead0,#ffd4a5);
+  box-shadow:0 4px 9px #e29c5b4f,inset 0 2px 2px #fff9ef;color:#b35e0b;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-icon svg{width:26px;height:26px;stroke-width:2.1}
+ body[data-role="owner"] #biteV3Home .boh-feature>strong{
+  display:block;font-size:clamp(15px,4.7vw,21px);font-weight:900;line-height:1.12;
+  letter-spacing:-.04em;color:#3c171a;margin:0 0 7px;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature>small{
+  color:#6f6669;font-size:11px;line-height:1.4;margin:0 0 auto;max-width:92%;font-weight:500
+ }
+ body[data-role="owner"] #biteV3Home .boh-room{min-height:210px;background:#ffebdd}
+ body[data-role="owner"] #biteV3Home .boh-room .boh-card-illustration{background-image:url('owner-home-palace.svg');width:104%;height:49%;top:0}
+ body[data-role="owner"] #biteV3Home .boh-room .boh-feature-icon{margin-bottom:16px}
+ body[data-role="owner"] #biteV3Home .boh-room .boh-feature>strong{margin-bottom:11px}
+ body[data-role="owner"] #biteV3Home .boh-room-stat{
+  display:flex;align-items:center;gap:6px;min-height:29px;line-height:1.1;
+  margin:3px 0;padding:5px 7px;border:1px solid #fff;
+  border-radius:12px;background:#fff9f2de;box-shadow:0 3px 5px #825b461d;
+  color:#4b3436;font-size:clamp(10px,3.1vw,13px);white-space:nowrap
+ }
+ body[data-role="owner"] #biteV3Home .boh-room-stat b{
+  margin-left:auto;border-radius:8px;padding:2px 5px;background:#eff6e7;
+  color:#44242b;font-size:14px;font-weight:900;font-variant-numeric:tabular-nums
+ }
+ body[data-role="owner"] #biteV3Home .boh-room-stat:nth-last-child(1) b{background:#fff0dc}
+ body[data-role="owner"] #biteV3Home .boh-dot{
+  flex:0 0 9px;width:9px;height:9px;border-radius:50%;background:#aaa
+ }
+ body[data-role="owner"] #biteV3Home .boh-dot.is-occupied{background:#34bc48}
+ body[data-role="owner"] #biteV3Home .boh-dot.is-available{background:#ffa600}
+ body[data-role="owner"] #biteV3Home .boh-dot.is-cleaning{background:#ae87e5}
+ body[data-role="owner"] #biteV3Home .boh-pos{min-height:210px}
+ body[data-role="owner"] #biteV3Home .boh-pos:before{background:linear-gradient(140deg,#fff3e5,#f9e3cf 76%,#f8c9a2)}
+ body[data-role="owner"] #biteV3Home .boh-pos .boh-card-illustration{background-image:url('owner-home-service-bell.svg');width:93%;height:51%;top:0;opacity:.96}
+ body[data-role="owner"] #biteV3Home .boh-pos>strong{margin-top:2px}
+ body[data-role="owner"] #biteV3Home .boh-card-cta{
+  margin:auto 0 0;display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:43px;border:1px solid #ffd58e;border-radius:100px;
+  color:white;font-size:clamp(11px,3.4vw,14px);font-weight:900;letter-spacing:-.015em;
+  background:linear-gradient(170deg,#ffb138 0%,#fb760a 44%,#df4800 100%);
+  box-shadow:inset 0 2px 2px #fff8dc7e,inset 0 -2px 2px #ae4a00,0 5px 12px #df5f0755;
+  white-space:nowrap
+ }
+ body[data-role="owner"] #biteV3Home .boh-card-cta svg{width:17px;height:17px}
+ body[data-role="owner"] #biteV3Home .boh-checkin{background:#f8ebf9}
+ body[data-role="owner"] #biteV3Home .boh-checkin:before{background:linear-gradient(145deg,#fff8fe 15%,#f2e4f8 70%,#dcc4ed)}
+ body[data-role="owner"] #biteV3Home .boh-checkin .boh-card-illustration{background-image:url('owner-home-service-bell.svg');width:70%;height:67%;top:0;opacity:.6}
+ body[data-role="owner"] #biteV3Home .boh-checkin .boh-feature-icon{
+  background:linear-gradient(135deg,#f9e8ff,#e9c9f6);color:#6f2ba5;
+  box-shadow:0 4px 9px #ad6eb04a;margin-bottom:20px
+ }
+ body[data-role="owner"] #biteV3Home .boh-daily{background:#eff9ea}
+ body[data-role="owner"] #biteV3Home .boh-daily:before{background:linear-gradient(145deg,#f9fff8 15%,#e8f4e4 70%,#d7e9d0)}
+ body[data-role="owner"] #biteV3Home .boh-daily .boh-card-illustration{background-image:url('owner-home-ledger.svg');top:0;width:89%;height:62%}
+ body[data-role="owner"] #biteV3Home .boh-daily .boh-feature-icon{
+  background:linear-gradient(135deg,#e5f9d8,#c8e5bd);color:#176c36;
+  box-shadow:0 4px 9px #64a04a46;margin-bottom:20px
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-arrow{
+  display:grid;place-items:center;align-self:flex-end;margin-top:8px;
+  width:35px;height:35px;border-radius:50%;background:#f5e2fb;
+  color:#702e9f;border:1px solid #fff;box-shadow:0 3px 6px #72428125
+ }
+ body[data-role="owner"] #biteV3Home .boh-daily .boh-feature-arrow{background:#dcefd2;color:#24673e}
+ body[data-role="owner"] #biteV3Home .boh-feature-arrow svg{width:21px;height:21px}
+ body[data-role="owner"] #biteV3Home .boh-section-title{
+  margin:5px 0 -5px;font-size:24px;line-height:1.2;letter-spacing:-.055em;
+  font-weight:900;color:#3a1c25
+ }
+ body[data-role="owner"] #biteV3Home .boh-section-title:after{
+  content:"";display:block;margin-top:10px;width:43px;height:4px;background:#f26c11;border-radius:4px
+ }
+ body[data-role="owner"] #biteV3Home .boh-quick-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px
+ }
+ body[data-role="owner"] #biteV3Home .boh-quick{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;
+  min-height:89px;padding:9px 6px;border-radius:16px;border:1px solid #fff9f2;
+  background:linear-gradient(135deg,#fff7f0,#f9eadc);color:#37232a;
+  box-shadow:0 6px 12px #7a44421f,inset 0 1px 1px #fff;
+  transition:transform .2s ease
+ }
+ body[data-role="owner"] #biteV3Home .boh-quick:active{transform:scale(.97)}
+ body[data-role="owner"] #biteV3Home .boh-quick-icon{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:12px;
+  background:#ffe4d1;color:#c65900
+ }
+ body[data-role="owner"] #biteV3Home .boh-quick-icon svg{width:21px;height:21px}
+ body[data-role="owner"] #biteV3Home .boh-quick strong{
+  font-size:clamp(10px,2.9vw,12px);line-height:1.18;text-align:center;font-weight:850;overflow-wrap:anywhere
+ }
+ body[data-role="owner"] #biteV3Home .boh-quick-expense{background:linear-gradient(135deg,#fffaff,#f0e6f8)}
+ body[data-role="owner"] #biteV3Home .boh-quick-expense .boh-quick-icon{background:#f2dffc;color:#7d2eb7}
+ body[data-role="owner"] #biteV3Home .boh-quick-gst{background:linear-gradient(135deg,#fafff6,#e8f4e2)}
+ body[data-role="owner"] #biteV3Home .boh-quick-gst .boh-quick-icon{background:#def2d6;color:#218144}
+ body[data-role="owner"] #biteV3Home .boh-register{
+  display:flex;align-items:center;gap:12px;padding:13px 14px;min-height:82px;
+  border-radius:21px;border:1.5px solid #fff7e7;
+  background:linear-gradient(160deg,#fff9f2,#fce8d8);color:#3b2027;
+  box-shadow:0 8px 15px #ac6d4234,inset 0 2px 2px white;
+  text-align:left
+ }
+ body[data-role="owner"] #biteV3Home .boh-register-icon{
+  display:grid;place-items:center;flex:0 0 50px;height:50px;border-radius:15px;
+  background:linear-gradient(135deg,#ffecd1,#ffcd91);color:#da680d;
+  box-shadow:0 3px 7px #f2a85a69
+ }
+ body[data-role="owner"] #biteV3Home .boh-register-icon svg{width:27px;height:27px}
+ body[data-role="owner"] #biteV3Home .boh-register>span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}
+ body[data-role="owner"] #biteV3Home .boh-register strong{font-size:18px;font-weight:900;letter-spacing:-.035em}
+ body[data-role="owner"] #biteV3Home .boh-register small{font-size:12px;color:#71646a}
+ body[data-role="owner"] #biteV3Home .boh-register-arrow{color:#4a2327}
+ body[data-role="owner"] #biteV3Home .boh-home-end{height:6px}
+ body[data-role="owner"] #biteOwnerNoticeTray{
+  position:fixed;z-index:150;top:91px;right:12px;left:12px;max-width:430px;margin-left:auto;
+  border-radius:20px;border:1px solid #f1dfd2;background:#fffaf6;
+  box-shadow:0 20px 50px #3c152a72;overflow:hidden;color:#39252b;
+  animation:boh-tray-in .18s ease-out
+ }
+ body[data-role="owner"] #biteOwnerNoticeTray[hidden]{display:none!important}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-head{
+  display:flex;align-items:center;justify-content:space-between;padding:14px 15px;
+  background:linear-gradient(100deg,#fff2e8,#fffdf8);border-bottom:1px solid #f3e4d8
+ }
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-head strong{font-size:17px}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-head button{
+  width:33px;height:33px;border:0;border-radius:12px;background:#f8e6dc;
+  color:#542c33;font-size:22px;cursor:pointer
+ }
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-list{max-height:55vh;overflow:auto;padding:5px}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-item{
+  display:flex;align-items:center;gap:10px;width:100%;padding:11px 8px;
+  border:0;border-bottom:1px solid #f5ebe4;background:transparent;color:#3a2730;
+  text-align:left;font:inherit;cursor:pointer
+ }
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-symbol{
+  display:grid;place-items:center;flex:0 0 37px;height:37px;
+  border-radius:13px;background:#fff0df;color:#e46a10
+ }
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-item>span:nth-child(2){flex:1;display:grid;gap:4px;min-width:0}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-item strong{font-size:13px}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-item small{font-size:11px;color:#836f70}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-item svg{width:18px;height:18px}
+ body[data-role="owner"] #biteOwnerNoticeTray .boh-notice-empty{margin:0;padding:24px 16px;font-size:13px;color:#766f73;text-align:center}
+ body[data-role="owner"].bite-v3-active #mainApp .bite-owner-bottom-nav{
+  background:linear-gradient(170deg,#fffcfa,#fff7f2)!important;
+  border:1px solid #fff9f5!important;border-radius:21px 21px 0 0!important;
+  box-shadow:0 -5px 24px #5c2b2f32!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp .bite-owner-tab{color:#4b3036!important}
+ body[data-role="owner"].bite-v3-active #mainApp .bite-owner-tab.active{
+  color:#f06b00!important;background:linear-gradient(145deg,#ffedd8,#ffe1bd)!important;
+  box-shadow:0 3px 9px #e8912a38!important;
+ }
+ body[data-role="owner"].bite-v3-active #mainApp .bite-owner-tab-label{
+  font-size:clamp(9px,2.4vw,10.5px)!important;line-height:1.12;
+  text-align:center;white-space:normal!important;max-width:100%;overflow:visible!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp .bite-owner-tab-icon svg{width:22px;height:22px}
+ body[data-role="owner"].bite-v3-active #overview #biteV3Home{
+  animation:boh-page-in .35s cubic-bezier(.23,.88,.3,1)
+ }
+ @keyframes boh-page-in{from{opacity:.3;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+ @keyframes boh-tray-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+}
+@media(max-width:365px){
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteOwnerHomeBrand{display:none!important}
+ body[data-role="owner"] #biteV3Home .boh-feature{padding:11px 9px;border-radius:17px}
+ body[data-role="owner"] #biteV3Home .boh-room-stat{font-size:10px;padding:5px}
+ body[data-role="owner"] #biteV3Home .boh-quick{padding:8px 4px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-role="owner"] #biteV3Home .boh-feature,
+ body[data-role="owner"] #biteV3Home .boh-quick,
+ body[data-role="owner"] #biteOwnerNoticeTray,
+ body[data-role="owner"].bite-v3-active #overview #biteV3Home{animation:none!important;transition:none!important}
+}

@@ -9,6 +9,7 @@
   bed:'<rect x="3" y="10" width="18" height="8" rx="2"/><path d="M3 18v3m18-3v3M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/>',
   rupee:'<path d="M6 4h12M6 8h12M6 4c4 0 7 2 7 5s-3 5-7 5l9 7"/>',
   receipt:'<path d="M5 2h14v20l-3-2-4 2-4-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/>',
+  book:'<path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1z"/><path d="M12 5v15"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/>',
   chef:'<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10 0 4 4 0 0 1 0 8"/><path d="M7 14v5h10v-5"/>',
   ready:'<path d="M3 17h18M5 16a7 7 0 0 1 14 0"/><path d="M12 9V6"/>',
@@ -84,53 +85,102 @@
   }
   return '<section class="bv3-quiet">'+icon('check')+'<span><strong>All caught up</strong><small>No customer confirmation waiting right now</small></span><button type="button" data-bv3-route="orders">Orders →</button></section>';
  }
+
+ function monthRegisterSummary(){
+  const workspace=root.BiteHospitality?.getWorkspace?.(),snap=hotelSnapshot();
+  if(!snap?.hotel||!snap.ready)return {label:'',count:null};
+  const today=root.BiteOwner?.day?.()||new Date().toISOString().slice(0,10);
+  const month=today.slice(0,7);
+  const label=new Intl.DateTimeFormat('en-IN',{month:'short',timeZone:'Asia/Kolkata'}).format(new Date(month+'-15T12:00:00+05:30'));
+  const records=(workspace?.stays||[]).filter(stay=>{
+   const register=stay.registration||{};
+   const date=String(register.entry_date||(register.registered_at?root.BiteOwner?.day?.(register.registered_at):'')||stay.arrival||'');
+   return date.startsWith(month)&&['in_house','checked_out'].includes(stay.status);
+  });
+  return {label,count:records.length};
+ }
+ function noticeEntries(data,waiting){
+  const approvals=waiting.map(item=>({id:'approval:'+item.intent_id,kind:'approval',title:'Order approval needed',
+    subtitle:'#'+String(item.intent_id||'').slice(0,8).toUpperCase()+' · '+String(item.customer_name||'Customer'),route:'orders',filter:'new'}));
+  const snap=hotelSnapshot();
+  if(snap?.restaurant===false)return approvals;
+  const pid=currentAccess?.restaurantId;
+  const verified=root.BiteOwnerOrderBurst?.paidOrderIds?.(currentState?.financials||[],pid);
+  const paid=(data?.active||[]).filter(order=>order.status==='Received'&&verified?.has?.(order.id));
+  return approvals.concat(paid.map(order=>({id:'paid:'+order.id,kind:'paid',title:'New paid Bite order',
+   subtitle:'#'+String(order.code||order.id||'').slice(0,14),route:'orders',filter:'new'})));
+ }
+ let notificationList=[],noticeOpen=false;
+ function paintNoticeTray(){
+  const tray=root.document?.getElementById('biteOwnerNoticeTray');
+  const bell=root.document?.getElementById('biteV3HeaderBell');
+  if(!tray||!bell)return;
+  tray.hidden=!noticeOpen;
+  bell.setAttribute('aria-expanded',String(noticeOpen));
+  if(!noticeOpen)return;
+  tray.innerHTML='<header class="boh-notice-head"><strong>Notifications</strong><button type="button" data-bv3-close-notices aria-label="Close notifications">×</button></header>'+
+   (notificationList.length?'<div class="boh-notice-list">'+notificationList.map((n,i)=>'<button type="button" class="boh-notice-item" data-bv3-notice-index="'+i+'"><span class="boh-notice-symbol">'+icon(n.kind==='approval'?'clock':'bag')+'</span><span><strong>'+escapeHtml(n.title)+'</strong><small>'+escapeHtml(n.subtitle)+'</small></span>'+icon('arrow')+'</button>').join('')+'</div>':
+   '<p class="boh-notice-empty">No new order notifications right now.</p>');
+ }
+ function setNotices(items){
+  notificationList=items;
+  updateOrderBadge(items.length);
+  if(noticeOpen)paintNoticeTray();
+ }
+ function toggleNoticeTray(force){
+  noticeOpen=typeof force==='boolean'?force:!noticeOpen;
+  paintNoticeTray();
+ }
+ function featureCard(tone,route,title,ico,sub,action='',extra=''){
+  if(!permitted(route))return '';
+  return '<button type="button" class="boh-feature boh-'+tone+'" data-bv3-route="'+escapeHtml(route)+'" '+extra+'>'+
+   '<span class="boh-card-illustration" aria-hidden="true"></span>'+
+   '<span class="boh-feature-icon">'+icon(ico)+'</span><strong>'+escapeHtml(title)+'</strong>'+
+   (sub?'<small>'+escapeHtml(sub)+'</small>':'')+
+   (action?'<span class="boh-card-cta">'+escapeHtml(action)+' '+icon('arrow')+'</span>':'<span class="boh-feature-arrow">'+icon('arrow')+'</span>')+
+   '</button>';
+ }
+ function roomStatusCard(snap){
+  if(!snap?.hotel||!permitted('rooms'))return '';
+  const ready=snap.ready===true,hk=root.BiteHospitality?.housekeepingVisible?.()===true;
+  return '<button type="button" class="boh-feature boh-room" data-bv3-route="rooms" aria-label="Open Room Status">'+
+   '<span class="boh-card-illustration" aria-hidden="true"></span><span class="boh-feature-icon">'+icon('bed')+'</span>'+
+   '<strong>Room Status</strong>'+
+   '<span class="boh-room-stat"><span class="boh-dot is-occupied"></span>Occupied <b>'+num(ready?snap.occupied:null)+'</b></span>'+
+   '<span class="boh-room-stat"><span class="boh-dot is-available"></span>Available <b>'+num(ready?snap.available:null)+'</b></span>'+
+   (hk?'<span class="boh-room-stat"><span class="boh-dot is-cleaning"></span>Cleaning <b>'+num(ready?snap.cleaning:null)+'</b></span>':'')+
+   '</button>';
+ }
+ function quickLink(label,route,ico,tone='',extra=''){
+  if(!permitted(route))return '';
+  return '<button type="button" class="boh-quick boh-quick-'+tone+'" data-bv3-route="'+escapeHtml(route)+'" '+extra+'>'+
+   '<span class="boh-quick-icon">'+icon(ico)+'</span><strong>'+escapeHtml(label)+'</strong></button>';
+ }
  function homeHtml(data,snap,waiting){
-  const active=data?.active||[],statuses=data?.stages||{},paidNew=Number(statuses.Received||0);
-  const hasHotel=!!snap?.hotel,hasFood=snap?.restaurant!==false;
-  const todayOrders=data?.todayOrders?.length??0;
-  const kpis=hasHotel&&!hasFood?[
-   keyCard('Occupied rooms',num(snap?.occupied),'bed','Currently checked in','is-purple'),
-   keyCard('Expected arrivals',num(snap?.arrivals),'calendar','Upcoming room check-in','is-green'),
-   keyCard('Available rooms',num(snap?.available),'ready','Ready for guests','is-orange'),
-   keyCard('Open guest folios',num(snap?.openFolios),'receipt','Room billing records','is-blue')
-  ]:[
-   keyCard("Today's orders",num(todayOrders),'bag','Real Bite website orders','is-purple'),
-   keyCard("Online paid (net)",money(data?.todaySales||0),'rupee','Verified · refunds minus','is-green'),
-   hasHotel?keyCard('Occupied rooms',num(snap?.occupied),'bed','Currently checked in','is-orange'):keyCard('Preparing',num(statuses.Preparing||0),'chef','Accepted + preparing','is-orange'),
-   keyCard('POS billed',money(data?.todayPosBilled||0),'receipt','Not cash collected','is-blue')
-  ];
-  const quick=[];
-  if(hasHotel&&permitted('hotel-register'))quick.push(actionLink('Check-in','hotel-register','bed'));
-  if(hasHotel&&permitted('guests'))quick.push(actionLink('Guest search','guests','people'));
-  if(permitted('pos'))quick.push(actionLink('New POS bill','pos','pos','data-bv3-new-pos="true"'));
-  if(permitted('menu'))quick.push(actionLink('Menu','menu','chef'));
-  if(!quick.length&&permitted('reports'))quick.push(actionLink('Reports','reports','chart'));
-  const counts=[
-   {name:'New',value:paidNew,route:'new',icon:'bag'},
-   {name:'Preparing',value:Number(statuses.Preparing||0),route:'preparing',icon:'chef'},
-   {name:'Ready',value:Number(statuses.Ready||0),route:'ready',icon:'ready'},
-   {name:'Delivered',value:Number(data?.delivered||0),route:'completed',icon:'check'}
-  ];
-  const roomSub=hasHotel?(snap?.ready===false?'Room data loading…':num(snap?.occupied)+' occupied · '+num(snap?.available)+' available'):'Restaurant operations';
-  const roomCard=hasHotel&&hasFood?'<div class="bv3-bottom-panel"><div class="bv3-card-title"><strong>Room status</strong><button data-bv3-route="rooms" type="button">'+icon('arrow')+'</button></div>'+
-   '<div class="bv3-room"><span class="bv3-room-dot is-occupied"></span>Occupied<strong>'+num(snap?.occupied)+'</strong></div>'+
-   '<div class="bv3-room"><span class="bv3-room-dot is-available"></span>Available<strong>'+num(snap?.available)+'</strong></div>'+
-   (root.BiteHospitality?.housekeepingVisible?.()===true?'<div class="bv3-room"><span class="bv3-room-dot is-clean"></span>Cleaning<strong>'+num(snap?.cleaning)+'</strong></div>':'')+
-   '</div>':'';
-  const weekly=hasFood?'<div class="bv3-bottom-panel bv3-sales"><div class="bv3-card-title"><strong>7-day online paid trend</strong><button data-bv3-route="reports" type="button">'+icon('arrow')+'</button></div>'+
-   chartSvg(data?.week)+'<small>Paid orders only; POS excluded</small></div>':'';
-  return '<div class="bv3-intro"><span class="bv3-owner-mark">B</span><span><strong>'+escapeHtml(propertyName())+'</strong><small>'+escapeHtml(hasHotel&&!hasFood?'Hotel operations':'Hotel & restaurant control')+'</small></span>'+
-   (hasFood?'<button type="button" class="bv3-bell" data-bv3-route="orders" data-bv3-filter="new" aria-label="Open new order notifications">'+icon('bell')+
-   (waiting.length?'<i>'+waiting.length+'</i>':'')+'</button>':'')+'</div>'+
-   (hasFood?attentionCard(waiting,paidNew):'')+
-   '<div class="bv3-section-label">Business snapshot <span>Today · Live data</span></div>'+
-   '<section class="bv3-kpis" aria-label="Today business statistics">'+kpis.join('')+'</section>'+
-   '<div class="bv3-section-label">Quick actions</div>'+
-   '<section class="bv3-shortcuts" aria-label="Quick owner actions">'+quick.join('')+'</section>'+
-   (roomCard||weekly?'<section class="bv3-insights">'+roomCard+weekly+'</section>':'')+
-   (hasFood?'<section class="bv3-flow"><div class="bv3-flow-head"><strong>Live order status</strong><button type="button" data-bv3-route="orders">View all →</button></div>'+
-      '<div class="bv3-flow-grid">'+counts.map(c=>'<button type="button" data-bv3-route="orders" data-bv3-filter="'+c.route+'">'+icon(c.icon)+'<span>'+escapeHtml(c.name)+'</span><b>'+num(c.value)+'</b></button>').join('')+'</div></section>':'')+
-   (hasFood?'<p class="bv3-finance-note">Online paid, POS billed and cash received are separate. See Cashbook for collections.</p>':'');
+  const hotel=!!snap?.hotel,food=permitted('pos')||permitted('orders');
+  const tax=root.BiteHospitality?.prop?.()?.tax_profile||{};
+  const register=hotel?monthRegisterSummary():{count:null,label:''};
+  const tiles=[];
+  if(hotel)tiles.push(roomStatusCard(snap));
+  if(food)tiles.push(featureCard('pos','pos','New POS Bill','pos','','Create Bill','data-bv3-new-pos="true"'));
+  if(hotel)tiles.push(featureCard('checkin','hotel-register','Check-in','people','Today arrivals'));
+  else if(food)tiles.push(featureCard('orders','orders','Bite Orders','bag',num(snap?.newOrders)+' new orders'));
+  if(permitted('daily-book'))tiles.push(featureCard('daily','daily-book','Daily Book','book','Daily records & day summary'));
+  else if(food&&permitted('menu'))tiles.push(featureCard('daily','menu','Menu','chef','Edit items & availability'));
+  const quick=[
+   quickLink('Staff Attendance','hr','people','staff','data-bv3-attendance="true"'),
+   quickLink('Expenses','expenses','rupee','expense'),
+   tax.reviewed&&tax.gstin?quickLink('GST Collection','daily-book','receipt','gst','data-bv3-gst="true"'):''
+  ].filter(Boolean);
+  const registerRow=hotel&&permitted('guests')?
+   '<button type="button" class="boh-register" data-bv3-route="guests"><span class="boh-register-icon">'+icon('book')+'</span>'+
+   '<span><strong>Hotel Register</strong><small>'+(register.count===null?'Loading entries…':escapeHtml(register.label)+' · '+num(register.count)+' entr'+(register.count===1?'y':'ies'))+'</small></span>'+
+   '<span class="boh-register-arrow">'+icon('arrow')+'</span></button>':'';
+  return '<div class="boh-home" aria-label="Hotel and restaurant operations">'+
+   '<section class="boh-feature-grid" aria-label="Main hotel and restaurant actions">'+tiles.join('')+'</section>'+
+   (quick.length?'<h2 class="boh-section-title">Quick Actions</h2><section class="boh-quick-grid" aria-label="Quick actions">'+quick.join('')+'</section>':'')+
+   registerRow+
+   '<span class="boh-home-end" aria-hidden="true"></span></div>';
  }
  function tick(){
   const home=root.document?.getElementById('biteV3Home');
@@ -145,18 +195,18 @@
   if(chips.length&&[...chips].every(el=>secondsLeft(el.dataset.bv3Until)===0))renderHome(true);
  }
  function renderHome(force=false){
-  if(!currentState||currentAccess?.role!=='owner'||!currentAccess.restaurantId)return;
+  if(!currentState||currentAccess?.role!=='owner'||(!currentAccess.restaurantId&&!root.BiteHospitality?.prop?.()))return;
   const home=root.document.getElementById('biteV3Home');if(!home)return;
-  const data=summary(),snap=hotelSnapshot(),waiting=approvals();
-  if(!data)return;
-  const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=snap?.restaurant===false;
+  const data=summary()||{active:[],todayOrders:[],stages:{},week:[],todaySales:0,todayPosBilled:0,todayExpenses:0},snap=hotelSnapshot(),waiting=approvals();
+  const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=false;
+  const notices=noticeEntries(data,waiting),register=monthRegisterSummary();
   const signature=JSON.stringify([currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
-    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount])]);
+    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
   root.document.body.classList.add('bite-v3-active');
-  updateOrderBadge(waiting.length);
+  setNotices(notices);
   tick();
  }
  function updateOrderBadge(count){
@@ -236,6 +286,8 @@
   void Promise.resolve(root.showPage(page)).then(()=>{
    if(page==='orders'&&filter&&typeof root.setOrderStatus==='function')root.setOrderStatus(filter);
    if(page==='orders')root.BiteOwnerConfirmations?.refresh?.();
+   if(page==='hr'&&typeof root.BiteOwnerHRTabs?.activate==='function'&&filter==='attendance')root.BiteOwnerHRTabs.activate(root.document,'attendance');
+   if(page==='daily-book'&&filter==='gst')root.document.querySelector('#daily-book [data-ha-action="gst"]')?.scrollIntoView?.({block:'center',behavior:'smooth'});
   }).catch(e=>root.console?.warn?.('Owner route unavailable',e));
  }
  function onClick(e){
@@ -249,7 +301,7 @@
    Promise.resolve(root.BiteOwnerConfirmations?.review?.(id,decision)).finally(()=>renderHome(true));
    return;
   }
-  if(button.dataset.bv3Route)route(button.dataset.bv3Route,button.dataset.bv3Filter,button.dataset.bv3NewPos==='true');
+  if(button.dataset.bv3Route)route(button.dataset.bv3Route,button.dataset.bv3Attendance==='true'?'attendance':button.dataset.bv3Gst==='true'?'gst':button.dataset.bv3Filter,button.dataset.bv3NewPos==='true');
  }
  function initialize(){
   if(root.document?.getElementById('biteV3Home'))return;
@@ -264,10 +316,30 @@
   if(header&&!root.document.getElementById('biteV3HeaderBell')){
    const bell=root.document.createElement('button');
    bell.type='button';bell.id='biteV3HeaderBell';bell.className='bv3-header-bell';
-   bell.setAttribute('aria-label','Open pending order confirmations');
+   bell.setAttribute('aria-label','Open notifications');
+   bell.setAttribute('aria-haspopup','true');
+   bell.setAttribute('aria-expanded','false');
    bell.innerHTML=icon('bell')+'<i hidden>0</i>';
-   bell.addEventListener('click',()=>route('orders','new',false));
+   bell.addEventListener('click',()=>toggleNoticeTray());
    header.append(bell);
+   const tray=root.document.createElement('section');
+   tray.id='biteOwnerNoticeTray';tray.className='boh-notice-tray';tray.hidden=true;
+   tray.setAttribute('aria-label','Order notifications');tray.setAttribute('role','region');
+   root.document.querySelector('#mainApp>.main')?.append(tray);
+   tray.addEventListener('click',e=>{
+    if(e.target.closest?.('[data-bv3-close-notices]')){toggleNoticeTray(false);return;}
+    const button=e.target.closest?.('[data-bv3-notice-index]');
+    if(!button)return;
+    const item=notificationList[Number(button.dataset.bv3NoticeIndex)];
+    toggleNoticeTray(false);
+    if(item)route(item.route,item.filter,false);
+   });
+   root.document.addEventListener('click',e=>{
+    if(noticeOpen&&!e.target.closest?.('#biteOwnerNoticeTray,#biteV3HeaderBell'))toggleNoticeTray(false);
+   });
+   root.document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&noticeOpen)toggleNoticeTray(false);
+   });
   }
   root.document.addEventListener('bite:owner-confirmations-updated',e=>{
    if(e.detail?.restaurantId===currentAccess?.restaurantId){
@@ -283,6 +355,7 @@
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
+   toggleNoticeTray(false);
    root.document?.body?.classList.remove('bite-v3-active');
    const bell=root.document?.getElementById('biteV3HeaderBell');if(bell)bell.hidden=true;
    return;
