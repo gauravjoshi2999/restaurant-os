@@ -12,7 +12,7 @@ test('POS draft script parses and is loaded by owner dashboard',()=>{
  assert.match(page,/BitePOS\.refreshDrafts/);
  assert.match(page,/BitePOS\.editSavedPos/);
  assert.match(page,/BitePOS\.voidSavedPos/);
- assert.match(page,/replace_unpaid_pos_order/);
+ assert.match(page,/bite_create_pos_bill_with_service_v1/);
  assert.match(page,/BitePOS\?\.finishOrder/);
 });
 
