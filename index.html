@@ -734,6 +734,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-mobile-forms.css?v=20261116-1">
 <script src="assets/owner-mobile-forms.js?v=20261116-1" defer></script>
 <script src="assets/owner-premium-shell.js?v=20261117-accounts1" defer></script>
+<link rel="stylesheet" href="assets/owner-reference-v3.css?v=20261117-finalref1">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -1366,6 +1367,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
 <script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
 <script src="assets/owner-dashboard.js"></script>
+<script src="assets/owner-reference-v3.js?v=20261117-finalref1"></script>
 <script src="assets/owner-menu-options-preview.js?v=20261116-preview1"></script>
 <script src="assets/owner-menu-options.js?v=20261116-preview1"></script>
 <script src="assets/owner-exports.js"></script>
@@ -3618,7 +3620,7 @@ async function handlePendingNativeApprovalOpen(){
    return;
   }
   await loadCloudData();
-  showPage('orders');
+  await showPage('orders');
   setOrderStatus('new');
   await window.BiteOwnerConfirmations?.refresh?.();
  }catch(error){console.warn('Confirmation notification open failed',error);}
@@ -4093,6 +4095,7 @@ function renderOrderBoard(){
  renderIncomingOrderInbox();
  updateOrderSoundButton();
  updateOwnerWaitingIndicators();
+ window.BiteOwnerReferenceV3?.afterOrdersRender();
 }
 function updateOwnerWaitingIndicators(){
  if(access.role!=='owner'||!access.restaurantId)return;
@@ -4168,7 +4171,7 @@ const oht=document.getElementById('ownerHomeTitle');if(oht)oht.textContent='Orde
 let rr=document.getElementById('restaurantRows');rr.innerHTML=state.restaurants.map(r=>'<tr><td><strong>'+esc(r.name)+'</strong><br><span class="small">'+esc(r.address||'')+'</span></td><td>'+esc(r.contact_person||'—')+'</td><td>'+esc(r.phone||'—')+'<br><span class="small">'+esc(r.email||'')+'</span></td><td>'+esc(r.city||'—')+'</td><td><span class="pill '+(r.onboardingStatus==='approved'?'green':r.onboardingStatus==='rejected'?'amber':'')+'">'+esc(r.onboardingStatus||'pending')+'</span><br><span class="small">Operations: '+esc(r.status||'—')+' · Website: '+(r.is_published?'Live':'Draft')+'</span></td><td>'+(access.isPlatformAdmin?'<button class="btn secondary" onclick="editRestaurant(\''+esc(r.id)+'\')">Edit</button> <button class="btn secondary" data-owner-reset-id="'+esc(r.id)+'" onclick="resetOwnerPassword(\''+esc(r.id)+'\')">Reset Password</button> <button class="btn danger" onclick="deleteRestaurant(\''+esc(r.id)+'\')">Delete</button>':'—')+'</td><td><div class="actions approval-actions">'+(r.onboardingStatus==='approved'?'<button class="btn danger" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;suspend&quot;)">Suspend</button>':r.onboardingStatus==='suspended'?'<button class="btn secondary" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;reactivate&quot;)">Reactivate</button>':'<button class="btn" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;approve&quot;)">Approve</button><button class="btn danger" onclick="setRestaurantApproval(&quot;'+esc(r.id)+'&quot;,&quot;reject&quot;)">Reject</button>')+'</div></td></tr>').join('');document.getElementById('restaurantEmpty').style.display=state.restaurants.length?'none':'block';
 renderOrderBoard();if(access.role!=='super_admin')renderPOSWorkspace();if(document.getElementById('tables')?.classList.contains('active')&&access.role!=='super_admin')renderTablesWorkspace();if(document.getElementById('refunds')?.classList.contains('active')&&access.role!=='super_admin')renderRefundWorkspace();
 document.getElementById('recentOrders').innerHTML=dashboardOrders.slice(0,5).map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'</td><td>'+esc(r?.name||'Unknown')+'</td><td>'+esc(o.channel)+'</td><td>'+money(o.amount)+'</td><td><span class="pill">'+esc(o.status)+'</span></td></tr>'}).join('');document.getElementById('recentEmpty').style.display=dashboardOrders.length?'none':'block';
-const reconciliationOrders=access.role==='super_admin'?[]:state.orders;document.getElementById('reconRows').innerHTML=reconciliationOrders.map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);let reported=o.reported??o.amount;let payout=o.payout;let diff=Number(reported)-(payout==null?0:Number(payout));return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'<br><span class="small">'+esc(r?.name||'Unknown')+'</span></td><td>'+esc(o.channel)+'</td><td><input id="reported-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+esc(reported)+'" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td><input id="payout-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+(payout==null?'':esc(payout))+'" placeholder="Bank payout" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td>'+money(diff)+'</td><td><button class="btn secondary" onclick="saveReconciliation(\''+esc(o.id)+'\')">Save</button></td></tr>'}).join('');document.getElementById('reconEmpty').style.display=reconciliationOrders.length?'none':'block';renderFinancials();if(access.role==='owner')BiteDashboard.render(document,state,access)}
+const reconciliationOrders=access.role==='super_admin'?[]:state.orders;document.getElementById('reconRows').innerHTML=reconciliationOrders.map(o=>{let r=state.restaurants.find(x=>x.id===o.restaurant);let reported=o.reported??o.amount;let payout=o.payout;let diff=Number(reported)-(payout==null?0:Number(payout));return '<tr><td>'+esc(o.code||o.id.slice(0,8))+'<br><span class="small">'+esc(r?.name||'Unknown')+'</span></td><td>'+esc(o.channel)+'</td><td><input id="reported-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+esc(reported)+'" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td><input id="payout-'+esc(o.id)+'" type="number" min="0" step=".01" value="'+(payout==null?'':esc(payout))+'" placeholder="Bank payout" style="width:112px;padding:8px;border:1px solid #e3e7ef;border-radius:8px"></td><td>'+money(diff)+'</td><td><button class="btn secondary" onclick="saveReconciliation(\''+esc(o.id)+'\')">Save</button></td></tr>'}).join('');document.getElementById('reconEmpty').style.display=reconciliationOrders.length?'none':'block';renderFinancials();if(access.role==='owner'){BiteDashboard.render(document,state,access);window.BiteOwnerReferenceV3?.refresh(state,access)}else window.BiteOwnerReferenceV3?.refresh(state,access)}
 
 function defaultSettlementWeek(){
  const today=new Date(),end=new Date(today.getFullYear(),today.getMonth(),today.getDate()-1);
