@@ -30,6 +30,7 @@ PUBLIC_FILES = (
     "assets/owner-hospitality.css",
     "assets/owner-operations.js",
     "assets/owner-hotel-accounts.js",
+    "assets/owner-checkin-flow.js",
     "assets/owner-hotel-accounts.css",
     "assets/customer-guest-stay.js",
     "assets/customer-guest-stay.css",
