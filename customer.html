@@ -1890,6 +1890,7 @@ async function finishVerifiedCheckout(result,options={}){
   !$('checkoutFormPanel').classList.contains('hidden')&&$('checkoutModal').classList.contains('show');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
  const pendingCartSignature=pendingLiveCheckout?.cartSignature||null;
+ if(pendingLiveCheckout?.confirmationRequired)window.BiteOrderConfirmation?.stop();
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
  if(window.BiteCheckoutUX)window.BiteCheckoutUX.freshCartRequested=false;
  if(!preserveFreshCart&&completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};itemNotes={};$('customerNote').value='';$('cartOrderNote').value='';$('checkoutCutlery').checked=false;renderCart();}
