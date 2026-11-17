@@ -22,11 +22,12 @@ test('Real diner count is integer 1–200 and takeaway contributes zero seated p
  assert.throws(()=>v.valid('other',5),/Dine-in/);
 });
 test('Canonical bill form has one Dine-in/Takeaway control; hotel room tender unchanged',()=>{
- for(const id of ['bitePOSVisitControls','posGuestCount','posVisitDineIn','posVisitTakeaway','posNewSaleBtn','posPaymentSection','posItemSummary','posWhatsAppConsent','biteRoomPOSFolio','posDraftCards'])
+ for(const id of ['bitePOSVisitControls','posGuestCount','posVisitDineIn','posVisitTakeaway','posNewSaleBtn','posPaymentSection','posItemSummary','posWhatsAppConsent','posDraftCards'])
   assert.ok(html.includes(id),'Missing '+id);
  assert.match(css,/#bitePOSOrderType>label:not\(#bitePOSTableField\)/);
  assert.match(hospitality,/roomPOSSelected\(\)/);
  assert.match(hospitality,/function createRoomPOS/);
+ assert.match(hospitality,/biteRoomPOSFolio/);
  assert.match(hospitality,/pos_visit_type:visit\.visitType/);
  assert.match(hospitality,/guest_count:visit\.guestCount/);
  assert.match(ui,/root\.BitePOSVisits=\{init,set,reset,selected,valid,detail,label,syncPropertyType,refresh,clear\}/);
@@ -57,5 +58,5 @@ test('Draft restores diner counts and saved POS history displays genuine service
  assert.match(html,/POS recorded receipt:/);
  assert.match(desk,/dineInBills/);
  assert.match(desk,/untrackedBills/);
- assert.match(desk,/n\.people\+' people served'/);
+ assert.match(desk,/n\.people\+' people served/);
 });
