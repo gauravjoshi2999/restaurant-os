@@ -143,7 +143,7 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
   insert into public.bite_property_commands values(p_property,p_request,p_action,p_payload,v,auth.uid(),now());
   insert into public.bite_property_audit(property_id,actor_id,action,entity_id,request_id)values(p_property,auth.uid(),p_action,entity,p_request);
  end if;return v;
-end$function$
+end$function$;
 
 notify pgrst,'reload schema';
 commit;
