@@ -61,11 +61,12 @@ test('Main actions use existing route/permission gates and notification tray ope
  assert.match(source,/BiteOwnerHRTabs\.activate/);
  assert.match(source,/data-bv3-notice-index/);
  assert.match(source,/toggleNoticeTray\(false\)/);
- assert.match(source,/route\(item\.route,item\.filter,false\)/);
+ assert.match(source,/route\(item\.route,item\.filter,false,item\)/);
+ assert.match(source,/focusNotificationOrder\(notification\)/);
  assert.match(nav,/Bite Orders/);
  assert.match(nav,/Restaurant POS/);
- assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-image-home1/);
- assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-image-home1/);
+ assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-compactfix2/);
+ assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-compactfix2/);
 });
 test('Illustrated design is CSS/SVG, mobile-only with reduced motion and no insecure remote images',()=>{
  for(const asset of ['owner-home-palace.svg','owner-home-service-bell.svg','owner-home-ledger.svg']){
@@ -75,4 +76,47 @@ test('Illustrated design is CSS/SVG, mobile-only with reduced motion and no inse
  assert.match(styles,/@media\(max-width:760px\)/);
  assert.match(styles,/@media\(prefers-reduced-motion:reduce\)/);
  assert.doesNotMatch(styles,/https?:\/\/|data:image\/base64/);
+});
+
+test('Final Home tabs match actual server-permitted hotel, restaurant and hybrid routes',()=>{
+ const Mobile=require('../assets/owner-mobile-navigation.js');
+ const pages=(type,allowed)=>Mobile.approvedHomeTabs({business_type:type},allowed).map(t=>t.page);
+ assert.deepEqual(pages('hotel',['overview','rooms','hotel-register','folios','hr','expenses']),['overview','rooms','more']);
+ assert.deepEqual(pages('restaurant',['overview','pos','orders','menu','hr']),['overview','orders','pos','more']);
+ assert.deepEqual(pages('hybrid',['overview','rooms','orders','pos','menu','hr']),['overview','rooms','orders','pos','more']);
+ assert.deepEqual(pages('restaurant',['overview','pos','menu']),['overview','pos','more'],'no restaurant Orders tab without permission');
+ assert.deepEqual(pages('hybrid',['overview','rooms','hotel-register']),['overview','rooms','more'],'no restaurant tabs without outlet rights');
+});
+test('Approved Home hides old KPIs on mobile without deleting payments or reports',()=>{
+ assert.match(styles,/#overview > :not\(#biteV3Home\)/);
+ for(const old of ['od-metrics','od-pos-breakdown','od-finance-boundary','od-dashboard-grid','od-footer']){
+  assert.ok(styles.includes('#overview .'+old),old);
+  assert.ok(markup.includes('class="'+old)||markup.includes(' '+old),'original underlying bindings remain intact '+old);
+ }
+ assert.match(source,/overview\.dataset\.biteHomeCompact='true'/);
+ assert.match(styles,/mask-image:linear-gradient/);
+ assert.match(styles,/\.boh-feature>strong/);
+});
+
+test('Hotel-only Owner boots V3 Home without an online restaurant outlet or stale notifications',()=>{
+ const home={hidden:true,innerHTML:'',querySelectorAll:()=>[]};
+ const badge={hidden:true,textContent:''};
+ const bell={hidden:true,querySelector:key=>key==='i'?badge:null};
+ const doc={body:{dataset:{role:'owner'},classList:{add(){},remove(){}}},visibilityState:'visible',
+  getElementById:id=>id==='biteV3Home'?home:id==='biteV3HeaderBell'?bell:id==='overview'?{dataset:{}}:null};
+ const root={console,document:doc,Date,BiteOwner:{day:()=> '2026-11-18'},
+  BiteHospitality:{prop:()=>({id:'hotel-only',business_type:'hotel',name:'Standalone Hotel',tax_profile:{}}),
+   dashboardSnapshot:()=>({hotel:true,restaurant:false,ready:true,occupied:2,available:5,cleaning:1}),
+   housekeepingVisible:()=>false,getWorkspace:()=>({stays:[]}),
+   routeList:()=>['overview','rooms','hotel-register','daily-book','guests','hr','expenses']},
+  BiteOwnerConfirmations:{snapshot:()=>[{state:'pending',intent_id:'other-outlet-order',expires_at:'2099-01-01'}]},
+  BiteDashboard:{summarize:()=>{throw Error('Hotel-only must not read an outlet summary')} }};
+ root.window=root;
+ vm.runInNewContext(source,{window:root,console,Date,Intl});
+ assert.match(home.innerHTML,/Room Status/);
+ assert.match(home.innerHTML,/Check-in/);
+ assert.match(home.innerHTML,/Daily Book/);
+ assert.match(home.innerHTML,/Hotel Register/);
+ assert.doesNotMatch(home.innerHTML,/New POS Bill|Cleaning/);
+ assert.equal(badge.hidden,true);
 });

@@ -40,12 +40,14 @@
   return (currentState?.restaurants||[]).find(r=>r.id===currentAccess?.restaurantId)?.name||'Your restaurant';
  }
  function approvals(){
+  // A hotel-only property has no outlet: never show restaurant notices from a prior tenant.
+  if(hotelSnapshot()?.restaurant===false)return [];
   return root.BiteOwnerConfirmations?.snapshot?.(currentAccess?.restaurantId)
     ?.filter(r=>r.state==='pending'&&secondsLeft(r.expires_at)>0).sort((a,b)=>Date.parse(a.expires_at)-Date.parse(b.expires_at))||[];
  }
  function summary(){
   const core=root.BiteDashboard;
-  if(!core||!currentState||!currentAccess?.restaurantId)return null;
+  if(!core||!currentState||!currentAccess?.restaurantId||hotelSnapshot()?.restaurant===false)return null;
   return core.summarize(currentState,currentAccess.restaurantId);
  }
  function hotelSnapshot(){
@@ -157,7 +159,8 @@
    '<span class="boh-quick-icon">'+icon(ico)+'</span><strong>'+escapeHtml(label)+'</strong></button>';
  }
  function homeHtml(data,snap,waiting){
-  const hotel=!!snap?.hotel,food=permitted('pos')||permitted('orders');
+  const hotel=!!snap?.hotel&&permitted('rooms'),food=permitted('pos')||permitted('orders');
+  const propertyType=hotel&&food?'hybrid':hotel?'hotel':'restaurant';
   const tax=root.BiteHospitality?.prop?.()?.tax_profile||{};
   const register=hotel?monthRegisterSummary():{count:null,label:''};
   const tiles=[];
@@ -177,10 +180,34 @@
    '<span><strong>Hotel Register</strong><small>'+(register.count===null?'Loading entries…':escapeHtml(register.label)+' · '+num(register.count)+' entr'+(register.count===1?'y':'ies'))+'</small></span>'+
    '<span class="boh-register-arrow">'+icon('arrow')+'</span></button>':'';
   return '<div class="boh-home" aria-label="Hotel and restaurant operations">'+
-   '<section class="boh-feature-grid" aria-label="Main hotel and restaurant actions">'+tiles.join('')+'</section>'+
+   '<section class="boh-feature-grid" data-business-type="'+propertyType+'" aria-label="Main hotel and restaurant actions">'+tiles.join('')+'</section>'+
    (quick.length?'<h2 class="boh-section-title">Quick Actions</h2><section class="boh-quick-grid" aria-label="Quick actions">'+quick.join('')+'</section>':'')+
    registerRow+
    '<span class="boh-home-end" aria-hidden="true"></span></div>';
+ }
+ const legacyHomeDisplays=new WeakMap();
+ function syncLegacyHomeVisibility(){
+  const doc=root.document;
+  if(!doc?.querySelectorAll)return;
+  const compact=doc.body?.dataset?.role==='owner' &&
+   (root.matchMedia?.('(max-width:760px)').matches ?? Number(root.innerWidth||1024)<=760) &&
+   !!doc.body?.classList?.contains?.('bite-v3-active');
+  for(const element of doc.querySelectorAll('#overview > [data-owner-dashboard], #overview > [data-platform-dashboard], #overview > #bitePremiumHome, #overview > #biteHotelHome')){
+   if(compact){
+    if(!legacyHomeDisplays.has(element))legacyHomeDisplays.set(element,{
+     value:element.style.getPropertyValue('display'),
+     priority:element.style.getPropertyPriority('display')
+    });
+    // Legacy role/finance refreshes can set inline display!important.
+    // A scoped CSS override alone cannot beat that inline declaration.
+    element.style.setProperty('display','none','important');
+   }else if(legacyHomeDisplays.has(element)){
+    const prior=legacyHomeDisplays.get(element);
+    if(prior.value)element.style.setProperty('display',prior.value,prior.priority);
+    else element.style.removeProperty('display');
+    legacyHomeDisplays.delete(element);
+   }
+  }
  }
  function tick(){
   const home=root.document?.getElementById('biteV3Home');
@@ -200,12 +227,15 @@
   const data=summary()||{active:[],todayOrders:[],stages:{},week:[],todaySales:0,todayPosBilled:0,todayExpenses:0},snap=hotelSnapshot(),waiting=approvals();
   const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=false;
   const notices=noticeEntries(data,waiting),register=monthRegisterSummary();
-  const signature=JSON.stringify([currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
+  const signature=JSON.stringify([root.BiteHospitality?.prop?.()?.id,currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
     waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
+  const overview=root.document.getElementById('overview');
+  if(overview)overview.dataset.biteHomeCompact='true';
   root.document.body.classList.add('bite-v3-active');
+  syncLegacyHomeVisibility();
   setNotices(notices);
   tick();
  }
@@ -277,7 +307,31 @@
   if(stageSelect&&[...stageSelect.options].some(o=>o.value===selected))stageSelect.value=selected;
   updateOrderSearch();
  }
- function route(page,filter,newPos){
+ function focusNotificationOrder(item){
+  if(!item?.id||!root.document)return;
+  const approval=item.kind==='approval',orderId=String(item.id).slice(item.id.indexOf(':')+1);
+  const list=approval?'#biteOwnerApprovalQueue [data-bite-approval-id]':'#orderBoard .order-card[data-order-id]';
+  const attribute=approval?'biteApprovalId':'orderId';
+  const target=()=>[...root.document.querySelectorAll(list)].find(el=>el.dataset?.[attribute]===orderId);
+  let observer=null,deadline=null;
+  function reveal(){
+   const card=target();
+   if(!card)return false;
+   observer?.disconnect();if(deadline)root.clearTimeout(deadline);
+   card.classList.add('boh-notice-target');
+   card.setAttribute('tabindex','-1');
+   card.scrollIntoView?.({behavior:'smooth',block:'center'});
+   card.focus?.({preventScroll:true});
+   return true;
+  }
+  if(reveal())return;
+  const parent=root.document.getElementById('orders');
+  if(!parent||typeof root.MutationObserver!=='function')return;
+  observer=new root.MutationObserver(reveal);
+  observer.observe(parent,{subtree:true,childList:true});
+  deadline=root.setTimeout(()=>observer?.disconnect(),5000);
+ }
+ function route(page,filter,newPos,notification){
   if(!permitted(page))return;
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
    void Promise.resolve(root.openPosFromOverview(null));return;
@@ -285,7 +339,10 @@
   if(typeof root.showPage!=='function')return;
   void Promise.resolve(root.showPage(page)).then(()=>{
    if(page==='orders'&&filter&&typeof root.setOrderStatus==='function')root.setOrderStatus(filter);
-   if(page==='orders')root.BiteOwnerConfirmations?.refresh?.();
+   if(page==='orders'){
+    root.BiteOwnerConfirmations?.refresh?.();
+    if(notification)focusNotificationOrder(notification);
+   }
    if(page==='hr'&&typeof root.BiteOwnerHRTabs?.activate==='function'&&filter==='attendance')root.BiteOwnerHRTabs.activate(root.document,'attendance');
    if(page==='daily-book'&&filter==='gst')root.document.querySelector('#daily-book [data-ha-action="gst"]')?.scrollIntoView?.({block:'center',behavior:'smooth'});
   }).catch(e=>root.console?.warn?.('Owner route unavailable',e));
@@ -332,7 +389,7 @@
     if(!button)return;
     const item=notificationList[Number(button.dataset.bv3NoticeIndex)];
     toggleNoticeTray(false);
-    if(item)route(item.route,item.filter,false);
+    if(item)route(item.route,item.filter,false,item);
    });
    root.document.addEventListener('click',e=>{
     if(noticeOpen&&!e.target.closest?.('#biteOwnerNoticeTray,#biteV3HeaderBell'))toggleNoticeTray(false);
@@ -348,15 +405,31 @@
    }
   });
   root.addEventListener?.('bite:owner-summary',()=>renderHome(true));
-  root.addEventListener?.('bite:capabilities',()=>renderHome(true));
+  // Capabilities are observed at module scope so Hotel-only owners can bootstrap V3.
   if(!timer)timer=root.setInterval(()=>{if(root.document.visibilityState!=='hidden')tick();},1000);
   root.document.addEventListener('visibilitychange',()=>{if(root.document.visibilityState==='visible')renderHome(true);});
  }
+ function ensureOwnerHome(){
+  // Hotel-only owners do not have a restaurantId and therefore do not always
+  // enter the restaurant dashboard refresh path. Initialize on property context.
+  const doc=root.document,property=root.BiteHospitality?.prop?.();
+  if(!doc||doc.body?.dataset?.role!=='owner'||!property||!doc.getElementById('overview'))return;
+  if(!currentAccess||currentAccess.role!=='owner')currentAccess={role:'owner',restaurantId:null};
+  if(!currentState)currentState={orders:[],financials:[],expenses:[]};
+  initialize();
+  renderHome(true);
+ }
+ root.addEventListener?.('bite:capabilities',ensureOwnerHome);
+ root.addEventListener?.('resize',syncLegacyHomeVisibility);
+ if(root.document?.readyState==='loading'){
+  root.document.addEventListener('DOMContentLoaded',ensureOwnerHome,{once:true});
+ }else ensureOwnerHome();
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
    toggleNoticeTray(false);
    root.document?.body?.classList.remove('bite-v3-active');
+   syncLegacyHomeVisibility();
    const bell=root.document?.getElementById('biteV3HeaderBell');if(bell)bell.hidden=true;
    return;
   }
