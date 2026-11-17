@@ -220,5 +220,10 @@ try:
   nav(p,'overview');nav(p,'hotel-register');p.locator('[data-hotel-action=resume-register]').click();raw_id(f);review(f);confirm(p,f)
   check(p.evaluate('__BITE_DOCUMENT_QA.rows.size===1'),'Interrupted document finish reuses the persisted upload UUID');record('S25','Unknown responses, safe fresh start and document retries');c.close()
   check(len(checks)==25 and not errors,'All 25 scenarios pass without controller errors');browser.close()
+except Exception:
+ if 'p'in globals()and not p.is_closed():
+  print('DIAGNOSTIC:',p.locator('.page.active').inner_text()[-2500:])
+  p.screenshot(path=str(OUT/'ui-checkin-scenarios-failure.png'))
+ raise
 finally:
  server.shutdown();(OUT/'checkin-25-scenarios-evidence.json').write_text(json.dumps({'checks':checks,'page_errors':errors,'scope':'Synthetic Chromium transport with actual application controllers; SQL integration separately validates real database rules. Physical Android camera hardware is outside this test.'},indent=2))
