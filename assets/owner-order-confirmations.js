@@ -32,12 +32,14 @@
   const available=rows.filter(r=>r.state==='pending'&&countdown(r.expires_at).seconds>0);
   el.hidden=!display||available.length===0;
   const empty=document.getElementById('orderEmpty');
+  const boardPlaceholder=document.querySelector('#orderBoard .order-card-empty');
+  if(boardPlaceholder)boardPlaceholder.hidden=display&&available.length>0;
   if(empty&&display&&available.length)empty.style.display='none';
   else if(empty&&!document.querySelector('#orderBoard .order-card'))empty.style.display='block';
   const badge=document.querySelector('#biteOwnerOrderStages [data-bite-stage="new"] [data-bite-stage-count]');
   if(badge)badge.textContent=String(Number(paidNewCount||0)+available.length);
   if(el.hidden){el.innerHTML='';return;}
-  el.innerHTML='<div class="bite-approval-title"><strong>New · Waiting for your confirmation <span>'+available.length+'</span></strong><small>Payment not collected yet</small></div>'+
+  el.innerHTML='<div class="bite-approval-title"><strong>New · Restaurant approval needed <span>'+available.length+'</span></strong><small>Payment not collected yet</small></div>'+
    available.map(r=>{
     const left=countdown(r.expires_at);
     const items=Array.isArray(r.priced_items)?r.priced_items:[];
@@ -54,7 +56,7 @@
      (r.destination?'<div class="bite-approval-destination">📍 '+esc(r.destination)+'</div>':'')+
      '<div class="bite-approval-payment">Payment: Waiting for your approval</div>'+
      '<div class="bite-approval-actions"><button type="button" class="bite-approval-reject" data-intent="'+id+'" data-bite-confirm="rejected">Reject</button>'+
-     '<button type="button" class="bite-approval-accept" data-intent="'+id+'" data-bite-confirm="approved">Confirm order</button></div></article>';
+     '<button type="button" class="bite-approval-accept" data-intent="'+id+'" data-bite-confirm="approved">Approve for payment</button></div></article>';
    }).join('');
   for(const button of el.querySelectorAll('button[data-bite-confirm]'))button.disabled=busy.has(button.dataset.intent);
  }
@@ -74,7 +76,7 @@
   try{
    const {data,error}=await db.from('bite_order_confirmations')
     .select('intent_id,restaurant_id,customer_name,delivery_type,destination,customer_note,priced_items,amount,state,created_at,expires_at')
-    .eq('restaurant_id',id).eq('state','pending').order('created_at',{ascending:true}).limit(50);
+    .eq('restaurant_id',id).eq('state','pending').gte('expires_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(50);
    if(error)throw error;
    if(id!==restaurant)return;
    const fresh=(data||[]).filter(x=>countdown(x.expires_at).seconds>0);
