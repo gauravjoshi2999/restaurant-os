@@ -40,12 +40,14 @@
   return (currentState?.restaurants||[]).find(r=>r.id===currentAccess?.restaurantId)?.name||'Your restaurant';
  }
  function approvals(){
+  // A hotel-only property has no outlet: never show restaurant notices from a prior tenant.
+  if(hotelSnapshot()?.restaurant===false)return [];
   return root.BiteOwnerConfirmations?.snapshot?.(currentAccess?.restaurantId)
     ?.filter(r=>r.state==='pending'&&secondsLeft(r.expires_at)>0).sort((a,b)=>Date.parse(a.expires_at)-Date.parse(b.expires_at))||[];
  }
  function summary(){
   const core=root.BiteDashboard;
-  if(!core||!currentState||!currentAccess?.restaurantId)return null;
+  if(!core||!currentState||!currentAccess?.restaurantId||hotelSnapshot()?.restaurant===false)return null;
   return core.summarize(currentState,currentAccess.restaurantId);
  }
  function hotelSnapshot(){
@@ -201,7 +203,7 @@
   const data=summary()||{active:[],todayOrders:[],stages:{},week:[],todaySales:0,todayPosBilled:0,todayExpenses:0},snap=hotelSnapshot(),waiting=approvals();
   const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=false;
   const notices=noticeEntries(data,waiting),register=monthRegisterSummary();
-  const signature=JSON.stringify([currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
+  const signature=JSON.stringify([root.BiteHospitality?.prop?.()?.id,currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
     waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
@@ -378,10 +380,24 @@
    }
   });
   root.addEventListener?.('bite:owner-summary',()=>renderHome(true));
-  root.addEventListener?.('bite:capabilities',()=>renderHome(true));
+  // Capabilities are observed at module scope so Hotel-only owners can bootstrap V3.
   if(!timer)timer=root.setInterval(()=>{if(root.document.visibilityState!=='hidden')tick();},1000);
   root.document.addEventListener('visibilitychange',()=>{if(root.document.visibilityState==='visible')renderHome(true);});
  }
+ function ensureOwnerHome(){
+  // Hotel-only owners do not have a restaurantId and therefore do not always
+  // enter the restaurant dashboard refresh path. Initialize on property context.
+  const doc=root.document,property=root.BiteHospitality?.prop?.();
+  if(!doc||doc.body?.dataset?.role!=='owner'||!property||!doc.getElementById('overview'))return;
+  if(!currentAccess||currentAccess.role!=='owner')currentAccess={role:'owner',restaurantId:null};
+  if(!currentState)currentState={orders:[],financials:[],expenses:[]};
+  initialize();
+  renderHome(true);
+ }
+ root.addEventListener?.('bite:capabilities',ensureOwnerHome);
+ if(root.document?.readyState==='loading'){
+  root.document.addEventListener('DOMContentLoaded',ensureOwnerHome,{once:true});
+ }else ensureOwnerHome();
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
