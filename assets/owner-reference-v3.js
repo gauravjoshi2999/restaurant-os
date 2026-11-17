@@ -84,6 +84,22 @@
   }
   return '<section class="bv3-quiet">'+icon('check')+'<span><strong>All caught up</strong><small>No customer confirmation waiting right now</small></span><button type="button" data-bv3-route="orders">Orders →</button></section>';
  }
+ function hotelAttentionCard(snap){
+  // Only show verified workspace counts, never placeholder hotel alerts.
+  if(!snap?.hotel||snap.ready===false)return '';
+  const departures=Number(snap.departures),arrivals=Number(snap.arrivals);
+  const tasks=[];
+  if(Number.isFinite(departures)&&departures>0&&permitted('reservations')){
+   tasks.push('<button type="button" data-bv3-route="reservations"><span>'+icon('bed')+'<strong>'+num(departures)+' checkouts due</strong></span><small>Review stays and finish checkout</small>'+icon('arrow')+'</button>');
+  }
+  if(Number.isFinite(arrivals)&&arrivals>0&&permitted('reservations')){
+   tasks.push('<button type="button" data-bv3-route="reservations"><span>'+icon('calendar')+'<strong>'+num(arrivals)+' arrivals expected</strong></span><small>Open reservations for check-in</small>'+icon('arrow')+'</button>');
+  }
+  if(!tasks.length)return '';
+  return '<section class="bv3-hotel-attention" aria-label="Hotel arrivals and checkouts needing attention">'+
+   '<div class="bv3-hotel-attention-heading"><strong>Front desk today</strong><span>Hotel tasks</span></div>'+
+   '<div class="bv3-hotel-attention-items">'+tasks.join('')+'</div></section>';
+ }
  function homeHtml(data,snap,waiting){
   const active=data?.active||[],statuses=data?.stages||{},paidNew=Number(statuses.Received||0);
   const hasHotel=!!snap?.hotel,hasFood=snap?.restaurant!==false;
@@ -101,9 +117,10 @@
   ];
   const quick=[];
   if(hasHotel&&permitted('hotel-register'))quick.push(actionLink('Check-in','hotel-register','bed'));
-  if(hasHotel&&permitted('guests'))quick.push(actionLink('Guest search','guests','people'));
   if(permitted('pos'))quick.push(actionLink('New POS bill','pos','pos','data-bv3-new-pos="true"'));
-  if(permitted('menu'))quick.push(actionLink('Menu','menu','chef'));
+  if(hasHotel&&permitted('folios'))quick.push(actionLink('Guest Bills','folios','receipt'));
+  if(hasFood&&permitted('orders'))quick.push(actionLink('Live Orders','orders','bag'));
+  if(!quick.length&&permitted('menu'))quick.push(actionLink('Menu','menu','chef'));
   if(!quick.length&&permitted('reports'))quick.push(actionLink('Reports','reports','chart'));
   const counts=[
    {name:'New',value:paidNew,route:'new',icon:'bag'},
@@ -123,6 +140,7 @@
    (hasFood?'<button type="button" class="bv3-bell" data-bv3-route="orders" data-bv3-filter="new" aria-label="Open new order notifications">'+icon('bell')+
    (waiting.length?'<i>'+waiting.length+'</i>':'')+'</button>':'')+'</div>'+
    (hasFood?attentionCard(waiting,paidNew):'')+
+   hotelAttentionCard(snap)+
    '<div class="bv3-section-label">Business snapshot <span>Today · Live data</span></div>'+
    '<section class="bv3-kpis" aria-label="Today business statistics">'+kpis.join('')+'</section>'+
    '<div class="bv3-section-label">Quick actions</div>'+
