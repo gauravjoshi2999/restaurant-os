@@ -122,6 +122,7 @@
  }
  function render(input){
   source={restaurantId:input?.restaurantId,orders:Array.isArray(input?.orders)?input.orders:[]};
+  if(mode==='today'){selectedDate=nowDay();selectedMonth=selectedDate.slice(0,7);}
   attach();paint();
  }
  root.BitePOSReports={render,summary,dayTotals,stats,adjacent,calendar,activeMode:()=>mode};
