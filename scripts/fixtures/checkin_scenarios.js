@@ -21,6 +21,7 @@
    if(name==='bite_property_command'&&a.p_action==='reserve'&&q.loseBeforeReserve){q.loseBeforeReserve=false;q.lostReserve=structuredClone(a);throw Error('Synthetic response unknown before send')}
    const result=await rpc(name,a);
    if(name==='bite_property_command'&&a.p_action==='reserve'&&!result.error&&q.loseAfterReserve){q.loseAfterReserve=false;throw Error('Synthetic response unknown after commit')}
+   if(name==='bite_property_command'&&a.p_action==='checkin'&&!result.error&&q.loseAfterCheckin){q.loseAfterCheckin=false;throw Error('Synthetic response unknown after final check-in')}
    return result;
   };
   return c;

@@ -349,6 +349,7 @@
     localStorage.removeItem(item.key);
    }
   }
+  await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
   raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));return raw;
  }
  function renderRegister(guestId='',resume=false){
@@ -631,7 +632,7 @@
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
    else if(action==='food-save')await postFoodToBill();
-   else if(action==='resume-register'){await resolveRegistration(false);renderRegister('',true)}
+   else if(action==='resume-register'){const raw=await resolveRegistration(false),stay=data.stays.find(s=>s.id===raw.fields.stay_id);if(stay&&['in_house','checked_out'].includes(stay.status)){localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=data.folios.find(f=>f.stay_id===stay.id)?.id||null;await ctx.navigate('folios')}else renderRegister('',true)}
    else if(action==='fresh-register'){if(pendingRegistration().length)await resolveRegistration(true);localStorage.removeItem('bite_register_draft:'+identity());renderRegister()}
    else if(action==='room-release'){await command('room_status',{id,status:'ready'});$('bhActionEditor')?.remove();await refreshRegistration($('bhCheckinForm'))}
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}

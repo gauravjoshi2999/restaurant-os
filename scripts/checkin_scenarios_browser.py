@@ -40,7 +40,7 @@ def photo(page,button,value=None):
  event.value.set_files([] if value is None else value)
 def upload_dialog(page,f,value=None,key='lead',skip=True):
  f.locator('[data-id-open="'+key+'"]').click();d=page.locator('.ha-id-dialog')
- photo(page,d.locator('[data-upload]'),value or file_value());d.locator('.ha-id-preview').wait_for()
+ photo(page,d.locator('[data-upload]'),value or file_value());d.locator('.ha-id-preview,.ha-id-preview-pdf').wait_for()
  page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled")
  if skip:d.locator('[data-skip]').click();d.wait_for(state='detached')
  return d
@@ -208,6 +208,9 @@ try:
   p.locator('[data-hotel-action=resume-register]').click();p.wait_for_function("!!document.querySelector('#bhCheckinForm').dataset.stayId")
   review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===1&&__BITE_HOTEL_QA.db.entries.filter(e=>e.kind==="advance").length===1'),'Lost successful response resumes exactly one booking and advance');c.close()
+  c,p,f=open_case(browser);fill(f);raw_id(f);review(f);p.evaluate('__BITE_HOTEL_QA.loseAfterCheckin=true');f.locator('button[type=submit]').click();f.locator('.bh-message').get_by_text('Synthetic response unknown',exact=False).wait_for()
+  nav(p,'overview');nav(p,'hotel-register');p.locator('[data-hotel-action=resume-register]').click();p.locator('#folios.active').wait_for()
+  check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===1&&__BITE_HOTEL_QA.db.entries.filter(e=>e.kind==="charge").length===1'),'A lost final check-in response opens its existing khata');c.close()
   c,p,f=open_case(browser);fill(f);raw_id(f);review(f);p.evaluate('__BITE_HOTEL_QA.loseBeforeReserve=true');f.locator('button[type=submit]').click();f.locator('.bh-message').get_by_text('Synthetic response unknown',exact=False).wait_for()
   nav(p,'overview');nav(p,'hotel-register');p.locator('[data-hotel-action=fresh-register]').click()
   p.wait_for_function("!document.querySelector('#bhCheckinForm').inert")
