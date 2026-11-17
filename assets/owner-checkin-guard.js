@@ -18,7 +18,7 @@
   if(mode==='checkin'&&active.some(s=>s.status==='in_house'))return'Occupied';
   if(active.some(s=>s.arrival<departure&&arrival<s.departure))return'Reserved for these dates';
   if(mode==='checkin'&&arrival>today)return'Choose Reserve for a future date';
-  if(mode==='checkin'&&room.housekeeping!=='ready')return'Not released for check-in';
+  if(mode==='checkin'&&property.housekeeping_enabled!==false&&room.housekeeping!=='ready')return'Not released for check-in';
   const start=Date.parse(arrival+'T'+String(property.checkin_time||'12:00').slice(0,5)+':00+05:30'),end=Date.parse(departure+'T'+String(property.checkout_time||'11:00').slice(0,5)+':00+05:30');
   const turnover=Number(property.hotel_policy?.turnover_minutes??30)*60000;
   if(active.some(s=>s.departure===arrival&&s.expected_checkout_at&&Date.parse(s.expected_checkout_at)+turnover>start||s.arrival===departure&&s.scheduled_arrival_at&&end+turnover>Date.parse(s.scheduled_arrival_at)))return'Arrival / checkout timing conflict';
@@ -26,7 +26,7 @@
  }
  function rooms(form){
   if(!form?.isConnected||!form.elements.room_id)return;
-  const db=H().getWorkspace(),p=H().prop(),picker=form.elements.room_id,selected=picker.value;
+  const db=H().getWorkspace(),p={...H().prop(),housekeeping_enabled:H().housekeepingVisible()},picker=form.elements.room_id,selected=picker.value;
   if(!validDate(form.elements.arrival.value)||!validDate(form.elements.departure.value)||form.elements.departure.value<=form.elements.arrival.value){const info=form.querySelector('[data-room-availability]');if(info)info.textContent='Choose a checkout date after arrival to check rooms.';return}
   const choices=(db.rooms||[]).filter(r=>r.active).map(r=>({r,reason:roomAvailability(r,db.stays||[],form.elements.arrival.value,form.elements.departure.value,form.elements.mode.value,form.dataset.stayId||'',root.BiteOwner.day(),p)}));
   const available=choices.filter(x=>!x.reason).length;
@@ -119,7 +119,7 @@
  function prepare(form,f){
   if(f.mode==='checkin'&&f.arrival>root.BiteOwner.day())throw fail('arrival','For a future arrival, choose Reserve for later.');
   const db=H().getWorkspace(),room=(db.rooms||[]).find(r=>r.id===f.room_id);if(!room)throw fail('room_id','Choose an available room.');
-  const reason=roomAvailability(room,db.stays||[],f.arrival,f.departure,f.mode,form.dataset.stayId||'',root.BiteOwner.day(),H().prop());if(reason)throw fail('room_id','This room is '+reason.toLowerCase()+'. Choose another room or update the dates.');
+  const reason=roomAvailability(room,db.stays||[],f.arrival,f.departure,f.mode,form.dataset.stayId||'',root.BiteOwner.day(),{...H().prop(),housekeeping_enabled:H().housekeepingVisible()});if(reason)throw fail('room_id','This room is '+reason.toLowerCase()+'. Choose another room or update the dates.');
   validateForeign(readForeign(form),f.arrival);for(const row of form.querySelectorAll('[data-ha-party-list] [data-ha-id-card]'))validateForeign(readForeign(form,row.dataset.haIdCard),f.arrival,prefix(row.dataset.haIdCard));
  }
  const api={domestic,validDate,draftState,roomAvailability,rooms,decorate,prepare,readForeign,validateForeign,person,selectedGuest};root.BiteCheckinGuard=api;if(typeof module==='object'&&module.exports)module.exports=api;

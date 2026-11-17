@@ -54,3 +54,8 @@ test('monthly totals sum sales and movements but carry the last closing balance'
  const rows=A.reportRows({days:[{day:'2026-11-17',gross_sales:100,cash_balance:500,online_balance:200},{day:'2026-11-18',gross_sales:150,cash_balance:600,online_balance:250}]});
  assert.equal(rows.at(-1)[4],250);assert.equal(rows.at(-1)[11],600);assert.equal(rows.at(-1)[14],250);
 });
+
+test('draft bill returns to Partner and hides internal POS references',()=>{
+ const html=A.billHTML({number:'DRAFT',property:{name:'Test hotel'},guest:{name:'Test guest'},room:{number:'104'},stay:{},tax_profile:{gstin:'08ABCDE1234F1Z5',reviewed:true},entries:[{kind:'charge',category:'room',status:'confirmed',amount:1400,tax_rate:5,tax_amount:70},{kind:'charge',category:'food',status:'confirmed',description:'POS-ROOM-INTERNAL',amount:650,tax_rate:5,tax_amount:32.5,source_items:[{name:'Meal',quantity:1,unit_price:650}]}],totals:{charges:2152.5,paid:0,balance:2152.5}});
+ assert.match(html,/Back to Partner/);assert.match(html,/2,152.50/);assert.match(html,/CGST 2.5%/);assert.match(html,/SGST 2.5%/);assert(!html.includes('POS-ROOM-INTERNAL'));
+});

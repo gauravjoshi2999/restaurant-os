@@ -152,7 +152,7 @@ try:
      if width==390:
       page.context.set_offline(True);page.locator('#folios [data-hotel-action=checkout]').click();check('Offline' in page.locator('#folios .bh-message').first.inner_text(),'Offline checkout never claims settlement');check(page.evaluate("window.__BITE_HOTEL_QA.db.stays[0].status==='in_house'"),'Interrupted checkout preserves the active stay');page.context.set_offline(False);page.locator('#folios [data-hotel-action=checkout]').wait_for(state='visible')
      page.locator('#folios [data-hotel-action=checkout]').click();page.wait_for_function("window.__BITE_HOTEL_QA.db.stays[0].status==='checked_out'")
-     check(page.evaluate("window.__BITE_HOTEL_QA.db.rooms[0].housekeeping==='dirty'"),'Checkout leaves room Dirty')
+     check(page.evaluate("window.__BITE_HOTEL_QA.db.rooms[0].housekeeping===(BiteHospitality.housekeepingVisible()?'dirty':'ready')"),'Checkout availability follows the Housekeeping setting')
      check(page.locator('#folios [data-hotel-action=checkout]').count()==0,'Settled folio has no second checkout action')
      if width==390:
       with page.expect_popup() as split:page.locator('#folios [data-hotel-action=split-preview]').first.click()

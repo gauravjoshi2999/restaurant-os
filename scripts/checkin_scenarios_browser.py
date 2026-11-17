@@ -34,7 +34,7 @@ def fill(f,extra=None):
  f.locator('[name=room_id]').select_option('room-a')
 def file_value(buffer=PNG,mime='image/png',name='synthetic-copy.png'):return {'name':name,'mimeType':mime,'buffer':buffer}
 def raw_id(f):
- f.locator('[name=id_front]').set_input_files(file_value());f.locator('[name=id_checked]').check()
+ f.locator('[name=id_front]').set_input_files(file_value());f.locator('[name=id_back]').set_input_files(file_value());f.locator('[name=id_checked]').check()
 def photo(page,button,value=None):
  with page.expect_file_chooser()as event:button.click()
  event.value.set_files([] if value is None else value)
@@ -42,7 +42,8 @@ def upload_dialog(page,f,value=None,key='lead',skip=True):
  f.locator('[data-id-open="'+key+'"]').click();d=page.locator('.ha-id-dialog')
  photo(page,d.locator('[data-upload]'),value or file_value());d.locator('.ha-id-preview,.ha-id-preview-pdf').wait_for()
  page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled")
- if skip:d.locator('[data-skip]').click();d.wait_for(state='detached')
+ if skip:
+  photo(page,d.locator('[data-next]'),file_value());page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled");d.locator('[data-next]').click();d.wait_for(state='detached')
  return d
 def review(f):
  f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
@@ -93,11 +94,8 @@ try:
   check(not f.locator('[name=room_id] option[value=room-a]').is_disabled(),'Room occupied now is bookable after the prior stay ends');record('S06','Future reservation uses date availability');c.close()
 
   c,p,f=open_case(browser,'dirty')
-  check('No room is available'in f.locator('[data-room-availability]').inner_text(),'All unavailable rooms explain next action')
-  f.locator('[data-room-release]').click();p.locator('[data-hotel-action=room-release][data-id=room-a]').click()
-  p.locator('#bhActionEditor').wait_for(state='detached')
-  check(not f.locator('[name=room_id] option[value=room-a]').is_disabled(),'Manager explicitly releases a ready vacant room')
-  check(f.locator('[data-hotel-action=room-privacy]').count()==0,'Housekeeping controls remain hidden');record('S07','No available rooms and explicit vacant-room release');c.close()
+  check(not f.locator('[name=room_id] option[value=room-a]').is_disabled(),'Housekeeping OFF makes a vacant room immediately available')
+  check(not f.locator('[data-room-release]').is_visible(),'No manual readiness action is required');record('S07','Vacant rooms stay available with Housekeeping OFF');c.close()
 
   c,p,f=open_case(browser);fill(f);raw_id(f)
   f.locator('[name=departure]').fill('');f.locator('[name=departure]').fill(p.evaluate('BiteOwner.day(new Date(Date.now()+2*86400000))'))
@@ -151,7 +149,7 @@ try:
   c,p,f=open_case(browser);f.locator('[data-id-open=lead]').click();d=p.locator('.ha-id-dialog')
   photo(p,d.locator('[data-capture]'))
   check(d.locator('[data-next]').is_disabled(),'Cancelling native camera does not create a false photo')
-  photo(p,d.locator('[data-upload]'),file_value());d.locator('.ha-id-preview').wait_for();d.locator('[data-skip]').click()
+  photo(p,d.locator('[data-upload]'),file_value());d.locator('.ha-id-preview').wait_for();photo(p,d.locator('[data-next]'),file_value());d.locator('[data-next]').click()
   check(f.locator('[name=id_front]').evaluate('(e)=>e.files.length')==1,'Device upload remains available after camera cancellation');record('S17','Camera cancelled with upload fallback');c.close()
 
   c,p,f=open_case(browser);large=noise_png();check(len(large)>4*1024*1024,'Synthetic camera photo exceeds the storage limit')
@@ -164,14 +162,14 @@ try:
   f.locator('[data-id-open=lead]').click();d=p.locator('.ha-id-dialog');photo(p,d.locator('[data-upload]'),file_value(b'<script>bad</script>'))
   d.locator('.ha-camera-error').get_by_text('Choose a valid',exact=False).wait_for()
   check(f.locator('[name=id_front]').evaluate('(e)=>e.files[0].size')==len(PNG),'Renamed invalid file does not erase the valid front')
-  d.locator('[data-skip]').click();record('S19','Unknown MIME and renamed invalid content');c.close()
+  photo(p,d.locator('[data-next]'),file_value());d.locator('[data-next]').click();record('S19','Unknown MIME and renamed invalid content');c.close()
 
   c,p,f=open_case(browser);upload_dialog(p,f,file_value(PDF,'application/pdf','synthetic.pdf'))
-  check(f.locator('[name=id_front]').evaluate('(e)=>e.files[0].type')=='application/pdf'and f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==0,'PDF front can skip back without a forced camera step');record('S20','PDF front and direct optional-back skip');c.close()
+  check(f.locator('[name=id_front]').evaluate('(e)=>e.files[0].type')=='application/pdf'and f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==1,'PDF front and a compulsory back are both retained');record('S20','PDF front with compulsory back');c.close()
 
   c,p,f=open_case(browser);raw_id(f);f.locator('[name=id_back]').set_input_files(file_value())
   upload_dialog(p,f)
-  check(f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==0,'Retaking a front removes the old back from that ID')
+  check(f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==1,'Retaking a front requires a new back before finishing')
   record('S21','Retake replaces the correct person’s ID sides');c.close()
 
   c,p,f=open_case(browser);fill(f,{'male':'2','female':'1'});raw_id(f)
@@ -181,7 +179,7 @@ try:
    if i==1:
     pre='party_'+key+'_foreign_';foreign(f,pre)
   review(f);confirm(p,f)
-  check(p.evaluate('__BITE_HOTEL_QA.db.stays[0].registration.additional_ids.length===2&&!!__BITE_HOTEL_QA.db.stays[0].registration.additional_ids[1].foreign_details'),'Named companions, optional backs and foreign companion persist independently')
+  check(p.evaluate('__BITE_HOTEL_QA.db.stays[0].registration.additional_ids.length===2&&!!__BITE_HOTEL_QA.db.stays[0].registration.additional_ids[1].foreign_details'),'Named companions, compulsory backs and foreign companion persist independently')
   record('S22','Three guests with separate named ID copies');c.close()
 
   c,p,f=open_case(browser,clock=datetime(2026,11,17,6,30,tzinfo=timezone.utc));fill(f);raw_id(f)
@@ -220,7 +218,7 @@ try:
   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===0&&__BITE_HOTEL_QA.db.entries.length===0'),'No ghost booking or advance after abandonment');c.close()
   c,p,f=open_case(browser);fill(f);raw_id(f);p.evaluate('__BITE_DOCUMENT_QA.failFinishAfterCommit=true');review(f);f.locator('button[type=submit]').click();focused(p,'id_front')
   nav(p,'overview');nav(p,'hotel-register');p.locator('[data-hotel-action=resume-register]').click();raw_id(f);review(f);confirm(p,f)
-  check(p.evaluate('__BITE_DOCUMENT_QA.rows.size===1'),'Interrupted document finish reuses the persisted upload UUID');record('S25','Unknown responses, safe fresh start and document retries');c.close()
+  check(p.evaluate('__BITE_DOCUMENT_QA.rows.size===2'),'Interrupted document finish reuses the persisted upload UUID');record('S25','Unknown responses, safe fresh start and document retries');c.close()
   check(len(checks)==25 and not errors,'All 25 scenarios pass without controller errors');browser.close()
 except Exception:
  if 'p'in globals()and not p.is_closed():

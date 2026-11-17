@@ -32,6 +32,7 @@ jobs:
       - name: Run Chromium customer journey smoke tests
         run: |
           python scripts/checkin_scenarios_browser.py
+          python scripts/hotel_bill_workflow_browser.py
           python scripts/hotel_accounts_browser.py
           python scripts/menu_qr_browser_smoke.py
           python scripts/owner_feedback_mobile_browser.py
@@ -59,6 +60,7 @@ jobs:
             dist/launch-qa/guest-documents-browser-evidence.json
             dist/launch-qa/hotel-accounts-browser-evidence.json
             dist/launch-qa/checkin-25-scenarios-evidence.json
+            dist/launch-qa/hotel-bill-workflow-evidence.json
             dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
             dist/launch-qa/guest-hotel-bill.pdf
@@ -194,3 +196,6 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_scenarios.sql
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_room_guard.sql
           psql -v ON_ERROR_STOP=1 -f scripts/checkin_scenarios_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116170330_owner_housekeeping_ui_preferences_20261116.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_bill_workflow.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/hotel_bill_workflow_pg_test.sql
