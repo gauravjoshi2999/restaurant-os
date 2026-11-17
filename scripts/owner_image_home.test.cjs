@@ -97,3 +97,26 @@ test('Approved Home hides old KPIs on mobile without deleting payments or report
  assert.match(styles,/mask-image:linear-gradient/);
  assert.match(styles,/\.boh-feature>strong/);
 });
+
+test('Hotel-only Owner boots V3 Home without an online restaurant outlet or stale notifications',()=>{
+ const home={hidden:true,innerHTML:'',querySelectorAll:()=>[]};
+ const badge={hidden:true,textContent:''};
+ const bell={hidden:true,querySelector:key=>key==='i'?badge:null};
+ const doc={body:{dataset:{role:'owner'},classList:{add(){},remove(){}}},visibilityState:'visible',
+  getElementById:id=>id==='biteV3Home'?home:id==='biteV3HeaderBell'?bell:id==='overview'?{}:null};
+ const root={console,document:doc,Date,BiteOwner:{day:()=> '2026-11-18'},
+  BiteHospitality:{prop:()=>({id:'hotel-only',business_type:'hotel',name:'Standalone Hotel',tax_profile:{}}),
+   dashboardSnapshot:()=>({hotel:true,restaurant:false,ready:true,occupied:2,available:5,cleaning:1}),
+   housekeepingVisible:()=>false,getWorkspace:()=>({stays:[]}),
+   routeList:()=>['overview','rooms','hotel-register','daily-book','guests','hr','expenses']},
+  BiteOwnerConfirmations:{snapshot:()=>[{state:'pending',intent_id:'other-outlet-order',expires_at:'2099-01-01'}]},
+  BiteDashboard:{summarize:()=>{throw Error('Hotel-only must not read an outlet summary')} }};
+ root.window=root;
+ vm.runInNewContext(source,{window:root,console,Date,Intl});
+ assert.match(home.innerHTML,/Room Status/);
+ assert.match(home.innerHTML,/Check-in/);
+ assert.match(home.innerHTML,/Daily Book/);
+ assert.match(home.innerHTML,/Hotel Register/);
+ assert.doesNotMatch(home.innerHTML,/New POS Bill|Cleaning/);
+ assert.equal(badge.hidden,true);
+});
