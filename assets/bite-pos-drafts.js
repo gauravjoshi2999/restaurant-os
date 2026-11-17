@@ -79,7 +79,10 @@ function fields(){
  return {
   customerName:($('orderCustomerName')?.value||'').trim(),
   customerPhone:($('orderCustomerPhone')?.value||'').trim(),
-  channel:'POS - Counter',
+  channel:$('orderChannel')?.value||'POS - Dine-in',
+  serviceType:$('biteServiceType')?.value||'dine_in',
+  guestCount:$('biteServiceType')?.value==='dine_in'?Number($('biteServiceGuestCount')?.value||1):null,
+  serviceTableId:$('biteServiceTable')?.value||null,
   items:[...document.querySelectorAll('#orderItemRows .order-item-row')].map(row=>({
    name:row.querySelector('.item-name').value.trim(),
    quantity:Number(row.querySelector('.item-quantity').value),
@@ -183,6 +186,7 @@ function fill(data){
   f.elements.balance_action.value=data.balanceAction||'udhar';
   $('posWhatsAppConsent').checked=!!data.whatsAppConsent;
   $('posReplaceOrderId').value=data.replaceOrderId||'';
+  window.BitePOSService?.restore(data);
   window.renderPosItemSummary();window.updateOrderTotal();
   if($('orderModalTitle'))$('orderModalTitle').textContent=data.replaceOrderId?'Edit unpaid POS bill':'Continue POS Draft';
  }finally{suspend=false}
