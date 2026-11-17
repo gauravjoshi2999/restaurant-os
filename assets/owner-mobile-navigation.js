@@ -68,7 +68,11 @@
     homeProperty.id='biteOwnerHomeProperty';
     homeProperty.setAttribute('aria-live','polite');
     homeProperty.hidden=true;
-    header.append(homeLogo,homeProperty);
+    const homeBrand=doc.createElement('span');
+    homeBrand.id='biteOwnerHomeBrand';
+    homeBrand.innerHTML='<strong>Bite</strong><small>OWNER</small>';
+    homeBrand.hidden=true;
+    header.append(homeLogo,homeBrand,homeProperty);
     // Preserve the real selector and its existing change handler; move it to More on mobile.
     const propertySlot=doc.createElement('section');
     propertySlot.id='biteOwnerPropertySwitchSection';
@@ -99,6 +103,7 @@
       const property=root.BiteHospitality?.prop?.();
       const show=doc.body.dataset.role==='owner'&&mobile()&&!moreOpen&&currentPage()==='overview'&&!!property;
       homeLogo.hidden=!show;
+      homeBrand.hidden=!show;
       homeProperty.hidden=!show;
       if(show)homeProperty.textContent=property.name||'Your business';
     }
@@ -200,7 +205,9 @@
       button.setAttribute('aria-label',tab.page==='pos'?'POS billing workspace kholein':tab.page==='menu'?'Menu aur prices manage karein':tab.page==='more'?'Baaki owner sections kholein':tab.label);
       const graphic=doc.createElement('span');graphic.className='bite-owner-tab-icon';
       graphic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+icons[tab.icon]+'</svg>';
-      const label=doc.createElement('span');label.className='bite-owner-tab-label';label.textContent=tab.label;
+      const label=doc.createElement('span');label.className='bite-owner-tab-label';
+      const hybrid=root.BiteHospitality?.prop?.()?.business_type==='hybrid';
+      label.textContent=hybrid&&tab.page==='orders'?'Bite Orders':hybrid&&tab.page==='pos'?'Restaurant POS':tab.label;
       button.append(graphic,label);nav.append(button);
       button.addEventListener('click',()=>{
         if(doc.body.dataset.role!=='owner')return;
