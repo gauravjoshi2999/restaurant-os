@@ -32,6 +32,7 @@ jobs:
       - name: Run Chromium customer journey smoke tests
         run: |
           python scripts/owner_home_compact_browser.py
+          python scripts/family_booking_browser.py
           python scripts/guest_register_history_browser.py
           python scripts/checkin_scenarios_browser.py
           python scripts/checkin_photo_review_browser.py
