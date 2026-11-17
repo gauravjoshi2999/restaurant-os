@@ -36,7 +36,7 @@
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
-  clearFieldError(input);
+  root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -103,25 +103,22 @@
   form.addEventListener('input',counts);
   form.elements.transport.addEventListener('change',vehicle);
   form.elements.guest_id.addEventListener('change',()=>{
+   form.__haGuestVersion=(form.__haGuestVersion||0)+1;form.__haIdTouched=new Set();
    for(const side of ['front','back']){form.elements['id_'+side].value='';form.elements['id_'+side+'_id'].value=''}
-   form.elements.id_front.required=true;form.elements.id_back.required=true;form.querySelector('[data-front-status]').textContent='Choose this guest’s ID front.';
+   form.elements.id_front.required=true;form.elements.id_back.required=true;form.elements.id_checked.checked=false;
   });
-  form.elements.guest_id.addEventListener('change',async()=>{
-   const guestId=form.elements.guest_id.value,key=scope(),version=generation;if(!guestId)return;
+  async function loadSavedIDs(){
+   const guestId=form.elements.guest_id.value,key=scope(),version=generation,selection=form.__haGuestVersion;if(!guestId)return;
+   const status=form.querySelector('[data-saved-id-status]');if(status)status.textContent='Checking saved ID photos…';
    try{
     const result=await ctx.sb.rpc('bite_guest_document_list',{p_property:p().id,p_guest:guestId});
-    assertScope(key,version);if(result.error||!form.isConnected||form.elements.guest_id.value!==guestId)return;
+    assertScope(key,version);if(!form.isConnected||form.elements.guest_id.value!==guestId||form.__haGuestVersion!==selection)return;if(result.error)throw result.error;
     const ready=(result.data||[]).filter(d=>d.status==='ready'&&d.kind==='masked_id');
-    const prior=(db().stays||[]).filter(s=>s.guest_id===guestId&&s.registration?.id_front).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]?.registration;
-    const front=ready.find(d=>d.id===prior?.id_front);
-    if(front&&!form.elements.id_front.files[0]){
-     form.elements.id_front_id.value=front.id;form.elements.id_front.required=false;
-     form.querySelector('[data-front-status]').textContent='Saved ID front selected. Verify it, or upload a replacement.';
-     const back=ready.find(d=>d.id===prior?.id_back);form.elements.id_back_id.value=back?.id||'';form.elements.id_back.required=!back;
-     form.dispatchEvent(new Event('input',{bubbles:true}));
-    }
-   }catch{}
-  });
+    root.BiteCheckinFlow?.reuseDocuments(form,guestId,ready);form.dispatchEvent(new Event('input',{bubbles:true}));
+   }catch(e){if(key!==scope()||version!==generation||!form.isConnected||form.elements.guest_id.value!==guestId||form.__haGuestVersion!==selection)return;if(status)status.innerHTML='Saved ID photos could not load. <button type="button" class="ha-text-button" data-retry-saved-ids>Retry saved IDs</button> or take new photos.';}
+  }
+  form.elements.guest_id.addEventListener('change',()=>void loadSavedIDs());
+  form.addEventListener('click',e=>{if(e.target.closest('[data-retry-saved-ids]'))void loadSavedIDs()});
   if(draft.stay_id){for(const key of ['male','female','transport','vehicle_number','arrived_from','next_destination','id_front','id_back','nightly_rate'])form.elements[key].disabled=true;form.elements.id_checked.required=false}
   root.BiteCheckinFlow?.decorate(form,draft);
   root.BiteCheckinGuard?.decorate(form,draft,guest);
@@ -174,7 +171,7 @@
  }
  function registration(form,f,docs){
   if(form.dataset.enhanced!=='true'||form.dataset.stayId)return {};
-  const r=validateRegistration(f),foreign=root.BiteCheckinGuard?.readForeign(form);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',...(f.booking_stay_id?{booking_stay_id:f.booking_stay_id}:{}),registration:{...r,...docs,flow_version:3,...(foreign?{foreign_details:foreign}:{})}};
+  const r=validateRegistration(f),foreign=root.BiteCheckinGuard?.readForeign(form);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',...(f.booking_stay_id?{booking_stay_id:f.booking_stay_id}:{}),registration:{...r,...docs,guest_snapshot:Object.fromEntries(['full_name','phone','address','country','email','id_type','id_last4'].map(k=>[k,String(f[k]||'').trim()])),flow_version:3,...(foreign?{foreign_details:foreign}:{})}};
  }
  function decorateFolio(target,folio,stay){
   if(!enabled())return;

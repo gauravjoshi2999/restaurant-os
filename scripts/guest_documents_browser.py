@@ -25,6 +25,8 @@ def check(ok,label):
  evidence.append({'case':label,'status':'PASS','layer':'synthetic Chromium transport'});print('PASS:',label)
 def open_copies(page):
  page.evaluate("""async()=>{const q=window.__BITE_HOTEL_QA;q.db.guests=[{id:'90909090-9090-4090-8090-909090909090',property_id:q.property.id,full_name:'Synthetic privacy guest',phone:'9999999999',country:'India'}];await BiteHospitality.reload();showPage('guests')}""")
+ profiles=page.locator('#guests.active .gr-profiles')
+ if profiles.count()and profiles.get_attribute('open')is None:profiles.locator('summary').click()
  page.locator('#guests.active [data-doc-guest]').click();page.locator('[data-document-message]').wait_for(state='hidden')
 def file(page,name='synthetic-masked.png',mime='image/png',body=PNG):
  page.locator('[name=copy]').set_input_files({'name':name,'mimeType':mime,'buffer':body});page.locator('[name=redacted_confirmed]').check()

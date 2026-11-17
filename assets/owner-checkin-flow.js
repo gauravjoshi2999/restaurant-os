@@ -1,7 +1,7 @@
 /* Check-in interactions: saved guest suggestions and private, sequential party-ID capture. */
 (function(root){
  'use strict';
- let dialog=null,dialogForm=null,viewer=null,dialogCleanup=null;const urls=new Set(),previews=new WeakMap();
+ let dialog=null,dialogForm=null,viewer=null,dialogCleanup=null,viewerRelease=null;const urls=new Set(),previews=new WeakMap();
  const H=()=>root.BiteHospitality;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const uuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s||'');
@@ -12,11 +12,12 @@
   const q=String(query||'').trim().toLocaleLowerCase(),digits=/^[+\d ()-]+$/.test(q)?q.replace(/\D/g,''):'';if(!q)return [];
   return guests.filter(g=>String(g.full_name).toLocaleLowerCase().includes(q)||(digits&&String(g.phone).replace(/\D/g,'').includes(digits))).sort((a,b)=>Number(String(b.full_name).toLocaleLowerCase().startsWith(q))-Number(String(a.full_name).toLocaleLowerCase().startsWith(q))).slice(0,6);
  }
+ function latestRegistration(guest,stays){return stays.filter(s=>s.guest_id===guest?.id&&s.registration&&!['cancelled','no_show'].includes(s.status)).sort((a,b)=>String(b.created_at||b.registration.registered_at||b.arrival||'').localeCompare(String(a.created_at||a.registration.registered_at||a.arrival||'')))[0]?.registration||{}}
  function profile(guest,stays){
-  const prior=stays.filter(s=>s.guest_id===guest.id&&s.registration).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0]?.registration||{};
+  const prior=latestRegistration(guest,stays);
   return {...Object.fromEntries(['full_name','phone','address','country','email','id_type','id_last4'].map(k=>[k,guest[k]||''])),...Object.fromEntries(['arrived_from','next_destination','transport','vehicle_number'].map(k=>[k,prior[k]||'']))};
  }
- function closeViewer(){if(viewer){viewer.close();viewer.remove()}viewer=null}
+ function closeViewer(){if(viewer){viewer.close();viewer.remove()}viewer=null;viewerRelease?.();viewerRelease=null}
  function close(){
   closeViewer();dialogCleanup?.();dialogCleanup=null;
   if(dialog){dialog.close();dialog.remove()}dialog=null;dialogForm=null;
@@ -35,7 +36,7 @@
  function sideValue(form,n,side){return {file:form.elements[n[side]].files[0]||null,id:form.elements[n[side+'Id']].value||''}}
  function forget(file){const url=file&&previews.get(file);if(url){root.URL.revokeObjectURL(url);urls.delete(url);previews.delete(file)}}
  function removePhoto(form,key,side){
-  const n=names(key),input=form.elements[n[side]],saved=!!form.elements[n[side+'Id']].value;forget(input.files[0]);input.value='';form.elements[n[side+'Id']].value='';
+  (form.__haIdTouched||=new Set()).add((key||'lead')+':'+side);const n=names(key),input=form.elements[n[side]],saved=!!form.elements[n[side+'Id']].value;forget(input.files[0]);input.value='';form.elements[n[side+'Id']].value='';
   if(form.elements.id_checked)form.elements.id_checked.checked=false;
   input.dispatchEvent(new Event('change',{bubbles:true}));changed(form);return saved;
  }
@@ -64,9 +65,9 @@
   return '<img class="'+(small?'ha-id-thumb-image':'ha-id-preview')+'" src="'+url+'" alt="'+esc(label)+'">';
  }
  function enlarge(file,side,returnTo){
-  closeViewer();viewer=document.createElement('dialog');viewer.className='ha-photo-viewer';viewer.setAttribute('aria-label',(side==='front'?'Front':'Back')+' ID photo');
+  closeViewer();const title=side==='front'?'Front':side==='back'?'Back':String(side);viewer=document.createElement('dialog');viewer.className='ha-photo-viewer';viewer.setAttribute('aria-label',title+' ID photo');
   picture(file);const url=previews.get(file)||root.URL.createObjectURL(file);if(!previews.has(file)){previews.set(file,url);urls.add(url)}
-  viewer.innerHTML='<div class="ha-photo-viewer-head"><strong>'+(side==='front'?'Front':'Back')+' photo</strong><button type="button" class="btn secondary" data-viewer-close>Back to ID photos</button></div><div class="ha-photo-zoom-area">'+(file.type==='application/pdf'?'<iframe src="'+url+'" title="Private ID PDF" sandbox></iframe>':'<img src="'+url+'" alt="Private '+side+' ID photo">')+'</div>'+(file.type!=='application/pdf'?'<button type="button" class="btn secondary" data-photo-zoom aria-pressed="false">Zoom in</button>':'');
+  viewer.innerHTML='<div class="ha-photo-viewer-head"><strong>'+esc(title)+' photo</strong><button type="button" class="btn secondary" data-viewer-close>Back to ID photos</button></div><div class="ha-photo-zoom-area">'+(file.type==='application/pdf'?'<iframe src="'+url+'" title="Private ID PDF" sandbox></iframe>':'<img src="'+url+'" alt="Private '+esc(title)+' ID photo">')+'</div>'+(file.type!=='application/pdf'?'<button type="button" class="btn secondary" data-photo-zoom aria-pressed="false">Zoom in</button>':'');
   const box=viewer;document.body.append(box);box.querySelector('[data-viewer-close]').onclick=()=>{closeViewer();if(returnTo?.isConnected)returnTo.focus()};box.addEventListener('cancel',e=>{e.preventDefault();closeViewer();if(returnTo?.isConnected)returnTo.focus()});
   box.querySelector('[data-photo-zoom]')?.addEventListener('click',e=>{const zoom=!box.classList.contains('zoomed');box.classList.toggle('zoomed',zoom);e.target.textContent=zoom?'Fit photo':'Zoom in';e.target.setAttribute('aria-pressed',String(zoom))});box.showModal();
  }
@@ -74,7 +75,7 @@
   close();const n=names(key),row=form.querySelector('[data-ha-id-card="'+(key||'lead')+'"]'),trigger=row.querySelector('[data-id-open]');
   if(key&&!form.elements[n.name].value.trim()){root.BiteHotelAccounts.showRegisterError(form,fail(n.name,'Enter the guest name on this ID.'));return}
   dialog=document.createElement('dialog');dialog.className='ha-id-dialog';dialog.setAttribute('aria-label','Guest ID photos');dialogForm=form;
-  dialog.innerHTML='<div class="ha-id-dialog-head"><div><p class="bh-eyebrow">'+esc(key?form.elements[n.name].value:'Lead guest')+'</p><h2>ID photos</h2></div><button type="button" class="ha-dialog-close" aria-label="Close ID photos">×</button></div><div data-id-stage></div><input type="file" data-id-camera accept="image/jpeg,image/png" capture="environment" hidden><input type="file" data-id-upload accept="image/jpeg,image/png,application/pdf" hidden>';
+  dialog.innerHTML='<div class="ha-id-dialog-head"><div><p class="bh-eyebrow">'+esc(form.elements[n.name].value||'Lead guest')+'</p><h2>ID photos</h2></div><button type="button" class="ha-dialog-close" aria-label="Close ID photos">×</button></div><div data-id-stage></div><input type="file" data-id-camera accept="image/jpeg,image/png" capture="environment" hidden><input type="file" data-id-upload accept="image/jpeg,image/png,application/pdf" hidden>';
   document.body.append(dialog);let stage=preferred||((sideValue(form,n,'front').file||sideValue(form,n,'front').id)&&!(sideValue(form,n,'back').file||sideValue(form,n,'back').id)?'back':'front'),checking=false,message='';
   const box=dialog,body=box.querySelector('[data-id-stage]'),camera=box.querySelector('[data-id-camera]'),upload=box.querySelector('[data-id-upload]'),cache=new Map(),loading=new Set(),failed=new Map(),guest=form.elements.guest_id.value,property=H().prop().id;
   const current=()=>dialog===box&&form.isConnected&&form.elements.guest_id.value===guest&&H().prop()?.id===property;
@@ -103,7 +104,7 @@
   }
   async function choose(input){
    const original=input.files[0];if(!original||checking)return;const chosenStage=stage;checking=true;message='';draw();
-   try{const file=await root.BiteGuestDocuments.prepare(original);if(!current())return;const transfer=new DataTransfer();transfer.items.add(file);forget(form.elements[n[chosenStage]].files[0]);form.elements[n[chosenStage]].files=transfer.files;form.elements[n[chosenStage+'Id']].value='';if(form.elements.id_checked)form.elements.id_checked.checked=false;form.elements[n[chosenStage]].dispatchEvent(new Event('change',{bubbles:true}));changed(form);if(chosenStage==='front'&&!value('back').has)stage='back'}catch(error){if(current())message=error.message||String(error)}finally{checking=false;if(current())draw()}
+   try{const file=await root.BiteGuestDocuments.prepare(original);if(!current())return;const transfer=new DataTransfer();transfer.items.add(file);(form.__haIdTouched||=new Set()).add((key||'lead')+':'+chosenStage);forget(form.elements[n[chosenStage]].files[0]);form.elements[n[chosenStage]].files=transfer.files;form.elements[n[chosenStage+'Id']].value='';if(form.elements.id_checked)form.elements.id_checked.checked=false;form.elements[n[chosenStage]].dispatchEvent(new Event('change',{bubbles:true}));changed(form);if(chosenStage==='front'&&!value('back').has)stage='back'}catch(error){if(current())message=error.message||String(error)}finally{checking=false;if(current())draw()}
   }
   camera.onchange=()=>void choose(camera);upload.onchange=()=>void choose(upload);draw();box.showModal();
  }
@@ -131,7 +132,7 @@
     const guest=db.guests.find(g=>g.id===id);if(!guest)return;
     picker.innerHTML='<option value=""></option>'+db.guests.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.full_name)+'</option>').join('');picker.value=id;picker.dispatchEvent(new Event('change',{bubbles:true}));
     for(const [name,value]of Object.entries(profile(guest,db.stays||[])))form.elements[name].value=value||(name==='country'?'India':name==='transport'?'Bus':'');
-    form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));selected=guest;selection();hide();root.BiteCheckinGuard?.selectedGuest(form,guest);changed(form);
+    form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));selected=guest;selection();hide();root.BiteCheckinGuard?.selectedGuest(form,guest);const prior=latestRegistration(guest,db.stays||[]);if(prior.male!==undefined||prior.female!==undefined){for(const k of ['male','female','children'])form.elements[k].value=Math.max(0,Math.min(20,Number(prior[k]||0)))}restoreParty(form,prior.additional_ids||[]);changed(form);
    }
    form.__haSelectGuest=choose;
    function show(){
@@ -155,7 +156,7 @@
   let extras=[];try{const parsed=JSON.parse(draft.additional_ids||'[]');if(Array.isArray(parsed))extras=parsed.filter(x=>uuid(x.subject_key)).slice(0,39)}catch{}
   const section=form.querySelector('.ha-id-section'),consent=section.querySelector('.bh-check');
   section.innerHTML='<div class="ha-id-heading"><div><h3>Guest IDs</h3><p>Add both sides of each guest’s ID.</p></div><small data-id-counter></small></div>'+card(null,{id_front:draft.id_front_id,id_back:draft.id_back_id})+'<div data-ha-party-list>'+extras.map(x=>card(x.subject_key,x)).join('')+'</div><input type="hidden" name="additional_ids" value=""><button type="button" class="btn secondary ha-add-id" data-add-id>＋ Add another guest ID</button>';
-  section.append(consent);section.insertAdjacentHTML('beforeend','<small class="ha-id-private-note">ID copies stay private to authorized hotel staff.</small>');
+  section.insertAdjacentHTML('afterbegin','<p class="ha-saved-id-status" data-saved-id-status role="status"></p>');section.append(consent);section.insertAdjacentHTML('beforeend','<small class="ha-id-private-note">ID copies stay private to authorized hotel staff.</small>');
   const holder=section.querySelector('[data-ha-party-list]');
   form.addEventListener('click',e=>{
    const side=e.target.closest('[data-id-side]');if(side){e.preventDefault();open(form,side.dataset.idKey==='lead'?null:side.dataset.idKey,side.dataset.idSide);return}
@@ -168,9 +169,24 @@
    const remove=e.target.closest('[data-id-remove]');if(remove){const card=remove.closest('[data-ha-id-card]');for(const file of card.__photoFiles||[])forget(file);card.remove();changed(form)}
   });
   form.addEventListener('input',()=>sync(form));form.addEventListener('change',e=>{if(e.target.type==='file'&&e.target.files[0]){const name=e.target.name;if(form.elements[name+'_id'])form.elements[name+'_id'].value=''}sync(form)});
-  picker.addEventListener('change',()=>{selected=db.guests.find(g=>g.id===picker.value)||null;for(const extra of extraRows(form)){const n=names(extra.dataset.haIdCard);form.elements[n.frontId].value='';form.elements[n.backId].value=''}selection();sync(form)});
+  picker.addEventListener('change',()=>{selected=db.guests.find(g=>g.id===picker.value)||null;restoreParty(form,[]);const status=form.querySelector('[data-saved-id-status]');if(status&&!selected)status.textContent='';selection();sync(form)});
   if(draft.stay_id){section.querySelectorAll('button,input:not([type=hidden])').forEach(el=>el.disabled=true);chip.querySelector('button').disabled=true}
   sync(form);
+ }
+ function restoreParty(form,people){
+  const holder=form.querySelector('[data-ha-party-list]');if(!holder)return;for(const row of extraRows(form))for(const file of row.__photoFiles||[])forget(file);holder.replaceChildren();
+  for(const person of (Array.isArray(people)?people:[]).filter(x=>uuid(x.subject_key)).slice(0,39)){holder.insertAdjacentHTML('beforeend',card(person.subject_key,{name:person.name||''}));root.BiteCheckinGuard?.person(form,person.subject_key,person.foreign_details||null)}sync(form);
+ }
+ function reuseDocuments(form,guestId,ready){
+  if(form.elements.guest_id.value!==guestId)return;const prior=latestRegistration({id:guestId},H().getWorkspace().stays||[]);let reused=0,missing=0;
+  for(const subject of subjects(form)){
+   const person=subject.key?(prior.additional_ids||[]).find(x=>x.subject_key===subject.key):prior;
+   for(const side of ['front','back']){const n=subject.names,input=form.elements[n[side]],hidden=form.elements[n[side+'Id']],doc=ready.find(d=>d.id===person?.['id_'+side]&&(subject.key?d.subject_key===subject.key:!d.subject_key));
+    if(!input.files[0]&&!(form.__haIdTouched?.has((subject.key||'lead')+':'+side))){hidden.value=doc?.id||'';input.required=!doc}
+    if(hidden.value)reused++;else if(!input.files[0])missing++;
+   }
+  }
+  const status=form.querySelector('[data-saved-id-status]');if(status)status.textContent=reused?reused+' saved ID '+(reused===1?'photo':'photos')+' reused. '+(missing?'Add the missing photos.':'Review them before check-in.'):'Add both ID photos for this visit.';sync(form);
  }
  function prepare(form){
   if(extraRows(form).length>count(form)-1)throw fail('male','The number of guest IDs exceeds the guest count. Update the count or remove an extra ID.');
@@ -178,6 +194,6 @@
   for(const row of extraRows(form)){const n=names(row.dataset.haIdCard);if(!form.elements[n.name].value.trim())throw fail(n.name,'Enter the guest name on this ID.');if(!form.elements[n.front].files[0]&&!form.elements[n.frontId].value)throw fail(n.front,'Add the ID front for this guest.');if(!form.elements[n.back].files[0]&&!form.elements[n.backId].value)throw fail(n.back,'Add the ID back for this guest.');}
  }
  function subjects(form){return [null,...extraRows(form).map(row=>row.dataset.haIdCard)].map(key=>({key,names:names(key)}))}
- const api={decorate,prepare,additional,subjects,sync,clear,busy:()=>!!dialog,guestMatches:matches,savedProfile:profile};
+ const api={decorate,prepare,additional,subjects,sync,clear,latestRegistration,reuseDocuments,viewPhoto:(file,label,button)=>{enlarge(file,label,button);viewerRelease=()=>forget(file)},closePreview:closeViewer,busy:()=>!!dialog,guestMatches:matches,savedProfile:profile};
  root.BiteCheckinFlow=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

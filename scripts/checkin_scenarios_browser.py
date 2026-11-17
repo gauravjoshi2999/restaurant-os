@@ -56,7 +56,7 @@ def focused(page,name):
  page.wait_for_function('(n)=>document.activeElement?.name===n||document.activeElement?.dataset.haFocus===n',arg=name)
 def foreign(f,prefix='foreign_',country='France'):
  card=f.locator('[data-foreign-card=lead]')if prefix=='foreign_'else f.locator('[data-foreign-card="'+prefix[6:-9]+'"]')
- card.locator('.ha-foreign-toggle').click()
+ if card.locator('.ha-foreign-toggle').get_attribute('aria-expanded')!='true':card.locator('.ha-foreign-toggle').click()
  f.locator('[name='+('country'if prefix=='foreign_'else prefix+'nationality')+']').fill(country)
  for name,value in {'date_of_birth':'1990-01-01','document_last4':'A123','document_expiry':'2036-01-01','permission_last4':'V123','visa_expiry':'2036-01-01','india_arrival':f.locator('[name=arrival]').input_value(),'entry_port':'Delhi','purpose':'Tourism'}.items():f.locator('[name='+prefix+name+']').fill(value)
 def noise_png():

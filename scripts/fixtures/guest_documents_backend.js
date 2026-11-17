@@ -7,6 +7,7 @@
   c.rpc=async(name,a)=>{
    if(!['bite_guest_document_list','bite_guest_document_command'].includes(name))return rpc(name,a);
    q.calls.push({name,args:structuredClone(a)});
+   if(name==='bite_guest_document_list'&&q.holdList)await new Promise(done=>q.releaseList=done);
    if(q.deny)return{data:null,error:{code:'42501',message:'Guest document access denied'}};
    const p=window.__BITE_HOTEL_QA.property;if(a.p_property!==p.id)return{data:null,error:{code:'42501',message:'Wrong property'}};
    if(name==='bite_guest_document_list')return{data:[...rows.values()].filter(d=>d.guest_id===a.p_guest&&d.status!=='deleted').map(d=>({...d,can_finish:true})),error:null};
