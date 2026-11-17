@@ -1793,6 +1793,14 @@ async function openCheckout(){
  const checkoutCartSignature=biteCheckoutCartSignature(checkoutRestaurantId,cartEntries());
  if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&!window.BiteSchedule?.canSchedule?.(activeRestaurant)){openCartModal();return;}
  window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
+  // Reopening the SAME frozen cart returns to its restaurant confirmation status.
+  // A changed cart still uses the existing safe cancel-and-start-fresh flow.
+  if(pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started&&
+     pendingLiveCheckout.restaurantId===checkoutRestaurantId&&
+     pendingLiveCheckout.cartSignature===checkoutCartSignature&&
+     !window.BiteCheckoutUX?.freshCartRequested){
+   window.BiteCustomerConfirmationOpen?.();return;
+  }
   if(!activeRestaurant||!cartEntries().length){window.BiteCheckoutUX.showPending('Check earlier payment status or browse the menu.');return;}
   // Allow editing the NEW cart immediately; payment is gated until the old
   // Cashfree attempt is proven cancelled or safely expired.
@@ -1842,7 +1850,7 @@ function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
  const freshPending=!!(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested);
  const approvalRequired=!BITE_SANDBOX_CHECKOUT&&!!pendingLiveCheckout?.confirmationRequired;
- if(approvalRequired)window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton());
+ if(approvalRequired)window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
  const approval=approvalRequired?window.BiteOrderConfirmation?.view(pendingLiveCheckout.id):null;
  const confirmationLocked=approvalRequired&&approval?.state!=='approved';
  // Never show an actionable payment button for a closed restaurant without a future slot.
@@ -1854,7 +1862,22 @@ function syncCheckoutPaymentButton(){
  btn.setAttribute('aria-disabled',String(btn.disabled));
  if($('quickCancelCheckout')&&approvalRequired)$('quickCancelCheckout').textContent='Cancel confirmation request';
  btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
- // A freshly created intent is NOT an "old checkout". Keep recovery controls
+ // Reopen a pending approval, including after refresh/login, without
+// replacing its frozen cart or generating a second payment attempt.
+window.BiteCustomerConfirmationOpen=function(){
+ if(!pendingLiveCheckout?.confirmationRequired||pendingLiveCheckout.started||
+    window.BiteCheckoutUX?.freshCartRequested)return false;
+ $('checkoutModal').classList.remove('hidden');
+ $('checkoutModal').classList.add('show');
+ $('checkoutFormPanel').classList.remove('hidden');
+ $('checkoutPendingPanel').classList.add('hidden');
+ $('checkoutOutcomePanel').classList.add('hidden');
+ $('checkoutError').textContent='';
+ window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
+ syncCheckoutPaymentButton();
+ return true;
+};
+// A freshly created intent is NOT an "old checkout". Keep recovery controls
  // hidden while Cashfree is being prepared or opened, so they never flash
  // between Pay online and the secure payment sheet.
  const showRecovery=Boolean(pendingLiveCheckout)&&!checkoutPaymentBusy;
