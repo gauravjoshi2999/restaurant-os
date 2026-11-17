@@ -1,3 +1,8 @@
+/* The new image-based command center is mobile-only; preserve the existing desktop Home. */
+@media(min-width:761px){
+ body[data-role="owner"] #overview #biteV3Home{display:none!important}
+ body[data-role="owner"] #biteOwnerNoticeTray{display:none!important}
+}
 /* Bite Owner · image-aligned premium Home 2026-11-18.
    CSS presentation only: no business data, order mutations or payment changes. */
 @media(max-width:760px){
