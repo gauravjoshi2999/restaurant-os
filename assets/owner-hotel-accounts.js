@@ -16,7 +16,7 @@
  const manager=()=>['owner','manager'].includes(p()?.role);
  const methods=()=>['Cash','UPI','Bank Transfer','Card'].map(x=>option(x,x)).join('');
  function assertScope(key,version){if(key!==scope()||version!==generation)throw Error('Account or property changed. Reopen this action.')}
- function clear(){generation++;reportVersion++;report=null;reportScope='';month=''}
+ function clear(){generation++;reportVersion++;report=null;reportScope='';month='';root.BiteCheckinFlow?.clear()}
  function init(context){ctx=context;document.querySelector('#mainApp .content')?.addEventListener('click',click);document.querySelector('#mainApp .content')?.addEventListener('submit',submit)}
  const fieldError=(field,text)=>Object.assign(Error(text),{field});
  const validArrivalTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -25,16 +25,16 @@
  }
  function clearFieldError(input){
   if(!input?.name)return;
-  const label=input.closest('label'),error=label?.querySelector('[data-ha-field-error]');if(!error)return;
+  const label=input.closest('[data-ha-id-card]')||input.closest('label'),error=[...(label?.querySelectorAll('[data-ha-field-error]')||[])].find(el=>el.id==='ha-error-'+input.name);if(!error)return;
   const ids=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!==error.id);
   if(ids.length)input.setAttribute('aria-describedby',ids.join(' '));else input.removeAttribute('aria-describedby');
-  input.removeAttribute('aria-invalid');label.classList.remove('ha-invalid');error.remove();
+  input.removeAttribute('aria-invalid');error.remove();if(!label.querySelector('[data-ha-field-error]'))label.classList.remove('ha-invalid');
  }
  function showRegisterError(form,error){
   if(form.dataset.enhanced!=='true')return false;
   let name=error.field;
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
-  const input=form.elements.namedItem(name||''),label=input?.closest?.('label');
+  const input=form.elements.namedItem(name||''),label=input?.closest?.('[data-ha-id-card]')||input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
   clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
@@ -42,7 +42,8 @@
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
   input.setAttribute('aria-describedby',[input.getAttribute('aria-describedby'),notice.id].filter(Boolean).join(' '));
   const summary=form.querySelector('.bh-message');if(summary)summary.textContent='';
-  input.focus({preventScroll:true});label.scrollIntoView({block:'center',behavior:'instant'});
+  const focus=input.hidden?form.querySelector('[data-ha-focus="'+input.name+'"]'):input;
+  (focus||input).focus({preventScroll:true});label.scrollIntoView({block:'center',behavior:'instant'});
   return true;
  }
  function validateRegistration(f){
@@ -69,7 +70,7 @@
   form.dataset.enhanced='true';form.noValidate=true;
   const rooms=db().rooms||[],guests=db().guests||[];
   const roomId=draft.room_id||'',room=rooms.find(r=>r.id===roomId),saved=!!draft.id_front_id;
-  form.innerHTML='<div class="ha-register-meta">'+field('serial_number','Serial no. · Auto','text',db().next_register_number||1,'readonly')+field('register_date','Entry date · Auto','date',today(),'readonly')+'</div>'+
+  form.innerHTML='<div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
    '<h2>1 · Guest details</h2><div class="bh-form-grid ha-guest-counts">'+field('male','Male','number',draft.male??1,'required min="0" max="20" step="1"')+field('female','Female','number',draft.female??0,'required min="0" max="20" step="1"')+field('children','Children','number',draft.children??0,'required min="0" max="20" step="1"')+'</div><input type="hidden" name="adults" value="1">'+
    '<details class="ha-returning"><summary>Returning guest</summary>'+field('guest_search','Find by name or mobile','search','','data-guest-search autocomplete="off"')+select('guest_id','Use saved guest',option('','New guest')+guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===(guest?.id||draft.guest_id))).join(''),'data-guest-picker')+'</details>'+
    '<div class="bh-form-grid">'+field('full_name','Guest name *','text',guest?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')+field('phone','Mobile number *','tel',guest?.phone||draft.phone||'','required minlength="7" maxlength="20" autocomplete="tel"')+
@@ -82,7 +83,7 @@
    '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
    '<h2>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
-   field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??room?.nightly_rate??'','required min="0" step="0.01" '+(manager()?'':'readonly'))+'</div>'+
+   field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??'','required min="0" step="0.01" inputmode="decimal" placeholder="Enter this guest’s agreed rent"')+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
    '<div data-ha-booking></div>'+message()+'<div class="bh-form-actions">'+button('draft','Save draft')+'<button type="submit" class="btn">Review check-in</button></div>';
   if(booking){
@@ -101,7 +102,6 @@
   form.addEventListener('input',clearEditedError);form.addEventListener('change',clearEditedError);
   form.addEventListener('input',counts);
   form.elements.transport.addEventListener('change',vehicle);
-  form.elements.room_id.addEventListener('change',()=>{form.elements.nightly_rate.value=rooms.find(r=>r.id===form.elements.room_id.value)?.nightly_rate??''});
   form.elements.guest_id.addEventListener('change',()=>{
    for(const side of ['front','back']){form.elements['id_'+side].value='';form.elements['id_'+side+'_id'].value=''}
    form.elements.id_front.required=true;form.querySelector('[data-front-status]').textContent='Choose this guest’s ID front.';
@@ -123,6 +123,7 @@
    }catch{}
   });
   if(draft.stay_id){for(const key of ['male','female','transport','vehicle_number','arrived_from','next_destination','id_front','id_back','nightly_rate'])form.elements[key].disabled=true;form.elements.id_checked.required=false}
+  root.BiteCheckinFlow?.decorate(form,draft);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -131,6 +132,7 @@
   for(const input of form.elements)if(input.willValidate&&!input.validity.valid)throw fieldError(input.name,input.validationMessage||'Complete this field to continue.');
   if(!validArrivalTime(f.arrival_time))throw fieldError('arrival_time','Enter a valid arrival time.');
   if(f.departure<=f.arrival)throw fieldError('departure','Departure must be after arrival.');
+  root.BiteCheckinFlow?.prepare(form);
   if(!form.dataset.stayId){
    const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
    if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
@@ -143,29 +145,31 @@
   if(form.dataset.enhanced!=='true')return null;
   const key=scope(),version=generation,out={};active++;
   try{
-   for(const side of ['front','back']){
-    const input=form.elements['id_'+side],hidden=form.elements['id_'+side+'_id'],file=input.files[0];
-    if(!file){out['id_'+side]=hidden.value||null;continue}
-    try{await root.BiteGuestDocuments.validate(file)}catch(error){throw fieldError('id_'+side,error.message||String(error))}assertScope(key,version);
-    const sig=[guest,side,file.name,file.size,file.lastModified].join(':');
+   const subjects=root.BiteCheckinFlow?.subjects(form)||[{key:null,names:{front:'id_front',back:'id_back',frontId:'id_front_id',backId:'id_back_id'}}];
+   for(const subject of subjects)for(const side of ['front','back']){
+    const name=subject.names[side],input=form.elements[name],hidden=form.elements[subject.names[side+'Id']],file=input.files[0];
+    if(!file){if(!subject.key)out['id_'+side]=hidden.value||null;continue}
+    try{await root.BiteGuestDocuments.validate(file)}catch(error){throw fieldError(name,error.message||String(error))}assertScope(key,version);
+    const sig=[guest,subject.key||'lead',side,file.name,file.size,file.lastModified].join(':');
     form.__haUploads??={};const id=form.__haUploads[sig]??=root.crypto.randomUUID();
     async function doc(action,details={}){
      const r=await ctx.sb.rpc('bite_guest_document_command',{p_property:p().id,p_guest:guest,p_document:id,p_action:action,p_details:details});assertScope(key,version);if(r.error)throw r.error;return r.data;
     }
-    const record=await doc('begin',{kind:'masked_id',mime_type:file.type,byte_size:file.size,redacted_confirmed:form.elements.id_checked.checked});
+    const record=await doc('begin',{kind:'masked_id',mime_type:file.type,byte_size:file.size,redacted_confirmed:form.elements.id_checked.checked,...(subject.key?{subject_key:subject.key}:{})});
     if(record.status!=='ready'){
      const upload=await ctx.sb.storage.from('bite-guest-documents').upload(record.object_path,file,{contentType:file.type,cacheControl:'0',upsert:false});
      assertScope(key,version);
      try{await doc('finish')}catch(e){throw upload.error||e}
     }
-    hidden.value=id;out['id_'+side]=id;
+    hidden.value=id;if(!subject.key)out['id_'+side]=id;
    }
+   root.BiteCheckinFlow?.sync(form);out.additional_ids=root.BiteCheckinFlow?.additional(form)||[];
    if(!out.id_front)throw Error('The required ID front is missing.');return out;
   }finally{active--}
  }
  function registration(form,f,docs){
   if(form.dataset.enhanced!=='true'||form.dataset.stayId)return {};
-  const r=validateRegistration(f);return {arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs}};
+  const r=validateRegistration(f);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs}};
  }
  function decorateFolio(target,folio,stay){
   if(!enabled())return;
@@ -325,6 +329,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0,decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML};
+ const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

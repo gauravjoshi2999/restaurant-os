@@ -26,3 +26,36 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #bhCheckinForm .ha-field-error{display:block;color:#b42318!important;font-size:13px;font-weight:600;line-height:1.5;margin-top:4px;flex-basis:100%}
 #bhCheckinForm .bh-check.ha-invalid{flex-wrap:wrap}
 @media(max-width:600px){.ha-arrival-fields{gap:10px}#bhCheckinForm .ha-arrival-fields input{padding-left:10px;padding-right:8px}}
+/* Familiar search cards and a compact camera flow keep repeated check-ins short. */
+#bhCheckinForm{border-top:3px solid #ec8c45!important}
+#bhCheckinForm>h2{display:flex;align-items:center;gap:8px;font-size:19px;margin:26px 0 18px;padding-top:18px;border-top:1px solid var(--line,#ebe4df)}
+#bhCheckinForm>h2:first-of-type{border-top:0;padding-top:0;margin-top:12px}
+.ha-register-meta{padding:12px 14px;background:#faf6f1;border:1px solid #eee2d8;border-radius:13px;margin-bottom:22px}
+.ha-register-meta .bh-field{margin-bottom:0}.ha-register-meta input{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;font-weight:750!important}
+.ha-guest-lookup{position:relative;min-width:0}
+.ha-guest-matches{position:absolute;top:calc(100% - 10px);left:0;right:0;z-index:30;max-height:300px;overflow:auto;background:#fff;border:1px solid #e3c5b1;border-radius:14px;box-shadow:0 12px 30px #38252e24;padding:6px}
+.ha-suggestion-title{display:block;padding:5px 8px;color:#83757a;font-size:11px;font-weight:700;letter-spacing:.04em}
+.ha-guest-matches [role=option]{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:10px;padding:11px 8px;background:#fff;color:#38252e;text-align:left;cursor:pointer;min-height:60px}
+.ha-guest-matches [role=option]:is(:hover,[aria-selected=true]){background:#fff0e5}
+.ha-guest-matches [role=option]>span:nth-child(2){flex:1;min-width:0}
+.ha-guest-matches strong,.ha-guest-matches small{display:block;overflow-wrap:anywhere}.ha-guest-matches small{color:#766b70;font-size:12px;margin-top:3px}
+.ha-guest-avatar{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:12px;background:#fff0e4;color:#a85224;font-weight:800}
+.ha-no-guests{padding:9px;margin:0;font-size:13px;color:#74696d;line-height:1.5}
+.ha-saved-guest{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 13px;border:1px solid #c6ddcf;background:#f1f8f3;border-radius:11px;margin-bottom:3px;font-size:13px;color:#2f5d40}
+.ha-text-button{border:0;background:none;padding:6px 0;color:#9d4d26;font:600 12px/1.4 inherit;text-decoration:underline;cursor:pointer}
+.ha-id-heading,.ha-id-person,.ha-id-capture-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ha-id-heading{align-items:flex-start;margin-bottom:14px}.ha-id-heading h3{margin:0 0 5px}.ha-id-heading p{margin:0;color:#7a7074;font-size:13px}.ha-id-heading>small{font-size:11px;white-space:nowrap;margin-top:4px}
+.ha-id-card{border:1px solid #e9ddd4;border-radius:14px;padding:14px;background:#fffdfb;margin-bottom:12px;min-width:0}.ha-id-card.ha-invalid{border-color:#b42318;background:#fff9f7}
+.ha-id-person{margin-bottom:12px;font-size:13px}.ha-id-person .bh-field{flex:1;margin-bottom:0}.ha-id-person .ha-text-button{align-self:flex-start;margin-top:5px}
+.ha-required-tag{font-size:10px;border-radius:20px;background:#fff0e4;color:#9a522e;padding:4px 8px}
+.ha-id-capture-row>div{flex:1;min-width:0}.ha-id-capture-row strong{display:block;font-size:13px}.ha-id-capture-row small{font-size:11px!important;line-height:1.4!important;margin-top:4px}.ha-id-capture-row .btn{font-size:12px;min-height:42px!important;padding:8px 11px!important;white-space:nowrap}
+.ha-id-symbol{display:grid;place-items:center;background:#fff0e3;color:#c56c2d;width:38px;height:42px;flex:0 0 38px;border-radius:10px;font-size:23px}
+.ha-add-id{width:100%;border-style:dashed!important;margin:2px 0 12px}.ha-id-private-note{display:block;font-size:11px!important;color:#7a7074!important;margin-top:0!important}
+.ha-id-dialog{width:min(480px,calc(100vw - 28px));max-height:calc(100dvh - 40px);box-sizing:border-box;overflow:auto;border:1px solid #e8d6c9;border-radius:21px;padding:22px;color:#38252e;background:#fffdfb;box-shadow:0 25px 80px #23171e44;font-family:inherit}
+.ha-id-dialog::backdrop{background:#241d25a8;backdrop-filter:blur(3px)}
+.ha-id-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.ha-id-dialog-head h2{font-size:23px;letter-spacing:-.03em;margin:4px 0 18px}.ha-id-dialog-head .bh-eyebrow{font-size:11px;color:#8b7061;margin:0}.ha-dialog-close{width:36px;height:36px;border:1px solid #eaded5;border-radius:12px;background:#fff4eb;color:#6c4535;font-size:25px;cursor:pointer}
+.ha-id-progress{display:flex;gap:8px;margin-bottom:20px}.ha-id-progress span{flex:1;padding:8px;border-radius:9px;background:#f1edeb;color:#887b80;font-size:12px;text-align:center}.ha-id-progress .active{background:#fff0df;color:#9f4f22;font-weight:750}.ha-id-progress .complete{background:#eaf5ed;color:#35734a}
+.ha-id-dialog h3{font-size:19px;margin:8px 0}.ha-id-dialog [data-id-stage]>p{font-size:13px;line-height:1.6;color:#7c6b73}.ha-id-preview{display:block;max-width:100%;max-height:240px;object-fit:contain;margin:16px auto;border-radius:12px}.ha-id-preview-pdf,.ha-saved-id{padding:20px;border:1px dashed #d5c6bb;border-radius:12px;text-align:center;background:#faf5ef}
+.ha-id-choice,.ha-id-dialog-actions{display:flex;flex-wrap:wrap;gap:10px}.ha-id-dialog-actions{padding-top:18px;margin-top:18px;border-top:1px solid #eee2da}.ha-id-dialog .btn{border:1px solid #de6b27;border-radius:11px;background:#eb7d2d;color:#fff;min-height:44px;padding:11px 14px;font:650 13px/1.3 inherit;cursor:pointer;flex:1}.ha-id-dialog .btn.secondary{border-color:#e6d4c6;color:#79503b;background:#fff8f1}.ha-id-dialog .btn:disabled{opacity:.45;cursor:default}.ha-id-dialog .ha-camera-error{color:#b42318!important}
+.bh-room-terms{font-size:12px;color:var(--muted,#7c7177);line-height:1.5;margin:10px 0 18px}
+@media(max-width:600px){.ha-id-heading{flex-wrap:wrap;gap:5px}.ha-id-heading>small{margin:0}.ha-id-dialog{padding:18px}.ha-id-symbol{width:31px;flex-basis:31px}.ha-id-card{padding:12px}.ha-id-capture-row{gap:9px}.ha-id-capture-row .btn{font-size:11px}.ha-register-meta{padding:10px}.ha-saved-guest{align-items:flex-start}.ha-saved-guest .ha-text-button{white-space:nowrap}}

@@ -61,7 +61,7 @@
   form.querySelector('.bh-form-actions').before(box);if(draft.advance_method)box.querySelector('[name=advance_method]').value=draft.advance_method;
   if(draft.stay_id)box.querySelectorAll('input,select').forEach(e=>e.disabled=true);
  }
- async function reservationQuote(fields,stayId){return rpc('bite_reservation_quote',{p_details:{room_id:fields.room_id,arrival:fields.arrival,departure:fields.departure,adults:Number(fields.adults),children:Number(fields.children||0),mode:fields.mode,...(fields.nightly_rate!==undefined&&!stayId?{nightly_rate:Number(fields.nightly_rate)}:{}),...(stayId?{stay_id:stayId}:{})}})}
+ async function reservationQuote(fields,stayId){return rpc('bite_reservation_quote',{p_details:{room_id:fields.room_id,arrival:fields.arrival,departure:fields.departure,adults:Number(fields.adults),children:Number(fields.children||0),mode:fields.mode,...(fields.nightly_rate!==undefined&&!stayId?{nightly_rate:Number(fields.nightly_rate),terms_at_checkin:true}:{}),...(stayId?{stay_id:stayId}:{})}})}
  function settings(target){
   target.querySelector('#biteOperationalSettings')?.remove();if(!p()?.can_configure)return;
   const box=document.createElement('div');box.className='bh-workspace';box.id='biteOperationalSettings';
