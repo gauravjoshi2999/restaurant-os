@@ -37,7 +37,10 @@
   const billed=same.reduce((n,o)=>n+Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0)),0);
   const received=same.reduce((n,o)=>n+Math.max(0,Number(o.receivedAmount||0)),0);
   const due=same.reduce((n,o)=>n+Math.max(0,Number(o.dueAmount||0)),0);
-  return {same,all:real,bills:same.length,billed,received,due};
+  const guestCount=same.reduce((n,o)=>n+(Number.isInteger(o.guestCount)&&o.guestCount>0?o.guestCount:0),0);
+  const knownDineIn=same.filter(o=>o.serviceType==='dine_in'&&Number.isInteger(o.guestCount)).length;
+  const unknownDineIn=same.filter(o=>(o.serviceType==='dine_in'||(!o.serviceType&&o.channel==='POS - Dine-in'))&&!Number.isInteger(o.guestCount)).length;
+  return {same,all:real,bills:same.length,billed,received,due,guestCount,knownDineIn,unknownDineIn};
  }
  function ensure(){
   const pos=doc.getElementById('pos');
@@ -49,7 +52,8 @@
    '<nav class="bpv2-tabs" aria-label="POS sections">'+
    '<button type="button" data-bpv2-tab="today" aria-pressed="true">Today</button>'+
    '<button type="button" data-bpv2-tab="bills" aria-pressed="false">Bills</button>'+
-   '<button type="button" data-bpv2-tab="drafts" aria-pressed="false">Drafts</button></nav>'+
+   '<button type="button" data-bpv2-tab="drafts" aria-pressed="false">Drafts</button>'+
+   '<button type="button" data-bpv2-tab="reports" aria-pressed="false">Reports</button></nav>'+
    '<div id="bpv2Stats" aria-live="polite"></div>'+
    '<div id="bpv2Recent" aria-live="polite"></div>'+
    '<div class="bpv2-footer-note">Bill amount is not cash received. Online Bite customer orders are separate.</div>';
@@ -81,6 +85,10 @@
   pos.dataset.bitePosView=view;
   for(const btn of el.querySelectorAll("[data-bpv2-tab]"))btn.setAttribute("aria-pressed",String(btn.dataset.bpv2Tab===view));
   const stats=doc.getElementById("bpv2Stats"),recent=doc.getElementById("bpv2Recent");
+  if(view==="reports"){
+   root.BitePOSReports?.render(current);
+   return;
+  }
   if(view==="drafts"){
    stats.innerHTML='<div class="bpv2-panel-heading"><strong>Saved drafts</strong><small>Resume or delete an unfinished bill below</small></div>';
    recent.innerHTML='';
@@ -98,12 +106,16 @@
    '<div class="bpv2-stat is-green">'+ic("rupee")+'<small>POS billed</small><strong>'+money(n.billed)+'</strong></div>'+
    '<div class="bpv2-stat is-purple">'+ic("rupee")+'<small>Received</small><strong>'+money(n.received)+'</strong></div>'+
    '<div class="bpv2-stat is-blue">'+ic("clock")+'<small>Balance due</small><strong>'+money(n.due)+'</strong></div></div>'+
-   '<div class="bpv2-people-note">'+ic("people")+'<span><strong>People served</strong><small>Actual guest count will appear here after bill-level counting is enabled. Old bills are not estimated.</small></span></div>';
+   '<div class="bpv2-people-note">'+ic("people")+'<span><strong>People served: '+(n.knownDineIn?n.guestCount:'—')+'</strong><small>'+
+   (n.unknownDineIn?n.unknownDineIn+' earlier dine-in bill(s) have no recorded people count.':'Only diners recorded on saved new bills are counted.')+
+   '</small></span></div>';
   recent.innerHTML='<div class="bpv2-section-heading"><strong>Recent bills</strong><button type="button" data-bpv2-go="bills">View all '+ic('forward')+'</button></div>'+
    (last.length?'<div class="bpv2-recents">'+last.map(o=>{
     const amount=Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0));
     return '<article class="bpv2-recent"><span class="bpv2-recent-icon">'+ic('bill')+'</span>'+
-     '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+'</small></span>'+
+     '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+
+      ' · '+safe(o.serviceType==='dine_in'?'Dine-in':o.serviceType==='takeaway'?'Takeaway':o.channel==='POS - Dine-in'?'Dine-in':o.channel==='POS - Takeaway'?'Takeaway':'POS')+
+      (Number.isInteger(o.guestCount)?' · '+o.guestCount+' guests':'')+'</small></span>'+
      '<strong class="bpv2-amount">'+money(amount)+'</strong>'+
      '<button type="button" data-bpv2-print="'+safe(o.id)+'" aria-label="Open bill '+safe(o.code||'')+'">'+ic('forward')+'</button></article>';
    }).join('')+'</div>':'<p class="bpv2-empty">No POS bills recorded today. Tap <strong>New POS Bill</strong> to begin.</p>');
