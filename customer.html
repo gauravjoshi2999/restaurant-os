@@ -1852,6 +1852,7 @@ function syncCheckoutPaymentButton(){
  const missingSchedule=needsScheduleTime&&!window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id);
  btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
  btn.setAttribute('aria-disabled',String(btn.disabled));
+ if($('quickCancelCheckout')&&approvalRequired)$('quickCancelCheckout').textContent='Cancel confirmation request';
  btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
  // A freshly created intent is NOT an "old checkout". Keep recovery controls
  // hidden while Cashfree is being prepared or opened, so they never flash
