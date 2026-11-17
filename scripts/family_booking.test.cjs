@@ -60,3 +60,14 @@ test('backend only books all rooms in one transaction and uses existing vetted c
  assert.match(BACKEND,/revoke all on function public\.bite_family_booking/);
  assert.doesNotMatch(BACKEND,/insert into public\.restaurant_order_payments/);
 });
+
+test('Family linked bill can post food to an exact room using existing POS menu, never a new ledger',()=>{
+ const src=fs.readFileSync('assets/owner-hotel-billing.js','utf8');
+ assert.match(src,/data-bill-action/);
+ assert.match(src,/button\('food-room','＋ Food',r\.folio\.id\)/);
+ assert.match(src,/await H\(\)\.openFolio\(id\)/);
+ assert.match(src,/data-hotel-action=\\"food-menu\\"/);
+ assert.doesNotMatch(src,/restaurant_order_payments.*insert/);
+ assert.match(HTML,/owner-hotel-billing\.js\?v=20261118-family1/);
+ assert.match(HTML,/owner-checkin-flow\.js\?v=20261118-family1/);
+});
