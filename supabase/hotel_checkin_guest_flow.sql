@@ -4,9 +4,9 @@ begin;
 do $preflight$begin
  if md5(pg_get_functiondef('private.bite_guest_document_command(uuid,uuid,uuid,text,jsonb)'::regprocedure))not in('9f7b1a550f4c555240d0534ef210e914','29265eb3ea926ac7323aab3ceef1fc11')then raise exception 'Function changed since review: private.bite_guest_document_command(uuid,uuid,uuid,text,jsonb)';end if;
  if md5(pg_get_functiondef('private.bite_guest_document_list(uuid,uuid)'::regprocedure))not in('587f6bcb25cc177514767840080edeee','0964235d86c4cbcfcdda74140276189d')then raise exception 'Function changed since review: private.bite_guest_document_list(uuid,uuid)';end if;
- if md5(pg_get_functiondef('private.bite_hotel_account_command(uuid,text,jsonb,uuid)'::regprocedure))not in('5eefffb740346152bc6a77f16a7ed70e','58b4f3b7e11a2c410fec6432a0a973d7')then raise exception 'Function changed since review: private.bite_hotel_account_command(uuid,text,jsonb,uuid)';end if;
+ if md5(pg_get_functiondef('private.bite_hotel_account_command(uuid,text,jsonb,uuid)'::regprocedure))not in('5eefffb740346152bc6a77f16a7ed70e','020b9c1404d3323a0df5cc5f56f0dd5f')then raise exception 'Function changed since review: private.bite_hotel_account_command(uuid,text,jsonb,uuid)';end if;
  if md5(pg_get_functiondef('private.bite_property_command(uuid,text,jsonb,uuid)'::regprocedure))not in('7de362ee97e804d9fe53849d0e8753e2','837caa0618ced0921b77fca74fedbc24')then raise exception 'Function changed since review: private.bite_property_command(uuid,text,jsonb,uuid)';end if;
- if md5(pg_get_functiondef('private.bite_reservation_quote(uuid,jsonb)'::regprocedure))not in('61900ed6af76bfb8e570ce722b7af8fe','0114ece1711f653231fc40df881c50af')then raise exception 'Function changed since review: private.bite_reservation_quote(uuid,jsonb)';end if;
+ if md5(pg_get_functiondef('private.bite_reservation_quote(uuid,jsonb)'::regprocedure))not in('61900ed6af76bfb8e570ce722b7af8fe','fe054971daad239448548d96d88eb6ed')then raise exception 'Function changed since review: private.bite_reservation_quote(uuid,jsonb)';end if;
 end$preflight$;
 alter table public.bite_rooms alter column nightly_rate drop not null,alter column adults drop not null,alter column children drop not null;
 alter table public.bite_rooms alter column nightly_rate drop default,alter column adults drop default,alter column children drop default;
@@ -205,7 +205,11 @@ declare pr public.bite_properties;prior public.bite_property_commands;role_name 
     if not exists(select 1 from public.bite_guest_documents where property_id=p_property and guest_id=(p_payload->>'guest_id')::uuid and id=nullif(party_item->>'id_front','')::uuid and subject_key=(party_item->>'subject_key')::uuid and kind='masked_id'and status='ready')then raise exception 'Save the ID front for each additional guest'using errcode='22023';end if;
     if nullif(party_item->>'id_back','')is not null and (party_item->>'id_back'=party_item->>'id_front'or not exists(select 1 from public.bite_guest_documents where property_id=p_property and guest_id=(p_payload->>'guest_id')::uuid and id=(party_item->>'id_back')::uuid and subject_key=(party_item->>'subject_key')::uuid and kind='masked_id'and status='ready'))then raise exception 'Check the additional guest ID back'using errcode='22023';end if;
    end loop;
-   if nullif(cfg->>'id_back','')is not null and not exists(select 1 from public.bite_guest_documents where property_id=p_property and guest_id=(p_payload->>'guest_id')::uuid and id=(cfg->>'id_back')::uuid and status='ready')then raise exception 'ID back has not been saved for this guest';end if;
+   if nullif(cfg->>'id_back','')is not null and not exists(select 1 from public.bite_guest_documents where property_id=p_property and guest_id=(p_payload->>'guest_id')::uuid and id=(cfg->>'id_back')::uuid and status='ready'and kind='masked_id'and subject_key is null)then raise exception 'ID back has not been saved for this guest';end if;
+  end if;
+  if p_action='reservation_edit'then
+   select * into strict s from public.bite_stays where property_id=p_property and id=entity;
+   if jsonb_array_length(coalesce(s.registration->'additional_ids','[]'::jsonb))>coalesce((p_payload->>'adults')::integer,0)+coalesce((p_payload->>'children')::integer,0)-1 then raise exception 'Guest count is smaller than the attached party IDs'using errcode='22023',detail='{"field":"male"}';end if;
   end if;
   if p_action='checkin'then
    select * into strict s from public.bite_stays where property_id=p_property and id=entity;
@@ -774,7 +778,7 @@ declare pr public.bite_properties;r public.bite_rooms;prior public.bite_stays;a 
  if ignored is not null then select * into strict prior from public.bite_stays where id=ignored and property_id=p_property and status='reserved';end if;
  cfg:=case when ignored is null then pr.hotel_policy else prior.policy_snapshot end;
  a:=(p_details->>'arrival')::date;d:=(p_details->>'departure')::date;
- if a is null or d is null or d<=a or d-a>365 or coalesce((p_details->>'adults')::integer,0) not between 1 and case when coalesce((p_details->>'terms_at_checkin')::boolean,false)or coalesce((prior.policy_snapshot->>'terms_at_checkin')::boolean,false)then 20 else coalesce(r.adults,20)end or coalesce((p_details->>'children')::integer,0) not between 0 and case when coalesce((p_details->>'terms_at_checkin')::boolean,false)or coalesce((prior.policy_snapshot->>'terms_at_checkin')::boolean,false)then 20 else coalesce(r.children,20)end then raise exception 'Check stay dates and room occupancy';end if;
+ if a is null or d is null or d<=a or d-a>365 or coalesce((p_details->>'adults')::integer,0) not between 1 and (case when coalesce((p_details->>'terms_at_checkin')::boolean,false)or coalesce((prior.policy_snapshot->>'terms_at_checkin')::boolean,false)then 20 else coalesce(r.adults,20)end) or coalesce((p_details->>'children')::integer,0) not between 0 and (case when coalesce((p_details->>'terms_at_checkin')::boolean,false)or coalesce((prior.policy_snapshot->>'terms_at_checkin')::boolean,false)then 20 else coalesce(r.children,20)end) then raise exception 'Check stay dates and room occupancy';end if;
  if r.housekeeping='blocked' or exists(select 1 from public.bite_stays where room_id=r.id and id is distinct from ignored and status in ('reserved','in_house') and daterange(arrival,departure,'[)')&&daterange(a,d,'[)')) then raise exception 'Room unavailable for these dates';end if;
  perform private.bite_check_room_timing(p_property,r.id,a,d,ignored);
  if p_details->>'mode'='checkin' then

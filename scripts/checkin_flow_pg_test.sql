@@ -38,7 +38,7 @@ do $$declare p uuid;r uuid;legacy uuid;g uuid;subject uuid;d uuid;v jsonb;args j
 end$$;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 do $$declare p uuid;r uuid;legacy uuid;g uuid;s uuid;v jsonb;details jsonb;args jsonb;reg jsonb;party jsonb;front uuid;d date:=(now()at time zone'Asia/Kolkata')::date;begin
- select v::uuid into p from checkin_flow_state where k='p';select v::uuid into r from checkin_flow_state where k='r';select v::uuid into legacy from checkin_flow_state where k='legacy';select v::uuid into g from checkin_flow_state where k='g';select v::uuid into front from checkin_flow_state where k='front';select v::jsonb into party from checkin_flow_state where k='ids';
+ select st.v::uuid into p from checkin_flow_state st where k='p';select st.v::uuid into r from checkin_flow_state st where k='r';select st.v::uuid into legacy from checkin_flow_state st where k='legacy';select st.v::uuid into g from checkin_flow_state st where k='g';select st.v::uuid into front from checkin_flow_state st where k='front';select st.v::jsonb into party from checkin_flow_state st where k='ids';
  details:=jsonb_build_object('room_id',legacy,'arrival',d,'departure',d+1,'adults',3,'children',0,'nightly_rate',800,'terms_at_checkin',true,'mode','checkin');
  v:=public.bite_reservation_quote(p,details);if(v->>'total')::numeric<>800 then raise exception 'Per-stay rent must override the unused room master rate';end if;
  reg:=jsonb_build_object('male',2,'female',1,'children',0,'arrived_from','Udaipur','next_destination','Jaipur','transport','Bus','id_front',front,'additional_ids',party);
@@ -61,6 +61,6 @@ do $$declare p uuid;r uuid;legacy uuid;g uuid;s uuid;v jsonb;details jsonb;args 
  perform pg_temp.checkin_flow_denied(format('select public.bite_reservation_quote(%L,%L)',p,(details-'nightly_rate'||jsonb_build_object('room_id',r))::text));
 end$$;
 select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
-select pg_temp.checkin_flow_denied(format('select public.bite_guest_document_list(%L,%L)',(select v from checkin_flow_state where k='p'),(select v from checkin_flow_state where k='g')));
+select pg_temp.checkin_flow_denied(format('select public.bite_guest_document_list(%L,%L)',(select v from checkin_flow_state st where k='p'),(select v from checkin_flow_state st where k='g')));
 rollback;
 select 'Room setup without presets, per-stay rent/counts, named multi-person IDs, private uploads, retries and tenant boundaries passed.'as result;
