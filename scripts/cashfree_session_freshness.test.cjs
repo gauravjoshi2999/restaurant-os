@@ -8,7 +8,7 @@ async function run({attemptAge=null,providerRef=null,createdAge=null,providerAge
  const intent={id,customer_id:owner,restaurant_id:'restaurant-1',amount:100,currency:'INR',status:'awaiting_payment',provider_order_id:providerRef,provider_attempted_at:attemptAge===null?null:new Date(Date.now()-attemptAge*1000).toISOString(),priced_items:[{quantity:1,unit_price:100}],food_subtotal:100,delivery_fee:0,discount_amount:0,customer_snapshot:{full_name:'QA',phone:'9999999999'},created_at:new Date(Date.now()-(createdAge||0)*1000).toISOString()};
  const query=(table)=>{let lastUpdate=null;
   const q={select(){return q;},eq(){return q;},lt(){return q;},is(){return q;},update(v){lastUpdate=v;updates.push(v);return q;},
-   async maybeSingle(){return{data:lastUpdate?{id}:table==='customer_contact_profiles'?null:intent,error:null}}};
+   async maybeSingle(){return{data:lastUpdate?{id}:table==='customer_contact_profiles'||table==='bite_order_confirmations'?null:intent,error:null}}};
   return q;
  };
  const client={auth:{getUser:async()=>({data:{user:{id:'customer-1',email:'qa@example.invalid'}},error:null})},from:query};
