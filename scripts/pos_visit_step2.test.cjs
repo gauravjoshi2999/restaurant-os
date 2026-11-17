@@ -39,7 +39,7 @@ test('Visit is transactionally attached to one POS bill and one payment — neve
  assert.match(sql,/insert into public\.restaurant_pos_visit_details/);
  assert.match(sql,/after insert on public\.bite_property_commands/);
  assert.match(sql,/new\.action <> 'pos_sale'/);
- assert.match(sql,/new\.payload \? 'pos_visit_type'/);
+ assert.match(sql,/v_visit:=new\.payload->>'pos_visit_type'/);
  assert.match(sql,/v_creator is distinct from new\.created_by/);
  assert.match(sql,/v_channel is distinct from/);
  assert.match(sql,/on delete restrict/);
