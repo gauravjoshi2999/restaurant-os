@@ -135,6 +135,8 @@
    const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
    if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
    if(!form.elements.id_checked.checked)throw fieldError('id_checked','Check the guest ID before continuing.');
+   if(f.booking_source==='external_booking'&&!String(f.booking_reference||'').trim())throw fieldError('booking_reference','Enter the external booking reference.');
+   if(Number(f.advance_amount)>0&&['UPI','Card','Bank Transfer'].includes(f.advance_method)&&f.advance_verified==='on'&&!String(f.advance_reference||'').trim())throw fieldError('advance_reference','Enter the bank or receipt reference for the verified advance.');
   }
  }
  async function saveDocuments(guest,form){

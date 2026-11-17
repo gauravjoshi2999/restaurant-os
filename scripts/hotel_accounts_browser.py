@@ -118,6 +118,8 @@ try:
    departure.fill(checkout)
    f.locator('[name=phone]').fill('badphone');f.locator('button[type=submit]').click();field_error(page,f,'phone','Invalid mobile number');f.locator('[name=phone]').fill('9999999999')
    f.locator('[name=male]').fill('0');f.locator('button[type=submit]').click();field_error(page,f,'male','Missing adult guest');f.locator('[name=male]').fill('1')
+   f.locator('[name=booking_source]').select_option('external_booking');f.locator('button[type=submit]').click();field_error(page,f,'booking_reference','Missing external booking reference');f.locator('[name=booking_source]').select_option('walk_in')
+   f.locator('[name=advance_method]').select_option('UPI');f.locator('[name=advance_verified]').check();f.locator('button[type=submit]').click();field_error(page,f,'advance_reference','Missing verified online advance reference');f.locator('[name=advance_method]').select_option('Cash')
    check(not f.locator('[name=id_back]').evaluate('(x)=>x.required'),'ID back stays optional')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Check-in fits '+str(width)+'px')
    page.screenshot(path=str(OUT/f'ui-hotel-checkin-{width}.png'),full_page=width>760)

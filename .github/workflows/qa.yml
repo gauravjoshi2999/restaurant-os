@@ -31,6 +31,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run Chromium customer journey smoke tests
         run: |
+          python scripts/hotel_accounts_browser.py
           python scripts/menu_qr_browser_smoke.py
           python scripts/owner_feedback_mobile_browser.py
           python scripts/delivery_handoff_mobile_browser.py
@@ -42,7 +43,6 @@ jobs:
           python scripts/universal_owner_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
-          python scripts/hotel_accounts_browser.py
 
       - name: Upload synthetic QA evidence
         if: always()
