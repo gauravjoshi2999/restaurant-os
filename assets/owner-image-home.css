@@ -381,3 +381,10 @@
   width:40px;height:40px;margin-bottom:33px!important;
  }
 }
+
+@media(max-width:760px){
+ body[data-role="owner"] #orders .boh-notice-target{
+  outline:3px solid #f28a13!important;outline-offset:2px!important;
+  box-shadow:0 0 0 6px #ff9c2925,0 8px 20px #451a2624!important;
+ }
+}
