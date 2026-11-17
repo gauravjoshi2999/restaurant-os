@@ -72,4 +72,74 @@
  body[data-role=owner] #pos .bpv3-mode button:focus-visible,
  body[data-role=owner] #pos .bpv3-calendar-days button:focus-visible{outline:3px solid #ffa43c;outline-offset:2px}
 }
+/* A genuine, editable mobile counter bill, not an informational POS mockup. */
+@media(max-width:760px){
+ body[data-role="owner"] #orderModal.show{align-items:flex-end!important;padding:0!important}
+ body[data-role="owner"] #orderModal .modal-box{
+  width:100%!important;max-width:680px!important;max-height:calc(100dvh - 18px)!important;
+  margin:auto auto 0!important;border-radius:23px 23px 0 0!important;
+  border:1px solid #ecdccf!important;overflow-y:auto;overflow-x:hidden;
+  background:linear-gradient(160deg,#fffefc,#fff7f1 85%)!important;
+  color:#3b252d;box-shadow:0 -12px 35px #3e1f2730!important;
+  animation:bps-slideup .2s ease-out
+ }
+ body[data-role="owner"] #orderModal .modal-head{
+  position:sticky;top:0;z-index:7;background:#fff9f4;border-bottom:1px solid #f1ddd1;
+  padding:12px 15px!important;margin:0 -2px 10px
+ }
+ body[data-role="owner"] #orderModal #orderModalTitle{font-size:20px!important;font-weight:950!important;letter-spacing:-.4px}
+ body[data-role="owner"] #orderModal .pos-draft-toolbar{
+  padding:7px 9px!important;margin:0 0 12px!important;gap:7px;
+  background:#f5fbf5!important;border-color:#d9ead9!important;border-radius:12px
+ }
+ body[data-role="owner"] #orderModal .pos-draft-toolbar #posDraftStatus{font-size:10px;min-width:0}
+ body[data-role="owner"] #orderModal .pos-draft-actions{gap:5px!important}
+ body[data-role="owner"] #orderModal .pos-draft-actions button{min-height:35px!important;padding:7px 9px!important;font-size:10px!important}
+ body[data-role="owner"] #orderModal .form-row{gap:10px}
+ body[data-role="owner"] #orderModal .field label{font-size:12px;font-weight:800;color:#5b4246}
+ body[data-role="owner"] #orderModal .field input,
+ body[data-role="owner"] #orderModal .field select{
+  min-height:44px;border:1px solid #e9d9cf;border-radius:11px;background:#fff;
+  color:#34272a;font-size:14px;max-width:100%
+ }
+ body[data-role="owner"] #orderModal #posItemEntry{
+  background:#fff;border:1px solid #ecdbd2;border-radius:15px;
+  padding:10px!important;gap:9px!important;margin-bottom:10px
+ }
+ body[data-role="owner"] #orderModal #posPickerItemName{min-height:49px;font-size:15px}
+ body[data-role="owner"] #orderModal #posItemEntry>button{
+  min-height:44px!important;border-radius:11px!important;
+  background:#fff0df!important;border:1px solid #f6bc8c!important;
+  color:#ac4c07!important;font-size:12px!important;font-weight:900!important
+ }
+ body[data-role="owner"] #orderModal #posItemSummary{
+  border:1px solid #f1e0d6;border-radius:14px;padding:10px;
+  background:#fff;max-height:230px;overflow-y:auto
+ }
+ body[data-role="owner"] #orderModal .order-total-bar{
+  border:1px solid #f8c996;border-radius:13px;
+  background:linear-gradient(110deg,#ffebd5,#ffce9d);
+  color:#56250d;margin:10px 0;font-size:16px
+ }
+ body[data-role="owner"] #orderModal .order-total-bar strong{font-size:22px;font-weight:950}
+ body[data-role="owner"] #orderModal #posPaymentSection{
+  border:1px solid #f0dfd6;border-radius:15px;background:white;
+  padding:11px!important;margin-top:12px!important
+ }
+ body[data-role="owner"] #orderModal #posPaymentSection .section-head h3{font-size:16px}
+ body[data-role="owner"] #orderModal .pos-create-action{
+  position:sticky;bottom:0;z-index:6;background:#fff8f3f2;
+  padding:10px 0 calc(11px + env(safe-area-inset-bottom));
+  border-top:1px solid #f1ddd2;backdrop-filter:blur(8px);margin-top:8px
+ }
+ body[data-role="owner"] #orderModal #createOrderBtn{
+  min-height:51px!important;border:0!important;border-radius:13px!important;
+  background:linear-gradient(120deg,#ff970b,#e95500)!important;
+  color:white!important;font-size:16px!important;font-weight:900!important;
+  box-shadow:0 6px 15px #ed721b33
+ }
+ body[data-role="owner"] #orderModal #posWhatsAppConsent{accent-color:#f47704}
+}
+@keyframes bps-slideup{from{transform:translateY(18px);opacity:.7}to{transform:translateY(0);opacity:1}}
+@media(prefers-reduced-motion:reduce){body[data-role="owner"] #orderModal .modal-box{animation:none!important}}
 @media(prefers-reduced-motion:reduce){#bitePosServicePanel *{animation:none!important;transition:none!important}}
