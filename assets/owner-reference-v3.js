@@ -9,6 +9,7 @@
   bed:'<rect x="3" y="10" width="18" height="8" rx="2"/><path d="M3 18v3m18-3v3M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/>',
   rupee:'<path d="M6 4h12M6 8h12M6 4c4 0 7 2 7 5s-3 5-7 5l9 7"/>',
   receipt:'<path d="M5 2h14v20l-3-2-4 2-4-2-3 2V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/>',
+  book:'<path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1z"/><path d="M12 5v15"/>',
   calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18"/>',
   chef:'<path d="M7 14a4 4 0 0 1 0-8 5 5 0 0 1 10 0 4 4 0 0 1 0 8"/><path d="M7 14v5h10v-5"/>',
   ready:'<path d="M3 17h18M5 16a7 7 0 0 1 14 0"/><path d="M12 9V6"/>',
@@ -156,7 +157,7 @@
    '<span class="boh-quick-icon">'+icon(ico)+'</span><strong>'+escapeHtml(label)+'</strong></button>';
  }
  function homeHtml(data,snap,waiting){
-  const hotel=!!snap?.hotel,food=snap?.restaurant!==false;
+  const hotel=!!snap?.hotel,food=permitted('pos')||permitted('orders');
   const tax=root.BiteHospitality?.prop?.()?.tax_profile||{};
   const register=hotel?monthRegisterSummary():{count:null,label:''};
   const tiles=[];
@@ -164,7 +165,7 @@
   if(food)tiles.push(featureCard('pos','pos','New POS Bill','pos','','Create Bill','data-bv3-new-pos="true"'));
   if(hotel)tiles.push(featureCard('checkin','hotel-register','Check-in','people','Today arrivals'));
   else if(food)tiles.push(featureCard('orders','orders','Bite Orders','bag',num(snap?.newOrders)+' new orders'));
-  if(permitted('daily-book'))tiles.push(featureCard('daily','daily-book','Daily Book','receipt','Daily records & day summary'));
+  if(permitted('daily-book'))tiles.push(featureCard('daily','daily-book','Daily Book','book','Daily records & day summary'));
   else if(food&&permitted('menu'))tiles.push(featureCard('daily','menu','Menu','chef','Edit items & availability'));
   const quick=[
    quickLink('Staff Attendance','hr','people','staff','data-bv3-attendance="true"'),
@@ -172,7 +173,7 @@
    tax.reviewed&&tax.gstin?quickLink('GST Collection','daily-book','receipt','gst','data-bv3-gst="true"'):''
   ].filter(Boolean);
   const registerRow=hotel&&permitted('guests')?
-   '<button type="button" class="boh-register" data-bv3-route="guests"><span class="boh-register-icon">'+icon('receipt')+'</span>'+
+   '<button type="button" class="boh-register" data-bv3-route="guests"><span class="boh-register-icon">'+icon('book')+'</span>'+
    '<span><strong>Hotel Register</strong><small>'+(register.count===null?'Loading entries…':escapeHtml(register.label)+' · '+num(register.count)+' entr'+(register.count===1?'y':'ies'))+'</small></span>'+
    '<span class="boh-register-arrow">'+icon('arrow')+'</span></button>':'';
   return '<div class="boh-home" aria-label="Hotel and restaurant operations">'+
