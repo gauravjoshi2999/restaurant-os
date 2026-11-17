@@ -33,8 +33,9 @@
    const out={charges:0,paid:0,balance:0,deposit_held:0,pending:0};
    for(const e of db.entries.filter(e=>e.folio_id===f.id)){
     if(e.status==='pending'){out.pending+=e.amount;continue}
-    if(e.kind==='charge')out.charges+=e.amount;
-    if(['discount','reversal'].includes(e.kind))out.charges-=e.amount;
+    if(e.status!=='confirmed')continue;
+    if(e.kind==='charge')out.charges+=e.amount+Number(e.tax_amount||0);
+    if(['discount','reversal'].includes(e.kind))out.charges-=e.amount+Number(e.tax_amount||0);
     if(['payment','advance','deposit_apply'].includes(e.kind))out.paid+=e.amount;
     if(e.kind==='refund')out.paid-=e.amount;
     if(e.kind==='deposit_hold')out.deposit_held+=e.amount;

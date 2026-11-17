@@ -72,5 +72,11 @@ try:
   combined=event.value;combined.get_by_text('Booking statement · 2 rooms',exact=True).wait_for();check('₹2,950.00'in combined.locator('body').inner_text(),'Combined bill attaches both room invoices with the correct total');combined.close();p.close()
   browser.close()
  check(not errors,'No hotel billing controller errors')
+except Exception:
+ try:
+  p.screenshot(path=str(OUT/'ui-hotel-bill-failure.png'),full_page=True)
+  (OUT/'hotel-bill-failure-debug.json').write_text(json.dumps({'body':p.locator('body').inner_text(),'errors':errors,'state':p.evaluate('({db:__BITE_HOTEL_QA.db,calls:__BITE_HOTEL_QA.calls})')},indent=2))
+ except Exception:pass
+ raise
 finally:
  server.shutdown();(OUT/'hotel-bill-workflow-evidence.json').write_text(json.dumps({'checks':checks,'page_errors':errors,'scope':'Synthetic test records only. Database transaction tests separately verify accounting, roles and atomic checkout.'},indent=2))

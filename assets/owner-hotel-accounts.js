@@ -263,11 +263,12 @@
    field('gstin','Hotel GSTIN · Leave blank if unregistered','text',tax.gstin||'','maxlength="15" autocomplete="off"')+
    field('prefix','Bill prefix','text',s.prefix||'B','required pattern="[A-Za-z0-9]{1,3}" maxlength="3"')+
    field('next_number','Next bill number','number',s.next_number||1,'required min="'+(Number(s.last_number||0)+1)+'" max="999999" step="1"')+
-   select('room_rate','Room GST · Total %',[0,5,18].map(x=>option(x,x+'%',Number(tax.room_rate||0)===x)).join(''))+
-   select('food_rate','Restaurant GST · Total %',[0,5,18].map(x=>option(x,x+'%',Number(tax.food_rate||0)===x)).join(''))+
+   '<p class="bh-note">Room GST is calculated from the agreed rent: 5% up to ₹7,500 per room / day, and 18% above it. No GST is charged without registration.</p>'+
+   '<input type="hidden" name="room_rate" value="5">'+
+   select('food_rate','Restaurant GST · Total %',[5,18].map(x=>option(x,x+'%',Number(tax.food_rate||5)===x)).join(''))+
    field('incidental_rate','Extra charges GST · Total %','number',tax.incidental_rate||0,'required min="0" max="100" step="0.01"')+
    field('primary_account','Usual online account · Short label','text',tax.primary_account||'','maxlength="80" placeholder="Owner account"')+'</div>'+
-   '<p class="bh-note">5% is shown as 2.5% CGST + 2.5% SGST. Confirm applicable room, restaurant and extra-charge rates with your CA. New rates apply to new charges. Existing bills stay unchanged.</p>'+
+   '<p class="bh-note">5% is shown as 2.5% CGST + 2.5% SGST. Confirm the restaurant and extra-charge rates with your CA. Issued bills stay unchanged; an open bill uses the reviewed settings when previewed or checked out.</p>'+
    check('reviewed','I reviewed this property’s GST registration, rates and invoice series.','required')+message()+'<button class="btn" type="submit">Save billing settings</button></form>';
   target.append(box);
  }
@@ -327,7 +328,7 @@
    if(msg)msg.textContent='Saving…';
    if(type==='billing'){
     if(!form.elements.reviewed.checked)throw Error('Review billing settings first.');
-    await H().command('billing_settings',{prefix:f.prefix,next_number:Number(f.next_number),primary_account:f.primary_account,tax_profile:{gstin:f.gstin.trim().toUpperCase(),reviewed:true,room_rate:Number(f.room_rate),food_rate:Number(f.food_rate),incidental_rate:Number(f.incidental_rate)}});
+    await H().command('billing_settings',{prefix:f.prefix,next_number:Number(f.next_number),primary_account:f.primary_account,tax_profile:{gstin:f.gstin.trim().toUpperCase(),reviewed:true,room_rate:f.gstin.trim()?5:0,food_rate:f.gstin.trim()?Number(f.food_rate):0,incidental_rate:f.gstin.trim()?Number(f.incidental_rate):0}});
     await H().refreshContext();await H().reload();settings(document.getElementById('settings'));return;
    }
    if(type==='book')await H().command('daybook_entry',{...f,kind:form.dataset.kind,amount:Number(f.amount),verified:f.verified==='on'});
