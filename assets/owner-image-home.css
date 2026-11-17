@@ -286,3 +286,98 @@
  body[data-role="owner"] #biteOwnerNoticeTray,
  body[data-role="owner"].bite-v3-active #overview #biteV3Home{animation:none!important;transition:none!important}
 }
+
+/* Approved owner Home corrections: illustrations never compete with labels,
+   and legacy sales widgets remain in the DOM only for their original data bindings. */
+@media(max-width:760px){
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview > :not(#biteV3Home),
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview > [data-owner-dashboard],
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview > [data-platform-dashboard]{
+  display:none!important;visibility:hidden!important;
+ }
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview .od-metrics,
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview .od-pos-breakdown,
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview .od-finance-boundary,
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview .od-dashboard-grid,
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview .od-footer,
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview #bitePremiumHome{
+  display:none!important;
+ }
+ body[data-role="owner"].bite-v3-active #mainApp .main .content #overview > #biteV3Home{
+  display:block!important;margin:0 auto!important;max-width:720px;
+ }
+ body[data-role="owner"] #biteV3Home .boh-home{padding-bottom:0!important}
+ body[data-role="owner"] #biteV3Home .boh-feature{
+  min-height:223px;gap:0;overflow:hidden;overflow-wrap:break-word;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-card-illustration,
+ body[data-role="owner"] #biteV3Home .boh-room .boh-card-illustration,
+ body[data-role="owner"] #biteV3Home .boh-pos .boh-card-illustration,
+ body[data-role="owner"] #biteV3Home .boh-checkin .boh-card-illustration,
+ body[data-role="owner"] #biteV3Home .boh-daily .boh-card-illustration{
+  top:0!important;right:-5px!important;height:41%!important;width:79%!important;
+  background-position:right top!important;background-size:contain!important;
+  opacity:.65!important;
+  -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 38%,transparent 98%);
+  mask-image:linear-gradient(to bottom,#000 0%,#000 38%,transparent 98%);
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-feature-icon{
+  position:relative;z-index:2;margin-bottom:clamp(29px,8.4vw,39px)!important;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature>strong{
+  position:relative;z-index:2;align-self:flex-start;max-width:100%;
+  margin:0 0 7px -5px!important;padding:5px 5px 4px!important;
+  background:linear-gradient(90deg,#fff8f0f5 0%,#fff8f0e8 77%,#fff8f000 100%);
+  border-radius:8px;line-height:1.2!important;letter-spacing:-.025em!important;
+  font-size:clamp(15px,4.2vw,20px)!important;
+  text-shadow:0 1px 0 #fff8f0;
+  overflow-wrap:break-word;word-break:normal;
+ }
+ body[data-role="owner"] #biteV3Home .boh-checkin>strong{
+  background:linear-gradient(90deg,#fff8fff5 0%,#fff8ffe8 77%,transparent);
+ }
+ body[data-role="owner"] #biteV3Home .boh-daily>strong{
+  background:linear-gradient(90deg,#f8fff5f5 0%,#f8fff5e8 77%,transparent);
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature>small,
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-room-stat,
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-card-cta,
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-feature-arrow{
+  position:relative;z-index:2;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-room-stat{
+  width:100%;min-width:0;margin:3px 0;gap:5px;flex-wrap:nowrap;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-room-stat b{flex:0 0 auto}
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-card-cta{
+  flex:0 0 auto;margin-top:auto;min-height:40px;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-feature-arrow{margin-top:auto}
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="hotel"]>.boh-daily,
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="restaurant"]>.boh-daily{
+  grid-column:1/-1;min-height:164px;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="hotel"]>.boh-daily .boh-card-illustration,
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="restaurant"]>.boh-daily .boh-card-illustration{
+  width:44%!important;height:82%!important;opacity:.6!important;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="hotel"]>.boh-daily .boh-feature-icon,
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="restaurant"]>.boh-daily .boh-feature-icon{
+  margin-bottom:10px!important;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="hotel"]>.boh-daily>strong,
+ body[data-role="owner"] #biteV3Home .boh-feature-grid[data-business-type="restaurant"]>.boh-daily>strong{
+  max-width:65%;
+ }
+}
+@media(max-width:350px){
+ body[data-role="owner"] #biteV3Home .boh-feature{
+  padding:10px 8px!important;min-height:220px;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature>strong{
+  font-size:15px!important;letter-spacing:-.02em!important;
+ }
+ body[data-role="owner"] #biteV3Home .boh-feature .boh-feature-icon{
+  width:40px;height:40px;margin-bottom:33px!important;
+ }
+}
