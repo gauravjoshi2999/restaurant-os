@@ -8,7 +8,7 @@
   const p={id:pid,name:'Synthetic '+type+' property',business_type:type,capabilities:[...window.BiteCapabilities.defaults[type]],configured_capabilities:[...window.BiteCapabilities.defaults[type]],can_configure:true,role:'owner',outlets:type==='hotel'||!exists?[]:[rid],address:'Synthetic QA road',phone:'9999999999',tax_profile:{reviewed:false}};
   const day=()=>window.BiteOwner.day();
   const db={rooms:exists?[{id:'room-a',property_id:pid,number:'101',room_type:'Deluxe',nightly_rate:1000,adults:2,children:2,housekeeping:'ready',active:true},{id:'room-b',property_id:pid,number:'102',room_type:'Suite',nightly_rate:1500,adults:3,children:2,housekeeping:'ready',active:true}]:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[],tasks:[],task_members:[],refund_requests:[],compliance:[],outlet_applications:[],available_outlets:[]};
-  const commands=new Map();window.__BITE_HOTEL_QA={db,commands,property:p,calls:[]};
+  const commands=new Map(),commandMeta=new Map();window.__BITE_HOTEL_QA={db,commands,commandMeta,property:p,calls:[]};
   // Fixture-only RLS-aware preference transport. This fake never reaches production.
   const originalFrom=client.from.bind(client),prefKey='synthetic-housekeeping-display:'+pid;
   client.from=(table)=>{
@@ -48,8 +48,8 @@
    if(name==='bite_hotel_workspace'&&window.__BITE_HOTEL_QA.delayMs)await new Promise(done=>setTimeout(done,window.__BITE_HOTEL_QA.delayMs));
    if(name==='bite_owner_context')return {data:exists?[structuredClone(p)]:[],error:null};
    if(name==='bite_create_property'){exists=true;p.name=args.p_name;p.business_type=args.p_type;p.capabilities=[...window.BiteCapabilities.defaults[args.p_type]];p.configured_capabilities=[...p.capabilities];return {data:pid,error:null}}
-   if(name==='bite_hotel_workspace')return {data:structuredClone({...db,folios:db.folios.map(f=>({...f,totals:totals(f)}))}),error:null};
-   if(name==='bite_reservation_quote'){const v=args.p_details,r=db.rooms.find(r=>r.id===v.room_id),amount=(v.nightly_rate??r.nightly_rate)*((new Date(v.departure)-new Date(v.arrival))/86400000),early=p.hotel_policy?.reviewed&&v.mode==='checkin'?Number(p.hotel_policy.early_checkin_fee||0):0;return{data:{room:amount,room_tax:0,early_fee:early,early_tax:0,total:amount+early,nightly_rate:v.nightly_rate??r.nightly_rate,quote_hash:'synthetic-quote'},error:null}}
+   if(name==='bite_hotel_workspace')return {data:structuredClone({...db,checkin_attempts:[...commandMeta.entries()].filter(([,r])=>['guest_save','reserve','checkin'].includes(r.action)).map(([request_id,r])=>({request_id,action:r.action,...commands.get(request_id).data})),folios:db.folios.map(f=>({...f,totals:totals(f)}))}),error:null};
+   if(name==='bite_reservation_quote'){const v=args.p_details,r=db.rooms.find(r=>r.id===v.room_id),prior=db.stays.find(s=>s.id===v.stay_id);if(!r||r.housekeeping==='blocked'||db.stays.some(s=>s.id!==v.stay_id&&s.room_id===r.id&&['reserved','in_house'].includes(s.status)&&(s.arrival<v.departure&&v.arrival<s.departure||v.mode==='checkin'&&s.status==='in_house')))return{data:null,error:{code:'P0001',message:'Room unavailable for these dates'}};const rate=prior?.nightly_rate??v.nightly_rate??r.nightly_rate,amount=rate*((new Date(v.departure)-new Date(v.arrival))/86400000),early=p.hotel_policy?.reviewed&&v.mode==='checkin'?Number(p.hotel_policy.early_checkin_fee||0):0;return{data:{room:amount,room_tax:0,early_fee:early,early_tax:0,total:amount+early,nightly_rate:rate,quote_hash:'synthetic-quote'},error:null}}
    if(name==='bite_checkout_policy_quote')return{data:{early_credit:0,early_credit_tax:0,late_fee:0,late_tax:0,quote_hash:'synthetic-policy'},error:null};
    if(name==='bite_unified_audit')return{data:{rows:db.audit.filter(a=>a.action.includes(args.p_query||'')).map(a=>({...a,source:'Property',actor_name:'Synthetic owner'})),next_cursor:null},error:null};
    if(name==='bite_guest_link')return{data:{token:'a'.repeat(64),expires_at:new Date(Date.now()+72*3600000).toISOString()},error:null};
@@ -61,13 +61,17 @@
    if(name==='bite_room_charge_targets')return {data:db.stays.filter(s=>s.status==='in_house').map(s=>({stay_id:s.id,folio_id:db.folios.find(f=>f.stay_id===s.id).id,room:db.rooms.find(r=>r.id===s.room_id).number,guest:db.guests.find(g=>g.id===s.guest_id).full_name})),error:null};
    if(name==='bite_property_command'){
     const {p_action:a,p_payload:v,p_request:k}=args;
-    if(commands.has(k))return structuredClone(commands.get(k));
+    if(commands.has(k)){const old=commandMeta.get(k);if(old?.action==='abandoned_checkin'||old&&old.action!==a)return{data:null,error:{code:'P0001',message:'Request ID already used for different details'}};return structuredClone(commands.get(k))}
     let result={id:crypto.randomUUID(),confirmed:true};
     if(a==='guest_save'){const g=db.guests.find(g=>g.id===v.id);if(g)Object.assign(g,v);else db.guests.push({...v,id:result.id,property_id:pid,created_at:new Date().toISOString()});if(g)result.id=g.id;}
     else if(a==='reserve'){
-     if(db.stays.some(s=>s.room_id===v.room_id&&['reserved','in_house'].includes(s.status)))return {data:null,error:{code:'P0001',message:'Room already reserved'}};
+     if(db.stays.some(s=>s.room_id===v.room_id&&['reserved','in_house'].includes(s.status)&&s.arrival<v.departure&&v.arrival<s.departure))return {data:null,error:{code:'P0001',message:'Room already reserved'}};
      const folio_id=crypto.randomUUID(),room=db.rooms.find(r=>r.id===v.room_id);db.stays.push({...v,id:result.id,status:'reserved',nightly_rate:v.nightly_rate??room.nightly_rate});db.folios.push({id:folio_id,property_id:pid,stay_id:result.id,status:'open'});result.folio_id=folio_id;
      if(v.advance_amount>0)db.entries.push({id:crypto.randomUUID(),folio_id,kind:'advance',category:'payment',amount:v.advance_amount,status:['UPI','Card','Bank Transfer'].includes(v.advance_method)&&!v.advance_verified?'pending':'confirmed',method:v.advance_method,description:'Recorded booking advance',created_at:new Date().toISOString()});
+    }else if(a==='reservation_edit'){
+     const s=db.stays.find(s=>s.id===v.id);if(!s||s.status!=='reserved')return{data:null,error:{code:'P0001',message:'Only an unarrived reservation can be corrected'}};Object.assign(s,v);result.id=s.id;
+    }else if(a==='abandon_checkin'){
+     const old=commandMeta.get(v.id);if(old&&old.action!=='abandoned_checkin')result={found:true,action:old.action,...commands.get(v.id).data};else{commands.set(v.id,{data:{cancelled:true},error:null});commandMeta.set(v.id,{action:'abandoned_checkin',payload:{}});result={cancelled:true}}
     }else if(a==='reserve_group'){
      db.groups.push({id:result.id,name:v.name,payer_guest_id:v.guest_id});const stays=[];
      for(const unit of v.rooms){const s=await client.rpc('bite_property_command',{...args,p_action:'reserve',p_payload:{...unit,guest_id:v.guest_id,arrival:v.arrival,departure:v.departure},p_request:crypto.randomUUID()});if(s.error)return s;db.stays.find(x=>x.id===s.data.id).group_id=result.id;stays.push(s.data)}result.stays=stays;
@@ -82,7 +86,7 @@
      db.sales.push({amount,method:v.payment_method,channel:v.channel});result.order_id=result.id;
     }else if(a==='checkin'){
      const s=db.stays.find(s=>s.id===v.id),r=db.rooms.find(r=>r.id===s.room_id),f=db.folios.find(f=>f.stay_id===s.id);if(r.housekeeping!=='ready')return {data:null,error:{code:'P0001',message:'Room is not Ready'}};
-     if(s.status!=='in_house'){s.status='in_house';const nights=(new Date(s.departure)-new Date(s.arrival))/86400000;db.entries.push({id:crypto.randomUUID(),folio_id:f.id,kind:'charge',category:'room',amount:nights*s.nightly_rate,tax_amount:0,status:'confirmed',description:nights+' room nights',created_at:new Date().toISOString()})}result.folio_id=f.id;
+     if(s.status!=='in_house'){s.status='in_house';const nights=(new Date(s.departure)-new Date(s.arrival))/86400000;db.entries.push({id:crypto.randomUUID(),folio_id:f.id,kind:'charge',category:'room',amount:nights*s.nightly_rate,tax_amount:0,status:'confirmed',description:nights+' room nights',created_at:new Date().toISOString()})}result.id=s.id;result.folio_id=f.id;
     }else if(['charge','payment','deposit_hold','deposit_return','deposit_apply','discount','refund'].includes(a)){
      db.entries.push({...v,id:result.id,kind:a,category:a==='charge'?'incidental':a.startsWith('deposit')?'deposit':'payment',amount:Number(v.amount),status:['payment','deposit_hold'].includes(a)&&['UPI','Card','Bank Transfer'].includes(v.method)?'pending':'confirmed',tax_amount:0,created_at:new Date().toISOString()});
     }else if(a==='payment_confirm'){const e=db.entries.find(e=>e.id===v.id);e.status='confirmed';e.reference=v.reference;}
@@ -119,7 +123,7 @@
     else if(a==='config'){Object.assign(p,v);p.configured_capabilities=[...v.capabilities]}
     else return {data:null,error:{code:'P0001',message:'Synthetic transport does not implement '+a}};
     db.audit.unshift({id:db.audit.length+1,action:a,created_at:new Date().toISOString()});
-    const response={data:result,error:null};commands.set(k,response);return structuredClone(response);
+    const response={data:result,error:null};commands.set(k,response);commandMeta.set(k,{action:a,payload:structuredClone(v)});return structuredClone(response);
    }
   };return client;
  };
