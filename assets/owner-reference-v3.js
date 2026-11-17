@@ -88,7 +88,12 @@
   const active=data?.active||[],statuses=data?.stages||{},paidNew=Number(statuses.Received||0);
   const hasHotel=!!snap?.hotel,hasFood=snap?.restaurant!==false;
   const todayOrders=data?.todayOrders?.length??0;
-  const kpis=[
+  const kpis=hasHotel&&!hasFood?[
+   keyCard('Occupied rooms',num(snap?.occupied),'bed','Currently checked in','is-purple'),
+   keyCard('Expected arrivals',num(snap?.arrivals),'calendar','Upcoming room check-in','is-green'),
+   keyCard('Available rooms',num(snap?.available),'ready','Ready for guests','is-orange'),
+   keyCard('Open guest folios',num(snap?.openFolios),'receipt','Room billing records','is-blue')
+  ]:[
    keyCard("Today's orders",num(todayOrders),'bag','Real Bite website orders','is-purple'),
    keyCard("Online paid (net)",money(data?.todaySales||0),'rupee','Verified · refunds minus','is-green'),
    hasHotel?keyCard('Occupied rooms',num(snap?.occupied),'bed','Currently checked in','is-orange'):keyCard('Preparing',num(statuses.Preparing||0),'chef','Accepted + preparing','is-orange'),
@@ -107,24 +112,24 @@
    {name:'Delivered',value:Number(data?.delivered||0),route:'completed',icon:'check'}
   ];
   const roomSub=hasHotel?(snap?.ready===false?'Room data loading…':num(snap?.occupied)+' occupied · '+num(snap?.available)+' available'):'Restaurant operations';
-  const roomCard=hasHotel?'<div class="bv3-bottom-panel"><div class="bv3-card-title"><strong>Room status</strong><button data-bv3-route="rooms" type="button">'+icon('arrow')+'</button></div>'+
+  const roomCard=hasHotel&&hasFood?'<div class="bv3-bottom-panel"><div class="bv3-card-title"><strong>Room status</strong><button data-bv3-route="rooms" type="button">'+icon('arrow')+'</button></div>'+
    '<div class="bv3-room"><span class="bv3-room-dot is-occupied"></span>Occupied<strong>'+num(snap?.occupied)+'</strong></div>'+
    '<div class="bv3-room"><span class="bv3-room-dot is-available"></span>Available<strong>'+num(snap?.available)+'</strong></div>'+
    (root.BiteHospitality?.housekeepingVisible?.()===true?'<div class="bv3-room"><span class="bv3-room-dot is-clean"></span>Cleaning<strong>'+num(snap?.cleaning)+'</strong></div>':'')+
    '</div>':'';
-  const weekly='<div class="bv3-bottom-panel bv3-sales"><div class="bv3-card-title"><strong>7-day online paid trend</strong><button data-bv3-route="reports" type="button">'+icon('arrow')+'</button></div>'+
-   chartSvg(data?.week)+'<small>Paid orders only; POS excluded</small></div>';
+  const weekly=hasFood?'<div class="bv3-bottom-panel bv3-sales"><div class="bv3-card-title"><strong>7-day online paid trend</strong><button data-bv3-route="reports" type="button">'+icon('arrow')+'</button></div>'+
+   chartSvg(data?.week)+'<small>Paid orders only; POS excluded</small></div>':'';
   return '<div class="bv3-intro"><span class="bv3-owner-mark">B</span><span><strong>'+escapeHtml(propertyName())+'</strong><small>Hotel &amp; restaurant control</small></span><button type="button" class="bv3-bell" data-bv3-route="orders" data-bv3-filter="new" aria-label="Open new order notifications">'+icon('bell')+
    (waiting.length?'<i>'+waiting.length+'</i>':'')+'</button></div>'+
-   attentionCard(waiting,paidNew)+
+   (hasFood?attentionCard(waiting,paidNew):'')+
    '<div class="bv3-section-label">Business snapshot <span>Today · Live data</span></div>'+
    '<section class="bv3-kpis" aria-label="Today business statistics">'+kpis.join('')+'</section>'+
    '<div class="bv3-section-label">Quick actions</div>'+
    '<section class="bv3-shortcuts" aria-label="Quick owner actions">'+quick.join('')+'</section>'+
-   '<section class="bv3-insights">'+roomCard+weekly+'</section>'+
+   (roomCard||weekly?'<section class="bv3-insights">'+roomCard+weekly+'</section>':'')+
    (hasFood?'<section class="bv3-flow"><div class="bv3-flow-head"><strong>Live order status</strong><button type="button" data-bv3-route="orders">View all →</button></div>'+
       '<div class="bv3-flow-grid">'+counts.map(c=>'<button type="button" data-bv3-route="orders" data-bv3-filter="'+c.route+'">'+icon(c.icon)+'<span>'+escapeHtml(c.name)+'</span><b>'+num(c.value)+'</b></button>').join('')+'</div></section>':'')+
-   '<p class="bv3-finance-note">Online paid, POS billed and cash received are separate. See Cashbook for collections.</p>';
+   (hasFood?'<p class="bv3-finance-note">Online paid, POS billed and cash received are separate. See Cashbook for collections.</p>':'');
  }
  function tick(){
   const home=root.document?.getElementById('biteV3Home');
@@ -144,7 +149,7 @@
   const data=summary(),snap=hotelSnapshot(),waiting=approvals();
   if(!data)return;
   const signature=JSON.stringify([currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
-    data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.ready,
+    data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
     waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount])]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
