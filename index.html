@@ -2218,9 +2218,27 @@ function printOwnerInvoice(id){
  const order=state.orders.find(o=>o.id===id);if(!order||access.role!=='owner'||order.restaurant!==access.restaurantId)return;
  const restaurant=state.restaurants.find(r=>r.id===order.restaurant),f=state.financials.find(f=>f.order_id===id);
  const rows=(state.orderItems||[]).filter(i=>i.order_id===id).map(i=>[i.item_name,i.quantity,money(i.unit_price),money(i.line_total)]);
- rows.push(['Delivery charge','','',money(f?.delivery_fee??0)],['Discount','','',money(Number(f?.restaurant_discount||0)+Number(f?.platform_discount||0))],['Total','','',money(f?.customer_payable_amount??order.amount)]);
- const notes=[order.isDemo?'DEMO ONLY · Simulated order. No payment received.':'Payment status: '+(f?.payment_status||'Unverified'), 'Order status: '+order.status, 'Customer: '+(order.customerName||'—'),restaurant?.address||''];
- BiteExports.print((restaurant?.name||'Restaurant')+' · Order Bill',order.code+' · '+new Date(order.createdAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),['Item','Quantity','Rate','Amount'],rows,notes);
+ const isPos=String(order.channel||'').startsWith('POS - ');
+ let notes;
+ if(isPos){
+  const details=(state.posServices||[]).find(x=>x.order_id===id&&x.restaurant_id===order.restaurant);
+  const p=paymentSummaryFor(id);
+  if(Number(order.waivedOffAmount||0)>0)rows.push(['Waived off','','','-'+money(order.waivedOffAmount)]);
+  rows.push(['Grand total','','',money(Math.max(0,order.amount-Number(order.waivedOffAmount||0)))]);
+  const service=details?.service_type==='dine_in'?'Dine-in':details?.service_type==='takeaway'?'Takeaway':
+    order.channel==='POS - Dine-in'?'Dine-in':order.channel==='POS - Takeaway'?'Takeaway':'Counter';
+  const table=(state.restaurantTables||[]).find(t=>t.id===(details?.table_id||order.tableId));
+  notes=['Service: '+service,
+   ...(details?.service_type==='dine_in'?['Diners: '+details.guest_count]:[]),
+   ...(table?['Table: '+table.table_name]:[]),
+   'Payment recorded: '+money(p.paid_amount||0)+' · Balance: '+money(p.balance_amount||0),
+   'Customer: '+(order.customerName||'Walk-in'),
+   restaurant?.address||''];
+ }else{
+  rows.push(['Delivery charge','','',money(f?.delivery_fee??0)],['Discount','','',money(Number(f?.restaurant_discount||0)+Number(f?.platform_discount||0))],['Total','','',money(f?.customer_payable_amount??order.amount)]);
+  notes=[order.isDemo?'DEMO ONLY · Simulated order. No payment received.':'Payment status: '+(f?.payment_status||'Unverified'), 'Order status: '+order.status,'Customer: '+(order.customerName||'—'),restaurant?.address||''];
+ }
+ BiteExports.print((restaurant?.name||'Restaurant')+' · '+(isPos?'POS Bill':'Order Bill'),order.code+' · '+new Date(order.createdAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),['Item','Quantity','Rate','Amount'],rows,notes);
 }
 document.getElementById('reportRestaurant').addEventListener('change',loadReportsData);
 document.getElementById('reportFrom').addEventListener('change',loadReportsData);
