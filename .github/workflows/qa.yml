@@ -205,3 +205,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116170330_owner_housekeeping_ui_preferences_20261116.sql
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_bill_workflow.sql
           psql -v ON_ERROR_STOP=1 -f scripts/hotel_bill_workflow_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118010000_atomic_family_multi_room_booking.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/family_booking_pg_test.sql
