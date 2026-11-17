@@ -3,6 +3,7 @@ import {createClient} from "npm:@supabase/supabase-js@2.95.0";
 import {pendingPaymentRetryPolicy} from "./payment-retry-policy.mjs";
 import {awaitingOwnerDevicePolicy} from "./device-retry-policy.mjs";
 import {dispatchCancellationPush} from "./cancellation-push.mjs";
+import {dispatchApprovalPush} from "./approval-push.mjs";
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
 function safeEqual(a:string,b:string){
@@ -105,7 +106,20 @@ Deno.serve(async req=>{
      .select("id,restaurant_id,status,channel,is_demo,order_code")
      .eq("id",ev.order_id).eq("restaurant_id",ev.restaurant_id).maybeSingle();
    if(orderError||!order)throw Error("Order unavailable");
-   if(order.status!=="Received"||String(order.channel||"").toLowerCase()!=="own platform"||order.is_demo===true){
+   // Previously approved, now paid orders must not ask for a second Accept.
+   let prepaidApproved=false;
+   if(order.status==="Accepted"){
+    const {data:intent,error:intentError}=await db.from("bite_live_checkout_intents")
+     .select("id,restaurant_id").eq("activated_order_id",order.id)
+     .eq("restaurant_id",ev.restaurant_id).maybeSingle();
+    if(!intentError&&intent){
+     const {data:approval,error:approvalError}=await db.from("bite_order_confirmations")
+      .select("state,restaurant_id").eq("intent_id",intent.id)
+      .eq("restaurant_id",ev.restaurant_id).maybeSingle();
+     prepaidApproved=!approvalError&&approval?.state==="approved"&&approval?.restaurant_id===ev.restaurant_id;
+    }
+   }
+   if((order.status!=="Received"&&!prepaidApproved)||String(order.channel||"").toLowerCase()!=="own platform"||order.is_demo===true){
     state="failed";lastError="Not an eligible new paid order";skipped++;
    }else{
     const {data:finance,error:financeError}=await db.from("order_financials")
@@ -132,11 +146,15 @@ Deno.serve(async req=>{
       // Data-only messages let Partner v13 build a native notification with
       // safe action buttons, even when the activity is in the background.
       // Older installed APKs still receive FCM-managed notification payloads.
-      const nativeActions=device.supports_order_actions===true;
+      const nativeActions=device.supports_order_actions===true&&!prepaidApproved;
+      const title=prepaidApproved?"Bite payment confirmed":"New Bite order";
+      const message=prepaidApproved
+       ?"Customer paid for your earlier approved order. Start cooking in Bite Partner."
+       :"New paid order. Accept or reject in Bite Partner.";
       const dataFields={
        order_id:String(order.id),restaurant_id:String(ev.restaurant_id),
-       screen:"orders",event_type:"bite_order",title:"New Bite order",
-       body:"New paid order. Accept or reject in Bite Partner."
+       screen:"orders",event_type:prepaidApproved?"bite_payment_confirmed":"bite_order",
+       title,body:message
       };
       const push={message:nativeActions?{
        token:device.fcm_token,
@@ -144,7 +162,7 @@ Deno.serve(async req=>{
        android:{priority:"HIGH",ttl:"600s"}
       }:{
        token:device.fcm_token,
-       notification:{title:"New Bite order",body:"New order received. Open Bite Partner to accept or reject."},
+       notification:{title,body:message},
        data:dataFields,
        android:{priority:"HIGH",ttl:"600s",notification:{channel_id:"bite_owner_new_orders_v1",tag:"bite-"+order.id,sound:"default"}}
       }};
@@ -175,5 +193,8 @@ Deno.serve(async req=>{
  const cancellation=await dispatchCancellationPush({
   db,fetcher:fetch,bearer,projectId:account.project_id
  });
- return reply({processed:(events||[]).length,sent,failed,skipped,cancellation});
+ const approval=await dispatchApprovalPush({
+  db,fetcher:fetch,bearer,projectId:account.project_id
+ });
+ return reply({processed:(events||[]).length,sent,failed,skipped,cancellation,approval});
 });
