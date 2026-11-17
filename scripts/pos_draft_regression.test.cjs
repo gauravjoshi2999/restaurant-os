@@ -12,7 +12,8 @@ test('POS draft script parses and is loaded by owner dashboard',()=>{
  assert.match(page,/BitePOS\.refreshDrafts/);
  assert.match(page,/BitePOS\.editSavedPos/);
  assert.match(page,/BitePOS\.voidSavedPos/);
- assert.match(page,/replace_unpaid_pos_order/);
+ assert.match(page,/bite_create_counter_pos_visit_v1/);
+ assert.match(fs.readFileSync('supabase/migrations/20261117143000_pos_visit_counts_step2.sql','utf8'),/public\.replace_unpaid_pos_order/);
  assert.match(page,/BitePOS\?\.finishOrder/);
 });
 

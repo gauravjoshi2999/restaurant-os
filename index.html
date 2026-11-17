@@ -719,6 +719,7 @@ body.bite-session-check #biteSessionSplash{
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
 <link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261117-s1">
+<link rel="stylesheet" href="assets/bite-pos-visits.css?v=20261117-step2">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
@@ -1300,6 +1301,21 @@ body.bite-session-check #biteSessionSplash{
 <div class="modal" id="orderModal"><div class="modal-box"><div class="modal-head"><h2 id="orderModalTitle">New POS Bill</h2><button class="close" onclick="closeModal('orderModal')">✕</button></div><form id="orderForm">
 <div class="pos-draft-toolbar"><span id="posDraftStatus" role="status" aria-live="polite">Auto-save ready</span><div class="pos-draft-actions"><button type="button" class="btn secondary" onclick="BitePOS.saveNow()">Save Draft</button><button type="button" class="btn secondary" onclick="BitePOS.discardActive()">Delete Draft</button></div></div>
 <input type="hidden" id="posReplaceOrderId"><input type="hidden" name="channel" id="orderChannel" value="POS - Counter"><input type="hidden" name="restaurant" id="orderRestaurant">
+<section id="bitePOSVisitControls" aria-label="Restaurant bill service type">
+ <div class="pos-visit-heading"><strong>Order for</strong><small>One bill format</small></div>
+ <div class="pos-visit-choices" role="group" aria-label="Dine-in or Takeaway">
+  <button type="button" id="posVisitDineIn" data-visit-choice="dine_in" aria-pressed="true">🍽️ Dine-in</button>
+  <button type="button" id="posVisitTakeaway" data-visit-choice="takeaway" aria-pressed="false">🥡 Takeaway</button>
+ </div>
+ <div id="posGuestCounter"><div class="pos-visit-guests-head"><label for="posGuestCount">Kitne log khana kha rahe hain?</label><small>Actual diners — item quantity nahi</small></div>
+  <div class="pos-visit-stepper" role="group" aria-label="Number of dine-in guests">
+   <button type="button" data-visit-step="-1" aria-label="Remove one guest">−</button>
+   <input id="posGuestCount" type="number" min="1" max="200" step="1" value="1" inputmode="numeric">
+   <button type="button" data-visit-step="1" aria-label="Add one guest">+</button>
+  </div>
+ </div>
+ <small class="pos-visit-note">Takeaway ki people count alag rakhi jayegi. Room service apne hotel folio flow se hi chalega.</small>
+</section>
 <div class="form-row"><div class="field"><label for="orderCustomerName">Customer name</label><input id="orderCustomerName" type="text" name="customer_name" maxlength="120" placeholder="Yahan customer ka naam likhein" autocomplete="name" autocapitalize="words" spellcheck="false"></div><div class="field"><label for="orderCustomerPhone">Mobile number</label><input id="orderCustomerPhone" name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,18}" maxlength="18" placeholder="Customer mobile"></div></div>
 
 <div class="section-head" style="margin:18px 0 10px"><h3 style="margin:0">Items in this bill</h3></div>
@@ -1344,6 +1360,7 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
 <script src="./assets/bite-pos-v2.js?v=20261117-s1"></script>
+<script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
 <script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
 <script>
@@ -2216,7 +2233,13 @@ function printOwnerInvoice(id){
  const restaurant=state.restaurants.find(r=>r.id===order.restaurant),f=state.financials.find(f=>f.order_id===id);
  const rows=(state.orderItems||[]).filter(i=>i.order_id===id).map(i=>[i.item_name,i.quantity,money(i.unit_price),money(i.line_total)]);
  rows.push(['Delivery charge','','',money(f?.delivery_fee??0)],['Discount','','',money(Number(f?.restaurant_discount||0)+Number(f?.platform_discount||0))],['Total','','',money(f?.customer_payable_amount??order.amount)]);
- const notes=[order.isDemo?'DEMO ONLY · Simulated order. No payment received.':'Payment status: '+(f?.payment_status||'Unverified'), 'Order status: '+order.status, 'Customer: '+(order.customerName||'—'),restaurant?.address||''];
+ const visit=order.channel?.startsWith('POS - ')?window.BitePOSVisits?.detail?.(id):null;
+ const p=order.channel?.startsWith('POS - ')?paymentSummaryFor(id):null;
+ const notes=[order.isDemo?'DEMO ONLY · Simulated order. No payment received.':p?
+   'POS recorded receipt: '+money(p.paid_amount)+' · Due: '+money(p.balance_amount):
+   'Payment status: '+(f?.payment_status||'Unverified'),
+   visit?'Service: '+(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people'):'',
+   'Order status: '+order.status, 'Customer: '+(order.customerName||'—'),restaurant?.address||''].filter(Boolean);
  BiteExports.print((restaurant?.name||'Restaurant')+' · Order Bill',order.code+' · '+new Date(order.createdAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}),['Item','Quantity','Rate','Amount'],rows,notes);
 }
 document.getElementById('reportRestaurant').addEventListener('change',loadReportsData);
@@ -2925,6 +2948,7 @@ async function openOrder(){
  const form=document.getElementById('orderForm');
  form.reset();
  document.getElementById('posPaidAmount').value='';
+ window.BitePOSVisits?.init?.();window.BitePOSVisits?.reset?.();
  document.getElementById('orderChannel').value='POS - Counter';
  document.getElementById('orderRestaurant').value=restaurantId;
  document.getElementById('posPaymentSection').style.display='block';
@@ -3079,6 +3103,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}
  if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}
+ window.BitePOSVisits?.syncPropertyType?.();
  const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');
  const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
  const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));
@@ -3086,6 +3111,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  btn.disabled=true;
  try{
   let data,error,sharePayload=null;
+  const visit=channel.startsWith('POS - ')&&!window.BiteHospitality?.roomPOSSelected() ? window.BitePOSVisits?.selected?.() : null;
   if(channel.startsWith('POS - ')&&window.BiteHospitality?.roomPOSSelected()){
    const result=await window.BiteHospitality.createRoomPOS(items);data=result.order_id;
   }else if(channel.startsWith('POS - ')&&access.property&&(channel!=='POS - Counter'||['cashier','manager'].includes(access.property.role))){
@@ -3122,12 +3148,25 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
     p_balance_action:balanceAction,p_writeoff_reason:null
    };
    if(replaceOrderId)args.p_original_order_id=replaceOrderId;
-   const result=await sb.rpc(replaceOrderId?'replace_unpaid_pos_order':'create_pos_order_with_balance_action',args);
+   // Reuse the canonical payment and Khata RPCs in one transaction with visit metadata.
+   const request={order_code:orderCode,customer_name:args.p_customer_name,customer_phone:args.p_customer_phone,
+    items:args.p_items,paid_amount:args.p_paid_amount,payment_method:args.p_payment_method,
+    payment_date:args.p_payment_date,reference:args.p_reference,balance_action:args.p_balance_action,
+    writeoff_reason:args.p_writeoff_reason,original_order_id:replaceOrderId||null};
+   const result=await sb.rpc('bite_create_counter_pos_visit_v1',{
+    p_restaurant_id:f.get('restaurant'),p_visit_type:visit.visitType,
+    p_guest_count:visit.guestCount,p_payload:request
+   });
    data=result.data;error=result.error;
-   // A network timeout after commit must not generate a duplicate bill.
+   // If response was lost after commit, verify both bill and visit match before confirming.
    if(error){
     const check=await sb.from('orders').select('id').eq('restaurant_id',f.get('restaurant')).eq('order_code',orderCode).maybeSingle();
-    if(check.data?.id){data=check.data.id;error=null;}
+    if(check.data?.id){
+     const metadata=await sb.from('restaurant_pos_visit_details')
+      .select('visit_type,guest_count').eq('order_id',check.data.id).eq('restaurant_id',f.get('restaurant')).maybeSingle();
+     if(!metadata.error&&metadata.data?.visit_type===visit.visitType
+        &&Number(metadata.data.guest_count||0)===Number(visit.guestCount||0)){data=check.data.id;error=null;}
+    }
    }
    if(sharePayload)sharePayload.orderCode=orderCode;
   }else{
@@ -3144,7 +3183,10 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
   e.target.reset();closeModal('orderModal');
   // The sale has already committed. A refresh error must not ask the Owner
   // to create a second bill or accidentally charge/record it twice.
-  try{await loadCloudData();}catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
+  try{
+   await loadCloudData();
+   if(access.restaurantId)void window.BitePOSVisits?.refresh?.(sb,access.restaurantId,()=>renderPOSWorkspace());
+  }catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
   if(sharePayload)showPosWhatsAppBillDialog(sharePayload);
   else alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.');
  }catch(err){void window.BitePOS?.saveNow();alert('Order save nahi hua: '+(err.message||String(err))+'\nYour draft is preserved; correct and retry.');}
@@ -3445,6 +3487,7 @@ document.getElementById('tableForm').addEventListener('submit',async e=>{
 function refreshOrderTableOptions(){}
 function loadPOSWorkspace(){
  renderPOSWorkspace();
+ void window.BitePOSVisits?.refresh?.(sb,access.restaurantId,()=>renderPOSWorkspace());
  void window.BitePOS?.refreshDrafts();
 }
 function renderPOSWorkspace(){
@@ -3459,6 +3502,7 @@ function renderPOSWorkspace(){
  document.getElementById('posDueTotal').textContent=money(sum('balance_amount'));
  document.getElementById('posRows').innerHTML=orders.slice(0,100).map(o=>{
   const p=paymentSummaryFor(o.id);
+  const visit=window.BitePOSVisits?.detail?.(o.id);
   const posted=window.BiteHospitality?.postedOrder(o.id);
   const roomLinked=!!posted||String(o.code||'').startsWith('POS-ROOM-');
   const canCorrect=!roomLinked&&access.role==='owner'&&!o.isDemo&&o.channel==='POS - Counter'&&o.status==='Received'&&o.waivedOffAmount===0
@@ -3470,7 +3514,7 @@ function renderPOSWorkspace(){
   const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
    '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
   const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
-  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+(visit?'<br><small>'+esc(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people')+'</small>':'')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
  }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
  // Separate the mobile POS summary from the canonical bill-save, payment,
@@ -3479,7 +3523,7 @@ function renderPOSWorkspace(){
   restaurantId:rid,
   orders:orders.map(o=>{
    const p=paymentSummaryFor(o.id);
-   return {...o,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
+   return {...o,posVisit:window.BitePOSVisits?.detail?.(o.id)||null,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
     receivedAmount:Number(p.paid_amount||0),dueAmount:Number(p.balance_amount||0)};
   })
  });

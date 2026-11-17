@@ -92,7 +92,9 @@ function fields(){
   paymentDate:f.elements.payment_date?.value||'',paymentReference:f.elements.payment_reference?.value||'',
   balanceAction:f.elements.balance_action?.value||'udhar',
   whatsAppConsent:!!$('posWhatsAppConsent')?.checked,
-  replaceOrderId:$('posReplaceOrderId')?.value||''
+  replaceOrderId:$('posReplaceOrderId')?.value||'',
+  visitType:$('posVisitTakeaway')?.getAttribute?.('aria-pressed')==='true'?'takeaway':'dine_in',
+  guestCount:$('posGuestCount')?.value||''
  };
 }
 function hasContent(p){return !!(p.customerName||p.customerPhone||p.items.length||p.pickerName||p.paidAmount||p.paymentReference||p.replaceOrderId)}
@@ -183,6 +185,7 @@ function fill(data){
   f.elements.balance_action.value=data.balanceAction||'udhar';
   $('posWhatsAppConsent').checked=!!data.whatsAppConsent;
   $('posReplaceOrderId').value=data.replaceOrderId||'';
+  window.BitePOSVisits?.set?.(data.visitType||'dine_in',data.guestCount||1);
   window.renderPosItemSummary();window.updateOrderTotal();
   if($('orderModalTitle'))$('orderModalTitle').textContent=data.replaceOrderId?'Edit unpaid POS bill':'Continue POS Draft';
  }finally{suspend=false}
@@ -279,7 +282,8 @@ async function editSavedPos(orderId){
  const ident=identity();
  await window.openOrder();
  if(!sameIdentity(ident))return;
- fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar'});
+ const visit=window.BitePOSVisits?.detail?.(orderId);
+ fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar',visitType:visit?.visit_type||'dine_in',guestCount:visit?.guest_count||1});
  touch();setStatus('Correction draft saved automatically · original bill replaces only on Save');
 }
 async function voidSavedPos(orderId){
