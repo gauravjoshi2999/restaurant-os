@@ -38,6 +38,7 @@
   else if(empty&&!document.querySelector('#orderBoard .order-card'))empty.style.display='block';
   const badge=document.querySelector('#biteOwnerOrderStages [data-bite-stage="new"] [data-bite-stage-count]');
   if(badge)badge.textContent=String(Number(paidNewCount||0)+available.length);
+  if(root.CustomEvent&&root.document?.dispatchEvent){root.document.dispatchEvent(new root.CustomEvent('bite:owner-confirmations-updated',{detail:{restaurantId:restaurant,count:available.length}}));}
   if(el.hidden){el.innerHTML='';return;}
   el.innerHTML='<div class="bite-approval-title"><strong>New · Restaurant approval needed <span>'+available.length+'</span></strong><small>Payment not collected yet</small></div>'+
    available.map(r=>{
@@ -100,6 +101,7 @@
   }catch(e){root.alert('Confirmation save nahi hua: '+(e.message||'Try again'));await refresh();}
   finally{busy.delete(id);render();}
  }
+ function snapshot(id){return id===restaurant?rows.filter(r=>r.state==='pending'&&countdown(r.expires_at).seconds>0).map(r=>({...r,priced_items:Array.isArray(r.priced_items)?r.priced_items.map(x=>({...x})):[]})):[];}
  function stop(){
   if(channel&&db)db.removeChannel(channel);
   if(timer)clearInterval(timer);if(poll)clearInterval(poll);
@@ -124,5 +126,5 @@
  if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')void refresh();
  });
- root.BiteOwnerConfirmations={mount,refresh,stop,review};
+ root.BiteOwnerConfirmations={mount,refresh,stop,review,snapshot};
 })(window);
