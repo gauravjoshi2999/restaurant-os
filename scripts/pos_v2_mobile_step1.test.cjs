@@ -53,7 +53,7 @@ test('Screenshot-based owner POS is additive and existing billing remains canoni
   'id="posNewSaleBtn"', 'id="posDraftWorkspace"',
   'id="posRows"','id="posOrderCount"','id="posSalesTotal"',
   'id="posCollectedTotal"','id="posDueTotal"',
-  "create_pos_order_with_balance_action","replace_unpaid_pos_order",
+  "bite_create_pos_bill_with_service_v1",
   "window.BitePOSV2?.render(", 'bite-pos-v2.js?v=', 'bite-pos-v2.css?v='
  ])assert.ok(html.includes(marker),'required POS integration: '+marker);
  assert.match(js,/data-bpv2-tab="today"/);
@@ -67,7 +67,7 @@ test('Screenshot-based owner POS is additive and existing billing remains canoni
 });
 test('No fabricated diner count, no payment processing changes and real bill meaning',()=>{
  assert.match(js,/People served/);
- assert.match(js,/Old bills are not estimated/);
+ assert.match(js,/earlier dine-in bill\(s\) have no recorded people count/);
  assert.match(js,/Bill amount is not cash received/);
  assert.doesNotMatch(js,/24,560|1,342|3,896|Rahul Verma|POS-2587/);
  assert.doesNotMatch(js,/supabase\.from|fetch\(|Cashfree|payment_intent|UPDATE public/);
