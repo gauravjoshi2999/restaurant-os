@@ -19,3 +19,10 @@
 @media(max-width:600px){.ha-register-meta{gap:10px}.ha-book-actions .btn{flex:1 1 140px}.ha-guest-counts{gap:10px!important}#bhCheckinForm[data-enhanced=true] .bh-form-grid:not(.ha-guest-counts){grid-template-columns:1fr}.ha-register-meta input{min-width:0;width:100%}.ha-table-wrap{margin:0 -4px}.ha-book-table td,.ha-book-table th{padding:10px 8px}}
 
 .bh-workspace label[hidden]{display:none!important}
+.ha-arrival-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+#bhCheckinForm .ha-arrival-fields input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+#bhCheckinForm label.ha-invalid{scroll-margin-top:140px;scroll-margin-bottom:120px}
+body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,textarea){border-color:#b42318!important;outline-color:#b4231833!important}
+#bhCheckinForm .ha-field-error{display:block;color:#b42318!important;font-size:13px;font-weight:600;line-height:1.5;margin-top:4px;flex-basis:100%}
+#bhCheckinForm .bh-check.ha-invalid{flex-wrap:wrap}
+@media(max-width:600px){.ha-arrival-fields{gap:10px}#bhCheckinForm .ha-arrival-fields input{padding-left:10px;padding-right:8px}}

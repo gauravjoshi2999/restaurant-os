@@ -271,7 +271,7 @@
  }
  function stayCard(s,tag=''){
   const g=data.guests.find(g=>g.id===s.guest_id),r=data.rooms.find(r=>r.id===s.room_id),f=data.folios.find(f=>f.stay_id===s.id),group=data.groups.find(g=>g.id===s.group_id);
-  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
+  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)}${s.arrival_time?' · '+esc(String(s.arrival_time).slice(0,5)):''} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
  }
  function renderPage(id){
   if(!prop()&&id!=='business-modules'){void ctx.navigate('business-modules');return}
@@ -545,7 +545,7 @@
    const response=await ctx.sb.rpc('bite_property_command',{p_property:prop().id,p_action:action,p_payload:payload,p_request:attempt.id});
    if(response.error){if(['P0001','42501','P0002'].includes(response.error.code)||/^(22|23)/.test(response.error.code||''))localStorage.removeItem(key);throw response.error}
    localStorage.removeItem(key);return response.data;
-  }catch(error){throw Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.')}finally{activeWrites=Math.max(0,activeWrites-1)}
+  }catch(error){const failure=Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.');if(error.details)failure.details=error.details;throw failure}finally{activeWrites=Math.max(0,activeWrites-1)}
  }
  function showError(error){const active=document.querySelector('.page.active');const msg=active?.querySelector('.bh-message');if(msg)msg.textContent=error.message||String(error);else root.alert(error.message||String(error))}
  function editor(html){const page=document.querySelector('.page.active');const mount=page?.querySelector('#bhFolioEditor')||page;const old=$('bhActionEditor');old?.remove();const box=document.createElement('div');box.id='bhActionEditor';box.className='bh-panel';box.innerHTML=html;mount.append(box);box.scrollIntoView({block:'nearest',behavior:'smooth'});box.querySelector('input,select,button')?.focus()}
@@ -668,7 +668,7 @@
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
      const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000),quote=await root.BiteOwnerOperations.reservationQuote(f,form.dataset.stayId);form.dataset.quoteHash=quote.quote_hash;
-     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
+     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p>${f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':''}<p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
     }
     let guestId=f.guest_id;
     if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),is_oci:f.is_oci==='on',...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
@@ -676,7 +676,7 @@
     if(savedDocs)persistDraft(form);
     let stayId=form.dataset.stayId,folioId;
     if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash,...(root.BiteHotelAccounts?.registration(form,f,savedDocs)||{})});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
-    else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children)})}
+    else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),...(f.arrival_time!==undefined?{arrival_time:f.arrival_time}:{})})}
     if(f.mode==='checkin'){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
     localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=folioId||null;await ctx.navigate('folios');
    }else{
@@ -694,7 +694,7 @@
     if(!action)throw Error('Unknown action');await command(action,payload);await reload();
     const active=document.querySelector('.page.active')?.id;if(active){if(handles(active))renderPage(active);else await augmentPage(active)}
    }
-  }catch(e){if(message)message.textContent=e.message||String(e)}finally{button.disabled=false}
+  }catch(e){if(!root.BiteHotelAccounts?.showRegisterError(form,e)&&message)message.textContent=e.message||String(e)}finally{button.disabled=false}
  }
  function statement(id){
   const f=data.folios.find(f=>f.id===id);if(!f)throw Error('Folio not loaded');

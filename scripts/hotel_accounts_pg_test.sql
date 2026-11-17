@@ -27,15 +27,39 @@ select (select value::uuid from hotel_account_state where key='doc'),(select val
  (select value from hotel_account_state where key='p')||'/'||(select value from hotel_account_state where key='g')||'/'||(select value from hotel_account_state where key='doc')||'.png','ready','11111111-1111-4111-8111-111111111111',now();
 set local role authenticated;
 do $$
-declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q jsonb;args jsonb;t jsonb;rep jsonb;day jsonb;base_day jsonb;inv jsonb;d date:=(now()at time zone 'Asia/Kolkata')::date;bill text;begin
+declare p uuid;r uuid;g uuid;doc uuid;s uuid;f uuid;e uuid;k uuid;v jsonb;q jsonb;args jsonb;t jsonb;rep jsonb;day jsonb;base_day jsonb;inv jsonb;d date:=(now()at time zone 'Asia/Kolkata')::date;bill text;bad_time jsonb;scheduled timestamptz;begin
  select value::uuid into p from hotel_account_state where key='p';select value::uuid into r from hotel_account_state where key='r';select value::uuid into g from hotel_account_state where key='g';select value::uuid into doc from hotel_account_state where key='doc';select value::jsonb into base_day from hotel_account_state where key='baseline';
- args:=jsonb_build_object('room_id',r,'arrival',d,'departure',d+1,'adults',2,'children',1,'mode','checkin','nightly_rate',1200);
+ args:=jsonb_build_object('room_id',r,'arrival',d,'departure',d+1,'adults',2,'children',1,'mode','checkin','nightly_rate',1200,'arrival_time','07:17');
  q:=public.bite_reservation_quote(p,args);if(q->>'total')::numeric<>1260 then raise exception 'Agreed rent quote failed: %',q;end if;
  args:=args||jsonb_build_object('guest_id',g,'booking_mode','checkin','quote_hash',q->>'quote_hash','advance_amount',300,'advance_method','Cash','registration',jsonb_build_object('male',1,'female',1,'children',1,'arrived_from','Udaipur','next_destination','Jaipur','transport','Car','vehicle_number','RJ01AB1234','id_front',doc));
  perform pg_temp.accounts_denied(format('select public.bite_property_command(%L,''reserve'',%L,gen_random_uuid())',p,(args||jsonb_build_object('registration',(args->'registration')-'id_front'))::text));
+ -- Cached clients without the new clock field remain compatible. Roll back this probe.
+ begin
+  v:=public.bite_property_command(p,'reserve',args-'arrival_time',gen_random_uuid());
+  if exists(select 1 from public.bite_stays where id=(v->>'id')::uuid and arrival_time is not null)then raise exception 'Legacy arrival time must stay unknown';end if;
+  raise exception 'ROLLBACK_LEGACY_TIME_PROBE'using errcode='P0011';
+ exception when sqlstate 'P0011'then null;
+ end;
+ -- Invalid clock values must fail before any stay, folio or advance is written.
+ for bad_time in select value from jsonb_array_elements('["","24:00","7:17","07:60","07:17:30",null,717]'::jsonb)loop
+  begin
+   perform public.bite_property_command(p,'reserve',args||jsonb_build_object('arrival_time',bad_time),gen_random_uuid());
+   raise exception 'EXPECTED_ARRIVAL_TIME_DENIAL';
+  exception when sqlstate '22023' then null;
+  end;
+ end loop;
+ if exists(select 1 from public.bite_stays where property_id=p and guest_id=g)then raise exception 'Invalid time created a stay';end if;
  k:=gen_random_uuid();v:=public.bite_property_command(p,'reserve',args,k);s:=(v->>'id')::uuid;f:=(v->>'folio_id')::uuid;
  if(v->>'register_number')::int<>1 then raise exception 'Serial must start at 1';end if;
  if public.bite_property_command(p,'reserve',args,k)<>v then raise exception 'Register retry not idempotent';end if;
+ t:=(select x from jsonb_array_elements(public.bite_hotel_workspace(p)->'stays')x where x->>'id'=s::text);
+ if (t->>'arrival_time')::time is distinct from time '07:17'or t->>'checked_in_at'is not null then raise exception 'Arrival clock not retained separately from actual check-in';end if;
+ scheduled:=(t->>'scheduled_arrival_at')::timestamptz;
+ args:=jsonb_build_object('id',s,'room_id',r,'arrival',d,'departure',d+1,'adults',2,'children',1,'arrival_time','07:45');
+ perform public.bite_property_command(p,'reservation_edit',args,gen_random_uuid());
+ perform pg_temp.accounts_denied(format('select public.bite_property_command(%L,''reservation_edit'',%L,gen_random_uuid())',p,(args||'{"arrival_time":"24:00"}'::jsonb)::text));
+ t:=(select x from jsonb_array_elements(public.bite_hotel_workspace(p)->'stays')x where x->>'id'=s::text);
+ if (t->>'arrival_time')::time is distinct from time '07:45'or(t->>'scheduled_arrival_at')::timestamptz is distinct from scheduled then raise exception 'Recorded clock must save without changing hotel timing policy';end if;
  perform public.bite_property_command(p,'checkin',jsonb_build_object('id',s),gen_random_uuid());
  v:=public.bite_property_command(p,'room_pos',jsonb_build_object('folio_id',f,'restaurant_id','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','items','[{"name":"Thali","quantity":1,"unit_price":300}]'::jsonb,'fulfilment','served','channel','POS - Dine-in','discount',0),gen_random_uuid());
  t:=(select x->'totals'from jsonb_array_elements(public.bite_hotel_workspace(p)->'folios')x where x->>'id'=f::text);if(t->>'charges')::numeric<>1575 then raise exception 'Room 1200 + food 300 + GST 75 failed: %',t;end if;
