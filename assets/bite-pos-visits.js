@@ -32,8 +32,8 @@
   const dine=$('posVisitDineIn'),take=$('posVisitTakeaway');if(!dine||!take)return;
   const choice=type==='takeaway'?'takeaway':'dine_in';
   dine.setAttribute('aria-pressed',String(choice==='dine_in'));take.setAttribute('aria-pressed',String(choice==='takeaway'));
-  const field=$('posGuestCount');if(field)field.value=choice==='dine_in'?
-   String(count!=null&&Number.isInteger(Number(count))&&Number(count)>0?count:1):'';
+  const field=$('posGuestCount');if(field){field.value=choice==='dine_in'?
+   String(count!=null&&Number.isInteger(Number(count))&&Number(count)>0?count:1):'';field.setCustomValidity('');}
   paint();syncPropertyType();
  }
  function reset(){set('dine_in',1);}
@@ -61,6 +61,7 @@
   const id=String(restaurantId||'');
   if(!id||!sb)return;
   const request=++epoch;
+  if(scope!==id)byOrder=new Map();
   scope=id;
   const {data,error}=await sb.from('restaurant_pos_visit_details')
    .select('order_id,restaurant_id,visit_type,guest_count,created_at')
