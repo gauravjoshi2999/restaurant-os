@@ -120,8 +120,23 @@ try:
      else:check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
     if width<760:
      actual=page.locator('#biteOwnerBottomNav [data-bite-page]').evaluate_all('(es)=>es.map(e=>e.dataset.bitePage)')
-     expected=['overview','orders','pos','menu','more'] if kind=='restaurant' else ['overview','rooms','orders','pos','more'] if kind=='hybrid' else ['overview','hotel-register','rooms','folios','more']
+     expected=['overview','orders','pos','more'] if kind=='restaurant' else ['overview','rooms','orders','pos','more'] if kind=='hybrid' else ['overview','rooms','more']
      check(actual==expected,f'{kind} capability tabs at {width}px')
+     if v3:
+      grid=page.locator('#biteV3Home .boh-feature-grid')
+      check(grid.get_attribute('data-business-type')==kind,f'{kind} Home grid uses actual property capabilities')
+      check(page.locator('#biteV3Home .boh-register').is_visible()==(kind!='restaurant'),f'{kind} register is hotel-only')
+      check(page.locator('#biteV3Home [data-bv3-new-pos=true]').count()==(0 if kind=='hotel' else 1),f'{kind} POS card only when permitted')
+      for old in ['.od-metrics','.od-pos-breakdown','.od-finance-boundary','.od-dashboard-grid','.od-footer','[data-owner-dashboard]']:
+       check(page.locator('#overview '+old).is_hidden(),f'{kind} no legacy financial card {old} on mobile')
+      # The artwork fades out above titles; text is always painted on its own
+      # opaque gradient and must remain within the card at every test viewport.
+      for card in page.locator('#biteV3Home .boh-feature').all():
+       title=card.locator(':scope > strong')
+       check(title.is_visible() and title.evaluate(
+          "(el)=>{const c=el.closest('.boh-feature').getBoundingClientRect(),r=el.getBoundingClientRect(),img=el.parentElement.querySelector('.boh-card-illustration').getBoundingClientRect(),cs=getComputedStyle(el);return r.left>=c.left-1&&r.right<=c.right+1&&r.top>=img.top+img.height*.35&&r.bottom<=c.bottom+1&&cs.backgroundImage!=='none'}"),
+          f'{kind} title stays inside its card and clear of the illustration at {width}px')
+
      check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().height)')),f'{kind} 44px navigation targets at {width}px')
     if kind=='hotel':
      check(page.locator('#overview [data-owner-dashboard]').is_hidden(),'Hotel Home hides restaurant workflow')
