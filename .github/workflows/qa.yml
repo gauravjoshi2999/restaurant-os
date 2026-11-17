@@ -184,4 +184,5 @@ jobs:
           bash scripts/guest_documents_limit_race.sh
           psql -v ON_ERROR_STOP=1 -f scripts/hotel_accounts_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_guest_register_accounts.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_register_arrival_time.sql
           psql -v ON_ERROR_STOP=1 -f scripts/hotel_accounts_pg_test.sql

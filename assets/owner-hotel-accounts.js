@@ -18,14 +18,42 @@
  function assertScope(key,version){if(key!==scope()||version!==generation)throw Error('Account or property changed. Reopen this action.')}
  function clear(){generation++;reportVersion++;report=null;reportScope='';month=''}
  function init(context){ctx=context;document.querySelector('#mainApp .content')?.addEventListener('click',click);document.querySelector('#mainApp .content')?.addEventListener('submit',submit)}
+ const fieldError=(field,text)=>Object.assign(Error(text),{field});
+ const validArrivalTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+ function currentArrivalTime(at=new Date(),timeZone=p()?.timezone||'Asia/Kolkata'){
+  return new Intl.DateTimeFormat('en-GB',{timeZone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(at);
+ }
+ function clearFieldError(input){
+  if(!input?.name)return;
+  const label=input.closest('label'),error=label?.querySelector('[data-ha-field-error]');if(!error)return;
+  const ids=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!==error.id);
+  if(ids.length)input.setAttribute('aria-describedby',ids.join(' '));else input.removeAttribute('aria-describedby');
+  input.removeAttribute('aria-invalid');label.classList.remove('ha-invalid');error.remove();
+ }
+ function showRegisterError(form,error){
+  if(form.dataset.enhanced!=='true')return false;
+  let name=error.field;
+  if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
+  const input=form.elements.namedItem(name||''),label=input?.closest?.('label');
+  if(!input||input.disabled||!label||label.hidden)return false;
+  clearFieldError(input);
+  for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
+  const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
+  label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
+  input.setAttribute('aria-describedby',[input.getAttribute('aria-describedby'),notice.id].filter(Boolean).join(' '));
+  const summary=form.querySelector('.bh-message');if(summary)summary.textContent='';
+  input.focus({preventScroll:true});label.scrollIntoView({block:'center',behavior:'instant'});
+  return true;
+ }
  function validateRegistration(f){
   const male=Number(f.male),female=Number(f.female),children=Number(f.children);
-  if(![male,female,children].every(n=>Number.isInteger(n)&&n>=0&&n<=20)||male+female<1||male+female>20)throw Error('Enter valid male, female and child counts; at least one adult is required.');
-  if(!String(f.full_name||'').trim()||!String(f.address||'').trim()||!String(f.arrived_from||'').trim()||!String(f.next_destination||'').trim())throw Error('Enter guest name, permanent address, arrival place and destination.');
-  if(!/^[+\d][\d ()-]{6,19}$/.test(String(f.phone||'').trim()))throw Error('Enter a valid mobile number.');
-  if(!['Car','Bike','Bus','Train','Other'].includes(f.transport))throw Error('Choose how the guest arrived.');
-  if(['Car','Bike'].includes(f.transport)&&String(f.vehicle_number||'').trim().length<4)throw Error('Vehicle registration number is required for a car or bike.');
-  const rate=Number(f.nightly_rate);if(!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.abs(Math.round(rate*100)-rate*100)>0.000001)throw Error('Enter the agreed room rent with at most two decimals.');
+  for(const key of ['male','female','children'])if(!Number.isInteger(Number(f[key]))||Number(f[key])<0||Number(f[key])>20)throw fieldError(key,'Enter valid male, female and child counts.');
+  if(male+female<1||male+female>20)throw fieldError('male','Enter valid guest counts; at least one adult is required, with a maximum of 20 adults.');
+  for(const [key,label] of [['full_name','guest name'],['address','permanent address'],['arrived_from','arrival place'],['next_destination','destination']])if(!String(f[key]||'').trim())throw fieldError(key,'Enter the '+label+'.');
+  if(!/^[+\d][\d ()-]{6,19}$/.test(String(f.phone||'').trim()))throw fieldError('phone','Enter a valid mobile number.');
+  if(!['Car','Bike','Bus','Train','Other'].includes(f.transport))throw fieldError('transport','Choose how the guest arrived.');
+  if(['Car','Bike'].includes(f.transport)&&String(f.vehicle_number||'').trim().length<4)throw fieldError('vehicle_number','Vehicle registration number is required for a car or bike.');
+  const rate=Number(f.nightly_rate);if(!String(f.nightly_rate??'').trim()||!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.abs(Math.round(rate*100)-rate*100)>0.000001)throw fieldError('nightly_rate','Enter the agreed room rent with at most two decimals.');
   return {male,female,adults:male+female,children,arrived_from:String(f.arrived_from).trim(),next_destination:String(f.next_destination).trim(),transport:f.transport,vehicle_number:['Car','Bike'].includes(f.transport)?String(f.vehicle_number).trim().toUpperCase():''};
  }
  function wireMoneyFields(form,methodName='method',noteName='account_note',verifyName='verified',refName='reference'){
@@ -38,7 +66,7 @@
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
   const booking=form.querySelector('#biteRegistrationOperations');booking?.remove();
-  form.dataset.enhanced='true';
+  form.dataset.enhanced='true';form.noValidate=true;
   const rooms=db().rooms||[],guests=db().guests||[];
   const roomId=draft.room_id||'',room=rooms.find(r=>r.id===roomId),saved=!!draft.id_front_id;
   form.innerHTML='<div class="ha-register-meta">'+field('serial_number','Serial no. · Auto','text',db().next_register_number||1,'readonly')+field('register_date','Entry date · Auto','date',today(),'readonly')+'</div>'+
@@ -52,7 +80,7 @@
    '<input type="hidden" name="id_front_id" value="'+esc(draft.id_front_id||'')+'"><input type="hidden" name="id_back_id" value="'+esc(draft.id_back_id||'')+'">'+
    check('id_checked','I checked that the ID copy is necessary and masked where required.','required')+'<p class="bh-note">ID copies are private to authorized property staff and are excluded from bills.</p></div>'+
    '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
-   '<h2>2 · Room allocation</h2><div class="bh-form-grid">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
+   '<h2>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
    field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??room?.nightly_rate??'','required min="0" step="0.01" '+(manager()?'':'readonly'))+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
@@ -66,6 +94,11 @@
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
   counts();vehicle();
+  const clearEditedError=event=>{
+   clearFieldError(event.target);
+   if(['arrival','departure'].includes(event.target.name)&&form.elements.departure.value>form.elements.arrival.value)clearFieldError(form.elements.departure);
+  };
+  form.addEventListener('input',clearEditedError);form.addEventListener('change',clearEditedError);
   form.addEventListener('input',counts);
   form.elements.transport.addEventListener('change',vehicle);
   form.elements.room_id.addEventListener('change',()=>{form.elements.nightly_rate.value=rooms.find(r=>r.id===form.elements.room_id.value)?.nightly_rate??''});
@@ -93,10 +126,15 @@
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
+  for(const input of form.elements)clearFieldError(input);
+  // Native constraints still apply; explicit validation lets us reveal details and place errors inline.
+  for(const input of form.elements)if(input.willValidate&&!input.validity.valid)throw fieldError(input.name,input.validationMessage||'Complete this field to continue.');
+  if(!validArrivalTime(f.arrival_time))throw fieldError('arrival_time','Enter a valid arrival time.');
+  if(f.departure<=f.arrival)throw fieldError('departure','Departure must be after arrival.');
   if(!form.dataset.stayId){
    const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
-   if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw Error('Upload the ID front to continue.');
-   if(!form.elements.id_checked.checked)throw Error('Check the guest ID before continuing.');
+   if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
+   if(!form.elements.id_checked.checked)throw fieldError('id_checked','Check the guest ID before continuing.');
   }
  }
  async function saveDocuments(guest,form){
@@ -106,7 +144,7 @@
    for(const side of ['front','back']){
     const input=form.elements['id_'+side],hidden=form.elements['id_'+side+'_id'],file=input.files[0];
     if(!file){out['id_'+side]=hidden.value||null;continue}
-    await root.BiteGuestDocuments.validate(file);assertScope(key,version);
+    try{await root.BiteGuestDocuments.validate(file)}catch(error){throw fieldError('id_'+side,error.message||String(error))}assertScope(key,version);
     const sig=[guest,side,file.name,file.size,file.lastModified].join(':');
     form.__haUploads??={};const id=form.__haUploads[sig]??=root.crypto.randomUUID();
     async function doc(action,details={}){
@@ -125,7 +163,7 @@
  }
  function registration(form,f,docs){
   if(form.dataset.enhanced!=='true'||form.dataset.stayId)return {};
-  const r=validateRegistration(f);return {nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs}};
+  const r=validateRegistration(f);return {arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs}};
  }
  function decorateFolio(target,folio,stay){
   if(!enabled())return;
@@ -137,6 +175,7 @@
    if(old){old.remove();actions?.insertAdjacentHTML('beforeend',button('checkout','Checkout & collect balance',folio.id))}
   }
   if(stay?.register_number)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Register #'+esc(stay.register_number));
+  if(stay?.arrival_time)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Arrival '+esc(String(stay.arrival_time).slice(0,5)));
  }
  function decoratePayment(form){
   if(!enabled()||!form||(!form.elements.method&&form.dataset.action!=='payment_confirm')||form.elements.account_note)return;
@@ -284,6 +323,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0,decorateRegister,prepareRegister,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,reportRows,gstRows,billHTML};
+ const api={init,clear,enabled,busy:()=>active>0,decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

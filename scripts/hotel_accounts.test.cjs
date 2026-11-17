@@ -19,6 +19,20 @@ test('register validates address, destinations, phone and decimal rent',()=>{
  assert.throws(()=>A.validateRegistration({...guest,nightly_rate:'1200.001'}),/rent/);
  assert.equal(A.validateRegistration({...guest,nightly_rate:'1.10'}).adults,2);
 });
+test('arrival clock uses the property timezone even when the browser is in another zone',()=>{
+ assert.equal(A.currentArrivalTime(new Date('2026-11-16T18:45:00Z'),'Asia/Kolkata'),'00:15');
+ assert.equal(A.currentArrivalTime(new Date('2026-11-17T01:47:00Z'),'Asia/Kolkata'),'07:17');
+});
+test('arrival times require an exact, valid 24-hour clock value',()=>{
+ for(const v of ['00:00','07:17','23:59'])assert.ok(A.validArrivalTime(v),v);
+ for(const v of ['',null,717,'24:00','7:17','07:60','07:17:30'])assert.equal(A.validArrivalTime(v),false,String(v));
+});
+test('registration errors identify the actual field that needs correction',()=>{
+ for(const [name,value] of [['full_name','  '],['address',''],['phone','badphone'],['vehicle_number','RJ'],['nightly_rate','']]){
+  assert.throws(()=>A.validateRegistration({...guest,[name]:value}),e=>e.field===name&&!!e.message,name);
+ }
+ assert.throws(()=>A.validateRegistration({...guest,male:0,female:0}),e=>e.field==='male');
+});
 test('monthly sheet keeps sales, advances and balances in separate numeric columns',()=>{
  const row={day:'2026-11-17',pos_sales:100,hotel_sales:1575,other_income:50,gross_sales:1725,tax:75,net_sales:1650,expenses:100,staff_advance:200,cash_in:300,cash_out:100,cash_balance:1200,online_in:250,online_out:50,online_balance:200,profit:1550};
  const out=A.reportRows({days:[row]});assert.equal(out[1][4],1725);assert.equal(out[1][8],200);assert.equal(out[1][11],1200);assert.equal(out[1][15],1550);assert.equal(out[0].length,out[1].length);
