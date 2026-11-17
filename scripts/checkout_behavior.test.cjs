@@ -7,13 +7,19 @@ const html=fs.readFileSync('customer.html','utf8');
 const source=html.split('// BITE CHECKOUT PAYMENT START')[1].split('// BITE CHECKOUT PAYMENT END')[0];
 function setup(options={}){
  const calls=[],nodes={};
+ let restaurantApproved=options.confirmationOnly!==true;
  const values={checkoutName:'Test customer',checkoutPhone:'9999999999',savedAddress:'saved-address',addressPostal:'313324',customerNote:'',...options.values};
  const element=id=>nodes[id]??=( {value:values[id]||'',dataset:{},disabled:false,textContent:'',remove(){},setAttribute(){},classList:{add(){},remove(){},toggle(){}}});
  const verify=[...(options.verify||[{status:'activated',order_id:'verified-order'}])];
  let displayedOrders=0,writes=0,returnedToMenu=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{matchMedia:()=>({matches:!!options.mobile})},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
+  window:{matchMedia:()=>({matches:!!options.mobile}),BiteOrderConfirmation:{
+   watch(){},view:()=>restaurantApproved?{state:'approved',label:'Confirmed'}:{state:'pending',label:'Restaurant confirmation · 02:59'},
+   async request(sb,id){calls.push({kind:'confirmation',id});return {intent_id:id,state:'pending'};},
+   async assertApproved(){if(!restaurantApproved)throw Error('Restaurant confirmation ka wait karein.');},
+   async cancel(){return{state:'cancelled'};},stop(){}
+  }},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
@@ -29,8 +35,30 @@ function setup(options={}){
   localStorage:{setItem(){}},biteRefreshSandboxStatus(){},Date,console
  };
  vm.createContext(context);vm.runInContext(source,context);
- return {context,calls,nodes,element,get writes(){return writes;},get displayedOrders(){return displayedOrders;},get returnedToMenu(){return returnedToMenu;},submit:()=>context.submitCustomerOrder(),refresh:()=>context.refreshCheckoutPaymentReadiness()};
+ return {context,calls,nodes,element,get writes(){return writes;},get displayedOrders(){return displayedOrders;},get returnedToMenu(){return returnedToMenu;},
+  submit:async()=>{
+   const before=vm.runInContext('pendingLiveCheckout?.id||null',context);
+   await context.submitCustomerOrder();
+   const after=vm.runInContext('pendingLiveCheckout?.id||null',context);
+   // Existing Cashfree tests fast-forward a *separately verified owner approval*;
+   // dedicated tests below exercise the real two-click owner-confirmation gate.
+   if(!options.confirmationOnly&&!options.sandbox&&!before&&after)await context.submitCustomerOrder();
+  },
+  approve:()=>{restaurantApproved=true;context.syncCheckoutPaymentButton();},
+  refresh:()=>context.refreshCheckoutPaymentReadiness()};
 }
+test('new customer request waits for restaurant and does not invoke payment provider',async()=>{
+ const t=setup({confirmationOnly:true});await t.submit();
+ assert.equal(t.calls.filter(x=>x.kind==='rpc').length,1);
+ assert.equal(t.calls.filter(x=>x.kind==='confirmation').length,1);
+ assert.equal(t.calls.filter(x=>x.kind==='sdk').length,0);
+ assert.equal(t.calls.filter(x=>x.name==='bite-live-create-session'&&!x.args?.body?.action).length,0);
+ assert.equal(t.element('placeOrderBtn').disabled,true);
+ t.approve();
+ assert.equal(t.element('placeOrderBtn').disabled,false);
+ await t.submit();
+ assert.equal(t.calls.filter(x=>x.kind==='sdk').length,1);
+});
 test('production mobile checkout stays in Bite modal with a freshly issued session',async()=>{
  const t=setup({mobile:true});await t.submit();
  const sdk=t.calls.find(x=>x.kind==='sdk');
@@ -53,7 +81,7 @@ test('expired payment session is withheld from the SDK even if backend returns i
 });
 test('normal checkout unlocks only after authenticated production readiness',async()=>{
  const t=setup();t.context.syncCheckoutPaymentButton();assert.equal(t.element('placeOrderBtn').disabled,true);
- assert.equal(await t.refresh(),true);assert.equal(t.element('placeOrderBtn').disabled,false);assert.equal(t.element('placeOrderBtn').textContent,'Pay online');
+ assert.equal(await t.refresh(),true);assert.equal(t.element('placeOrderBtn').disabled,false);assert.equal(t.element('placeOrderBtn').textContent,'Request restaurant confirmation');
 });
 test('provider unavailable blocks every profile, address, checkout and SDK write',async()=>{
  const t=setup({unavailable:true});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.filter(c=>c.kind==='rpc'||c.kind==='sdk').length,0);assert.equal(t.element('placeOrderBtn').disabled,true);
