@@ -280,7 +280,31 @@
   if(stageSelect&&[...stageSelect.options].some(o=>o.value===selected))stageSelect.value=selected;
   updateOrderSearch();
  }
- function route(page,filter,newPos){
+ function focusNotificationOrder(item){
+  if(!item?.id||!root.document)return;
+  const approval=item.kind==='approval',orderId=String(item.id).slice(item.id.indexOf(':')+1);
+  const list=approval?'#biteOwnerApprovalQueue [data-bite-approval-id]':'#orderBoard .order-card[data-order-id]';
+  const attribute=approval?'biteApprovalId':'orderId';
+  const target=()=>[...root.document.querySelectorAll(list)].find(el=>el.dataset?.[attribute]===orderId);
+  let observer=null,deadline=null;
+  function reveal(){
+   const card=target();
+   if(!card)return false;
+   observer?.disconnect();if(deadline)root.clearTimeout(deadline);
+   card.classList.add('boh-notice-target');
+   card.setAttribute('tabindex','-1');
+   card.scrollIntoView?.({behavior:'smooth',block:'center'});
+   card.focus?.({preventScroll:true});
+   return true;
+  }
+  if(reveal())return;
+  const parent=root.document.getElementById('orders');
+  if(!parent||typeof root.MutationObserver!=='function')return;
+  observer=new root.MutationObserver(reveal);
+  observer.observe(parent,{subtree:true,childList:true});
+  deadline=root.setTimeout(()=>observer?.disconnect(),5000);
+ }
+ function route(page,filter,newPos,notification){
   if(!permitted(page))return;
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
    void Promise.resolve(root.openPosFromOverview(null));return;
@@ -288,7 +312,10 @@
   if(typeof root.showPage!=='function')return;
   void Promise.resolve(root.showPage(page)).then(()=>{
    if(page==='orders'&&filter&&typeof root.setOrderStatus==='function')root.setOrderStatus(filter);
-   if(page==='orders')root.BiteOwnerConfirmations?.refresh?.();
+   if(page==='orders'){
+    root.BiteOwnerConfirmations?.refresh?.();
+    if(notification)focusNotificationOrder(notification);
+   }
    if(page==='hr'&&typeof root.BiteOwnerHRTabs?.activate==='function'&&filter==='attendance')root.BiteOwnerHRTabs.activate(root.document,'attendance');
    if(page==='daily-book'&&filter==='gst')root.document.querySelector('#daily-book [data-ha-action="gst"]')?.scrollIntoView?.({block:'center',behavior:'smooth'});
   }).catch(e=>root.console?.warn?.('Owner route unavailable',e));
@@ -335,7 +362,7 @@
     if(!button)return;
     const item=notificationList[Number(button.dataset.bv3NoticeIndex)];
     toggleNoticeTray(false);
-    if(item)route(item.route,item.filter,false);
+    if(item)route(item.route,item.filter,false,item);
    });
    root.document.addEventListener('click',e=>{
     if(noticeOpen&&!e.target.closest?.('#biteOwnerNoticeTray,#biteV3HeaderBell'))toggleNoticeTray(false);
