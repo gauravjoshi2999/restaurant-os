@@ -72,3 +72,18 @@ test('Native approval notification navigates to Orders, never Check-in; legacy b
  assert.match(index,/owner-reference-v3\.css\?v=/);
  assert.match(index,/owner-reference-v3\.js\?v=/);
 });
+
+test('Hybrid Home prioritizes real front-desk work and preserves operational shortcuts',()=>{
+ assert.match(source,/function hotelAttentionCard\(snap\)/);
+ assert.match(source,/snap\.ready===false/);
+ assert.match(source,/snap\.departures/);
+ assert.match(source,/snap\.arrivals/);
+ assert.match(source,/data-bv3-route="reservations"/);
+ assert.match(source,/hotelAttentionCard\(snap\)/);
+ assert.match(source,/actionLink\('Check-in','hotel-register'/);
+ assert.match(source,/actionLink\('New POS bill','pos'/);
+ assert.match(source,/actionLink\('Guest Bills','folios'/);
+ assert.match(source,/actionLink\('Live Orders','orders'/);
+ assert.match(css,/\.bv3-hotel-attention-items/);
+ assert.doesNotMatch(source,/from\(['"]bite_stays['"]\)\.update/);
+});
