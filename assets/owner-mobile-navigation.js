@@ -58,6 +58,50 @@
     const moreTitle=doc.createElement('h1');moreTitle.textContent='Saare sections';
     const moreIntro=doc.createElement('p');moreIntro.textContent='Restaurant ka har zaroori kaam ek jagah.';
     moreHead.append(moreTitle,moreIntro);moreScreen.append(moreHead);
+    // Use the existing selected Bite identity and current business name on Home.
+    const homeLogo=doc.createElement('img');
+    homeLogo.id='biteOwnerHomeLogo';
+    homeLogo.src='assets/bite-selected-icon.png';
+    homeLogo.alt='Bite';
+    homeLogo.width=38;homeLogo.height=38;homeLogo.hidden=true;
+    const homeProperty=doc.createElement('strong');
+    homeProperty.id='biteOwnerHomeProperty';
+    homeProperty.setAttribute('aria-live','polite');
+    homeProperty.hidden=true;
+    header.append(homeLogo,homeProperty);
+    // Preserve the real selector and its existing change handler; move it to More on mobile.
+    const propertySlot=doc.createElement('section');
+    propertySlot.id='biteOwnerPropertySwitchSection';
+    propertySlot.className='bite-more-group bite-owner-property-group';
+    propertySlot.hidden=true;
+    const propertyHeading=doc.createElement('h2');
+    propertyHeading.textContent='Switch business';
+    propertySlot.append(propertyHeading);
+    moreHead.after(propertySlot);
+    const propertyAnchor=doc.createComment('Original property switcher position');
+    let propertyHolder=null;
+    function syncPropertySwitcher(){
+      const holder=doc.getElementById('bitePropertySelect')?.closest('.bh-property-switch');
+      if(!holder)return;
+      if(!propertyHolder){propertyHolder=holder;holder.before(propertyAnchor)}
+      const count=holder.querySelectorAll('select option').length;
+      if(mobile()&&doc.body.dataset.role==='owner'){
+        if(holder.parentNode!==propertySlot)propertySlot.append(holder);
+        propertySlot.hidden=count<2;
+        holder.hidden=count<2;
+      }else{
+        if(propertyAnchor.parentNode&&holder.previousSibling!==propertyAnchor)propertyAnchor.after(holder);
+        propertySlot.hidden=true;
+        holder.hidden=count===0;
+      }
+    }
+    function syncHomeIdentity(){
+      const property=root.BiteHospitality?.prop?.();
+      const show=doc.body.dataset.role==='owner'&&mobile()&&!moreOpen&&currentPage()==='overview'&&!!property;
+      homeLogo.hidden=!show;
+      homeProperty.hidden=!show;
+      if(show)homeProperty.textContent=property.name||'Your business';
+    }
     for(const section of sections){
       const group=doc.createElement('section');group.className='bite-more-group';
       const h=doc.createElement('h2');h.textContent=section.heading;group.append(h);
@@ -110,6 +154,8 @@
     }
     function syncResponsive(){
       const ownerMobile=doc.body.dataset.role==='owner'&&mobile();
+      syncPropertySwitcher();
+      syncHomeIdentity();
       if(languageControls&&languageRow){
         if(ownerMobile&&languageControls.parentNode!==languageSlot)languageSlot.append(languageControls);
         else if(!ownerMobile&&languageControls.parentNode!==languageRow)languageRow.append(languageControls);
@@ -187,6 +233,7 @@
     let pendingBack=false;
     function sync(){
       const page=currentPage();
+      syncHomeIdentity();
       if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
       if(doc.body.dataset.role!=='owner'){moreChildPage=null;moreEntryPage=null;moreRestored=false;}
       const state=navigationState(doc.body.dataset.role,page,moreOpen);
@@ -247,6 +294,8 @@
     drawerObserver.observe(side,{attributes:true,attributeFilter:['class']});
     root.addEventListener?.('resize',syncResponsive);
     root.addEventListener?.('bite:capabilities',()=>{
+      syncPropertySwitcher();
+      syncHomeIdentity();
       const p=root.BiteHospitality?.prop();
       activeTabs=p?root.BiteHospitality.getTabs():tabs;buildTabs();
       const allowed=p?root.BiteHospitality.routeList({role:'owner',property:p}):null;
