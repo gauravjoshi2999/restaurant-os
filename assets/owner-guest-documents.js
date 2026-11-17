@@ -29,7 +29,7 @@
  async function prepare(file){
   if(!file||file.size<1||file.size>24*1024*1024)throw Error('Choose an ID photo up to 24 MB, or a PDF up to 4 MB.');
   const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer()),mime=Object.keys(extensions).find(type=>matchesHeader(bytes,type));
-  if(!mime)throw Error('Choose a valid JPEG, PNG or PDF. HEIC and other formats must be converted first.');
+  if(!mime){if(Object.hasOwn(extensions,file.type)||file.type==='image/jpg')throw Error('File contents do not match its type. Choose a valid JPEG, PNG or PDF.');throw Error('Choose a valid JPEG, PNG or PDF. HEIC and other formats must be converted first.')}
   const declared=file.type==='image/jpg'?'image/jpeg':file.type;
   if(declared&&!['application/octet-stream',mime].includes(declared))throw Error('File contents do not match its type. Choose a valid ID copy.');
   if(file.size<=MAX_BYTES)return declared===mime&&file.type===mime?file:new File([file],'guest-id'+extensions[mime],{type:mime,lastModified:file.lastModified||Date.now()});
