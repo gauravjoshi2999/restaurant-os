@@ -135,8 +135,8 @@ try:
   c,p,f=open_case(browser);fill(f);raw_id(f)
   f.locator('[data-foreign-card=lead] .ha-foreign-toggle').click();f.locator('button[type=submit]').click();focused(p,'country')
   foreign(f);f.locator('[name=foreign_document_expiry]').fill('2020-01-01');f.locator('button[type=submit]').click();focused(p,'foreign_document_expiry')
-  f.locator('[name=foreign_document_expiry]').fill('2036-01-01');review(f)
-  p.screenshot(path=str(OUT/'ui-checkin-scenarios-foreign-390.png'));confirm(p,f)
+  f.locator('[name=foreign_document_expiry]').fill('2036-01-01');f.locator('[data-foreign-card=lead] .ha-foreign-toggle').click()
+  p.screenshot(path=str(OUT/'ui-checkin-scenarios-foreign-390.png'));review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays[0].registration.foreign_details.document_last4==="A123"'),'Foreign metadata reaches scoped reservation')
   record('S15','Foreign form, field validation and save');c.close()
 

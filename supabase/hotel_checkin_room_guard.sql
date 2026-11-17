@@ -2,7 +2,8 @@
 begin;
 do $patch$
 declare source text:=pg_get_functiondef('private.bite_hotel_account_command(uuid,text,jsonb,uuid)'::regprocedure);
- anchor text:=$anchor$  if p_action in('reserve','reservation_edit')and p_payload?'arrival_time'then$anchor$;
+ anchor text:=$anchor$  if p_action in('reserve','reservation_edit')and p_payload?'arrival_time'then
+   if jsonb_typeof(p_payload->'arrival_time')$anchor$;
  guard text:=$guard$  -- Check physical occupation before creating a walk-in reservation or its advance.
   if p_action='reserve'and p_payload->>'booking_mode'='checkin'then
    if not private.bite_can(p_property,'reservations')then raise exception 'Reservation access denied'using errcode='42501';end if;
