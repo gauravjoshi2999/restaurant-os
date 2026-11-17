@@ -32,7 +32,7 @@ test('Owner Home replaces the old Sales snapshot without removing existing backe
  assert.match(css,/#overview>\*:not\(#biteV3Home\)\{display:none!important\}/);
  assert.match(imageCss,/\.boh-feature-grid/);
  assert.match(imageCss,/\.boh-register/);
- assert.match(imageCss,/\.boh-notice-tray/);
+ assert.match(imageCss,/#biteOwnerNoticeTray/);
  assert.match(imageCss,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(source,/return date\.startsWith\(month\)&&\['in_house','checked_out'\]/);
  assert.match(source,/BiteOwnerOrderBurst\?\.paidOrderIds/);
