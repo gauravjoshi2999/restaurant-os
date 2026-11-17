@@ -148,7 +148,7 @@ function onClick(e){
 }
 function mount({el,client,restaurant,user}){
  if(!el||!client||!restaurant||!user)return;
- const changed=restaurantId!==restaurant||userId!==user||container!==el;
+ const changed=restaurantId!==restaurant||userId!==user;
  if(changed){epoch++;report=null;month=istToday().slice(0,7);selected=istToday();mode='today';loading=false;}
  if(container&&container!==el)container.removeEventListener('click',onClick);
  container=el;sb=client;restaurantId=restaurant;userId=user;
