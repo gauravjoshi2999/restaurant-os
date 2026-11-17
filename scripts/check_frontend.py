@@ -101,7 +101,9 @@ check("const ownerPages=['overview','orders','pos','menu','tables','khata','cash
       and 'data-page="pos"' in owner and 'id="posNewSaleBtn"' in owner
       and "pos:loadPOSWorkspace" in owner and "onclick=\"openOrder()\"" in owner
       and "if(access.role!=='owner'||!access.restaurantId)" in owner
-      and "create_pos_order_with_balance_action" in owner
+      and "bite_create_counter_pos_visit_v1" in owner
+      and "v_order:=public.create_pos_order_with_balance_action" in Path("supabase/migrations/20261117143000_pos_visit_counts_step2.sql").read_text(encoding="utf-8")
+      and "v_order:=public.replace_unpaid_pos_order" in Path("supabase/migrations/20261117143000_pos_visit_counts_step2.sql").read_text(encoding="utf-8")
       and "id=\"posWhatsAppConsent\"" in owner,
       "Owner navigation exposes guarded POS & Billing with WhatsApp bill while refunds remain excluded")
 check("This account is linked to more than one restaurant" in owner,
