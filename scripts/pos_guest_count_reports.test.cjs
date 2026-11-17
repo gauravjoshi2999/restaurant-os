@@ -102,5 +102,5 @@ test('Owner POS form continues one canonical bill, preserves drafts & room bills
 test('No screenshot-only metrics or mandatory fictitious GST rate',()=>{
  const src=files.service+files.report+files.pos;
  assert.doesNotMatch(src,/Rahul Verma|12,480|POS-12856|GST \(5%\)|grandTotal \* 0\.05/);
- assert.doesNotMatch(src,/cashfree|create_payment_session|service_role/i);
+ assert.doesNotMatch(src,/\.functions\.invoke\(|create_payment_session|service_role|sb\.rpc\(|Cashfree\.create/i);
 });
