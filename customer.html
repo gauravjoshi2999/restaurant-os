@@ -1846,19 +1846,6 @@ function bitePaymentContextCurrent(sequence,intentId){
 function biteCheckoutCartSignature(restaurantId,entries){
  return JSON.stringify([restaurantId||null,[...(entries||[])].map(([id,q])=>[String(id),Number(q)]).sort((a,b)=>a[0].localeCompare(b[0]))]);
 }
-window.BiteCustomerConfirmationOpen=function(){
- if(!pendingLiveCheckout?.confirmationRequired||pendingLiveCheckout.started||
-    window.BiteCheckoutUX?.freshCartRequested)return false;
- $('checkoutModal').classList.remove('hidden');
- $('checkoutModal').classList.add('show');
- $('checkoutFormPanel').classList.remove('hidden');
- $('checkoutPendingPanel').classList.add('hidden');
- $('checkoutOutcomePanel').classList.add('hidden');
- $('checkoutError').textContent='';
- window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
- syncCheckoutPaymentButton();
- return true;
-};
 function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
  const freshPending=!!(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested);
@@ -1891,6 +1878,19 @@ function syncCheckoutPaymentButton(){
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
  });
 }
+window.BiteCustomerConfirmationOpen=function(){
+ if(!pendingLiveCheckout?.confirmationRequired||pendingLiveCheckout.started||
+    window.BiteCheckoutUX?.freshCartRequested)return false;
+ $('checkoutModal').classList.remove('hidden');
+ $('checkoutModal').classList.add('show');
+ $('checkoutFormPanel').classList.remove('hidden');
+ $('checkoutPendingPanel').classList.add('hidden');
+ $('checkoutOutcomePanel').classList.add('hidden');
+ $('checkoutError').textContent='';
+ window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
+ syncCheckoutPaymentButton();
+ return true;
+};
 async function refreshCheckoutPaymentReadiness(){
  const accountSequence=bitePaymentAccountSequence;
  if(BITE_SANDBOX_CHECKOUT){syncCheckoutPaymentButton();return true;}
