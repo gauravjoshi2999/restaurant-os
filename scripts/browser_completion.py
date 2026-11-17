@@ -588,6 +588,16 @@ try:
         'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
   owner.locator('#biteV3Home').wait_for(state='visible')
+  owner.screenshot(path=str(OUT/'ui-owner-home-v3-diagnostic.png'),full_page=False)
+  print('HOME-V3-DIAGNOSTIC',owner.evaluate("""() => ({
+    kpis:document.querySelectorAll('#biteV3Home .bv3-kpi').length,
+    flow:!!document.querySelector('#biteV3Home .bv3-flow') && getComputedStyle(document.querySelector('#biteV3Home .bv3-flow')).display!=='none',
+    premium:document.querySelector('#bitePremiumHome')?.getBoundingClientRect().height||0,
+    priority:document.querySelector('#overview .od-owner-priority')?.getBoundingClientRect().height||0,
+    snapshot:window.BiteHospitality?.dashboardSnapshot?.()?.restaurant,
+    bodyClass:document.body.className,
+    overviewText:document.getElementById('biteV3Home')?.innerText?.slice(0,450)
+  })"""))
   check(owner.locator('#biteV3Home .bv3-kpi').count()==4
     and owner.locator('#biteV3Home .bv3-flow').is_visible()
     and owner.locator('#bitePremiumHome').is_hidden()
