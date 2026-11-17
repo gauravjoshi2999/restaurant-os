@@ -719,6 +719,7 @@ body.bite-session-check #biteSessionSplash{
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
 <link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261117-s1">
+<link rel="stylesheet" href="assets/bite-pos-service-reports.css?v=20261117-s2">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
@@ -1344,6 +1345,8 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
 <script src="./assets/bite-pos-v2.js?v=20261117-s1"></script>
+<script src="./assets/bite-pos-service.js?v=20261117-s2"></script>
+<script src="./assets/bite-pos-reports.js?v=20261117-s2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
 <script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
 <script>
@@ -1500,10 +1503,10 @@ async function logout(){
  ownerPushToken=null;ownerPushRestaurantId=null;lastOwnerPushSync=0;
  if(orderRealtimeChannel){await sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null}if(orderAudioContext){await orderAudioContext.close();orderAudioContext=null}orderAlertsEnabled=false;await sb.auth.signOut();currentUser=null;state={restaurants:[],orders:[]};access={isPlatformAdmin:false,role:null,memberships:[]};document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';document.getElementById('authPassword').value='';setAuthMode(false)}
 async function loadCloudData(options={}){try{if(access.role==='owner'&&!access.restaurantId&&(access.property||access.needsProperty)){
- for(const key of ['restaurants','orders','history','financials','settlements','orderPayments','paymentSummaries','restaurantTables','orderRefunds','orderItems','expenses'])state[key]=[];
+ for(const key of ['restaurants','orders','history','financials','settlements','orderPayments','paymentSummaries','restaurantTables','orderRefunds','orderItems','expenses','posServices'])state[key]=[];
  if(access.property)await window.BiteHospitality.reload();else await showPage('business-modules');
  return;
- }const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',scheduledFor:x.scheduled_for||null,deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();if(access.property&&(window.BiteHospitality.has("folios")||window.BiteHospitality.has("charge_to_room")))await window.BiteHospitality.reload();render();if(access.property)window.BiteHospitality.applyShell();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){if(!options.silent)alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err);if(options.throwOnError)throw err}}
+ }const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex,svc]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*')),tenantScope(sb.from('bite_pos_bill_service').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex,svc])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.posServices=(svc.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',scheduledFor:x.scheduled_for||null,deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();if(access.property&&(window.BiteHospitality.has("folios")||window.BiteHospitality.has("charge_to_room")))await window.BiteHospitality.reload();render();if(access.property)window.BiteHospitality.applyShell();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){if(!options.silent)alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err);if(options.throwOnError)throw err}}
 
 let expenseRecords=[], editingExpenseId=null;
 function localDateInput(){return BiteOwner.day()}
@@ -2928,6 +2931,11 @@ async function openOrder(){
  document.getElementById('orderChannel').value='POS - Counter';
  document.getElementById('orderRestaurant').value=restaurantId;
  document.getElementById('posPaymentSection').style.display='block';
+ window.BitePOSService?.prepare({
+  restaurantId,tables:state.restaurantTables||[],
+  dineInAllowed:!access.property||window.BiteHospitality?.has?.('dine_in')!==false,
+  takeawayAllowed:!access.property||window.BiteHospitality?.has?.('takeaway')!==false
+ });
  togglePosPaymentFields();
  refreshOrderTableOptions();
  document.getElementById('orderItemRows').innerHTML='';
@@ -2941,7 +2949,8 @@ async function openOrder(){
  updateOrderTotal();
  window.BitePOS?.newBill();
  modal.classList.add('show'); // Open immediately; don't wait on the menu network request.
- void window.BiteHospitality?.preparePOS().catch(err=>console.warn('Room POS lookup unavailable',err));
+ void window.BiteHospitality?.preparePOS().then(()=>window.BitePOSService?.syncLegacy())
+  .catch(err=>console.warn('Room POS lookup unavailable',err));
  void loadPosMenuItems(restaurantId).catch(err=>console.warn('POS menu loading delayed:',err));
 }
 async function openPosFromOverview(button){
@@ -3080,6 +3089,12 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}
  if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}
  const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');
+ let posService=null;
+ if(channel.startsWith('POS - ')&&!window.BiteHospitality?.roomPOSSelected()){
+  try{posService=window.BitePOSService?.read();
+   if(!posService)throw new Error('POS service details unavailable. Refresh to continue safely.');
+  }catch(serviceError){alert(serviceError.message||String(serviceError));return;}
+ }
  const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
  const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));
  if(!items.length||items.some(x=>!x.name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_price)||x.unit_price<0)){alert('Har item ka naam, sahi quantity aur price bharein.');return;}
@@ -3119,10 +3134,11 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
     p_customer_name:f.get('customer_name')||'',p_customer_phone:f.get('customer_phone')||'',
     p_items:items,p_paid_amount:paid,p_payment_method:paid>0?f.get('payment_method'):null,
     p_payment_date:f.get('payment_date')||localDateInput(),p_reference:f.get('payment_reference')||null,
-    p_balance_action:balanceAction,p_writeoff_reason:null
+    p_balance_action:balanceAction,p_writeoff_reason:null,
+    p_service_type:posService.serviceType,p_guest_count:posService.guestCount,
+    p_table_id:posService.tableId,p_original_order_id:replaceOrderId||null
    };
-   if(replaceOrderId)args.p_original_order_id=replaceOrderId;
-   const result=await sb.rpc(replaceOrderId?'replace_unpaid_pos_order':'create_pos_order_with_balance_action',args);
+   const result=await sb.rpc('bite_create_pos_bill_with_service_v1',args);
    data=result.data;error=result.error;
    // A network timeout after commit must not generate a duplicate bill.
    if(error){
@@ -3479,7 +3495,10 @@ function renderPOSWorkspace(){
   restaurantId:rid,
   orders:orders.map(o=>{
    const p=paymentSummaryFor(o.id);
+   const service=(state.posServices||[]).find(s=>s.order_id===o.id&&s.restaurant_id===rid);
    return {...o,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
+    serviceType:service?.service_type||null,guestCount:service?.guest_count??null,
+    serviceTableId:service?.table_id||null,
     receivedAmount:Number(p.paid_amount||0),dueAmount:Number(p.balance_amount||0)};
   })
  });
