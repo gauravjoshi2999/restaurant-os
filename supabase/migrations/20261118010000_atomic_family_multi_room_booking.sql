@@ -93,20 +93,22 @@ begin
    'booking_reference',coalesce(p_payload->>'booking_reference',''),
    'booking_mode',v_mode,
    'arrival_time',coalesce(p_payload->>'arrival_time',''),
-   'terms_at_checkin',v_mode='checkin',
+   'terms_at_checkin',true,
    'compliance_note',left(trim(coalesce(v_unit->>'note','')),250)
   );
   if v_unit ? 'quote_hash' and nullif(v_unit->>'quote_hash','') is not null then
    v_booking:=v_booking||jsonb_build_object('quote_hash',v_unit->>'quote_hash');
   end if;
-  if v_index=1 and p_payload ? 'registration' then
+  if v_unit ? 'registration' then
+   v_booking:=v_booking||jsonb_build_object('registration',v_unit->'registration');
+  elsif v_index=1 and p_payload ? 'registration' then
    v_booking:=v_booking||jsonb_build_object('registration',p_payload->'registration');
   end if;
-  v_result:=private.bite_property_command(p_property,'reserve',v_booking,gen_random_uuid());
+  v_result:=public.bite_property_command(p_property,'reserve',v_booking,gen_random_uuid());
   update public.bite_stays set group_id=v_group
   where property_id=p_property and id=(v_result->>'id')::uuid;
   if v_mode='checkin' then
-   perform private.bite_property_command(
+   perform public.bite_property_command(
     p_property,'checkin',jsonb_build_object('id',v_result->>'id'),gen_random_uuid()
    );
   end if;
