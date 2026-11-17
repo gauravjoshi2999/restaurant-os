@@ -68,7 +68,7 @@ test('Screenshot-based owner POS is additive and existing billing remains canoni
 test('No fabricated diner count, no payment processing changes and real bill meaning',()=>{
  assert.match(js,/people served/);
  assert.match(js,/untrackedBills/);
- assert.match(js,/untracked bill/);
+ assert.match(js,/older\/unrecorded bill/);
  assert.match(js,/Bill amount is not cash received/);
  assert.doesNotMatch(js,/24,560|1,342|3,896|Rahul Verma|POS-2587/);
  assert.doesNotMatch(js,/supabase\.from|fetch\(|Cashfree|payment_intent|UPDATE public/);
