@@ -47,6 +47,17 @@ class ReleaseAttestationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Live Pages file differs"):
             verify_release(SHA, DEFAULT_SITE, self.dist, self.fetch)
 
+    def test_fail_closed_on_stale_hotel_account_assets(self):
+        for asset in ("assets/owner-hotel-accounts.js", "assets/owner-hotel-accounts.css"):
+            with self.subTest(asset=asset):
+                original = self.contents[asset]
+                try:
+                    self.contents[asset] = b"stale hotel account asset"
+                    with self.assertRaisesRegex(ValueError, "Live Pages file differs"):
+                        verify_release(SHA, DEFAULT_SITE, self.dist, self.fetch)
+                finally:
+                    self.contents[asset] = original
+
     def test_fail_closed_on_stale_customer_page(self):
         self.contents["customer.html"] = b"old customer html"
         with self.assertRaisesRegex(ValueError, "customer.html"):
