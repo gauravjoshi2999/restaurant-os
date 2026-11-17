@@ -163,7 +163,13 @@
         moreChildPage=null;moreRestored=false;moreEntryPage=null;
         // POS is a canonical workspace. Opening a new bill remains the explicit
         // action inside POS; existing Home one-tap billing remains available.
-        if(typeof root.showPage==='function')void root.showPage(tab.page);
+        if(typeof root.showPage==='function'){
+          void Promise.resolve(root.showPage(tab.page)).then(()=>{
+            // Owner taps Orders to see urgent new confirmations first; keep
+            // other filters available in Orders itself.
+            if(tab.page==='orders'&&typeof root.setOrderStatus==='function')root.setOrderStatus('new');
+          }).catch(error=>root.console?.warn?.('Owner tab could not open',error));
+        }
       });
     });
     }
