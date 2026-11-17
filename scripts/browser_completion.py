@@ -513,6 +513,7 @@ try:
     "(nodes)=>nodes.map(node=>node.dataset.biteStage)")
   check(stage_names==['new','preparing','ready','delivery','completed','cancelled','all'],
         'Owner Orders has one grouped stage bar backed by real status values')
+  owner.locator('#bv3DateDisclosure summary').click()
   owner.locator('#biteOwnerOrderCalendar').wait_for(state='visible')
   owner.locator('#biteOwnerOrderCalendar [data-date-calendar-toggle]').click()
   check(owner.locator('#biteOwnerOrderCalendar .bite-date-grid button[data-date-select]').count()>=28,
@@ -563,7 +564,7 @@ try:
   owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').click()
   check(owner.locator('#biteOwnerOrderStages [data-bite-stage="preparing"]').get_attribute('aria-pressed')=='true',
         'Accepted and Preparing orders share a canonical Preparing stage')
-  owner.locator('#biteOwnerOrderStages [data-bite-stage="all"]').click()
+  owner.locator('#bv3StageSelect').select_option('all')
   owner.evaluate("""() => { window.__qaReason='pending';
      BiteOwnerOrders.requestReason(document,'Rejected').then(value=>window.__qaReason=value); }""")
   owner.locator('.bite-order-reason-modal select').select_option('Out of stock')
@@ -577,23 +578,40 @@ try:
   owner.wait_for_function("window.__qaCancel===null")
   check(not owner.locator('.bite-order-reason-overlay').count(),
         'Owner Cancel modal supports Escape without sending an order update')
+  owner.locator('#bv3DateDisclosure summary').click()
+  check(owner.locator('#biteV3OrdersHeading').is_visible()
+    and owner.locator('#biteV3OrderTools').is_visible()
+    and owner.locator('#biteOwnerOrderStages').is_visible(),
+    'Screenshot Orders is compact with stage tabs, search, and working filters')
   owner.screenshot(path=str(OUT/'ui-owner-orders.png'),full_page=False)
   check(owner.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),
         'Owner Orders has no horizontal overflow at 390px')
   nav(owner,'overview')
-  owner.locator('#ownerQuickPosBtn').wait_for(state='visible')
-  check(owner.locator('#overview .od-owner-priority').is_visible()
-    and owner.locator('#overview .od-owner-priority .od-stages').count()==1
-    and owner.locator('#overview .od-live').is_hidden(),
-    'Mobile Home shows exactly one Live Orders panel with stage shortcuts inside')
+  owner.locator('#biteV3Home').wait_for(state='visible')
+  owner.screenshot(path=str(OUT/'ui-owner-home-v3-diagnostic.png'),full_page=False)
+  print('HOME-V3-DIAGNOSTIC',owner.evaluate("""() => ({
+    kpis:document.querySelectorAll('#biteV3Home .bv3-kpi').length,
+    flow:!!document.querySelector('#biteV3Home .bv3-flow') && getComputedStyle(document.querySelector('#biteV3Home .bv3-flow')).display!=='none',
+    premium:document.querySelector('#bitePremiumHome')?.getBoundingClientRect().height||0,
+    priority:document.querySelector('#overview .od-owner-priority')?.getBoundingClientRect().height||0,
+    snapshot:window.BiteHospitality?.dashboardSnapshot?.()?.restaurant,
+    bodyClass:document.body.className,
+    overviewText:document.getElementById('biteV3Home')?.innerText?.slice(0,450)
+  })"""))
+  check(owner.locator('#biteV3Home .bv3-kpi').count()==4
+    and owner.locator('#biteV3Home .bv3-flow').is_visible()
+    and owner.locator('#bitePremiumHome').is_hidden()
+    and owner.locator('#overview .od-owner-priority').is_hidden(),
+    'Owner Home has one compact KPI snapshot, a live queue and no duplicated premium dashboard')
   check(owner.locator('.bite-language-row').is_hidden()
     and owner.locator('.side').is_hidden()
     and owner.locator('#mainApp>.main>.top').evaluate(
-       "(el)=>getComputedStyle(el).backgroundColor==='rgb(53, 22, 110)' && el.getBoundingClientRect().height<=60"),
-    'Owner mobile header is compact, readable purple; no language strip or sidebar')
+       "(el)=>getComputedStyle(el).backgroundImage.includes('linear-gradient') && el.getBoundingClientRect().height<=60"),
+    'Owner mobile header uses the approved brown gradient; no language strip or sidebar')
   owner.screenshot(path=str(OUT/'ui-owner-home.png'),full_page=False)
-  check(owner.locator('#ownerQuickPosBtn').is_visible(),'Mobile owner overview has persistent New POS Bill shortcut')
-  owner.locator('#ownerQuickPosBtn').click()
+  check(owner.locator('#biteV3Home [data-bv3-new-pos="true"]').is_visible(),
+    'Mobile Home has a live New POS Bill shortcut without a duplicated POS dashboard')
+  owner.locator('#biteV3Home [data-bv3-new-pos="true"]').click()
   owner.locator('#orderModal.show').wait_for(state='visible')
   check(owner.locator('#posNewSaleBtn').is_visible() and owner.locator('#orderModal.show').is_visible(),
         'Owner overview quick button opens the actual POS bill on the first tap')
