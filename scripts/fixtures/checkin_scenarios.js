@@ -18,6 +18,7 @@
   q.injectRace=()=>q.db.stays.push({id:'race-stay',guest_id:'other-guest',room_id:'room-a',arrival:day,departure:plus(1),status:'in_house'});
   q.replayLost=()=>rpc('bite_property_command',q.lostReserve);
   c.rpc=async(name,a={})=>{
+   if(name==='bite_hotel_workspace'&&q.failReconcileAfterLookup&&--q.failReconcileAfterLookup===0)throw Error('Synthetic recovery refresh interrupted');
    if(name==='bite_property_command'&&a.p_action==='reserve'&&q.loseBeforeReserve){q.loseBeforeReserve=false;q.lostReserve=structuredClone(a);throw Error('Synthetic response unknown before send')}
    const result=await rpc(name,a);
    if(name==='bite_property_command'&&a.p_action==='reserve'&&!result.error&&q.loseAfterReserve){q.loseAfterReserve=false;throw Error('Synthetic response unknown after commit')}

@@ -339,18 +339,18 @@
  }
  async function resolveRegistration(cancel=false){
   const key=identity(),form=$('bhCheckinForm');await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
-  let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+key)||'null')}catch{}raw=raw||{savedAt:Date.now(),fields:{}};
+  let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+key)||'null')}catch{}if(!raw?.fields||typeof raw.fields!=='object'||Array.isArray(raw.fields))raw={savedAt:Date.now(),fields:{}};const resolved=[];
   for(const item of pendingRegistration()){
    let found=(data.checkin_attempts||[]).find(row=>row.request_id===item.attempt.id);
    if(!found&&cancel){const status=await command('abandon_checkin',{id:item.attempt.id});if(key!==identity())throw Error('Property changed. Reopen check-in.');if(status.found)found=status;else if(status.cancelled)localStorage.removeItem(item.key)}
    if(found){
     if(found.action==='guest_save')raw.fields.guest_id=found.id;
     if(['reserve','checkin'].includes(found.action))raw.fields.stay_id=found.id;
-    localStorage.removeItem(item.key);
+    resolved.push(item.key);
    }
   }
   await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
-  raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));return raw;
+  raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));for(const item of resolved)localStorage.removeItem(item);return raw;
  }
  function renderRegister(guestId='',resume=false){
   let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null')}catch{}

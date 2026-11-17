@@ -205,6 +205,8 @@ try:
   c,p,f=open_case(browser);fill(f);raw_id(f);f.locator('[name=advance_amount]').fill('100');review(f)
   p.evaluate('__BITE_HOTEL_QA.loseAfterReserve=true');f.locator('button[type=submit]').click();f.locator('.bh-message').get_by_text('Synthetic response unknown',exact=False).wait_for()
   nav(p,'overview');nav(p,'hotel-register');check(f.evaluate('(el)=>el.inert'),'Uncertain previous send requires an explicit decision')
+  p.evaluate('__BITE_HOTEL_QA.failReconcileAfterLookup=2');p.locator('[data-hotel-action=resume-register]').click();f.locator('.bh-message').get_by_text('Synthetic recovery refresh interrupted',exact=False).wait_for()
+  check(p.evaluate("Object.keys(localStorage).some(k=>k.startsWith('bite_property_request:')&&k.includes(':reserve:'))"),'Interrupted recovery keeps the uncertain-send token until its result is safely stored')
   p.locator('[data-hotel-action=resume-register]').click();p.wait_for_function("!!document.querySelector('#bhCheckinForm').dataset.stayId")
   review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===1&&__BITE_HOTEL_QA.db.entries.filter(e=>e.kind==="advance").length===1'),'Lost successful response resumes exactly one booking and advance');c.close()
