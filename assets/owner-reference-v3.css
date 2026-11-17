@@ -57,6 +57,36 @@
  body[data-role="owner"].bite-v3-active #mainApp>.main>.content{
   padding:12px 12px calc(108px + env(safe-area-inset-bottom))!important;
  }
+
+ /* Owner-approved Home identity: selected Bite logo / current property / unchanged bell. */
+ body[data-role="owner"] #mainApp>.main>.top .bh-property-switch{display:none!important}
+ body[data-role="owner"] #mainApp>.main>.top #biteOwnerHomeLogo{
+  order:0;flex:0 0 38px;width:38px;height:38px;object-fit:contain;border-radius:11px
+ }
+ body[data-role="owner"] #mainApp>.main>.top #biteOwnerHomeProperty{
+  order:1;flex:1 1 0;min-width:0;text-align:center;color:#fff;
+  font-size:clamp(13px,4vw,18px);font-weight:850;line-height:1.2;
+  overflow-wrap:anywhere;display:block
+ }
+ body[data-role="owner"] #mainApp>.main>.top #biteOwnerHomeLogo[hidden],
+ body[data-role="owner"] #mainApp>.main>.top #biteOwnerHomeProperty[hidden]{display:none!important}
+ body[data-role="owner"][data-universal-owner="true"] #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #pageTitle{
+  display:none!important
+ }
+ body[data-role="owner"] #mainApp:has(#overview.page.active):not([data-bite-more-open="true"]) #biteV3Home .bv3-intro{
+  display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteV3HeaderBell{
+  order:2;margin-left:0!important
+ }
+ body[data-role="owner"] #biteOwnerMoreScreen .bite-owner-property-group{
+  margin:10px 0;padding:12px;border-radius:14px;background:#fff;border:1px solid #e9dcd1
+ }
+ body[data-role="owner"] #biteOwnerMoreScreen .bite-owner-property-group .bh-property-switch{
+  display:block!important;width:100%;min-width:0;max-width:none;margin:9px 0 0;flex:none
+ }
+ body[data-role="owner"] #biteOwnerMoreScreen .bite-owner-property-group .bh-property-switch[hidden],
+ body[data-role="owner"] #biteOwnerMoreScreen .bite-owner-property-group[hidden]{display:none!important}
  /* Replace old hero/duplicated homepage sections on phones; do not delete old DOM/data. */
  body[data-role="owner"].bite-v3-active #overview>*:not(#biteV3Home){display:none!important}
  /* Mobile navigation relocates the legacy order-stage strip into old
