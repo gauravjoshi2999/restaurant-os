@@ -192,4 +192,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/guest_documents_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/checkin_flow_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_scenarios.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_room_guard.sql
           psql -v ON_ERROR_STOP=1 -f scripts/checkin_scenarios_pg_test.sql

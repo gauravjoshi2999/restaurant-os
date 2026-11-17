@@ -56,6 +56,21 @@ do $$declare p uuid:=(select v::uuid from scenario_state where k='p');v jsonb;be
  perform pg_temp.scenario_denied(format('select public.bite_property_command(%L,''abandon_checkin'',%L,gen_random_uuid())',p,jsonb_build_object('id',(select st.v from scenario_state st where k='request'))::text));
 end$$;
 reset role;
+-- Seed an overdue physical occupant only in this disposable transaction.
+-- Its old dates no longer overlap today: date exclusion alone cannot catch this case.
+update public.bite_stays set status='in_house',arrival=(now()at time zone'Asia/Kolkata')::date-2,departure=(now()at time zone'Asia/Kolkata')::date where property_id=(select v::uuid from scenario_state where k='p');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+do $$declare p uuid:=(select v::uuid from scenario_state where k='p');s public.bite_stays;args jsonb;d date:=(now()at time zone'Asia/Kolkata')::date;begin
+ select * into strict s from public.bite_stays where property_id=p;
+ args:=jsonb_build_object('guest_id',s.guest_id,'room_id',s.room_id,'arrival',d,'departure',d+1,'adults',1,'children',0,'nightly_rate',900,'terms_at_checkin',true,'booking_mode','checkin','advance_amount',100,'advance_method','Cash');
+ perform pg_temp.scenario_denied(format('select public.bite_property_command(%L,''reserve'',%L,gen_random_uuid())',p,args::text),'room_id');
+ if(select count(*)from public.bite_stays where property_id=p)<>1 or(select count(*)from public.bite_folio_entries where property_id=p and kind='advance')<>1 then raise exception 'Overdue occupant denial created a booking or advance';end if;
+ args:=args||jsonb_build_object('arrival',d+2,'departure',d+3);
+ perform pg_temp.scenario_denied(format('select public.bite_property_command(%L,''reserve'',%L,gen_random_uuid())',p,args::text),'arrival');
+ perform public.bite_property_command(p,'reserve',args||'{"booking_mode":"reserve"}'::jsonb,gen_random_uuid());
+end$$;
+reset role;
 -- Pure helper stays non-definer and inaccessible to public application roles.
 do $$declare v jsonb;d date:=current_date;begin
  if has_function_privilege('authenticated','private.bite_validate_foreign_details(jsonb,date,text)','execute')or(select prosecdef from pg_proc where oid='private.bite_validate_foreign_details(jsonb,date,text)'::regprocedure)then raise exception 'Foreign helper elevated application privileges';end if;

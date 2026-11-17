@@ -4,7 +4,7 @@ The manager and guest perspectives were exercised using the production controlle
 
 ## Findings and changes
 
-- Occupied rooms were selectable because the picker only excluded inactive/blocked rooms. Check-in now checks physical occupation, reservation dates, readiness and adjacent-stay timing. A future reservation may use a room after the present guest leaves. The server remains authoritative when staff compete for a room.
+- Occupied rooms were selectable because the picker only excluded inactive/blocked rooms. Check-in now checks physical occupation, reservation dates, readiness and adjacent-stay timing. The server also rejects a physically occupied room before creating a walk-in reservation or advance, even when the earlier booking dates have expired. A future reservation may use a room after the present guest leaves. The server remains authoritative when staff compete for a room.
 - The last local draft silently filled a new check-in. Guest fields now start empty, with explicit Resume / Start fresh. Completed, cancelled and expired drafts are discarded. Unknown server responses must be reconciled before a fresh send; a serialized request tombstone prevents a late old send creating a ghost booking.
 - Background refresh could replace a blurred form and lose selected photo files. Availability refresh now updates room choices without replacing the form. Submission locks edits while a quote or upload is in progress.
 - Normal camera photos can exceed the private 4 MB storage limit. JPEG/PNG photos up to 24 MB are resized on the device; real contents determine safe MIME normalization. The storage limit stays 4 MB. Invalid replacements preserve the previous valid front. Back can be skipped directly; companions retain separate named ID slots.
@@ -47,6 +47,7 @@ node --test scripts/*.test.cjs
 python scripts/checkin_scenarios_browser.py
 python scripts/hotel_accounts_browser.py
 psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_scenarios.sql
+psql -v ON_ERROR_STOP=1 -f supabase/hotel_checkin_room_guard.sql
 psql -v ON_ERROR_STOP=1 -f scripts/checkin_scenarios_pg_test.sql
 ```
 
