@@ -20,3 +20,14 @@ test('valid masked-copy file signatures remain accepted regardless of original f
 test('private-copy action escapes guest IDs before rendering markup',()=>{
  const html=D.button('x" onclick="evil()');assert(!html.includes('data-doc-guest="x"'));assert(html.includes('&quot;'));
 });
+test('camera MIME aliases and missing MIME use real file signatures',async()=>{
+ for(const type of ['', 'application/octet-stream', 'image/jpg']){
+  const file=await D.prepare(new File([new Uint8Array([255,216,255,0])],'synthetic.jpg',{type}));
+  assert.equal(file.type,'image/jpeg');assert.equal(file.size,4);
+ }
+});
+test('photo preparation rejects contradictory types, oversized PDFs and unsupported camera formats',async()=>{
+ await assert.rejects(D.prepare(new File([new Uint8Array([255,216,255,0])],'wrong.png',{type:'image/png'})),/contents/);
+ await assert.rejects(D.prepare(new File(['HEIC synthetic'],'synthetic.heic',{type:'image/heic'})),/JPEG, PNG or PDF/);
+ await assert.rejects(D.prepare(new File(['%PDF-',new Uint8Array(D.MAX_BYTES)],'synthetic.pdf',{type:'application/pdf'})),/PDF up to 4 MB/);
+});

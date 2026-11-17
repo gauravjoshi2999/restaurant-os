@@ -26,6 +26,24 @@
   if(!matchesHeader(new Uint8Array(await file.slice(0,16).arrayBuffer()),mime))throw Error('File contents do not match its type. Choose a valid JPEG, PNG or PDF.');
   return mime;
  }
+ async function prepare(file){
+  if(!file||file.size<1||file.size>24*1024*1024)throw Error('Choose an ID photo up to 24 MB, or a PDF up to 4 MB.');
+  const bytes=new Uint8Array(await file.slice(0,16).arrayBuffer()),mime=Object.keys(extensions).find(type=>matchesHeader(bytes,type));
+  if(!mime)throw Error('Choose a valid JPEG, PNG or PDF. HEIC and other formats must be converted first.');
+  const declared=file.type==='image/jpg'?'image/jpeg':file.type;
+  if(declared&&!['application/octet-stream',mime].includes(declared))throw Error('File contents do not match its type. Choose a valid ID copy.');
+  if(file.size<=MAX_BYTES)return declared===mime&&file.type===mime?file:new File([file],'guest-id'+extensions[mime],{type:mime,lastModified:file.lastModified||Date.now()});
+  if(mime==='application/pdf')throw Error('Choose a PDF up to 4 MB. A clear JPEG or PNG photo can be resized here.');
+  if(!root.createImageBitmap||!root.document)throw Error('This browser cannot resize the photo. Choose a smaller JPEG or PNG.');
+  let bitmap;try{
+   bitmap=await root.createImageBitmap(file,{imageOrientation:'from-image'});
+   if(bitmap.width*bitmap.height>50000000)throw Error('Use a normal-resolution camera photo for a readable ID copy.');
+   const scale=Math.min(1,2200/Math.max(bitmap.width,bitmap.height)),canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
+   const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+   for(const quality of [.9,.8,.7]){const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));if(blob&&blob.size<=MAX_BYTES){const out=new File([blob],'guest-id.jpg',{type:'image/jpeg',lastModified:file.lastModified||Date.now()});await validate(out);return out}}
+   throw Error('The resized photo is still too large. Take a closer, clear ID photo.');
+  }catch(error){throw Error(error.message||'Photo could not be read. Retake it or upload a JPEG / PNG.')}finally{bitmap?.close()}
+ }
  function clear(){generation++;for(const u of urls)root.URL.revokeObjectURL(u);urls.clear();document.getElementById('biteGuestDocuments')?.closest('#bhActionEditor')?.remove()}
  function init(context){ctx=context;const content=document.querySelector('#mainApp .content');content?.addEventListener('click',click);content?.addEventListener('submit',submit)}
  function guard(scope,version){if(scope!==identity()||version!==generation)throw Error('Account or property changed. Reopen copies in the current property.')}
@@ -58,13 +76,13 @@
  async function submit(e){
   const form=e.target.closest('form[data-document-upload]');if(!form)return;e.preventDefault();e.stopPropagation();
   if(active)return;const box=panel(),guest=box?.dataset.guest;if(!guest)return;
-  const scope=identity(),version=generation,file=form.elements.copy.files[0],kind=form.elements.kind.value;
-  const signature=file&&[file.name,file.size,file.lastModified,file.type,kind].join(':');
+  const scope=identity(),version=generation,original=form.elements.copy.files[0],kind=form.elements.kind.value;
+  const signature=original&&[original.name,original.size,original.lastModified,original.type,kind].join(':');
   if(form.__signature!==signature){form.__signature=signature;form.__request=root.crypto.randomUUID()}
   const id=form.__request,b=form.querySelector('button[type=submit]');active++;b.disabled=true;setMessage('Checking and saving private copy…');
   try{
    if(!form.elements.redacted_confirmed.checked)throw Error('Check that the copy is necessary and redacted first.');
-   const mime=await validate(file);guard(scope,version);
+   const file=await prepare(original),mime=await validate(file);guard(scope,version);
    const d=await command(guest,id,'begin',{kind,mime_type:mime,byte_size:file.size,redacted_confirmed:true},scope,version);
    if(d.status!=='ready'){
     const uploaded=await ctx.sb.storage.from(BUCKET).upload(d.object_path,new Blob([file],{type:mime}),{contentType:mime,cacheControl:'0',upsert:false});
@@ -106,6 +124,6 @@
   }catch(error){if(scope===identity()&&version===generation)setMessage(error.message||String(error));}
   finally{active--;b.disabled=false}
  }
- const api={init,clear,open,busy:()=>active>0,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,MAX_BYTES};
+ const api={init,clear,open,busy:()=>active>0,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,prepare,MAX_BYTES};
  root.BiteGuestDocuments=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

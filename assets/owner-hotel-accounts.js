@@ -25,7 +25,7 @@
  }
  function clearFieldError(input){
   if(!input?.name)return;
-  const label=input.closest('[data-ha-id-card]')||input.closest('label'),error=[...(label?.querySelectorAll('[data-ha-field-error]')||[])].find(el=>el.id==='ha-error-'+input.name);if(!error)return;
+  const label=input.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input.closest('label'),error=[...(label?.querySelectorAll('[data-ha-field-error]')||[])].find(el=>el.id==='ha-error-'+input.name);if(!error)return;
   const ids=(input.getAttribute('aria-describedby')||'').split(/\s+/).filter(id=>id&&id!==error.id);
   if(ids.length)input.setAttribute('aria-describedby',ids.join(' '));else input.removeAttribute('aria-describedby');
   input.removeAttribute('aria-invalid');error.remove();if(!label.querySelector('[data-ha-field-error]'))label.classList.remove('ha-invalid');
@@ -34,7 +34,7 @@
   if(form.dataset.enhanced!=='true')return false;
   let name=error.field;
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
-  const input=form.elements.namedItem(name||''),label=input?.closest?.('[data-ha-id-card]')||input?.closest?.('label');
+  const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
   clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
@@ -85,7 +85,7 @@
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
    field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??'','required min="0" step="0.01" inputmode="decimal" placeholder="Enter this guest’s agreed rent"')+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
-   '<div data-ha-booking></div>'+message()+'<div class="bh-form-actions">'+button('draft','Save draft')+'<button type="submit" class="btn">Review check-in</button></div>';
+   '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"><div data-ha-booking></div>'+message()+'<div class="bh-form-actions">'+button('draft','Save draft')+'<button type="submit" class="btn">Review check-in</button></div>';
   if(booking){
    booking.querySelector('h3').textContent='3 · Advance payment · Optional';
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
@@ -124,6 +124,7 @@
   });
   if(draft.stay_id){for(const key of ['male','female','transport','vehicle_number','arrived_from','next_destination','id_front','id_back','nightly_rate'])form.elements[key].disabled=true;form.elements.id_checked.required=false}
   root.BiteCheckinFlow?.decorate(form,draft);
+  root.BiteCheckinGuard?.decorate(form,draft,guest);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -133,6 +134,7 @@
   if(!validArrivalTime(f.arrival_time))throw fieldError('arrival_time','Enter a valid arrival time.');
   if(f.departure<=f.arrival)throw fieldError('departure','Departure must be after arrival.');
   root.BiteCheckinFlow?.prepare(form);
+  root.BiteCheckinGuard?.prepare(form,f);
   if(!form.dataset.stayId){
    const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
    if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
@@ -147,21 +149,23 @@
   try{
    const subjects=root.BiteCheckinFlow?.subjects(form)||[{key:null,names:{front:'id_front',back:'id_back',frontId:'id_front_id',backId:'id_back_id'}}];
    for(const subject of subjects)for(const side of ['front','back']){
-    const name=subject.names[side],input=form.elements[name],hidden=form.elements[subject.names[side+'Id']],file=input.files[0];
-    if(!file){if(!subject.key)out['id_'+side]=hidden.value||null;continue}
-    try{await root.BiteGuestDocuments.validate(file)}catch(error){throw fieldError(name,error.message||String(error))}assertScope(key,version);
-    const sig=[guest,subject.key||'lead',side,file.name,file.size,file.lastModified].join(':');
-    form.__haUploads??={};const id=form.__haUploads[sig]??=root.crypto.randomUUID();
+    const name=subject.names[side],input=form.elements[name],hidden=form.elements[subject.names[side+'Id']],original=input.files[0];
+    if(!original){if(!subject.key)out['id_'+side]=hidden.value||null;continue}
+    let file;try{file=await root.BiteGuestDocuments.prepare(original)}catch(error){throw fieldError(name,error.message||String(error))}assertScope(key,version);
+    const hash=[...new Uint8Array(await root.crypto.subtle.digest('SHA-256',await file.arrayBuffer()))].map(n=>n.toString(16).padStart(2,'0')).join('');assertScope(key,version);
+    let requests={};try{requests=JSON.parse(form.elements.upload_requests.value||'{}')}catch{}
+    const prior=requests[name],id=prior?.guest===guest&&prior?.sha256===hash?prior.id:root.crypto.randomUUID();
+    requests[name]={id,guest,sha256:hash};form.elements.upload_requests.value=JSON.stringify(requests);H().persistRegistration(form);
     async function doc(action,details={}){
-     const r=await ctx.sb.rpc('bite_guest_document_command',{p_property:p().id,p_guest:guest,p_document:id,p_action:action,p_details:details});assertScope(key,version);if(r.error)throw r.error;return r.data;
+     const r=await ctx.sb.rpc('bite_guest_document_command',{p_property:p().id,p_guest:guest,p_document:id,p_action:action,p_details:details});assertScope(key,version);if(r.error)throw fieldError(name,r.error.message||'ID copy could not be saved. Reconnect and retry the same photo.');return r.data;
     }
     const record=await doc('begin',{kind:'masked_id',mime_type:file.type,byte_size:file.size,redacted_confirmed:form.elements.id_checked.checked,...(subject.key?{subject_key:subject.key}:{})});
     if(record.status!=='ready'){
      const upload=await ctx.sb.storage.from('bite-guest-documents').upload(record.object_path,file,{contentType:file.type,cacheControl:'0',upsert:false});
      assertScope(key,version);
-     try{await doc('finish')}catch(e){throw upload.error||e}
+     try{await doc('finish')}catch(e){throw fieldError(name,upload.error?.message||e.message||'ID copy could not be confirmed. Retry the same photo.')}
     }
-    hidden.value=id;if(!subject.key)out['id_'+side]=id;
+    hidden.value=id;if(!subject.key)out['id_'+side]=id;root.BiteCheckinFlow?.sync(form);H().persistRegistration(form);
    }
    root.BiteCheckinFlow?.sync(form);out.additional_ids=root.BiteCheckinFlow?.additional(form)||[];
    if(!out.id_front)throw Error('The required ID front is missing.');return out;
@@ -169,7 +173,7 @@
  }
  function registration(form,f,docs){
   if(form.dataset.enhanced!=='true'||form.dataset.stayId)return {};
-  const r=validateRegistration(f);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs}};
+  const r=validateRegistration(f),foreign=root.BiteCheckinGuard?.readForeign(form);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs,flow_version:2,...(foreign?{foreign_details:foreign}:{})}};
  }
  function decorateFolio(target,folio,stay){
   if(!enabled())return;

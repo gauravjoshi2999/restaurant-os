@@ -123,7 +123,7 @@ try:
      nav(page,'hotel-register');f=page.locator('#bhCheckinForm');f.locator('[name=full_name]').fill('Synthetic Walk-in');f.locator('[name=phone]').fill('9999999999');f.locator('[name=room_id]').select_option('room-a')
      f.locator('[data-hotel-action=save-draft]').click();check('Draft saved' in f.locator('.bh-message').inner_text(),'Registration draft is explicitly not checked in')
      if width==360:
-      page.reload(wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'hotel-register');f=page.locator('#bhCheckinForm');check(f.locator('[name=full_name]').input_value()=='Synthetic Walk-in','Refresh restores a nonfinancial registration draft')
+      page.reload(wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'hotel-register');page.locator('[data-hotel-action=resume-register]').click();f=page.locator('#bhCheckinForm');check(f.locator('[name=full_name]').input_value()=='Synthetic Walk-in','Explicit Resume restores a nonfinancial registration draft')
      f.locator('button[type=submit]').click();check(page.locator('.bh-review').is_visible(),'Guest/room review precedes mutation')
      check(page.evaluate('window.__BITE_HOTEL_QA.db.stays.length')==0,'Review does not allocate a room')
      if width==360:

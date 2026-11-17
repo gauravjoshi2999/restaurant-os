@@ -139,12 +139,12 @@
   content.addEventListener('input',e=>{
    const search=e.target.closest('[data-hotel-search]');if(search)filterCards(search);
    const foodSearch=e.target.closest('[data-bh-food-search]');if(foodSearch){foodQuery=foodSearch.value.toLocaleLowerCase().trim();$('bhFoodPicker')?.querySelectorAll('[data-food-row]').forEach(row=>{row.hidden=!row.dataset.foodRow.includes(foodQuery)});}
-   const form=e.target.closest('#bhCheckinForm');if(form){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();persistDraft(form)}
+   const form=e.target.closest('#bhCheckinForm');if(form){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();if(!pendingRegistration().length)$('hotel-register').querySelector('.ha-draft-choice')?.remove();persistDraft(form)}
   });
-  root.addEventListener('online',()=>{if(has('hotel_rooms'))void reload().catch(showError)});
+  root.addEventListener('online',()=>{if(has('hotel_rooms')){const form=document.querySelector('#hotel-register.active #bhCheckinForm');if(form)void refreshRegistration(form).catch(()=>{});else void reload().catch(showError)}});
   startPolling();
  }
- function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&!!prop()&&!root.BiteGuestDocuments?.busy()&&!root.BiteHotelAccounts?.busy()&&!$('bhFoodPicker')&&!document.querySelector('.bh-workspace form:focus-within'))void reload().catch(()=>{});syncOrderBadge()},30000)}
+ function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&!!prop()&&!root.BiteGuestDocuments?.busy()&&!root.BiteHotelAccounts?.busy()&&!$('bhFoodPicker')&&!document.querySelector('.bh-workspace form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))void reload().catch(()=>{});syncOrderBadge()},30000)}
  async function loadContext(){
   const {data:rows,error}=await ctx.sb.rpc('bite_owner_context');
   if(error){
@@ -238,7 +238,7 @@
   data={...empty(),...rows};workspaceReady=true;renderHome();
   if(typeof root.dispatchEvent==='function')root.dispatchEvent(new Event('bite:owner-summary'));
   const active=document.querySelector('#mainApp .page.active')?.id;
-  if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within'))renderPage(active);
+  if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))renderPage(active);
  }
  function handles(id){return (!!prop()||ctx?.getAccess().needsProperty)&&(!!titles[id]||(!restaurantAccess()&&['reports','settings','hr','expenses','overview'].includes(id)))}
  async function open(id){
@@ -325,11 +325,47 @@
  }
  function searchBox(label){return `<label class="bh-field bh-search"><span>${esc(label)}</span><input type="search" data-hotel-search placeholder="Type to search…" autocomplete="off"></label>`}
  function filterCards(input){const q=input.value.trim().toLowerCase();input.closest('.page').querySelectorAll('[data-hotel-search-card]').forEach(e=>{e.hidden=!e.dataset.hotelSearchCard.includes(q)})}
- function renderRegister(guestId=''){
-  let draft={};try{const raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null');if(raw&&Date.now()-raw.savedAt<86400000)draft=raw.fields}catch{}
-  if(guestId)draft.guest_id=guestId;
+ function pendingRegistration(){
+  const out=[],prefix='bite_property_request:'+identity()+':';
+  try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key?.startsWith(prefix))continue;const action=key.slice(prefix.length).split(':')[0];if(!['guest_save','reserve','checkin'].includes(action))continue;const attempt=JSON.parse(localStorage.getItem(key)||'null');if(attempt?.id)out.push({key,action,attempt})}}catch{}
+  return out;
+ }
+ let registrationRefresh=0;
+ async function refreshRegistration(form){
+  const key=identity(),request=++registrationRefresh;
+  const result=await ctx.sb.rpc('bite_hotel_workspace',{p_property:prop().id});if(result.error)throw result.error;
+  if(key!==identity()||request!==registrationRefresh||!form?.isConnected)return;
+  Object.assign(data,result.data);root.BiteCheckinGuard?.rooms(form);return data;
+ }
+ async function resolveRegistration(cancel=false){
+  const key=identity(),form=$('bhCheckinForm');await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
+  let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+key)||'null')}catch{}raw=raw||{savedAt:Date.now(),fields:{}};
+  for(const item of pendingRegistration()){
+   let found=(data.checkin_attempts||[]).find(row=>row.request_id===item.attempt.id);
+   if(!found&&cancel){const status=await command('abandon_checkin',{id:item.attempt.id});if(key!==identity())throw Error('Property changed. Reopen check-in.');if(status.found)found=status;else if(status.cancelled)localStorage.removeItem(item.key)}
+   if(found){
+    if(found.action==='guest_save')raw.fields.guest_id=found.id;
+    if(['reserve','checkin'].includes(found.action))raw.fields.stay_id=found.id;
+    localStorage.removeItem(item.key);
+   }
+  }
+  raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));return raw;
+ }
+ function renderRegister(guestId='',resume=false){
+  let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null')}catch{}
+  const state=root.BiteCheckinGuard?.draftState(raw,data.stays)||{kind:raw?.fields?'draft':'none',fields:raw?.fields};
+  if(state.kind==='stale')try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}
+  let draft=resume&&['draft','reserved'].includes(state.kind)?{...state.fields}:{};
+  if(guestId)draft={guest_id:guestId};
+  if(draft.stay_id){
+   const stay=data.stays.find(s=>s.id===draft.stay_id),reg=stay?.registration||{},savedGuest=data.guests.find(g=>g.id===stay?.guest_id);
+   if(stay){draft={guest_id:stay.guest_id,room_id:stay.room_id,arrival:stay.arrival,departure:stay.departure,arrival_time:String(stay.arrival_time||'').slice(0,5),...draft,male:reg.male??stay.adults,female:reg.female??0,children:stay.children,nightly_rate:stay.nightly_rate,arrived_from:reg.arrived_from||'',next_destination:reg.next_destination||'',transport:reg.transport||'Bus',vehicle_number:reg.vehicle_number||'',id_front_id:reg.id_front||'',id_back_id:reg.id_back||'',additional_ids:JSON.stringify(reg.additional_ids||[]),foreign_details:JSON.stringify(reg.foreign_details||null),...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,savedGuest?.[k]||'']))};}
+  }
+  const pending=pendingRegistration().length>0,offer=!guestId&&!resume&&(['draft','reserved'].includes(state.kind)||pending);
+  const banner=offer?'<aside class="ha-draft-choice" role="status"><strong>'+(pending?'Earlier check-in needs verification':state.kind==='reserved'?'An earlier reservation is saved':'You have an unfinished check-in')+'</strong><p>'+esc(state.fields?.full_name||'Guest details')+' · Choose Resume to continue that entry. New check-ins start with empty guest details.</p><div class="bh-actions">'+btn('resume-register',pending?'Verify & resume':'Resume draft')+btn('fresh-register','Start fresh')+'</div></aside>':'';
+
   const g=data.guests.find(g=>g.id===draft.guest_id);
-  $('hotel-register').innerHTML=header('Check-in','Guest details, room allocation and advance payment.')+
+  $('hotel-register').innerHTML=header('Check-in','Guest details, room allocation and advance payment.')+banner+
    `<form id="bhCheckinForm" class="bh-form bh-panel" data-hotel-form="register" data-stay-id="${esc(draft.stay_id||'')}">
    <h2>1 · Guest</h2>${field('guest_search','Search returning guest by name / phone','search','','autocomplete="off" data-guest-search')}${select('guest_id','Returning guest',option('','New guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===draft.guest_id)).join(''),'data-guest-picker')}
    <div class="bh-form-grid">${field('full_name','Guest name *','text',g?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')}${field('phone','Phone *','tel',g?.phone||draft.phone||'','required minlength="7" maxlength="20" inputmode="tel"')}${field('country','Nationality / country *','text',g?.country||draft.country||'India','required maxlength="60"')}${field('email','Email (optional)','email',g?.email||draft.email||'','maxlength="120"')}${field('address','Address','text',g?.address||draft.address||'','maxlength="500"')}${field('id_type','Identity type','text',g?.id_type||draft.id_type||'','maxlength="40"')}${field('id_last4','ID last 4 characters only','text',g?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')}</div>
@@ -351,9 +387,11 @@
   });
   if(draft.stay_id){
    const form=$('bhCheckinForm');form.elements.guest_id.disabled=true;
-   for(const key of ['full_name','phone','country','email','address','id_type','id_last4','guest_search'])form.elements[key].readOnly=true;
+   for(const key of ['full_name','phone','country','email','address','id_type','id_last4','guest_search'])if(form.elements[key])form.elements[key].readOnly=true;
    form.querySelector('.bh-message').textContent='Reservation already saved. You can correct its room/dates before retrying check-in. Guest corrections are in Guests.';
   }
+  if(guestId)$('bhCheckinForm').__haSelectGuest?.(guestId);
+  if(pending&&!resume){$('bhCheckinForm').inert=true;$('bhCheckinForm').setAttribute('aria-label','Resume or start fresh before entering another guest');}
  }
  function persistDraft(form){
   try{const fields=Object.fromEntries(Array.from(new FormData(form)).filter(([,value])=>typeof value==='string'));fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
@@ -593,6 +631,9 @@
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
    else if(action==='food-save')await postFoodToBill();
+   else if(action==='resume-register'){await resolveRegistration(false);renderRegister('',true)}
+   else if(action==='fresh-register'){if(pendingRegistration().length)await resolveRegistration(true);localStorage.removeItem('bite_register_draft:'+identity());renderRegister()}
+   else if(action==='room-release'){await command('room_status',{id,status:'ready'});$('bhActionEditor')?.remove();await refreshRegistration($('bhCheckinForm'))}
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}
    else if(action==='save-draft'){const f=$('bhCheckinForm');f.querySelector('.bh-message').textContent=persistDraft(f)?'Draft saved on this device. Not checked in.':'Draft could not be saved.'}
    else if(action==='close-editor')$('bhActionEditor')?.remove();
@@ -630,6 +671,7 @@
   const form=event.target.closest('[data-hotel-form]');if(!form)return;event.preventDefault();
   const button=form.querySelector('button[type="submit"]');if(button.disabled)return;button.disabled=true;
   const f=Object.fromEntries(new FormData(form)),type=form.dataset.hotelForm;const message=form.querySelector('.bh-message');if(message)message.textContent='Saving…';
+  if(type==='register'){form.inert=true;form.setAttribute('aria-busy','true')}
   try{
    if(type==='audit-search'){auditQuery=f.query||'';auditBefore=null;await searchAudit(false)}else if(type==='report-filter'){root.BiteOwner.range(f.from,f.to);reportFrom=f.from;reportTo=f.to;const mount=$('biteHotelReports')||$('reports');renderReports(mount)}else if(type==='setup'){
     const step=Number(form.dataset.step);
@@ -667,7 +709,8 @@
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
      const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000),quote=await root.BiteOwnerOperations.reservationQuote(f,form.dataset.stayId);form.dataset.quoteHash=quote.quote_hash;
-     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p>${f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':''}<p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
+     const people=[f.full_name,...(root.BiteCheckinFlow?.additional(form)||[]).map(person=>person.name)],online=['UPI','Card','Bank Transfer'].includes(f.advance_method),receipt=Number(f.advance_amount)>0&&online?(f.advance_verified==='on'?'Verified receipt':'Pending receipt verification'):'';
+     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Guest IDs: ${people.map(esc).join(', ')}</p>${Number(f.advance_amount)>0?'<p>Advance: '+esc(f.advance_method||'Cash')+' '+esc(receipt)+(online&&f.advance_account?' · '+esc(f.advance_account):'')+'</p>':''}${f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':''}<p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
     }
     let guestId=f.guest_id;
     if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),is_oci:f.is_oci==='on',...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
@@ -693,7 +736,14 @@
     if(!action)throw Error('Unknown action');await command(action,payload);await reload();
     const active=document.querySelector('.page.active')?.id;if(active){if(handles(active))renderPage(active);else await augmentPage(active)}
    }
-  }catch(e){if(!root.BiteHotelAccounts?.showRegisterError(form,e)&&message)message.textContent=e.message||String(e)}finally{button.disabled=false}
+  }catch(e){
+   form.inert=false;
+   if(type==='register'&&!e.field&&/room.*(reserved|unavailable|occupied|ready|blocked|timing)|earlier stay/i.test(e.message||'')){
+    try{await refreshRegistration(form)}catch{}e.field='room_id';
+   }
+   if(!root.BiteHotelAccounts?.showRegisterError(form,e)&&message)message.textContent=e.message||String(e);
+  }finally{form.inert=false;form.removeAttribute('aria-busy');button.disabled=false}
+
  }
  function statement(id){
   const f=data.folios.find(f=>f.id===id);if(!f)throw Error('Folio not loaded');
@@ -751,6 +801,6 @@
  }
  function clear(){++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,dashboardSnapshot,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy(),
+ root.BiteHospitality={redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,printStatement,busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

@@ -29,7 +29,7 @@
    '<div class="ha-id-capture-row"><span class="ha-id-symbol" aria-hidden="true">▣</span><div><strong data-id-title>'+esc(front?'ID front saved':'Add ID photos')+'</strong><small '+(!key?'data-front-status':'')+' data-id-status>Front required · Back optional</small></div><button type="button" class="btn secondary" data-id-open="'+esc(key||'lead')+'" data-ha-focus="'+n.front+'">'+(front?'Review ID':'Add photos')+'</button></div></div>';
  }
  function extraRows(form){return [...form.querySelectorAll('[data-ha-party-list] [data-ha-id-card]')]}
- function additional(form){return extraRows(form).map(row=>{const key=row.dataset.haIdCard,n=names(key);return{subject_key:key,name:form.elements[n.name].value.trim(),id_front:form.elements[n.frontId].value||null,id_back:form.elements[n.backId].value||null}})}
+ function additional(form){return extraRows(form).map(row=>{const key=row.dataset.haIdCard,n=names(key),foreign=root.BiteCheckinGuard?.readForeign(form,key);return{subject_key:key,name:form.elements[n.name].value.trim(),id_front:form.elements[n.frontId].value||null,id_back:form.elements[n.backId].value||null,...(foreign?{foreign_details:foreign}:{})}})}
  function sync(form){
   form.elements.additional_ids.value=JSON.stringify(additional(form));
   for(const row of form.querySelectorAll('[data-ha-id-card]')){
@@ -56,22 +56,22 @@
   box.querySelector('.ha-dialog-close').addEventListener('click',done);box.addEventListener('cancel',e=>{e.preventDefault();done()});
   function draw(){
    const input=form.elements[n[stage]],saved=!!form.elements[n[stage+'Id']].value,file=input.files[0],front=stage==='front';
-   body.innerHTML='<div class="ha-id-progress"><span class="'+(front?'active':'complete')+'">1 · Front</span><span class="'+(!front?'active':'')+'">2 · Back · Optional</span></div><h3>'+ (front?'Capture the ID front':'Add the ID back')+'</h3><p>'+ (front?'Keep the photo clear and mask information that is not needed.':'Take the back photo if needed, or skip this step.')+'</p>'+picture(file)+(saved&&!file?'<p class="ha-saved-id">Copy already saved privately</p>':'')+'<p class="ha-camera-error" role="alert"></p><div class="ha-id-choice"><button type="button" class="btn" data-capture>Take photo</button><button type="button" class="btn secondary" data-upload>Upload from device</button></div><div class="ha-id-dialog-actions">'+(!front?'<button type="button" class="btn secondary" data-prev>Back</button><button type="button" class="btn secondary" data-skip>Skip back photo</button>':'')+'<button type="button" class="btn" data-next '+(!file&&!saved?'disabled':'')+'>'+(front?'Continue':'Done')+'</button></div>';
+   body.innerHTML='<div class="ha-id-progress"><span class="'+(front?'active':'complete')+'">1 · Front</span><span class="'+(!front?'active':'')+'">2 · Back · Optional</span></div><h3>'+ (front?'Capture the ID front':'Add the ID back')+'</h3><p>'+ (front?'Keep the photo clear and mask information that is not needed. Large JPEG / PNG photos are resized on this device.':'Take the back photo if needed, or skip this step.')+'</p>'+picture(file)+(saved&&!file?'<p class="ha-saved-id">Copy already saved privately</p>':'')+'<p class="ha-camera-error" role="alert"></p><div class="ha-id-choice"><button type="button" class="btn" data-capture>Take photo</button><button type="button" class="btn secondary" data-upload>Upload from device</button></div><div class="ha-id-dialog-actions">'+(!front?'<button type="button" class="btn secondary" data-prev>Back</button>':'')+((!front||file||saved)?'<button type="button" class="btn secondary" data-skip>Skip back photo</button>':'')+'<button type="button" class="btn" data-next '+(!file&&!saved?'disabled':'')+'>'+(front?'Continue':'Done')+'</button></div>';
    body.querySelector('[data-capture]').onclick=()=>{camera.value='';camera.click()};body.querySelector('[data-upload]').onclick=()=>{upload.value='';upload.click()};
    body.querySelector('[data-prev]')?.addEventListener('click',()=>{stage='front';draw()});
    body.querySelector('[data-skip]')?.addEventListener('click',()=>{form.elements[n.back].value='';form.elements[n.backId].value='';changed(form);done()});
    body.querySelector('[data-next]').onclick=()=>{if(checking)return;if(stage==='back'){changed(form);done();return}stage='back';draw();camera.value='';camera.click()};
   }
   async function choose(input){
-   const file=input.files[0];if(!file||checking)return;const chosenStage=stage;checking=true;body.querySelector('[data-next]').disabled=true;
+   const original=input.files[0];if(!original||checking)return;const chosenStage=stage;checking=true;body.querySelectorAll('button').forEach(b=>b.disabled=true);body.querySelector('.ha-camera-error').textContent='Preparing a clear ID copy…';
    try{
-    await root.BiteGuestDocuments.validate(file);if(dialog!==box||!form.isConnected)return;
+    const file=await root.BiteGuestDocuments.prepare(original);if(dialog!==box||!form.isConnected)return;
     const transfer=new DataTransfer();transfer.items.add(file);form.elements[n[chosenStage]].files=transfer.files;
     form.elements[n[chosenStage+'Id']].value='';
     if(chosenStage==='front'){form.elements[n.back].value='';form.elements[n.backId].value=''}
     form.elements[n[chosenStage]].dispatchEvent(new Event('change',{bubbles:true}));changed(form);draw();
    }catch(error){if(dialog===box)body.querySelector('.ha-camera-error').textContent=error.message||String(error)}
-   finally{checking=false;if(dialog===box)body.querySelector('[data-next]').disabled=!form.elements[n[stage]].files[0]&&!form.elements[n[stage+'Id']].value}
+   finally{checking=false;if(dialog===box){body.querySelectorAll('button').forEach(b=>b.disabled=false);body.querySelector('[data-next]').disabled=!form.elements[n[stage]].files[0]&&!form.elements[n[stage+'Id']].value}}
   }
   camera.onchange=()=>void choose(camera);upload.onchange=()=>void choose(upload);draw();box.showModal();
  }
@@ -85,7 +85,7 @@
   function detach(edited){
    selected=null;picker.value='';picker.dispatchEvent(new Event('change',{bubbles:true}));
    for(const key of ['full_name','phone','address','country','email','id_type','id_last4','arrived_from','next_destination','vehicle_number'])if(key!==edited)form.elements[key].value=key==='country'?'India':'';
-   form.elements.transport.value='Bus';form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));selection();
+   form.elements.transport.value='Bus';form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));root.BiteCheckinGuard?.selectedGuest(form,null);selection();
   }
   chip.querySelector('button').onclick=()=>{detach();changed(form);form.elements.full_name.focus()};
   for(const key of ['full_name','phone']){
@@ -99,8 +99,9 @@
     const guest=db.guests.find(g=>g.id===id);if(!guest)return;
     picker.innerHTML='<option value=""></option>'+db.guests.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.full_name)+'</option>').join('');picker.value=id;picker.dispatchEvent(new Event('change',{bubbles:true}));
     for(const [name,value]of Object.entries(profile(guest,db.stays||[])))form.elements[name].value=value||(name==='country'?'India':name==='transport'?'Bus':'');
-    form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));selected=guest;selection();hide();changed(form);
+    form.elements.transport.dispatchEvent(new Event('change',{bubbles:true}));selected=guest;selection();hide();root.BiteCheckinGuard?.selectedGuest(form,guest);changed(form);
    }
+   form.__haSelectGuest=choose;
    function show(){
     results=matches(db.guests,input.value);index=-1;
     if(!input.value.trim()||selected){hide();return}
@@ -128,7 +129,7 @@
    const opener=e.target.closest('[data-id-open]');if(opener){e.preventDefault();open(form,opener.dataset.idOpen==='lead'?null:opener.dataset.idOpen)}
    if(e.target.closest('[data-add-id]')){
     if(extraRows(form).length>=Math.min(39,count(form)-1)){root.BiteHotelAccounts.showRegisterError(form,fail('male','Increase the guest count before adding another guest ID.'));return}
-    const key=root.crypto.randomUUID();holder.insertAdjacentHTML('beforeend',card(key));changed(form);const input=form.elements[names(key).name];input.focus({preventScroll:true});input.closest('[data-ha-id-card]').scrollIntoView({block:'center'});
+    const key=root.crypto.randomUUID();holder.insertAdjacentHTML('beforeend',card(key));root.BiteCheckinGuard?.person(form,key);changed(form);const input=form.elements[names(key).name];input.focus({preventScroll:true});input.closest('[data-ha-id-card]').scrollIntoView({block:'center'});
    }
    const remove=e.target.closest('[data-id-remove]');if(remove){remove.closest('[data-ha-id-card]').remove();changed(form)}
   });
