@@ -35,7 +35,7 @@ test('per-room registration retains protected guest ID references without repeat
  assert.doesNotMatch(JSON.stringify(built),/secret_key|service_role/);
 });
 test('family booking carries stable request identity across uncertain network responses',async()=>{
- const store=new Map(),calls=[],origLocal=globalThis.localStorage,origCrypto=globalThis.crypto;
+ const store=new Map(),calls=[],origLocal=globalThis.localStorage;
  globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
  try{
   const payload={guest_id:'lead-a',registration:{male:1,female:0,id_front:'a',id_back:'b'},rooms:[{room_id:'A',adults:1,children:0,nightly_rate:100},{room_id:'B',adults:1,children:0,nightly_rate:100}]};
@@ -48,7 +48,7 @@ test('family booking carries stable request identity across uncertain network re
   await assert.rejects(Family.commit({...payload,name:'Changed booking'},'property-a','user-a:property-a',rpc),/Earlier family booking/);
   Family.clearAttempt(response.requestKey);
   assert.equal(store.size,0);
- }finally{globalThis.localStorage=origLocal;globalThis.crypto=origCrypto;}
+ }finally{globalThis.localStorage=origLocal;}
 });
 test('backend only books all rooms in one transaction and uses existing vetted commands',()=>{
  assert.match(BACKEND,/public\.bite_property_command\(p_property,'reserve'/);
