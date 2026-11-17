@@ -377,6 +377,7 @@
    <p class="bh-note">Availability and room readiness are checked again by the server. No payment is collected by this form.</p>${notice()}<div class="bh-form-actions">${btn('save-draft','Save draft')}<button type="submit" class="btn">Review check-in</button></div></form>`;
   root.BiteOwnerOperations?.registerFields($('bhCheckinForm'),draft,g);
   root.BiteHotelAccounts?.decorateRegister($('bhCheckinForm'),draft,g);
+  root.BiteFamilyCheckin?.decorate($('bhCheckinForm'),draft,data);
   $('bhCheckinForm').querySelector('[data-guest-picker]').addEventListener('change',e=>{
    const f=$('bhCheckinForm'),g=data.guests.find(g=>g.id===e.target.value);
    if(g&&f.elements.is_oci)f.elements.is_oci.checked=!!g.is_oci;
@@ -396,7 +397,7 @@
   if(pending&&!resume){$('bhCheckinForm').inert=true;$('bhCheckinForm').setAttribute('aria-label','Resume or start fresh before entering another guest');}
  }
  function persistDraft(form){
-  try{const fields=Object.fromEntries(Array.from(new FormData(form)).filter(([,value])=>typeof value==='string'));fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
+  try{const fields=Object.fromEntries(Array.from(new FormData(form)).filter(([,value])=>typeof value==='string'));root.BiteFamilyCheckin?.saveDraft(form,fields);fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
  }
  function simpleEntryLabel(e){
   if(e.kind==='charge'&&e.source_order_id)return 'Restaurant food';
@@ -705,6 +706,7 @@
     await command('reserve_group',{name:f.name,guest_id,arrival:f.arrival,departure:f.departure,rooms:ids.map(id=>({room_id:id,adults:Number(f['adults_'+id]),children:Number(f['children_'+id]),nightly_rate:f['rate_'+id]?.trim()!==''?Number(f['rate_'+id]):null}))});await reload();renderPage('reservations');
    }else if(type==='register'){
     root.BiteHotelAccounts?.prepareRegister(form,f);
+    const family=root.BiteFamilyCheckin?.plan(form,f,data)||null;
     if(form.dataset.stayId){
      await reload();
      const existing=data.stays.find(s=>s.id===form.dataset.stayId);
@@ -713,13 +715,42 @@
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
      const r=data.rooms.find(r=>r.id===f.room_id),n=Math.round((new Date(f.departure)-new Date(f.arrival))/86400000),quote=await root.BiteOwnerOperations.reservationQuote(f,form.dataset.stayId);form.dataset.quoteHash=quote.quote_hash;
+     let familyReview='',familyPayload=null;
+     if(family){
+      const details=[];
+      for(const unit of family.rooms){
+       const quoted=await root.BiteOwnerOperations.reservationQuote({...f,room_id:unit.room_id,adults:unit.adults,children:unit.children,nightly_rate:unit.nightly_rate},'');
+       details.push({...unit,quote_hash:quoted.quote_hash});
+       const room=data.rooms.find(r=>r.id===unit.room_id);
+       familyReview+='<p>Room '+esc(room?.number||'?')+' · '+unit.adults+' adults · '+unit.children+' children · rent '+money(quoted.room)+' · tax '+money(quoted.room_tax)+' · early/other '+money(Number(quoted.early_fee||0)+Number(quoted.early_tax||0))+' · <strong>'+money(quoted.total)+'</strong></p>';
+      }
+      familyPayload={...family,rooms:details};
+      form.dataset.familyPayload=JSON.stringify(familyPayload);
+      familyReview='<h3>Family booking · '+details.length+' rooms</h3>'+familyReview+
+        '<p>One atomic '+(f.mode==='reserve'?'reservation':'check-in')+'. Each room has its own Guest Bill; a combined statement totals them. Assign food to a selected room via POS only once.</p>';
+     }else delete form.dataset.familyPayload;
      const people=[f.full_name,...(root.BiteCheckinFlow?.additional(form)||[]).map(person=>person.name)],online=['UPI','Card','Bank Transfer'].includes(f.advance_method),receipt=Number(f.advance_amount)>0&&online?(f.advance_verified==='on'?'Verified receipt':'Pending receipt verification'):'';
-     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Guest IDs: ${people.map(esc).join(', ')}</p>${Number(f.advance_amount)>0?'<p>Advance: '+esc(f.advance_method||'Cash')+' '+esc(receipt)+(online&&f.advance_account?' · '+esc(f.advance_account):'')+'</p>':''}${f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':''}<p>Room ${money(quote.room)} · tax ${money(quote.room_tax)} · early arrival ${money(Number(quote.early_fee)+Number(quote.early_tax))}.<br><strong>Agreed total: ${money(quote.total)}</strong></p><p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
+     const review=document.createElement('div');review.className='bh-review';review.innerHTML=`<h2>3 · Review</h2><p>${esc(f.full_name)} · Room ${esc(r?.number)} · ${n} nights</p><p>Guest IDs: ${people.map(esc).join(', ')}</p>${Number(f.advance_amount)>0?'<p>Advance: '+esc(f.advance_method||'Cash')+' '+esc(receipt)+(online&&f.advance_account?' · '+esc(f.advance_account):'')+'</p>':''}${f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':''}${family?'<div class="bf-family-review">'+familyReview+'</div>':'<p>Room '+money(quote.room)+' · tax '+money(quote.room_tax)+' · early arrival '+money(Number(quote.early_fee)+Number(quote.early_tax))+'.<br><strong>Agreed total: '+money(quote.total)+'</strong></p>'}<p>${f.mode==='reserve'?'Create reservation':'Check in now'} · already received advance ${money(form.dataset.stayId?data.entries.filter(e=>e.folio_id===data.folios.find(x=>x.stay_id===form.dataset.stayId)?.id&&e.kind==='advance'&&e.status!=='void').reduce((n,e)=>n+Number(e.amount),0):f.advance_amount)} · ${esc(form.dataset.stayId?data.stays.find(s=>s.id===form.dataset.stayId)?.booking_source:f.booking_source||'walk_in')}. Bank transfers require verification.</p>`;form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
     }
     let guestId=f.guest_id;
     if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),is_oci:f.is_oci==='on',...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
     const savedDocs=!form.dataset.stayId?await root.BiteHotelAccounts?.saveDocuments(guestId,form):null;
     if(savedDocs)persistDraft(form);
+    if(family){
+     let payload;try{payload=JSON.parse(form.dataset.familyPayload||'null')}catch{}
+     if(!payload||!Array.isArray(payload.rooms)||payload.rooms.length<2)throw Error('Family quote needs review. Review rooms again before confirming.');
+     const details=root.BiteHotelAccounts?.registration(form,f,savedDocs)||{};
+     const sent={...payload,guest_id:guestId,...(details.registration?{registration:details.registration}:{})};
+     const response=await root.BiteFamilyCheckin.commit(sent,prop().id,identity(),ctx.sb);
+     const first=response.booking?.stays?.[0];
+     if(!first?.folio_id)throw Error('Booking response needs verification. Retry the same family details; do not make another booking.');
+     selectedFolio=first.folio_id;
+     await reload();
+     localStorage.removeItem('bite_register_draft:'+identity());
+     root.BiteFamilyCheckin.clearAttempt(response.requestKey);
+     await ctx.navigate('folios');
+     return;
+    }
     let stayId=form.dataset.stayId,folioId;
     if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash,...(root.BiteHotelAccounts?.registration(form,f,savedDocs)||{})});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
     else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),...(f.arrival_time!==undefined?{arrival_time:f.arrival_time,terms_at_checkin:true}:{})})}
