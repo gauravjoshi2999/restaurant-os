@@ -153,6 +153,8 @@
   tick();
  }
  function updateOrderBadge(count){
+  const topBell=root.document.getElementById('biteV3HeaderBell');
+  if(topBell){const badge=topBell.querySelector('i');if(badge){badge.textContent=count>9?'9+':String(count);badge.hidden=!count;}}
   const nav=root.document.getElementById('biteOwnerBottomNav');
   const orders=nav?.querySelector('[data-bite-page="orders"]');
   if(orders){
@@ -251,6 +253,15 @@
   home.setAttribute('aria-label','Bite owner command center');
   overview.prepend(home);
   home.addEventListener('click',onClick);
+  const header=root.document.querySelector('#mainApp>.main>.top');
+  if(header&&!root.document.getElementById('biteV3HeaderBell')){
+   const bell=root.document.createElement('button');
+   bell.type='button';bell.id='biteV3HeaderBell';bell.className='bv3-header-bell';
+   bell.setAttribute('aria-label','Open pending order confirmations');
+   bell.innerHTML=icon('bell')+'<i hidden>0</i>';
+   bell.addEventListener('click',()=>route('orders','new',false));
+   header.append(bell);
+  }
   root.document.addEventListener('bite:owner-confirmations-updated',e=>{
    if(e.detail?.restaurantId===currentAccess?.restaurantId){
     renderHome(true);
@@ -265,9 +276,12 @@
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
-   root.document?.body?.classList.remove('bite-v3-active');return;
+   root.document?.body?.classList.remove('bite-v3-active');
+   const bell=root.document?.getElementById('biteV3HeaderBell');if(bell)bell.hidden=true;
+   return;
   }
-  initialize();renderHome();renderOrdersHeader();
+  initialize();const bell=root.document?.getElementById('biteV3HeaderBell');if(bell)bell.hidden=false;
+  renderHome();renderOrdersHeader();
  }
  function afterOrdersRender(){if(currentAccess?.role==='owner'){renderOrdersHeader();renderHome();}}
  root.BiteOwnerReferenceV3={refresh,afterOrdersRender,refreshHome:()=>renderHome(true),search:()=>updateOrderSearch(),timeLabel};
