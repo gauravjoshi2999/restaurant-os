@@ -95,7 +95,7 @@
    }
    if(pendingLiveCheckout.confirmationRequired)window.BiteOrderConfirmation?.watch(sb,data.id,()=>syncCheckoutPaymentButton());
    renderPendingPaymentBanner();
-   syncCheckoutPaymentButton();
+   if(typeof syncCheckoutPaymentButton==='function')syncCheckoutPaymentButton();
    verifiedRead=true;
   }catch(error){
    if(token!==restoreToken||activeCustomerId!==userId)return;
