@@ -33,6 +33,7 @@ PUBLIC_FILES = (
     "assets/owner-checkin-flow.js",
     "assets/owner-checkin-guard.js",
     "assets/owner-hotel-billing.js",
+    "assets/owner-guest-register.js",
     "assets/owner-hotel-accounts.css",
     "assets/customer-guest-stay.js",
     "assets/customer-guest-stay.css",

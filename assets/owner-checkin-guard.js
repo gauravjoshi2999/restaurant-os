@@ -66,13 +66,13 @@
   const extra=!!key,anchor=extra?form.querySelector('[data-ha-id-card="'+key+'"]'):form.querySelector('.ha-id-section');if(!anchor)return;
   const card=document.createElement('section');card.className='ha-foreign-card';card.dataset.foreignCard=key||'lead';
   const v=initial||{};
-  card.innerHTML='<input type="hidden" name="'+pre+'enabled" value="0"><button type="button" class="btn secondary ha-foreign-toggle" aria-expanded="false">Foreign / OCI guest</button><div data-foreign-body hidden><h3>Foreign guest details</h3><button type="button" class="ha-text-button" data-indian-guest>Use Indian guest form</button><div class="bh-form-grid">'+
+  card.innerHTML='<input type="hidden" name="'+pre+'enabled" value="0"><button type="button" class="btn secondary ha-foreign-toggle" aria-expanded="false">Foreign / OCI guest</button><div data-foreign-body hidden><div class="ha-foreign-head"><h3>Foreign guest details</h3><button type="button" class="ha-text-button" data-close-foreign aria-label="Close foreign guest details">Close ×</button></div><button type="button" class="ha-text-button" data-indian-guest>Use Indian guest form</button><div class="bh-form-grid">'+
    (extra?input(pre+'nationality','Nationality / country *','text',v.nationality||'','maxlength="60"'): '<div data-nationality-slot></div>')+
    input(pre+'date_of_birth','Date of birth *','date',v.date_of_birth||'')+choose(pre+'document_type','Travel document',[['passport','Passport'],['travel_document','Other travel document']],v.document_type||'passport')+
    input(pre+'document_last4','Travel document · Last 4 characters *','text',v.document_last4||'','maxlength="4" autocomplete="off"')+input(pre+'document_expiry','Document expiry *','date',v.document_expiry||'')+'<label class="bh-check"><input type="checkbox" name="'+pre+'document_no_expiry" '+(v.document_no_expiry?'checked':'')+'> No expiry printed on this travel document</label>'+ 
    choose(pre+'visa_status','Permission to stay',[['visa','Visa'],['oci','OCI card'],['exempt','Visa exempt']],v.visa_status||'visa')+input(pre+'permission_last4','Visa / OCI · Last 4 characters *','text',v.permission_last4||'','maxlength="4" autocomplete="off"')+
    input(pre+'visa_expiry','Visa / permission expiry *','date',v.visa_expiry||'')+input(pre+'india_arrival','Arrival in India *','date',v.india_arrival||'')+
-   input(pre+'entry_port','Place of entry into India *','text',v.entry_port||'','maxlength="120"')+input(pre+'purpose','Purpose of visit *','text',v.purpose||'','maxlength="120"')+'</div><p class="ha-foreign-note">Hotel register details only. Keep full document numbers in the private ID copies. Complete the required <a href="https://indianfrro.gov.in/frro/FormC/login.isp" target="_blank" rel="noopener">Form III reporting</a> separately; Bite does not submit it.</p></div>';
+   input(pre+'entry_port','Place of entry into India *','text',v.entry_port||'','maxlength="120"')+input(pre+'purpose','Purpose of visit *','text',v.purpose||'','maxlength="120"')+'</div><p class="ha-foreign-note">Complete reporting separately on the <a href="https://indianfrro.gov.in/formIII/" target="_blank" rel="noopener noreferrer" data-frro-link>official Form III portal</a>. Bite saves your hotel register; it does not file the report.</p><div class="ha-foreign-actions"><button type="button" class="ha-text-button" data-copy-frro>Copy portal link</button><button type="button" class="btn secondary" data-close-foreign>Close details</button></div><code class="ha-frro-address" data-frro-address hidden>https://indianfrro.gov.in/formIII/</code><p class="ha-foreign-copy-status" role="status"></p></div>';
   if(extra)anchor.append(card);else anchor.before(card);
   const body=card.querySelector('[data-foreign-body]'),toggle=card.querySelector('button');
   if(!extra){const country=form.elements.country,label=country.closest('label');card.querySelector('[data-nationality-slot]').replaceWith(label);country.value=v.nationality||country.value;const oci=form.elements.is_oci;if(oci)oci.closest('label').hidden=true}
@@ -84,13 +84,23 @@
    if(!extra&&form.elements.is_oci)form.elements.is_oci.checked=active&&mode==='oci';
   }
   function set(on,scroll=false){
-   form.elements[pre+'enabled'].value=on?'1':'0';body.hidden=!on;toggle.setAttribute('aria-expanded',String(on));toggle.textContent=on?'Foreign / OCI guest · Added':'Foreign / OCI guest';
+   form.elements[pre+'enabled'].value=on?'1':'0';body.hidden=!on;toggle.setAttribute('aria-expanded',String(on));toggle.textContent=on?'Foreign / OCI guest · Hide details':'Foreign / OCI guest';
    body.querySelectorAll('input,select').forEach(el=>{el.disabled=!on;el.required=on});
    if(!extra){const country=form.elements.country;country.disabled=false;country.required=on;if(!on)country.value='India';else if(domestic(country.value))country.value=''}
    permission();if(scroll&&on){card.scrollIntoView({block:'start',behavior:'instant'});(extra?form.elements[pre+'nationality']:form.elements.country).focus({preventScroll:true})}
    root.BiteCheckinFlow?.sync(form);
   }
-  toggle.addEventListener('click',()=>{set(true,true);form.dispatchEvent(new Event('input',{bubbles:true}))});
+  function reveal(){body.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.textContent='Foreign / OCI guest · Hide details'}
+  function collapse(){
+   const country=extra?form.elements[pre+'nationality'].value:form.elements.country.value;
+   const entered=country.trim()&&!domestic(country)||['date_of_birth','document_last4','document_expiry','permission_last4','visa_expiry','india_arrival','entry_port','purpose'].some(k=>form.elements[pre+k].value.trim());
+   if(!entered){set(false);form.dispatchEvent(new Event('input',{bubbles:true}))}else{body.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.textContent='Foreign / OCI guest · Show details'}
+   toggle.focus({preventScroll:true});card.scrollIntoView({block:'center',behavior:'instant'});
+  }
+  card.__reveal=reveal;
+  toggle.addEventListener('click',()=>{if(form.elements[pre+'enabled'].value!=='1'){set(true,true);form.dispatchEvent(new Event('input',{bubbles:true}))}else if(body.hidden)reveal();else collapse()});
+  card.querySelectorAll('[data-close-foreign]').forEach(b=>b.addEventListener('click',collapse));
+  card.querySelector('[data-copy-frro]').addEventListener('click',async()=>{const status=card.querySelector('.ha-foreign-copy-status'),url='https://indianfrro.gov.in/formIII/';try{if(!root.navigator?.clipboard)throw Error();await root.navigator.clipboard.writeText(url);status.textContent='Link copied. Open it in your browser.'}catch{card.querySelector('[data-frro-address]').hidden=false;status.textContent='Select and copy this link to open it in your browser.'}});
   card.querySelector('[data-indian-guest]').addEventListener('click',()=>{set(false);form.dispatchEvent(new Event('input',{bubbles:true}))});
   for(const name of ['visa_status','document_type','document_no_expiry'])form.elements[pre+name].addEventListener('change',permission);card.__set=set;set(!!initial);
   if(form.dataset.stayId){toggle.disabled=true;body.querySelectorAll('input,select').forEach(el=>el.disabled=true)}
@@ -122,5 +132,6 @@
   const reason=roomAvailability(room,db.stays||[],f.arrival,f.departure,f.mode,form.dataset.stayId||'',root.BiteOwner.day(),{...H().prop(),housekeeping_enabled:H().housekeepingVisible()});if(reason)throw fail('room_id','This room is '+reason.toLowerCase()+'. Choose another room or update the dates.');
   validateForeign(readForeign(form),f.arrival);for(const row of form.querySelectorAll('[data-ha-party-list] [data-ha-id-card]'))validateForeign(readForeign(form,row.dataset.haIdCard),f.arrival,prefix(row.dataset.haIdCard));
  }
- const api={domestic,validDate,draftState,roomAvailability,rooms,decorate,prepare,readForeign,validateForeign,person,selectedGuest};root.BiteCheckinGuard=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ function revealField(input){input?.closest('[data-foreign-card]')?.__reveal?.()}
+ const api={revealField,domestic,validDate,draftState,roomAvailability,rooms,decorate,prepare,readForeign,validateForeign,person,selectedGuest};root.BiteCheckinGuard=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
