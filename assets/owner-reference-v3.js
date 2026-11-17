@@ -94,7 +94,7 @@
   const records=(workspace?.stays||[]).filter(stay=>{
    const register=stay.registration||{};
    const date=String(register.entry_date||(register.registered_at?root.BiteOwner?.day?.(register.registered_at):'')||stay.arrival||'');
-   return date.startsWith(month)&&!['cancelled','no_show'].includes(stay.status);
+   return date.startsWith(month)&&['in_house','checked_out'].includes(stay.status);
   });
   return {label,count:records.length};
  }
