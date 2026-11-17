@@ -1,0 +1,65 @@
+/* Bite Owner POS Reports · compact monthly/daily panel inside existing POS. */
+@media(max-width:760px){
+ body[data-role="owner"] #pos .bpv2-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+ body[data-role="owner"] #pos .bpv2-tabs button{font-size:12px;min-width:0;padding:6px 1px}
+ body[data-role="owner"] #pos[data-bite-pos-view="reports"] >#posDraftWorkspace,
+ body[data-role="owner"] #pos[data-bite-pos-view="reports"] >.section,
+ body[data-role="owner"] #pos[data-bite-pos-view="reports"] >.notice{display:none!important}
+ body[data-role="owner"] #pos .bite-pos-report{display:grid;gap:12px}
+ body[data-role="owner"] #pos .bpr-heading{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
+ body[data-role="owner"] #pos .bpr-heading strong{font-size:16px;font-weight:900;color:#35212c}
+ body[data-role="owner"] #pos .bpr-heading small{font-size:10px;color:#937c79}
+ body[data-role="owner"] #pos .bpr-heading button{color:#c96518;background:none;border:0;font-size:11px;font-weight:800;min-height:34px}
+ body[data-role="owner"] #pos .bpr-period{
+  display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #eedcd0;
+  border-radius:13px;padding:4px 6px;min-height:47px
+ }
+ body[data-role="owner"] #pos .bpr-period strong{font-size:15px}
+ body[data-role="owner"] #pos .bpr-period button{display:grid;place-items:center;border:0;background:#fff3e8;color:#b95f18;border-radius:10px;width:38px;min-height:38px;font-size:26px;font-weight:700}
+ body[data-role="owner"] #pos .bpr-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:#f5ebe5;border-radius:13px;padding:5px}
+ body[data-role="owner"] #pos .bpr-modes button{border:0;background:transparent;color:#61474c;min-height:41px;padding:6px 2px;font-size:12px;font-weight:800;border-radius:10px}
+ body[data-role="owner"] #pos .bpr-modes button[aria-pressed="true"]{background:linear-gradient(130deg,#ff920c,#ed6300);color:#fff;box-shadow:0 4px 10px #e87a3030}
+ body[data-role="owner"] #pos .bpr-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body[data-role="owner"] #pos .bpr-metric{
+  display:grid;grid-template-columns:33px minmax(0,1fr);gap:1px 8px;align-content:center;
+  border-radius:14px;border:1px solid #ebe0eb;padding:11px 9px;min-height:87px;background:#fff;
+ }
+ body[data-role="owner"] #pos .bpr-metric-icon{grid-row:1 / span 2;align-self:center;display:grid;place-items:center;
+  border-radius:11px;background:#f1e8ff;color:#7845c9;font-weight:950;font-size:20px;width:33px;height:33px}
+ body[data-role="owner"] #pos .bpr-metric>span:nth-child(2){font-size:11px;color:#635c62;font-weight:700}
+ body[data-role="owner"] #pos .bpr-metric strong{font-size:21px;letter-spacing:-.5px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+ body[data-role="owner"] #pos .bpr-metric.is-green{background:#f2fdf4;border-color:#d9efdf}
+ body[data-role="owner"] #pos .bpr-metric.is-green .bpr-metric-icon{background:#e1f6e3;color:#288349}
+ body[data-role="owner"] #pos .bpr-metric.is-amber{background:#fff8ed;border-color:#f5e6cf}
+ body[data-role="owner"] #pos .bpr-metric.is-amber .bpr-metric-icon{background:#fff0d9;color:#d87315}
+ body[data-role="owner"] #pos .bpr-metric.is-blue{background:#f2f8ff;border-color:#dde9f9}
+ body[data-role="owner"] #pos .bpr-metric.is-blue .bpr-metric-icon{background:#e3f0ff;color:#3b70b4}
+ body[data-role="owner"] #pos .bpr-count-note,.bpr-note{font-size:11px;line-height:1.5;color:#806c67;margin:0}
+ body[data-role="owner"] #pos .bpr-trend{background:#fff;border:1px solid #ebddd6;border-radius:14px;padding:12px}
+ body[data-role="owner"] #pos .bpr-chart{display:block;width:100%;height:105px;margin-top:9px}
+ body[data-role="owner"] #pos .bpr-chart-empty{display:grid;place-items:center;min-height:98px;font-size:12px;color:#9b8581;text-align:center;padding:12px}
+ body[data-role="owner"] #pos .bpr-calendar{background:#fff;border:1px solid #e9ddd8;border-radius:14px;padding:9px}
+ body[data-role="owner"] #pos .bpr-weekdays,.bpr-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+ body[data-role="owner"] #pos .bpr-weekdays span{font-size:10px;text-align:center;color:#8a7980;font-weight:800;padding:6px 0}
+ body[data-role="owner"] #pos .bpr-calendar-grid{grid-auto-rows:41px}
+ body[data-role="owner"] #pos .bpr-date{position:relative;display:grid;place-items:center;align-content:center;gap:3px;padding:2px;border:0;border-radius:10px;background:transparent;color:#43343b;font-weight:800;font-size:13px;min-width:0}
+ body[data-role="owner"] #pos .bpr-date i{width:4px;height:4px;border-radius:99px;background:#f17b0e}
+ body[data-role="owner"] #pos .bpr-date.is-active{background:linear-gradient(135deg,#ff940d,#ed6200);color:#fff}
+ body[data-role="owner"] #pos .bpr-date.is-active i{background:#fff}
+ body[data-role="owner"] #pos .bpr-bills{display:grid;gap:7px}
+ body[data-role="owner"] #pos .bpr-bill{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #efe0db;border-radius:12px;padding:10px;min-height:61px}
+ body[data-role="owner"] #pos .bpr-bill>span{display:grid;gap:3px;min-width:0;flex:1}
+ body[data-role="owner"] #pos .bpr-bill>span strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body[data-role="owner"] #pos .bpr-bill small{font-size:10px;color:#87766f;line-height:1.3}
+ body[data-role="owner"] #pos .bpr-bill>strong{white-space:nowrap;font-size:12px;font-weight:900}
+ body[data-role="owner"] #pos .bpr-empty{border:1px dashed #ebd8ca;border-radius:11px;padding:18px 10px;text-align:center;color:#8b7d75;font-size:12px;background:#fff}
+ body[data-role="owner"] #pos .bpr-loading{padding:30px 12px;text-align:center;color:#976d53;font-weight:700}
+ body[data-role="owner"] #pos .bpr-error{display:grid;gap:10px;padding:16px;background:#fff5ee;border:1px solid #f2ccba;border-radius:13px;font-size:12px;line-height:1.5}
+ body[data-role="owner"] #pos .bpr-error button{background:#f27809;color:#fff;border:0;min-height:43px;border-radius:10px;font-weight:850}
+ body[data-role="owner"] #pos .bite-pos-report button:focus-visible{outline:3px solid #f0ae67;outline-offset:2px}
+ @media(max-width:350px){
+  body[data-role="owner"] #pos .bpv2-tabs button{font-size:10px}
+  body[data-role="owner"] #pos .bpr-metric strong{font-size:18px}
+  body[data-role="owner"] #pos .bpr-date{font-size:12px}
+ }
+}
