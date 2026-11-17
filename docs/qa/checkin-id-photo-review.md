@@ -1,0 +1,7 @@
+# Check-in ID photo review
+
+Front and back have separate thumbnails, enlarged inspection, replacement and removal controls. Accepting a new front automatically shows the back step, with the front thumbnail still visible. Take photo requests the rear camera; revisiting the front also offers Continue to back. Camera cancellation and invalid replacements preserve the existing photo. Changing one side preserves the other; both remain compulsory before check-in.
+
+Saved copies are read only when the manager opens photo review. The existing authenticated copy endpoint checks property membership again, and the client validates the returned type and size. Previews use temporary local URLs. A removed saved selection is labelled “Remove from this check-in”; it does not erase a previous guest's retained history. Permanent retention removal stays in the existing Private copies workflow. Previewing never uploads a file or creates a guest/stay.
+
+`scripts/checkin_photo_review_browser.py` exercises 360/390/1440px, the front/back camera sequence, two visible previews, enlarged viewing and zoom, cancellation, invalid replacement, independent side removal, focused missing-photo validation, companion isolation, retained private reads, stale account responses and PDF inspection. Test images and records are synthetic. The existing 25 check-in scenarios, hotel accounts and private document security suites also run. Physical phone camera hardware needs an actual device check.

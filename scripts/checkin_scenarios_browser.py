@@ -40,10 +40,12 @@ def photo(page,button,value=None):
  event.value.set_files([] if value is None else value)
 def upload_dialog(page,f,value=None,key='lead',skip=True):
  f.locator('[data-id-open="'+key+'"]').click();d=page.locator('.ha-id-dialog')
- photo(page,d.locator('[data-upload]'),value or file_value());d.locator('.ha-id-preview,.ha-id-preview-pdf').wait_for()
- page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled")
+ photo(page,d.locator('[data-upload]'),value or file_value());d.locator('[data-select-side=front] img,[data-select-side=front] .ha-id-pdf-thumb').wait_for()
+ page.wait_for_function("!document.querySelector('.ha-id-dialog [data-id-stage]').textContent.includes('Preparing a clear')")
  if skip:
-  photo(page,d.locator('[data-next]'),file_value());page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled");d.locator('[data-next]').click();d.wait_for(state='detached')
+  if d.locator('[data-select-side=front]').get_attribute('aria-pressed')=='true':d.locator('[data-next]').click()
+  if not(f.locator('[name='+('id_back'if key=='lead'else'party_'+key+'_back')+']').evaluate('(e)=>e.files.length')or f.locator('[name='+('id_back_id'if key=='lead'else'party_'+key+'_back_id')+']').input_value()):photo(page,d.locator('[data-capture]'),file_value())
+  page.wait_for_function("!document.querySelector('.ha-id-dialog [data-next]').disabled");d.locator('[data-next]').click();d.wait_for(state='detached')
  return d
 def review(f):
  f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
@@ -149,7 +151,7 @@ try:
   c,p,f=open_case(browser);f.locator('[data-id-open=lead]').click();d=p.locator('.ha-id-dialog')
   photo(p,d.locator('[data-capture]'))
   check(d.locator('[data-next]').is_disabled(),'Cancelling native camera does not create a false photo')
-  photo(p,d.locator('[data-upload]'),file_value());d.locator('.ha-id-preview').wait_for();photo(p,d.locator('[data-next]'),file_value());d.locator('[data-next]').click()
+  photo(p,d.locator('[data-upload]'),file_value());d.locator('[data-select-side=front] img').wait_for();photo(p,d.locator('[data-capture]'),file_value());d.locator('[data-next]').click()
   check(f.locator('[name=id_front]').evaluate('(e)=>e.files.length')==1,'Device upload remains available after camera cancellation');record('S17','Camera cancelled with upload fallback');c.close()
 
   c,p,f=open_case(browser);large=noise_png();check(len(large)>4*1024*1024,'Synthetic camera photo exceeds the storage limit')
@@ -162,14 +164,14 @@ try:
   f.locator('[data-id-open=lead]').click();d=p.locator('.ha-id-dialog');photo(p,d.locator('[data-upload]'),file_value(b'<script>bad</script>'))
   d.locator('.ha-camera-error').get_by_text('Choose a valid',exact=False).wait_for()
   check(f.locator('[name=id_front]').evaluate('(e)=>e.files[0].size')==len(PNG),'Renamed invalid file does not erase the valid front')
-  photo(p,d.locator('[data-next]'),file_value());d.locator('[data-next]').click();record('S19','Unknown MIME and renamed invalid content');c.close()
+  d.locator('[data-next]').click();d.locator('[data-next]').click();record('S19','Unknown MIME and renamed invalid content');c.close()
 
   c,p,f=open_case(browser);upload_dialog(p,f,file_value(PDF,'application/pdf','synthetic.pdf'))
   check(f.locator('[name=id_front]').evaluate('(e)=>e.files[0].type')=='application/pdf'and f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==1,'PDF front and a compulsory back are both retained');record('S20','PDF front with compulsory back');c.close()
 
   c,p,f=open_case(browser);raw_id(f);f.locator('[name=id_back]').set_input_files(file_value())
   upload_dialog(p,f)
-  check(f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==1,'Retaking a front requires a new back before finishing')
+  check(f.locator('[name=id_back]').evaluate('(e)=>e.files.length')==1,'Retaking a front preserves the back photo for review')
   record('S21','Retake replaces the correct person’s ID sides');c.close()
 
   c,p,f=open_case(browser);fill(f,{'male':'2','female':'1'});raw_id(f)

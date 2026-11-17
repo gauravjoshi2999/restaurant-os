@@ -32,6 +32,7 @@ jobs:
       - name: Run Chromium customer journey smoke tests
         run: |
           python scripts/checkin_scenarios_browser.py
+          python scripts/checkin_photo_review_browser.py
           python scripts/hotel_bill_workflow_browser.py
           python scripts/hotel_accounts_browser.py
           python scripts/menu_qr_browser_smoke.py
@@ -60,6 +61,7 @@ jobs:
             dist/launch-qa/guest-documents-browser-evidence.json
             dist/launch-qa/hotel-accounts-browser-evidence.json
             dist/launch-qa/checkin-25-scenarios-evidence.json
+            dist/launch-qa/checkin-photo-review-evidence.json
             dist/launch-qa/hotel-bill-workflow-evidence.json
             dist/launch-qa/hotel-ledger.xlsx
             dist/launch-qa/receipt.pdf
