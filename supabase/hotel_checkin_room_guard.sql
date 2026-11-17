@@ -8,7 +8,7 @@ declare source text:=pg_get_functiondef('private.bite_hotel_account_command(uuid
   if p_action='reserve'and p_payload->>'booking_mode'='checkin'then
    if not private.bite_can(p_property,'reservations')then raise exception 'Reservation access denied'using errcode='42501';end if;
    if(p_payload->>'arrival')::date>(now()at time zone pr.timezone)::date then raise exception 'For a future arrival, choose Reserve for later.'using errcode='22023',detail='{"field":"arrival"}';end if;
-   if not exists(select 1 from public.bite_rooms r where r.property_id=p_property and r.id=(p_payload->>'room_id')::uuid and r.active and r.housekeeping='ready')or exists(select 1 from public.bite_stays s where s.property_id=p_property and s.room_id=(p_payload->>'room_id')::uuid and s.status='in_house')then raise exception 'Room is occupied or not released for check-in. Refresh rooms and choose an available room.'using errcode='22023',detail='{"field":"room_id"}';end if;
+   if not exists(select 1 from public.bite_rooms candidate_room where candidate_room.property_id=p_property and candidate_room.id=(p_payload->>'room_id')::uuid and candidate_room.active and candidate_room.housekeeping='ready')or exists(select 1 from public.bite_stays occupied_stay where occupied_stay.property_id=p_property and occupied_stay.room_id=(p_payload->>'room_id')::uuid and occupied_stay.status='in_house')then raise exception 'Room is occupied or not released for check-in. Refresh rooms and choose an available room.'using errcode='22023',detail='{"field":"room_id"}';end if;
   end if;
 $guard$;
 begin
