@@ -59,6 +59,15 @@
  }
  /* Replace old hero/duplicated homepage sections on phones; do not delete old DOM/data. */
  body[data-role="owner"].bite-v3-active #overview>*:not(#biteV3Home){display:none!important}
+ /* Mobile navigation relocates the legacy order-stage strip into old
+    Home priority markup. Hide that duplicate even if its parent gets moved
+    or force-displayed by legacy layout rules. */
+ body[data-role="owner"].bite-v3-active #overview .od-owner-priority,
+ body[data-role="owner"].bite-v3-active #overview .od-home,
+ body[data-role="owner"].bite-v3-active #overview #bitePremiumHome,
+ body[data-role="owner"].bite-v3-active #overview #biteHotelHome{
+  display:none!important
+ }
  body[data-role="owner"].bite-v3-active #overview #biteV3Home{
   display:block!important;max-width:720px;margin:0 auto 18px;min-width:0;
   animation:bv3-reveal .28s ease-out
