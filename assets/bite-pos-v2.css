@@ -1,0 +1,143 @@
+/* Bite POS Stage 1 — mobile owner counter workflow. Keep the original
+   billing, payment, drafts, financial tables and hotel allocations intact. */
+@media(max-width:760px){
+ body[data-role="owner"] #pos{--bpv2-orange:#f36b00;--bpv2-chocolate:#41232c;color:#35242a}
+ body[data-role="owner"] #pos>.welcome{
+  display:flex!important;flex-direction:row;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:nowrap;padding:13px 12px!important;
+  border-radius:19px;background:linear-gradient(120deg,#4d2632,#341b28 65%,#622f27);
+  color:#fff;border:0;box-shadow:0 9px 24px #42203322;margin:2px 0 12px
+ }
+ body[data-role="owner"] #pos>.welcome>div{min-width:0;flex:1}
+ body[data-role="owner"] #pos>.welcome h1{font-size:19px!important;line-height:1.2;color:#fff!important;letter-spacing:-.5px;margin:0!important}
+ body[data-role="owner"] #pos>.welcome .muted{display:none!important}
+ body[data-role="owner"] #pos>.welcome #posNewSaleBtn{
+  flex:0 0 auto;width:auto;min-width:0;min-height:46px!important;padding:11px 13px!important;
+  border-radius:13px!important;background:linear-gradient(140deg,#ff9810,#ef6500)!important;
+  border:1px solid #ffa143!important;color:#fff!important;box-shadow:0 6px 13px #1f110d33!important;
+  white-space:nowrap;font-size:13px!important;font-weight:850!important
+ }
+ body[data-role="owner"] #pos>.notice{display:none!important}
+ body[data-role="owner"] #pos>.grid.section{display:none!important}
+ body[data-role="owner"] #pos #bitePosV2Desk{
+  display:block;border-radius:20px;margin:0 0 15px;padding:14px 13px 17px;
+  background:linear-gradient(160deg,#fffdfb,#fff6ef);
+  border:1px solid #eadbd2;box-shadow:0 5px 19px #502e2914;
+ }
+ body[data-role="owner"] #pos .bpv2-intro{display:grid;gap:3px;margin:0 0 13px}
+ body[data-role="owner"] #pos .bpv2-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.3px;color:#b95c22}
+ body[data-role="owner"] #pos .bpv2-intro strong{font-size:21px;font-weight:900;line-height:1.25;letter-spacing:-.6px}
+ body[data-role="owner"] #pos .bpv2-intro small{font-size:12px;color:#7f6d68;line-height:1.4}
+ body[data-role="owner"] #pos .bpv2-tabs{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:#f2e8e4;
+  border-radius:15px;padding:5px;margin:0 0 15px
+ }
+ body[data-role="owner"] #pos .bpv2-tabs button{
+  border:0;border-radius:11px;min-height:44px;color:#68505b;background:transparent;
+  font-size:13px;font-weight:850;cursor:pointer;touch-action:manipulation
+ }
+ body[data-role="owner"] #pos .bpv2-tabs button[aria-pressed="true"]{
+  color:#fff;background:linear-gradient(130deg,#fd8909,#f16a00);box-shadow:0 5px 12px #c96b2d33
+ }
+ body[data-role="owner"] #pos .bpv2-tabs button:focus-visible,
+ body[data-role="owner"] #pos [data-bpv2-go]:focus-visible,
+ body[data-role="owner"] #pos [data-bpv2-print]:focus-visible{
+  outline:3px solid #ffa34f;outline-offset:2px
+ }
+ body[data-role="owner"] #pos .bpv2-section-heading{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 2px 9px
+ }
+ body[data-role="owner"] #pos .bpv2-section-heading strong{font-size:15px;font-weight:900}
+ body[data-role="owner"] #pos .bpv2-section-heading>span{font-size:10px;color:#97877d}
+ body[data-role="owner"] #pos .bpv2-section-heading button{
+  display:flex;align-items:center;gap:2px;color:#c95c19;background:transparent;border:0;
+  font-size:11px;font-weight:800;min-height:37px;padding:7px
+ }
+ body[data-role="owner"] #pos #bitePosV2Desk svg{
+  width:20px;height:20px;flex:0 0 auto
+ }
+ body[data-role="owner"] #pos .bpv2-section-heading button svg{width:15px;height:15px}
+ body[data-role="owner"] #pos .bpv2-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body[data-role="owner"] #pos .bpv2-stat{
+  display:grid;grid-template-columns:34px minmax(0,1fr);gap:4px 8px;
+  min-height:99px;padding:13px 10px;border-radius:15px;
+  background:linear-gradient(130deg,#fff,#fff3e7);border:1px solid #efdaca;
+  min-width:0;align-content:center
+ }
+ body[data-role="owner"] #pos .bpv2-stat svg{
+  grid-row:1/3;align-self:center;color:#ef7c14;width:25px;height:25px
+ }
+ body[data-role="owner"] #pos .bpv2-stat small{font-size:11px;color:#7b6867;font-weight:750;line-height:1.15}
+ body[data-role="owner"] #pos .bpv2-stat strong{
+  font-size:22px;letter-spacing:-.5px;color:#30212b;line-height:1.14;font-weight:950;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere
+ }
+ body[data-role="owner"] #pos .bpv2-stat.is-green{background:linear-gradient(140deg,#fff,#effaf2);border-color:#dfefdf}
+ body[data-role="owner"] #pos .bpv2-stat.is-green svg{color:#28955b}
+ body[data-role="owner"] #pos .bpv2-stat.is-purple{background:linear-gradient(140deg,#fff,#f5f0ff);border-color:#e8e0f3}
+ body[data-role="owner"] #pos .bpv2-stat.is-purple svg{color:#874dc6}
+ body[data-role="owner"] #pos .bpv2-stat.is-blue{background:linear-gradient(140deg,#fff,#eff6fe);border-color:#dfe9f5}
+ body[data-role="owner"] #pos .bpv2-stat.is-blue svg{color:#407ac1}
+ body[data-role="owner"] #pos .bpv2-people-note{
+  display:flex;align-items:center;gap:10px;margin-top:11px;padding:12px;
+  border:1px solid #f1dfcc;background:#fff8ef;border-radius:13px
+ }
+ body[data-role="owner"] #pos .bpv2-people-note svg{color:#d97d26}
+ body[data-role="owner"] #pos .bpv2-people-note span{display:grid;gap:3px}
+ body[data-role="owner"] #pos .bpv2-people-note strong{font-size:12px;font-weight:850}
+ body[data-role="owner"] #pos .bpv2-people-note small{font-size:10px;color:#786b68;line-height:1.4}
+ body[data-role="owner"] #pos .bpv2-recents{display:grid;gap:7px}
+ body[data-role="owner"] #pos .bpv2-recent{
+  display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #f0e3dc;
+  border-radius:13px;padding:9px;min-height:64px
+ }
+ body[data-role="owner"] #pos .bpv2-recent-icon{
+  height:33px;width:33px;display:grid;place-items:center;border-radius:10px;
+  background:#ffefde;color:#e06d11
+ }
+ body[data-role="owner"] #pos .bpv2-recent-icon svg{width:18px;height:18px}
+ body[data-role="owner"] #pos .bpv2-recent-body{display:grid;gap:3px;min-width:0;flex:1}
+ body[data-role="owner"] #pos .bpv2-recent-body strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body[data-role="owner"] #pos .bpv2-recent-body small{font-size:10px;color:#8d7c75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body[data-role="owner"] #pos .bpv2-amount{font-size:13px;font-weight:900;white-space:nowrap}
+ body[data-role="owner"] #pos .bpv2-recent button{
+  width:33px;height:33px;border:0;border-radius:10px;background:#fff2e7;
+  color:#c15c1d;display:grid;place-items:center;cursor:pointer
+ }
+ body[data-role="owner"] #pos .bpv2-empty{
+  font-size:12px;line-height:1.5;text-align:center;border-radius:12px;
+  padding:20px 13px;color:#8d7974;background:#fff;border:1px dashed #ecdacf
+ }
+ body[data-role="owner"] #pos .bpv2-panel-heading{
+  padding:12px 2px 3px;display:grid;gap:3px
+ }
+ body[data-role="owner"] #pos .bpv2-panel-heading strong{font-size:16px;font-weight:900}
+ body[data-role="owner"] #pos .bpv2-panel-heading small{font-size:11px;line-height:1.5;color:#806b68}
+ body[data-role="owner"] #pos .bpv2-footer-note{
+  margin-top:16px;font-size:10px;line-height:1.45;color:#8a7774
+ }
+ body[data-role="owner"] #pos[data-bite-pos-view="today"] >#posDraftWorkspace,
+ body[data-role="owner"] #pos[data-bite-pos-view="today"] >.section,
+ body[data-role="owner"] #pos[data-bite-pos-view="drafts"] >.section,
+ body[data-role="owner"] #pos[data-bite-pos-view="bills"] >#posDraftWorkspace{display:none!important}
+ body[data-role="owner"] #pos[data-bite-pos-view="today"] > #bitePosV2Desk{display:block!important}
+ body[data-role="owner"] #pos[data-bite-pos-view="drafts"] > #posDraftWorkspace,
+ body[data-role="owner"] #pos[data-bite-pos-view="bills"] >.section{display:block!important}
+ body[data-role="owner"] #pos #posDraftWorkspace{
+  border-radius:16px!important;background:white!important;border:1px solid #eadbd2!important;padding:12px!important;
+  box-shadow:none!important
+ }
+ body[data-role="owner"] #pos #posDraftWorkspace .small{font-size:11px}
+ body[data-role="owner"] #pos .section .section-head h2{font-size:16px}
+ body[data-role="owner"] #pos .table-wrap{overflow-x:auto;max-width:100%}
+ body[data-role="owner"] #pos #posRows button{min-height:39px}
+ @media(max-width:370px){
+  body[data-role="owner"] #pos>.welcome h1{font-size:17px!important}
+  body[data-role="owner"] #pos>.welcome #posNewSaleBtn{font-size:12px!important;padding:9px!important}
+  body[data-role="owner"] #pos .bpv2-stat{grid-template-columns:25px 1fr;padding:10px 7px}
+  body[data-role="owner"] #pos .bpv2-stat strong{font-size:19px}
+ }
+}
+@media(min-width:761px){
+ #bitePosV2Desk{display:none!important}
+}
