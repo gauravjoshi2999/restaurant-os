@@ -197,8 +197,16 @@
    toolbar.innerHTML='<label class="bv3-order-search">'+icon('search')+'<input type="search" id="bv3OrderSearch" placeholder="Search Order ID, customer or item" autocomplete="off" aria-label="Search restaurant orders"></label>'+
     '<label class="bv3-order-filter">'+icon('chart')+'<select id="bv3StageSelect" aria-label="Filter order status"><option value="all">All</option><option value="new">New</option><option value="preparing">Preparing</option><option value="ready">Ready</option><option value="delivery">Delivery</option><option value="completed">Delivered</option><option value="cancelled">Cancelled</option></select></label>'+
     '<div class="bv3-search-empty" id="bv3SearchEmpty" hidden>No matching order on this screen</div>';
+   stages.insertAdjacentElement('afterend',toolbar);
+   // Date-wise records remain available, but the giant calendar toolbar
+   // does not consume screen space unless the owner asks for it.
    const calendar=doc.getElementById('biteOwnerOrderCalendar');
-   (calendar||stages).insertAdjacentElement('afterend',toolbar);
+   if(calendar){
+    const details=doc.createElement('details');
+    details.id='bv3DateDisclosure';details.className='bv3-date-disclosure';
+    const summary=doc.createElement('summary');summary.textContent='Date-wise orders and calendar';
+    details.append(summary,calendar);toolbar.insertAdjacentElement('afterend',details);
+   }
    const input=toolbar.querySelector('input');
    input.addEventListener('input',()=>{searchTerm=input.value;updateOrderSearch();});
    toolbar.querySelector('select').addEventListener('change',event=>{
@@ -244,7 +252,10 @@
   overview.prepend(home);
   home.addEventListener('click',onClick);
   root.document.addEventListener('bite:owner-confirmations-updated',e=>{
-   if(e.detail?.restaurantId===currentAccess?.restaurantId)renderHome(true);
+   if(e.detail?.restaurantId===currentAccess?.restaurantId){
+    renderHome(true);
+    updateOrderSearch();
+   }
   });
   root.addEventListener?.('bite:owner-summary',()=>renderHome(true));
   root.addEventListener?.('bite:capabilities',()=>renderHome(true));
