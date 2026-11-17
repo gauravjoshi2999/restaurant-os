@@ -65,7 +65,8 @@ test('mobile filter sheet is scoped to real customer discovery; no checkout or h
  assert.doesNotMatch(js,/getLocation|navigator\.geolocation|random.*rating/i);
 });
 
-test('Schedule available filters by owner opt-in, published hours, live PIN serviceability and delivery status',()=>{
+test('Schedule available filters by owner opt-in, published hours, live PIN serviceability and delivery status',t=>{
+ t.mock.method(Date,'now',()=>Date.parse('2026-11-16T06:30:00Z'));
  const future=new Date(Date.now()+30*86400000).toISOString();
  const base={accepts_delivery:true,accepts_pickup:true,serviceable:true,accepts_scheduled_delivery:true,opening_time:'09:00',closing_time:'23:00',delivery_paused:false};
  const candidates=[
