@@ -40,7 +40,23 @@ try:
     page.locator('#mainApp').wait_for(state='visible')
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
-    page.locator('#biteV3Home .boh-feature-grid').wait_for(state='visible')
+    try:
+     page.locator('#biteV3Home .boh-feature-grid').wait_for(state='visible',timeout=5000)
+    except Exception:
+     debug=page.evaluate("""() => ({
+       role:document.body.dataset.role,business:document.body.dataset.businessType,
+       appVisible:document.getElementById('mainApp')?.getBoundingClientRect().height>0,
+       v3Exists:!!document.getElementById('biteV3Home'),
+       v3Visible:!!document.getElementById('biteV3Home')?.getBoundingClientRect().height,
+       v3Text:document.getElementById('biteV3Home')?.innerText?.slice(0,260),
+       cls:document.body.className,property:window.BiteHospitality?.prop?.()?.name,
+       dashboard:typeof window.BiteOwnerReferenceV3,
+       overview:document.getElementById('overview')?.className,
+       nav:document.getElementById('biteOwnerBottomNav')?.innerText,
+       restaurant:typeof access==='object'?access.restaurantId:'not-visible'
+     })""")
+     print('HOME-RESPONSIVE-DIAGNOSTIC',mode,width,debug,flush=True)
+     raise
     grid=page.locator('#biteV3Home .boh-feature-grid')
     check(grid.get_attribute('data-business-type')==mode,f'{mode} {width}px correct Home mode')
     home=page.locator('#biteV3Home')
