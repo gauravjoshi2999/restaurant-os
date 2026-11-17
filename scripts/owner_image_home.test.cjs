@@ -61,7 +61,8 @@ test('Main actions use existing route/permission gates and notification tray ope
  assert.match(source,/BiteOwnerHRTabs\.activate/);
  assert.match(source,/data-bv3-notice-index/);
  assert.match(source,/toggleNoticeTray\(false\)/);
- assert.match(source,/route\(item\.route,item\.filter,false\)/);
+ assert.match(source,/route\(item\.route,item\.filter,false,item\)/);
+ assert.match(source,/focusNotificationOrder\(notification\)/);
  assert.match(nav,/Bite Orders/);
  assert.match(nav,/Restaurant POS/);
  assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-image-home1/);
