@@ -1,0 +1,66 @@
+/* Bite partner-style Orders design. Scoped to Owner Orders only; other modules retain their theme. */
+body[data-role="owner"] #orders{--bite-order-orange:#f56b00;--bite-order-line:#e9e9ed}
+body[data-role="owner"] #orders .bite-owner-order-stages{background:#fff;border:1px solid #f0eee9;border-radius:15px;padding:7px;top:64px;box-shadow:0 4px 16px #18213a08}
+body[data-role="owner"] #orders .bite-owner-order-stage{background:#f8f8fa;border:0;border-radius:12px;color:#32313a;font-size:13px;padding:10px 12px;min-height:43px}
+body[data-role="owner"] #orders .bite-owner-order-stage.active{background:var(--bite-order-orange);color:#fff;box-shadow:0 5px 14px #f56b0033}
+body[data-role="owner"] #orders .bite-owner-order-stage b{font-size:11px;background:#fff2e8;color:#d65500;border-radius:99px;min-width:23px;text-align:center}
+body[data-role="owner"] #orders .bite-owner-order-stage.active b{background:#ffffff30;color:#fff}
+body[data-role="owner"] #orders .bite-compact-order{position:relative;border:1px solid #e9e9ec;border-radius:17px;background:#fff;box-shadow:0 3px 13px #171c3010;margin:0 0 10px;padding:13px 14px;display:block;width:100%;min-height:0}
+body[data-role="owner"] #orders .bite-compact-order.is-new{border-color:#ffab6c;box-shadow:0 4px 17px #f56b0018}
+body[data-role="owner"] #orders .bite-compact-top{display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap}
+body[data-role="owner"] #orders .bite-compact-top strong{font-size:14px;color:#151928}
+body[data-role="owner"] #orders .bite-compact-top .bite-order-wait{font-size:12px;border-radius:20px;padding:5px 10px;background:#fff0eb;color:#b92321}
+body[data-role="owner"] #orders .bite-compact-order .bite-compact-person{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-top:7px}
+body[data-role="owner"] #orders .bite-compact-order .bite-compact-person strong{font-size:15px;color:#161e32}
+body[data-role="owner"] #orders .bite-compact-type{font-size:11px;background:#fff1e6;color:#994100;border-radius:30px;padding:4px 8px;font-weight:750}
+body[data-role="owner"] #orders .bite-compact-subline{color:#777f8c;font-size:12px;margin-top:2px}
+body[data-role="owner"] #orders .bite-compact-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:7px;margin-top:9px;padding:8px 0;border-top:1px solid #f0f0f0;border-bottom:1px solid #f0f0f0}
+body[data-role="owner"] #orders .bite-compact-meta span{font-size:12px;color:#31583d;background:#e8f7eb;border-radius:6px;padding:4px 7px}
+body[data-role="owner"] #orders .bite-compact-meta b{font-size:19px;color:#151b30}
+body[data-role="owner"] #orders .bite-compact-food{margin-top:8px;display:grid;gap:4px}
+body[data-role="owner"] #orders .bite-compact-food > div{font-size:13px;color:#252833;line-height:1.4}
+body[data-role="owner"] #orders .bite-compact-note{margin:9px 0 0;padding:7px 9px;background:#fff5db;border-radius:8px;color:#8d5600;font-size:12px;line-height:1.5}
+body[data-role="owner"] #orders .bite-compact-buttons{display:flex;gap:9px;margin-top:10px;align-items:center}
+body[data-role="owner"] #orders .bite-compact-buttons .btn{flex:1;min-height:42px;border-radius:10px;font-weight:750;padding:8px 11px}
+body[data-role="owner"] #orders .bite-compact-buttons .bite-order-next{background:#f56600!important;color:white!important;border-color:#f56600!important}
+body[data-role="owner"] #orders .bite-compact-buttons .btn.danger{background:#fff!important;color:#ad2828!important;border:1px solid #e2c0c0!important}
+body[data-role="owner"] #orders .bite-compact-details{border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;font-size:12px}
+body[data-role="owner"] #orders .bite-compact-details summary{cursor:pointer;color:#6a6670;font-weight:700}
+body[data-role="owner"] #orders .bite-compact-details .order-item-photo-list{margin-top:8px}
+body[data-role="owner"] #orders .bite-compact-details .order-item-photo{width:32px;height:32px}
+body[data-role="owner"] #orders .bite-owner-approval-queue{margin:10px 0 16px}
+body[data-role="owner"] #orders .bite-owner-approval-queue[hidden]{display:none!important}
+body[data-role="owner"] #orders .bite-approval-title{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 2px 9px}
+body[data-role="owner"] #orders .bite-approval-title strong{font-size:15px;color:#171b2a}
+body[data-role="owner"] #orders .bite-approval-title strong span{background:#f56b00;color:#fff;padding:2px 8px;border-radius:40px}
+body[data-role="owner"] #orders .bite-approval-title small{color:#987041;font-size:11px}
+body[data-role="owner"] #orders .bite-approval-card{background:#fff;border:1px solid #ffb37a;border-radius:15px;padding:13px 14px;margin-bottom:9px;box-shadow:0 3px 12px #f56b0011}
+body[data-role="owner"] #orders .bite-approval-top,.bite-approval-customer{display:flex;justify-content:space-between;gap:8px;align-items:center}
+body[data-role="owner"] #orders .bite-approval-top strong{font-size:14px}
+body[data-role="owner"] #orders .bite-approval-clock{padding:5px 9px;border-radius:22px;color:#b63216;background:#fff0eb;font-size:12px;font-weight:750}
+body[data-role="owner"] #orders .bite-approval-clock.is-urgent{background:#ffe3dc;color:#a71717}
+body[data-role="owner"] #orders .bite-approval-customer{margin-top:7px}
+body[data-role="owner"] #orders .bite-approval-customer strong{font-size:15px}
+body[data-role="owner"] #orders .bite-approval-customer span{border-radius:30px;background:#fff1e5;padding:4px 9px;color:#874100;font-size:12px}
+body[data-role="owner"] #orders .bite-approval-received{display:block;color:#777f8b;margin-top:3px;font-size:12px}
+body[data-role="owner"] #orders .bite-approval-items{border-top:1px solid #f1e8e1;margin-top:9px;padding-top:8px}
+body[data-role="owner"] #orders .bite-approval-item{font-size:13px;margin:2px 0}
+body[data-role="owner"] #orders .bite-approval-note{background:#fff4d9;border-radius:8px;font-size:12px;padding:7px;margin:8px 0}
+body[data-role="owner"] #orders .bite-approval-destination{color:#696e78;font-size:12px;overflow-wrap:anywhere;margin-top:5px}
+body[data-role="owner"] #orders .bite-approval-payment{font-size:12px;color:#6d6570;margin:8px 0}
+body[data-role="owner"] #orders .bite-approval-actions{display:flex;gap:9px}
+body[data-role="owner"] #orders .bite-approval-actions button{min-height:42px;flex:1;padding:9px 10px;font-weight:750;border-radius:10px;cursor:pointer}
+body[data-role="owner"] #orders .bite-approval-accept{background:#f56b00;color:#fff;border:1px solid #f56b00}
+body[data-role="owner"] #orders .bite-approval-reject{background:#fff;color:#aa3030;border:1px solid #dcbbba}
+body[data-role="owner"] #orders .bite-approval-actions button:disabled{opacity:.45;cursor:wait}
+.bite-order-confirmation-banner{display:flex;flex-direction:column;gap:3px;margin:8px 0 12px;padding:11px 13px;background:#fff5e9;color:#733d14;border:1px solid #ffcf98;border-radius:12px}
+.bite-order-confirmation-banner strong{font-size:14px}
+.bite-order-confirmation-banner span,.bite-order-confirmation-banner small{font-size:12px}
+.bite-order-confirmation-banner[data-state="approved"]{background:#eaf8ed;color:#155a32;border-color:#a6dabb}
+.bite-order-confirmation-banner[data-state="rejected"],.bite-order-confirmation-banner[data-state="expired"],.bite-order-confirmation-banner[data-state="payment_expired"]{background:#fff0f0;color:#882c2c;border-color:#f4c7c7}
+.bite-order-confirmation-banner[hidden]{display:none!important}
+@media(max-width:600px){
+ body[data-role="owner"] #orders .bite-owner-order-stages{top:52px}
+ body[data-role="owner"] #orders .bite-compact-order,body[data-role="owner"] #orders .bite-approval-card{padding:11px 12px}
+ body[data-role="owner"] #orders .bite-compact-meta b{font-size:17px}
+}
