@@ -45,7 +45,7 @@
    holder.querySelector('[data-family-fields]').hidden=!on;
    const primary=form.elements.room_id.value,arrival=form.elements.arrival.value,departure=form.elements.departure.value;
    const d=workspace.stays||[],guard=root.BiteCheckinGuard?.roomAvailability,checkoutMode=form.elements.mode.value;
-   let count=1,base=Number(form.elements.nightly_rate.value||0),adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0);
+   let count=1,base=Number(form.elements.nightly_rate?.value??rooms.find(r=>String(r.id)===primary)?.nightly_rate??0),adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0)||Number(form.elements.adults?.value||0);
    for(const row of holder.querySelectorAll('[data-family-room]')){
     const id=row.dataset.familyRoom,room=rooms.find(x=>String(x.id)===id),box=row.querySelector('input[type=checkbox]'),fields=row.querySelector('.bf-room-fields');
     const reason=id===primary?'Lead room already selected':(guard&&arrival&&departure?guard(room,d,arrival,departure,checkoutMode,'',today(),{...prop(),housekeeping_enabled:root.BiteHospitality?.housekeepingVisible?.()}):'');
@@ -89,7 +89,7 @@
   if(new Set([f.room_id,...selected]).size!==selected.length+1)throw fail('family_room_ids','Each room can appear only once.');
   const names=[f.full_name,f.family_name].filter(Boolean);
   const name=String(f.family_name||names[0]+' family').trim().slice(0,120);
-  const rows=[{room_id:f.room_id,adults:Number(f.male||0)+Number(f.female||0),children:Number(f.children||0),nightly_rate:Number(f.nightly_rate),note:'Lead guest: '+f.full_name}];
+  const rows=[{room_id:f.room_id,adults:Number(f.male||0)+Number(f.female||0)||Number(f.adults||0),children:Number(f.children||0),nightly_rate:Number(f.nightly_rate??roomById.get(f.room_id)?.nightly_rate),note:'Lead guest: '+f.full_name}];
   for(const id of selected){
    const room=roomById.get(id);
    if(!room||!room.active||room.housekeeping==='blocked')throw fail('family_room_ids','A selected room is unavailable. Refresh rooms.');
