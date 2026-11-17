@@ -31,8 +31,10 @@
  function decorateFolio(target,folio,stay,guest){
   const box=document.createElement('section');box.className='bh-panel';box.id='biteGuestOperations';
   const jobs=(db().refund_requests||[]).filter(j=>j.folio_id===folio.id),open=folio.status==='open';
+  const foreign=guest&&(guest.is_oci||!['india','indian','bharat','भारत'].includes(String(guest.country||'India').trim().toLowerCase()));
+  if(!stay?.policy_snapshot?.reviewed&&!jobs.length&&Number(folio.totals?.balance)>=0&&!foreign)return;
   box.innerHTML='<h2>Guest services</h2>'+message()+
-   (open&&stay?.status==='in_house'&&manager()?'<div class="bh-actions">'+button('policy-review','Review checkout policy',folio.id)+button('late-checkout','Approve late checkout',stay.id)+'</div>':'')+
+   (open&&stay?.status==='in_house'&&manager()&&stay.policy_snapshot?.reviewed?'<div class="bh-actions">'+button('policy-review','Review checkout policy',folio.id)+button('late-checkout','Approve late checkout',stay.id)+'</div>':'')+
    (folio.checkout_policy?'<p>Checkout policy agreed: unused-night credit '+money(folio.checkout_policy.early_credit)+' · late fee '+money(folio.checkout_policy.late_fee)+'.</p>':'')+
    (stay?.expected_checkout_at?'<p>Expected departure: '+esc(new Date(stay.expected_checkout_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}))+'</p>':'')+
    '<h3>Hotel refunds</h3><p class="bh-note">These track money returned by the property. Online food refunds remain in the existing payment system.</p>'+

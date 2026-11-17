@@ -16,8 +16,8 @@
  const manager=()=>['owner','manager'].includes(p()?.role);
  const methods=()=>['Cash','UPI','Bank Transfer','Card'].map(x=>option(x,x)).join('');
  function assertScope(key,version){if(key!==scope()||version!==generation)throw Error('Account or property changed. Reopen this action.')}
- function clear(){generation++;reportVersion++;report=null;reportScope='';month='';root.BiteCheckinFlow?.clear()}
- function init(context){ctx=context;document.querySelector('#mainApp .content')?.addEventListener('click',click);document.querySelector('#mainApp .content')?.addEventListener('submit',submit)}
+ function clear(){generation++;reportVersion++;report=null;reportScope='';month='';root.BiteCheckinFlow?.clear();root.BiteHotelBilling?.clear()}
+ function init(context){ctx=context;root.BiteHotelBilling?.init(context);document.querySelector('#mainApp .content')?.addEventListener('click',click);document.querySelector('#mainApp .content')?.addEventListener('submit',submit)}
  const fieldError=(field,text)=>Object.assign(Error(text),{field});
  const validArrivalTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
  function currentArrivalTime(at=new Date(),timeZone=p()?.timezone||'Asia/Kolkata'){
@@ -42,7 +42,7 @@
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
   input.setAttribute('aria-describedby',[input.getAttribute('aria-describedby'),notice.id].filter(Boolean).join(' '));
   const summary=form.querySelector('.bh-message');if(summary)summary.textContent='';
-  const focus=input.hidden?form.querySelector('[data-ha-focus="'+input.name+'"]'):input;
+  const focus=input.hidden?input.closest('[data-ha-id-card]')?.querySelector('[data-id-open]'):input;if(input.hidden&&focus)focus.dataset.haFocus=input.name;
   (focus||input).focus({preventScroll:true});label.scrollIntoView({block:'center',behavior:'instant'});
   return true;
  }
@@ -104,7 +104,7 @@
   form.elements.transport.addEventListener('change',vehicle);
   form.elements.guest_id.addEventListener('change',()=>{
    for(const side of ['front','back']){form.elements['id_'+side].value='';form.elements['id_'+side+'_id'].value=''}
-   form.elements.id_front.required=true;form.querySelector('[data-front-status]').textContent='Choose this guest’s ID front.';
+   form.elements.id_front.required=true;form.elements.id_back.required=true;form.querySelector('[data-front-status]').textContent='Choose this guest’s ID front.';
   });
   form.elements.guest_id.addEventListener('change',async()=>{
    const guestId=form.elements.guest_id.value,key=scope(),version=generation;if(!guestId)return;
@@ -117,7 +117,7 @@
     if(front&&!form.elements.id_front.files[0]){
      form.elements.id_front_id.value=front.id;form.elements.id_front.required=false;
      form.querySelector('[data-front-status]').textContent='Saved ID front selected. Verify it, or upload a replacement.';
-     const back=ready.find(d=>d.id===prior?.id_back);form.elements.id_back_id.value=back?.id||'';
+     const back=ready.find(d=>d.id===prior?.id_back);form.elements.id_back_id.value=back?.id||'';form.elements.id_back.required=!back;
      form.dispatchEvent(new Event('input',{bubbles:true}));
     }
    }catch{}
@@ -125,6 +125,7 @@
   if(draft.stay_id){for(const key of ['male','female','transport','vehicle_number','arrived_from','next_destination','id_front','id_back','nightly_rate'])form.elements[key].disabled=true;form.elements.id_checked.required=false}
   root.BiteCheckinFlow?.decorate(form,draft);
   root.BiteCheckinGuard?.decorate(form,draft,guest);
+  root.BiteHotelBilling?.decorateRegister(form,draft);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -168,12 +169,12 @@
     hidden.value=id;if(!subject.key)out['id_'+side]=id;root.BiteCheckinFlow?.sync(form);H().persistRegistration(form);
    }
    root.BiteCheckinFlow?.sync(form);out.additional_ids=root.BiteCheckinFlow?.additional(form)||[];
-   if(!out.id_front)throw Error('The required ID front is missing.');return out;
+   if(!out.id_front||!out.id_back)throw Error('Both ID front and back are required.');return out;
   }finally{active--}
  }
  function registration(form,f,docs){
   if(form.dataset.enhanced!=='true'||form.dataset.stayId)return {};
-  const r=validateRegistration(f),foreign=root.BiteCheckinGuard?.readForeign(form);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',registration:{...r,...docs,flow_version:2,...(foreign?{foreign_details:foreign}:{})}};
+  const r=validateRegistration(f),foreign=root.BiteCheckinGuard?.readForeign(form);return {terms_at_checkin:true,arrival_time:f.arrival_time,nightly_rate:Number(f.nightly_rate),advance_account:f.advance_account||'',...(f.booking_stay_id?{booking_stay_id:f.booking_stay_id}:{}),registration:{...r,...docs,flow_version:3,...(foreign?{foreign_details:foreign}:{})}};
  }
  function decorateFolio(target,folio,stay){
   if(!enabled())return;
@@ -184,6 +185,7 @@
    const old=target.querySelector('[data-hotel-action="checkout"]');
    if(old){old.remove();actions?.insertAdjacentHTML('beforeend',button('checkout','Checkout & collect balance',folio.id))}
   }
+  root.BiteHotelBilling?.decorateFolio(target,folio,stay);
   if(stay?.register_number)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Register #'+esc(stay.register_number));
   if(stay?.arrival_time)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Arrival '+esc(String(stay.arrival_time).slice(0,5)));
  }
@@ -192,23 +194,27 @@
   form.querySelector('.bh-actions')?.insertAdjacentHTML('beforebegin',field('account_note','Online account · Short note','text',p()?.tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
   wireMoneyFields(form);
  }
+ function billToolbar(){const back=new URL('./index.html',root.location?.href||'https://gauravjoshi2999.github.io/restaurant-os/index.html').href;return '<nav class="bill-toolbar"><a href="'+esc(back)+'" onclick="window.close();return true">← Back to Partner</a><button onclick="window.print()">Print / Save PDF</button></nav>'}
+ function billTaxGroups(entries){const map=new Map();for(const e of entries){const category=e.category||'incidental',rate=Number(e.tax_rate??(Number(e.amount)>0?Number(e.tax_amount||0)*100/Number(e.amount):0)),key=category+':'+rate,sign=['discount','reversal'].includes(e.kind)?-1:1;const group=map.get(key)||{category,rate,taxable:0,tax:0,sac:category==='room'?'996311':category==='food'?'996331':''};group.taxable+=sign*Number(e.amount);group.tax+=sign*Number(e.tax_amount||0);map.set(key,group)}return [...map.values()].map(g=>({...g,cgst:Math.round(g.tax*50)/100,sgst:Math.round((g.tax-Math.round(g.tax*50)/100)*100)/100}))}
+ function combinedBillHTML(snapshots){const bills=snapshots.map(billHTML),template=bills[0]||billHTML({}),head=template.slice(0,template.indexOf('<body>')+6);return head+billToolbar()+'<h1>'+esc(snapshots[0]?.property?.name)+'</h1><h2>Booking statement · '+snapshots.length+' rooms</h2><p>Individual room invoices are attached below.</p><table><tr><th>Room / Bill</th><th>Total</th></tr>'+snapshots.map(s=>'<tr><td>Room '+esc(s.room?.number)+' · '+esc(s.number)+'</td><td>'+money(s.totals?.charges)+'</td></tr>').join('')+'<tr><th>Combined total</th><th>'+money(snapshots.reduce((n,s)=>n+Number(s.totals?.charges||0),0))+'</th></tr><tr><th>Balance due</th><th>'+money(snapshots.reduce((n,s)=>n+Number(s.totals?.balance||0),0))+'</th></tr></table>'+bills.map(h=>'<article class="invoice-page">'+h.split('<body>')[1].split('</body>')[0].replace(/<nav class="bill-toolbar">[\s\S]*?<\/nav>/,'')+'</article>').join('')+'</body></html>'}
  function billHTML(s){
   const entries=(s.entries||[]).filter(e=>e.status==='confirmed'&&['charge','discount','reversal'].includes(e.kind));
   const lines=cat=>entries.filter(e=>(cat==='extras'?!['room','food'].includes(e.category):e.category===cat)).map(e=>{
    const sign=['discount','reversal'].includes(e.kind)?-1:1;
-   return '<tr><td>'+esc(e.description)+(e.source_items||[]).map(i=>'<br><small>'+esc(i.quantity)+' × '+esc(i.name)+' @ '+money(i.unit_price)+'</small>').join('')+'</td><td>'+money(sign*Number(e.amount))+'</td></tr>';
+   const description=e.category==='food'?'Restaurant food':e.category==='room'&&e.service_from&&e.service_to?Math.round((new Date(e.service_to)-new Date(e.service_from))/86400000)+' night(s) · Room '+(s.room?.number||''):e.description;
+   return '<tr><td>'+esc(description)+(e.source_items||[]).map(i=>'<br><small>'+esc(i.quantity)+' × '+esc(i.name)+' @ '+money(i.unit_price)+'</small>').join('')+'</td><td>'+money(sign*Number(e.amount))+'</td></tr>';
   }).join('');
-  const groups=s.gst||[];
+  const groups=s.gst||billTaxGroups(entries);
   const tax=groups.length?groups.reduce((n,g)=>n+Number(g.cgst)+Number(g.sgst),0):entries.reduce((n,e)=>n+(['discount','reversal'].includes(e.kind)?-1:1)*Number(e.tax_amount||0),0);
   const draft=String(s.number||'').startsWith('DRAFT'),registered=!!s.tax_profile?.gstin&&s.tax_profile?.reviewed;
   const section=(title,body)=>body?'<h3>'+title+'</h3><table><thead><tr><th>Description</th><th>Amount</th></tr></thead><tbody>'+body+'</tbody></table>':'';
-  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>'+esc(s.number)+'</title><style>body{font:14px/1.5 system-ui,sans-serif;max-width:800px;margin:32px auto;padding:0 20px;color:#202020}h1{margin-bottom:4px}h2,h3{margin-top:22px}table{width:100%;border-collapse:collapse;margin:10px 0 18px}th,td{padding:9px 2px;text-align:left;border-bottom:1px solid #ddd;vertical-align:top}th:last-child,td:last-child{text-align:right;white-space:nowrap}small{color:#555}.totals{margin-left:auto;max-width:360px}.sign{margin-top:45px;text-align:right}button{padding:12px 20px}@media print{button{display:none}body{margin:0;max-width:none}tr{break-inside:avoid}}@page{size:A4;margin:16mm}</style></head><body><h1>'+esc(s.property?.name)+'</h1><div>'+esc(s.property?.address||'')+'<br>'+esc(s.property?.phone||'')+(registered?'<br>GSTIN: '+esc(s.tax_profile.gstin):'')+'</div><h2>'+(draft?'Bill estimate':registered?'Tax invoice':'Guest bill')+'</h2><p>Bill no. '+esc(s.number)+' · Date '+esc(s.issued_at?root.BiteOwner.day(s.issued_at):today())+'</p><p>'+esc(s.guest?.name)+'<br>'+esc(s.guest?.address||'')+'</p><p>Room '+esc(s.room?.number)+' · '+esc(s.stay?.arrival)+' to '+esc(s.stay?.departure)+'</p>'+
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>'+esc(s.number)+'</title><style>body{font:14px/1.5 system-ui,sans-serif;max-width:800px;margin:32px auto;padding:0 20px;color:#202020}h1{margin-bottom:4px;font-size:28px;line-height:1.2}.bill-toolbar{display:flex;gap:10px;position:sticky;top:0;background:#fff;padding:12px 0;border-bottom:1px solid #ddd;z-index:2}.bill-toolbar a{padding:10px 14px;border:1px solid #e2b78e;border-radius:10px;color:#753c18;text-decoration:none;font-weight:700}.invoice-page{break-after:page}h2,h3{margin-top:22px}table{width:100%;border-collapse:collapse;margin:10px 0 18px}th,td{padding:9px 2px;text-align:left;border-bottom:1px solid #ddd;vertical-align:top}th:last-child,td:last-child{text-align:right;white-space:nowrap}small{color:#555}.totals{margin-left:auto;max-width:360px}.sign{margin-top:45px;text-align:right}button{padding:12px 20px}@media print{button,.bill-toolbar{display:none}body{margin:0;max-width:none}tr{break-inside:avoid}}@page{size:A4;margin:16mm}</style></head><body>'+billToolbar()+'<h1>'+esc(s.property?.name)+'</h1><div>'+esc(s.property?.address||'')+'<br>'+esc(s.property?.phone||'')+(registered?'<br>GSTIN: '+esc(s.tax_profile.gstin):'')+'</div><h2>'+(draft?'Bill estimate':registered?'Tax invoice':'Guest bill')+'</h2><p>Bill no. '+esc(s.number)+' · Date '+esc(s.issued_at?root.BiteOwner.day(s.issued_at):today())+'</p><p>'+esc(s.guest?.name)+'<br>'+esc(s.guest?.address||'')+'</p><p>Room '+esc(s.room?.number)+' · '+esc(s.stay?.arrival)+' to '+esc(s.stay?.departure)+'</p>'+
    section('Room rent',lines('room'))+section('Food bill',lines('food'))+section('Extra charges',lines('extras'))+
    '<table class="totals"><tbody><tr><td>Subtotal</td><td>'+money(Number(s.totals?.charges||0)-tax)+'</td></tr>'+
    (registered?'<tr><td>CGST'+(groups.length===1?' '+Number(groups[0].rate)/2+'%':'')+'</td><td>'+money(groups.length?groups.reduce((n,g)=>n+Number(g.cgst),0):Math.round(tax*50)/100)+'</td></tr><tr><td>SGST'+(groups.length===1?' '+Number(groups[0].rate)/2+'%':'')+'</td><td>'+money(groups.length?groups.reduce((n,g)=>n+Number(g.sgst),0):tax-Math.round(tax*50)/100)+'</td></tr>':'')+
    '<tr><td><strong>Bill total</strong></td><td><strong>'+money(s.totals?.charges)+'</strong></td></tr><tr><td>Payments received</td><td>'+money(s.totals?.paid)+'</td></tr><tr><td><strong>Balance due</strong></td><td><strong>'+money(s.totals?.balance)+'</strong></td></tr></tbody></table>'+
-   (registered&&groups.length?'<table><thead><tr><th>Service / SAC</th><th>Taxable</th><th>CGST rate</th><th>CGST</th><th>SGST rate</th><th>SGST</th></tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(g.category)+' '+esc(g.sac)+'</td><td>'+money(g.taxable)+'</td><td>'+Number(g.rate)/2+'%</td><td>'+money(g.cgst)+'</td><td>'+Number(g.rate)/2+'%</td><td>'+money(g.sgst)+'</td></tr>').join('')+'</tbody></table><small>Place of supply: '+esc(s.place_of_supply||String(s.tax_profile.gstin).slice(0,2))+' · Reverse charge: No</small>':'')+
-   '<p class="sign">For '+esc(s.property?.name)+'<br><br>Authorized signatory</p><button onclick="window.print()">Print / Save PDF</button></body></html>';
+   (registered&&groups.length?'<table><thead><tr><th>Service / SAC</th><th>Taxable</th><th>GST breakdown</th></tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(({room:'Room rent',food:'Food',incidental:'Extras'})[g.category]||g.category)+'<br><small>'+esc(g.sac)+'</small></td><td>'+money(g.taxable)+'</td><td>CGST '+Number(g.rate)/2+'% · '+money(g.cgst)+'<br>SGST '+Number(g.rate)/2+'% · '+money(g.sgst)+'</td></tr>').join('')+'</tbody></table><small>Place of supply: '+esc(s.place_of_supply||String(s.tax_profile.gstin).slice(0,2))+' · Reverse charge: No</small>':'')+
+   '<p class="sign">For '+esc(s.property?.name)+'<br><br>Authorized signatory</p></body></html>';
  }
  function printStatement(s){const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(billHTML(s));win.document.close();return true}
 
@@ -257,11 +263,12 @@
    field('gstin','Hotel GSTIN · Leave blank if unregistered','text',tax.gstin||'','maxlength="15" autocomplete="off"')+
    field('prefix','Bill prefix','text',s.prefix||'B','required pattern="[A-Za-z0-9]{1,3}" maxlength="3"')+
    field('next_number','Next bill number','number',s.next_number||1,'required min="'+(Number(s.last_number||0)+1)+'" max="999999" step="1"')+
-   select('room_rate','Room GST · Total %',[0,5,18].map(x=>option(x,x+'%',Number(tax.room_rate||0)===x)).join(''))+
-   select('food_rate','Restaurant GST · Total %',[0,5,18].map(x=>option(x,x+'%',Number(tax.food_rate||0)===x)).join(''))+
+   '<p class="bh-note">Room GST is calculated from the agreed rent: 5% up to ₹7,500 per room / day, and 18% above it. No GST is charged without registration.</p>'+
+   '<input type="hidden" name="room_rate" value="5">'+
+   select('food_rate','Restaurant GST · Total %',[5,18].map(x=>option(x,x+'%',Number(tax.food_rate||5)===x)).join(''))+
    field('incidental_rate','Extra charges GST · Total %','number',tax.incidental_rate||0,'required min="0" max="100" step="0.01"')+
    field('primary_account','Usual online account · Short label','text',tax.primary_account||'','maxlength="80" placeholder="Owner account"')+'</div>'+
-   '<p class="bh-note">5% is shown as 2.5% CGST + 2.5% SGST. Confirm applicable room, restaurant and extra-charge rates with your CA. New rates apply to new charges. Existing bills stay unchanged.</p>'+
+   '<p class="bh-note">5% is shown as 2.5% CGST + 2.5% SGST. Confirm the restaurant and extra-charge rates with your CA. Issued bills stay unchanged; an open bill uses the reviewed settings when previewed or checked out.</p>'+
    check('reviewed','I reviewed this property’s GST registration, rates and invoice series.','required')+message()+'<button class="btn" type="submit">Save billing settings</button></form>';
   target.append(box);
  }
@@ -303,6 +310,7 @@
     H().editor('<form class="bh-form" data-ha-form="note" data-id="'+esc(id)+'" data-source="'+esc(b.dataset.source)+'"><h2>Online account note</h2>'+field('account_note','Received / paid through','text',row.account_note||'','required maxlength="80" placeholder="Owner account / second account"')+message()+'<button class="btn" type="submit">Save account note</button></form>');return;
    }
    if(a==='extra'){document.querySelector('#folios [data-hotel-action="entry"][data-id="charge"]')?.click();return}
+   if(a==='checkout'&&root.BiteHotelBilling){await root.BiteHotelBilling.checkout(id);return}
    if(a==='checkout'){
     const f=db().folios.find(x=>x.id===id),t=f?.totals;if(!f||!t)return;
     H().editor('<form class="bh-form" data-ha-form="checkout" data-id="'+esc(id)+'"><h2>Checkout</h2><div class="ha-checkout-summary"><span>Total bill <strong>'+money(t.charges)+'</strong></span><span>Already received <strong>'+money(t.paid)+'</strong></span><span>To collect <strong>'+money(t.balance)+'</strong></span></div>'+
@@ -320,7 +328,7 @@
    if(msg)msg.textContent='Saving…';
    if(type==='billing'){
     if(!form.elements.reviewed.checked)throw Error('Review billing settings first.');
-    await H().command('billing_settings',{prefix:f.prefix,next_number:Number(f.next_number),primary_account:f.primary_account,tax_profile:{gstin:f.gstin.trim().toUpperCase(),reviewed:true,room_rate:Number(f.room_rate),food_rate:Number(f.food_rate),incidental_rate:Number(f.incidental_rate)}});
+    await H().command('billing_settings',{prefix:f.prefix,next_number:Number(f.next_number),primary_account:f.primary_account,tax_profile:{gstin:f.gstin.trim().toUpperCase(),reviewed:true,room_rate:f.gstin.trim()?5:0,food_rate:f.gstin.trim()?Number(f.food_rate):0,incidental_rate:f.gstin.trim()?Number(f.incidental_rate):0}});
     await H().refreshContext();await H().reload();settings(document.getElementById('settings'));return;
    }
    if(type==='book')await H().command('daybook_entry',{...f,kind:form.dataset.kind,amount:Number(f.amount),verified:f.verified==='on'});
@@ -333,6 +341,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML};
+ const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

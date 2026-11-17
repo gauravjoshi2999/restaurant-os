@@ -33,8 +33,9 @@
    const out={charges:0,paid:0,balance:0,deposit_held:0,pending:0};
    for(const e of db.entries.filter(e=>e.folio_id===f.id)){
     if(e.status==='pending'){out.pending+=e.amount;continue}
-    if(e.kind==='charge')out.charges+=e.amount;
-    if(['discount','reversal'].includes(e.kind))out.charges-=e.amount;
+    if(e.status!=='confirmed')continue;
+    if(e.kind==='charge')out.charges+=e.amount+Number(e.tax_amount||0);
+    if(['discount','reversal'].includes(e.kind))out.charges-=e.amount+Number(e.tax_amount||0);
     if(['payment','advance','deposit_apply'].includes(e.kind))out.paid+=e.amount;
     if(e.kind==='refund')out.paid-=e.amount;
     if(e.kind==='deposit_hold')out.deposit_held+=e.amount;
@@ -66,7 +67,7 @@
     if(a==='guest_save'){const g=db.guests.find(g=>g.id===v.id);if(g)Object.assign(g,v);else db.guests.push({...v,id:result.id,property_id:pid,created_at:new Date().toISOString()});if(g)result.id=g.id;}
     else if(a==='reserve'){
      if(db.stays.some(s=>s.room_id===v.room_id&&['reserved','in_house'].includes(s.status)&&s.arrival<v.departure&&v.arrival<s.departure))return {data:null,error:{code:'P0001',message:'Room already reserved'}};
-     const folio_id=crypto.randomUUID(),room=db.rooms.find(r=>r.id===v.room_id);db.stays.push({...v,id:result.id,status:'reserved',nightly_rate:v.nightly_rate??room.nightly_rate});db.folios.push({id:folio_id,property_id:pid,stay_id:result.id,status:'open'});result.folio_id=folio_id;
+     const folio_id=crypto.randomUUID(),room=db.rooms.find(r=>r.id===v.room_id);db.stays.push({...v,id:result.id,status:'reserved',nightly_rate:v.nightly_rate??room.nightly_rate});if(v.booking_stay_id){const parent=db.stays.find(s=>s.id===v.booking_stay_id);parent.group_id=parent.group_id||crypto.randomUUID();db.stays.at(-1).group_id=parent.group_id;}db.folios.push({id:folio_id,property_id:pid,stay_id:result.id,status:'open'});result.folio_id=folio_id;
      if(v.advance_amount>0)db.entries.push({id:crypto.randomUUID(),folio_id,kind:'advance',category:'payment',amount:v.advance_amount,status:['UPI','Card','Bank Transfer'].includes(v.advance_method)&&!v.advance_verified?'pending':'confirmed',method:v.advance_method,description:'Recorded booking advance',created_at:new Date().toISOString()});
     }else if(a==='reservation_edit'){
      const s=db.stays.find(s=>s.id===v.id);if(!s||s.status!=='reserved')return{data:null,error:{code:'P0001',message:'Only an unarrived reservation can be corrected'}};Object.assign(s,v);result.id=s.id;
@@ -84,20 +85,28 @@
      const amount=v.items.reduce((n,i)=>n+i.quantity*i.unit_price,0);if(v.paid_amount!==amount)return {data:null,error:{code:'P0001',message:'Full recorded payment required'}};
      await client.from('orders').insert({id:result.id,restaurant_id:rid,order_code:'SYNTHETIC-TYPED-POS',channel:v.channel,amount,status:'Received',order_date:new Date().toISOString(),is_demo:false});
      db.sales.push({amount,method:v.payment_method,channel:v.channel});result.order_id=result.id;
+    }else if(a==='checkout_collect'){
+     if(v.amount>0){const paid=await client.rpc('bite_property_command',{...args,p_action:'payment',p_payload:{...v,description:'Final checkout payment'},p_request:crypto.randomUUID()});if(paid.error)return paid;if(v.method!=='Cash'&&v.verified){const verified=await client.rpc('bite_property_command',{...args,p_action:'payment_confirm',p_payload:{id:paid.data.id,reference:v.reference},p_request:crypto.randomUUID()});if(verified.error)return verified}}
+     const closed=await client.rpc('bite_property_command',{...args,p_action:'checkout',p_payload:{folio_id:v.folio_id},p_request:crypto.randomUUID()});if(closed.error)return closed;result=closed.data;
+    }else if(a==='booking_checkout_collect'){
+     const invoices=[];for(const fid of v.folio_ids){const f=db.folios.find(f=>f.id===fid),closed=await client.rpc('bite_property_command',{...args,p_action:'checkout_collect',p_payload:{...v,folio_id:fid,amount:totals(f).balance},p_request:crypto.randomUUID()});if(closed.error)return closed;invoices.push(closed.data.invoice)}result={id:v.group_id,invoices};
     }else if(a==='checkin'){
-     const s=db.stays.find(s=>s.id===v.id),r=db.rooms.find(r=>r.id===s.room_id),f=db.folios.find(f=>f.stay_id===s.id);if(r.housekeeping!=='ready')return {data:null,error:{code:'P0001',message:'Room is not Ready'}};
+     const s=db.stays.find(s=>s.id===v.id),r=db.rooms.find(r=>r.id===s.room_id),f=db.folios.find(f=>f.stay_id===s.id);if(r.housekeeping==='blocked'||sessionStorage.getItem(prefKey)==='true'&&r.housekeeping!=='ready')return {data:null,error:{code:'P0001',message:'Room is not Ready'}};
      if(s.status!=='in_house'){s.status='in_house';const nights=(new Date(s.departure)-new Date(s.arrival))/86400000;db.entries.push({id:crypto.randomUUID(),folio_id:f.id,kind:'charge',category:'room',amount:nights*s.nightly_rate,tax_amount:0,status:'confirmed',description:nights+' room nights',created_at:new Date().toISOString()})}result.id=s.id;result.folio_id=f.id;
     }else if(['charge','payment','deposit_hold','deposit_return','deposit_apply','discount','refund'].includes(a)){
      db.entries.push({...v,id:result.id,kind:a,category:a==='charge'?'incidental':a.startsWith('deposit')?'deposit':'payment',amount:Number(v.amount),status:['payment','deposit_hold'].includes(a)&&['UPI','Card','Bank Transfer'].includes(v.method)?'pending':'confirmed',tax_amount:0,created_at:new Date().toISOString()});
     }else if(a==='payment_confirm'){const e=db.entries.find(e=>e.id===v.id);e.status='confirmed';e.reference=v.reference;}
     else if(a==='checkout'){
      const f=db.folios.find(f=>f.id===v.folio_id),t=totals(f);if(t.balance||t.pending||t.deposit_held)return {data:null,error:{code:'P0001',message:'Settle balance, pending payments and deposit before checkout'}};
-     const s=db.stays.find(s=>s.id===f.stay_id),room=db.rooms.find(r=>r.id===s.room_id),guest=db.guests.find(g=>g.id===s.guest_id);s.status='checked_out';room.housekeeping='dirty';room.do_not_disturb=false;room.cleaning_requested=false;f.status='settled';f.invoice_number='SYNTHETIC-INVOICE';
-     f.invoice_snapshot={number:f.invoice_number,property:p,guest:{name:guest.full_name},stay:s,room,entries:db.entries.filter(e=>e.folio_id===f.id),totals:t,tax_profile:p.tax_profile};
+     const s=db.stays.find(s=>s.id===f.stay_id),room=db.rooms.find(r=>r.id===s.room_id),guest=db.guests.find(g=>g.id===s.guest_id);s.status='checked_out';room.housekeeping=sessionStorage.getItem(prefKey)==='true'?'dirty':'ready';room.do_not_disturb=false;room.cleaning_requested=false;f.status='settled';f.invoice_number='SYNTHETIC-INVOICE';
+     f.invoice_snapshot={number:f.invoice_number,property:p,guest:{name:guest.full_name},stay:s,room,entries:db.entries.filter(e=>e.folio_id===f.id),totals:t,tax_profile:f.bill_tax_profile||p.tax_profile};result.id=s.id;result.folio_id=f.id;result.invoice=f.invoice_snapshot;
      if(f.payer_split)f.invoice_snapshot.splits=['first_name','second_name'].map((name,i)=>({...f.invoice_snapshot,number:f.invoice_number+'-'+i,guest:{name:f.payer_split[name]},totals:{...t,charges:t.charges*(i?100-f.payer_split.first_percent:f.payer_split.first_percent)/100}}));
     }else if(a==='room_status'){
      const r=db.rooms.find(r=>r.id===v.id);if(r.do_not_disturb&&v.status==='cleaning')return {data:null,error:{code:'P0001',message:'Do Not Disturb is active'}};r.housekeeping=v.status;
     }
+    else if(a==='payment_void'){const e=db.entries.find(e=>e.id===v.id);e.status='void';}
+    else if(a==='folio_tax'){const f=db.folios.find(f=>f.id===v.folio_id),st=db.stays.find(s=>s.id===f.stay_id),profile=v.mode==='gst'?{...p.tax_profile,billing_mode:'gst',room_rate:st.nightly_rate>7500?18:5}:{billing_mode:'plain',gstin:'',room_rate:0,food_rate:0,incidental_rate:0};for(const e of db.entries.filter(e=>e.folio_id===f.id&&e.kind==='charge'&&e.status==='confirmed')){e.tax_rate=v.mode==='plain'?0:e.category==='room'?profile.room_rate:e.category==='food'?profile.food_rate:profile.incidental_rate;e.tax_amount=Math.round(e.amount*e.tax_rate)/100}f.bill_tax_profile=profile;result.id=f.id;result.folio_id=f.id;}
+    else if(a==='billing_settings'){p.tax_profile={...v.tax_profile,primary_account:v.primary_account};db.invoice_series={prefix:v.prefix,next_number:v.next_number};}
     else if(a==='room_privacy'){Object.assign(db.rooms.find(r=>r.id===v.id),v);if(v.cleaning_requested&&!db.tasks.some(t=>t.room_id===v.id&&t.kind==='cleaning'&&!['completed','cancelled'].includes(t.status)))db.tasks.push({id:crypto.randomUUID(),kind:'cleaning',room_id:v.id,status:'requested',note:'Stayover cleaning'})}
     else if(a==='policy_save'){p.hotel_policy=v.policy;p.checkin_time=v.checkin_time;p.checkout_time=v.checkout_time}
     else if(a==='apply_checkout_policy')db.folios.find(f=>f.id===v.folio_id).checkout_policy=(await client.rpc('bite_checkout_policy_quote',{})).data;
