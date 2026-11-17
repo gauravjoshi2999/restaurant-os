@@ -180,6 +180,25 @@ public class BiteOwnerPushPlugin extends Plugin {
     }
   }
 
+
+  @PluginMethod
+  public void consumeApprovalOpen(PluginCall call) {
+    Intent intent=getActivity().getIntent();
+    JSObject result=new JSObject();
+    if(intent!=null&&"Approval".equals(intent.getStringExtra("bite_order_action"))){
+      String id=intent.getStringExtra("bite_order_id");
+      String restaurant=intent.getStringExtra("bite_restaurant_id");
+      if(id!=null&&restaurant!=null){
+        result.put("intent_id",id);
+        result.put("restaurant_id",restaurant);
+      }
+      intent.removeExtra("bite_order_id");
+      intent.removeExtra("bite_restaurant_id");
+      intent.removeExtra("bite_order_action");
+    }
+    call.resolve(result);
+  }
+
   @PluginMethod
   public void disable(PluginCall call) {
     FirebaseMessaging.getInstance().setAutoInitEnabled(false);
@@ -232,12 +251,22 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
         !=PackageManager.PERMISSION_GRANTED)return;
     Map<String,String> data=message.getData();
     boolean isOrder="bite_order".equals(data.get("event_type"));
+    boolean isCancellation="bite_cancel_request".equals(data.get("event_type"));
+    boolean isApproval="bite_approval_request".equals(data.get("event_type"));
+    String approvalId=data.get("intent_id"),requestId=data.get("request_id");
     String id=data.get("order_id"),restaurant=data.get("restaurant_id");
     // Never show order-action buttons for test pushes or arbitrary payloads.
     if(isOrder&&(id==null||restaurant==null||
        !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
        !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
 
+    if(isApproval&&(approvalId==null||restaurant==null||
+       !approvalId.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
+    if(isCancellation&&(id==null||restaurant==null||requestId==null||
+       !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !requestId.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
     NotificationManager manager=(NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
     if(manager==null)return;
     if(Build.VERSION.SDK_INT>=26&&manager.getNotificationChannel(CHANNEL)==null){
@@ -259,6 +288,7 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
     if(title==null)title="Bite notification";
     if(body==null)body="Open Bite Partner.";
 
+    if(isApproval)id=approvalId;
     if(id==null||id.isEmpty())id=message.getMessageId();
     if(id==null||id.isEmpty())id="bite-general";
     NotificationCompat.Builder builder=new NotificationCompat.Builder(this,CHANNEL)
@@ -269,7 +299,7 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
       .setCategory(NotificationCompat.CATEGORY_MESSAGE)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setDefaults(NotificationCompat.DEFAULT_SOUND|NotificationCompat.DEFAULT_VIBRATE)
-      .setContentIntent(activityIntent(id,restaurant,null))
+      .setContentIntent(activityIntent(id,restaurant,isApproval?"Approval":null))
       .setAutoCancel(true);
     if(isOrder){
       NotificationCompat.Action accept=new NotificationCompat.Action.Builder(
@@ -280,7 +310,10 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
         .setAuthenticationRequired(true).build();
       builder.addAction(accept).addAction(reject);
     }
-    manager.notify(id.hashCode() & 0x7fffffff,builder.build());
+    String notificationTag=isOrder?"bite-order-"+id:
+      isCancellation?"bite-cancel-"+requestId:
+      isApproval?"bite-approval-"+approvalId:"bite-general-"+id;
+    manager.notify(notificationTag,0,builder.build());
   }
 }
 '''
