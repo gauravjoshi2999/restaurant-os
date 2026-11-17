@@ -10,7 +10,7 @@ create table if not exists public.restaurant_pos_visit_details (
  recorded_by uuid not null,
  created_at timestamptz not null default now(),
  constraint bite_pos_visit_guest_count_valid check (
-  (visit_type='dine_in' and guest_count between 1 and 200)
+  (visit_type='dine_in' and guest_count is not null and guest_count between 1 and 200)
   or (visit_type='takeaway' and guest_count is null)
  )
 );
