@@ -11,7 +11,7 @@ test('New and cancellation FCM messages are explicitly distinguished',()=>{
  assert.match(patch,/!requestId\.matches\(/);
 });
 test('Android uses a distinct stable notification tag for each paid order and each cancellation request',()=>{
- assert.match(patch,/String notificationTag=isOrder\?"bite-order-"\+id:\s*isCancellation\?"bite-cancel-"\+requestId:"bite-general-"\+id/);
+ assert.match(patch,/String notificationTag=isOrder\?"bite-order-"\+id:\s*isCancellation\?"bite-cancel-"\+requestId:\s*isApproval\?"bite-approval-"\+approvalId:"bite-general-"\+id/);
  assert.match(patch,/manager\.notify\(notificationTag,0,builder\.build\(\)\)/);
  assert.doesNotMatch(patch,/manager\.notify\(id\.hashCode\(\)\s*&\s*0x7fffffff,builder\.build\(\)\)/);
  const order1="11111111-1111-4111-8111-111111111111";

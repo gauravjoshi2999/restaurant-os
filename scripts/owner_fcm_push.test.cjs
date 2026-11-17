@@ -84,7 +84,7 @@ test('Action-ready FCM is gated to new APK; older APKs keep background notificat
  assert.match(dispatch,/supports_order_actions/);
  assert.match(dispatch,/nativeActions=device.supports_order_actions===true/);
  assert.match(dispatch,/data:dataFields/);
- assert.match(dispatch,/event_type:"bite_order"/);
+ assert.match(dispatch,/event_type:prepaidApproved\?"bite_payment_confirmed":"bite_order"/);
  assert.match(register,/supports_order_actions:supportsActions/);
 });
 test('Android notification buttons open Partner and require unlock + owner verification',()=>{

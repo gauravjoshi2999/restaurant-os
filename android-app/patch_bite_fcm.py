@@ -188,6 +188,27 @@ public class BiteOwnerPushPlugin extends Plugin {
     call.resolve(result);
   }
 
+
+  // A pre-payment request can OPEN the authenticated Orders screen; it must
+  // never mutate an order directly from the Android lock screen.
+  @PluginMethod
+  public void consumeApprovalOpen(PluginCall call) {
+    Intent intent=getActivity().getIntent();
+    JSObject result=new JSObject();
+    if(intent!=null&&"Approval".equals(intent.getStringExtra("bite_order_action"))){
+      String id=intent.getStringExtra("bite_order_id");
+      String restaurant=intent.getStringExtra("bite_restaurant_id");
+      if(id!=null&&restaurant!=null){
+        result.put("intent_id",id);
+        result.put("restaurant_id",restaurant);
+      }
+      intent.removeExtra("bite_order_id");
+      intent.removeExtra("bite_restaurant_id");
+      intent.removeExtra("bite_order_action");
+    }
+    call.resolve(result);
+  }
+
   @PluginMethod
   public void disable(PluginCall call) {
     FirebaseMessaging.getInstance().setAutoInitEnabled(false);
@@ -241,11 +262,16 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
     Map<String,String> data=message.getData();
     boolean isOrder="bite_order".equals(data.get("event_type"));
     boolean isCancellation="bite_cancel_request".equals(data.get("event_type"));
+    boolean isApproval="bite_approval_request".equals(data.get("event_type"));
+    String approvalId=data.get("intent_id");
     String requestId=data.get("request_id");
     String id=data.get("order_id"),restaurant=data.get("restaurant_id");
     // Never show order-action buttons for test pushes or arbitrary payloads.
     if(isOrder&&(id==null||restaurant==null||
        !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
+       !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
+    if(isApproval&&(approvalId==null||restaurant==null||
+       !approvalId.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
        !restaurant.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")))return;
     if(isCancellation&&(id==null||restaurant==null||requestId==null||
        !id.matches("(?i)^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")||
@@ -269,6 +295,7 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
     if(title==null)title="Bite notification";
     if(body==null)body="Open Bite Partner.";
 
+    if(isApproval)id=approvalId;
     if(id==null||id.isEmpty())id=message.getMessageId();
     if(id==null||id.isEmpty())id="bite-general";
     NotificationCompat.Builder builder=new NotificationCompat.Builder(this,CHANNEL)
@@ -278,7 +305,7 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setCategory(NotificationCompat.CATEGORY_MESSAGE)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-      .setContentIntent(activityIntent(id,restaurant,null))
+      .setContentIntent(activityIntent(id,restaurant,isApproval?"Approval":null))
       .setAutoCancel(true);
     if(isOrder){
       NotificationCompat.Action accept=new NotificationCompat.Action.Builder(
@@ -293,7 +320,8 @@ public class BiteFirebaseMessagingService extends FirebaseMessagingService {
     // String.hashCode ID: collisions can replace an unrelated real order.
     // Cancellation requests for the SAME order need separate notification cards.
     String notificationTag=isOrder?"bite-order-"+id:
-      isCancellation?"bite-cancel-"+requestId:"bite-general-"+id;
+      isCancellation?"bite-cancel-"+requestId:
+      isApproval?"bite-approval-"+approvalId:"bite-general-"+id;
     manager.notify(notificationTag,0,builder.build());
   }
 }

@@ -1434,7 +1434,7 @@ function ownerLoginEmailFromPhone(value){const digits=String(value||'').replaceA
 async function performAuth(){const btn=document.getElementById('authSubmit');if(btn.disabled)return;btn.disabled=true;btn.textContent=isSignup?'Creating...':'Logging in...';document.getElementById('authError').style.display='none';try{const identifier=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;let result;if(isSignup){result=await sb.auth.signUp({email:identifier,password,options:{data:{full_name:document.getElementById('authName').value.trim()}}});if(result.error)throw result.error;const session=result.data.session;if(!session){showAuthError('Account created. Email confirm karke phir login karein.');return}await activateSession(session.user)}else{if(identifier.includes('@'))result=await sb.auth.signInWithPassword({email:identifier,password});else result=await sb.auth.signInWithPassword({email:ownerLoginEmailFromPhone(identifier),password});if(result.error)throw result.error;const session=result.data.session;if(!session)throw new Error('Login session nahi mila. Mobile number aur password check karein.');await activateSession(session.user)}}catch(err){showAuthError(err.message||'Login failed. Please try again.')}finally{btn.disabled=false;btn.textContent=isSignup?'Create account':'Login'}}
 async function activateSession(user){if(!user)return;currentUser=user;ownerPushHealthRequest++;ownerPushHealthBusy=false;const pushHealthButton=document.getElementById('ownerPushHealthButton');if(pushHealthButton)pushHealthButton.disabled=false;const ph=document.getElementById('ownerPushHealthResult');if(ph)ph.textContent='Phone push status not checked yet.';try{await loadAccessContext();document.getElementById('authScreen').style.display='none';document.getElementById('mainApp').style.display=window.matchMedia('(max-width:760px)').matches?'block':'grid';document.body.classList.remove('bite-session-check');window.scrollTo(0,0);document.querySelector('#mainApp .content')?.scrollTo(0,0);document.getElementById('accountEmail').textContent=user.user_metadata?.login_phone||user.phone||user.email||'';if(user.app_metadata?.must_change_password===true){document.querySelectorAll('.nav button').forEach(b=>b.style.display='none');document.getElementById('pageTitle').textContent='Password change required';document.getElementById('accountRole').textContent='SET NEW PASSWORD';document.getElementById('passwordSetupModal').classList.add('show');return}applyRoleUI();await loadCloudData();if(access.role==='owner'&&!access.needsProperty&&(!access.property||window.BiteCapabilities.has(access.property,'restaurant_pos'))&&new URLSearchParams(location.search).get('bite_page')==='pos')await showPage('pos');startRealtimeOrderUpdates();if(access.role==='owner'){
  startOwnerCancellationAlerts();
- void syncOwnerPushToken(true);void handlePendingNativeOwnerAction();
+ void syncOwnerPushToken(true);void handlePendingNativeOwnerAction();void handlePendingNativeApprovalOpen();
 }const authType=new URLSearchParams(window.location.hash.slice(1)).get('type')||new URLSearchParams(window.location.search).get('type');if(['invite','recovery'].includes(authType))document.getElementById('passwordSetupModal').classList.add('show')}catch(err){document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';showAuthError('Login saved hai, lekin business data connect nahi hua. Internet check karke Retry karein. '+(err.message||''));document.getElementById('authSessionRetry').hidden=false;}}
 async function loadAccessContext(){
  const results=await Promise.all([sb.rpc('is_platform_admin'),sb.from('restaurant_members').select('restaurant_id,role').eq('user_id',currentUser.id)]);
@@ -3548,6 +3548,7 @@ document.addEventListener('visibilitychange',()=>{
  if(document.visibilityState==='visible'&&currentUser&&access.role==='owner'){
  void syncOwnerPushToken();
  void handlePendingNativeOwnerAction();
+ void handlePendingNativeApprovalOpen();
 }
 });
 // Notification action requires authenticated Owner approval and server-side checks.
@@ -3600,7 +3601,35 @@ async function handlePendingNativeOwnerAction(){
  }catch(err){console.warn('Bite notification action failed',err);showOrderLiveToast('Action verify nahi hua. Orders screen par status dekhein.');}
  finally{ownerNativeActionBusy=false;}
 }
-window.addEventListener('focus',()=>{if(currentUser&&access.role==='owner')void handlePendingNativeOwnerAction();});
+// Notification taps for UNPAID confirmation requests only open Owner Orders.
+// All accept/reject decisions remain authenticated RPCs inside the app.
+let ownerApprovalOpenBusy=false;
+async function handlePendingNativeApprovalOpen(){
+ const native=window.Capacitor?.Plugins?.BiteOwnerPush;
+ if(ownerApprovalOpenBusy||!native?.consumeApprovalOpen||
+    access.role!=='owner'||!currentUser||!access.restaurantId)return;
+ ownerApprovalOpenBusy=true;
+ try{
+  const request=await native.consumeApprovalOpen();
+  if(!request?.intent_id)return;
+  if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(request.intent_id)||
+     request.restaurant_id!==access.restaurantId){
+   showOrderLiveToast('Confirmation request does not belong to this restaurant.');
+   return;
+  }
+  await loadCloudData();
+  showPage('orders');
+  setOrderStatus('new');
+  await window.BiteOwnerConfirmations?.refresh?.();
+ }catch(error){console.warn('Confirmation notification open failed',error);}
+ finally{ownerApprovalOpenBusy=false;}
+}
+window.addEventListener('focus',()=>{
+ if(currentUser&&access.role==='owner'){
+  void handlePendingNativeOwnerAction();
+  void handlePendingNativeApprovalOpen();
+ }
+});
 function openOwnerNotificationSoundSettings(){
  const hint=document.getElementById('ownerNotificationSettingsHint');
  const fallback=()=>{

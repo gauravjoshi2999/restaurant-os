@@ -29,7 +29,8 @@ function compile(path,createClient,fetchFn){
   AbortSignal,btoa,atob,Date,Math,JSON,Number,String,Array,console,
   // Existing synthetic push tests cover only new-order delivery.
   // The new cancellation sender is exercised independently in owner_cancellation_fcm.test.cjs.
-  dispatchCancellationPush:async()=>({processed:0,sent:0,failed:0,skipped:0})};
+  dispatchCancellationPush:async()=>({processed:0,sent:0,failed:0,skipped:0}),
+  dispatchApprovalPush:async()=>({processed:0,sent:0,failed:0,skipped:0})};
  vm.createContext(ctx);vm.runInContext(code,ctx);
  assert.equal(typeof handler,'function');
  return handler;
