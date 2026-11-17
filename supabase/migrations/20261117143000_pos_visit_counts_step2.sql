@@ -125,10 +125,9 @@ declare
  v_visit text;
  v_count integer;
 begin
- if new.action <> 'pos_sale' or not (new.payload ? 'pos_visit_type') then
-  return new;
- end if;
+ if new.action <> 'pos_sale' then return new; end if;
  v_visit:=new.payload->>'pos_visit_type';
+ if v_visit is null then return new; end if;
  if v_visit is null or v_visit not in('dine_in','takeaway') then
   raise exception 'Valid restaurant POS service type required' using errcode='22023';
  end if;
@@ -141,8 +140,10 @@ begin
   if v_count not between 1 and 200 then
    raise exception 'Dine-in people must be between 1 and 200' using errcode='22023';
   end if;
- elsif new.payload ? 'guest_count' and new.payload->'guest_count'<>'null'::jsonb then
-  raise exception 'Takeaway does not count seated restaurant guests' using errcode='22023';
+ else
+  if new.payload->>'guest_count' is not null then
+   raise exception 'Takeaway does not count seated restaurant guests' using errcode='22023';
+  end if;
  end if;
  v_restaurant:=(new.payload->>'restaurant_id')::uuid;
  v_order:=(new.result->>'order_id')::uuid;
@@ -150,14 +151,21 @@ begin
  where o.id=v_order and o.restaurant_id=v_restaurant
   and o.order_code='POS-'||new.request_id::text
   and o.created_at>now()-interval '5 minutes';
- if not found or v_creator is distinct from new.created_by
-    or v_channel is distinct from
-      case when v_visit='dine_in' then 'POS - Dine-in' else 'POS - Takeaway' end
-    or not exists (
-      select 1 from public.bite_property_outlets l
-      where l.property_id=new.property_id and l.restaurant_id=v_restaurant
-    ) then
-  raise exception 'POS property visit does not match committed sale' using errcode='42501';
+ if not found then
+  raise exception 'POS property visit order not found' using errcode='42501';
+ end if;
+ if v_creator is distinct from new.created_by then
+  raise exception 'POS property visit actor mismatch' using errcode='42501';
+ end if;
+ if v_channel is distinct from
+    (case when v_visit='dine_in' then 'POS - Dine-in' else 'POS - Takeaway' end) then
+  raise exception 'POS visit channel mismatch' using errcode='42501';
+ end if;
+ if not exists (
+  select 1 from public.bite_property_outlets l
+  where l.property_id=new.property_id and l.restaurant_id=v_restaurant
+ ) then
+  raise exception 'POS visit property access mismatch' using errcode='42501';
  end if;
  insert into public.restaurant_pos_visit_details
   (order_id,restaurant_id,visit_type,guest_count,recorded_by)
