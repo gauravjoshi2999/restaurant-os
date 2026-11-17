@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  let client=null,activeId=null,record=null,channel=null,clock=null,poll=null,onChange=null;
- let refreshing=false;
+ let refreshing=false,intentCreatedAt=null;
  const format=seconds=>String(Math.floor(Math.max(0,seconds)/60)).padStart(2,'0')+':'+String(Math.max(0,seconds)%60).padStart(2,'0');
  function view(id=activeId){
   if(!id||id!==activeId)return {state:'loading',seconds:0,label:'Checking restaurant…'};
@@ -14,7 +14,9 @@
    return {state:left?'pending':'expired',seconds:left,label:left?'Restaurant confirmation · '+format(left):'Restaurant did not confirm in time'};
   }
   if(record.state==='approved'){
-   const until=Math.min(Date.parse(record.reviewed_at||'')+8*60000,Date.parse(record.intent_created_at||'')+15*60000||Infinity);
+   const intentDeadline=Date.parse(intentCreatedAt||'')+15*60000;
+   const until=Math.min(Date.parse(record.reviewed_at||'')+8*60000,
+     Number.isFinite(intentDeadline)?intentDeadline:Infinity);
    const left=Number.isFinite(until)?Math.max(0,Math.ceil((until-now)/1000)):0;
    return {state:left?'approved':'payment_expired',seconds:left,label:left?'Confirmed! Pay online · '+format(left):'Payment window expired'};
   }
@@ -61,14 +63,14 @@
  function stop(){
   if(channel&&client)client.removeChannel(channel);
   if(clock)clearInterval(clock);if(poll)clearInterval(poll);
-  channel=null;clock=null;poll=null;client=null;activeId=null;record=null;onChange=null;
+  channel=null;clock=null;poll=null;client=null;activeId=null;record=null;onChange=null;intentCreatedAt=null;refreshing=false;
   const panel=typeof document!=='undefined'?document.getElementById('biteOrderConfirmationBanner'):null;
   if(panel)panel.hidden=true;
  }
- function watch(sb,id,callback){
+ function watch(sb,id,callback,createdAt){
   if(!id||!sb)return;
-  if(activeId===id){onChange=callback;return;}
-  stop();client=sb;activeId=id;onChange=callback;
+  if(activeId===id){onChange=callback;if(createdAt)intentCreatedAt=createdAt;return;}
+  stop();client=sb;activeId=id;onChange=callback;intentCreatedAt=createdAt||null;
   clock=setInterval(notify,1000);
   poll=setInterval(()=>{if(document.visibilityState!=='hidden')void refresh();},5000);
   channel=sb.channel('bite-confirm-customer-'+id)
