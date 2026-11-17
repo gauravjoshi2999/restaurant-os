@@ -37,7 +37,7 @@ function mock(overrides={}){
     const row=found()[0]||null;if(change&&row)Object.assign(row,change);
     return{data:row,error:null};
    },
-   then(resolve,reject){return Promise.resolve({data:found(),error:null}).then(resolve,reject)}
+   then(resolve,reject){const matched=found();if(change)for(const row of matched)Object.assign(row,change);return Promise.resolve({data:matched,error:null}).then(resolve,reject)}
   };
   return q;
  }};
