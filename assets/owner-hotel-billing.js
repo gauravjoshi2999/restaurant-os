@@ -35,7 +35,7 @@
   const card=document.createElement('section');card.className='bh-bill-tax-card';card.innerHTML='<div><strong>'+(registered?'GST invoice':'Guest bill · No GST')+'</strong><p>'+(registered?'CGST '+money(cgst)+' + SGST '+money(sgst):'GST is off for this hotel.')+'</p></div>'+(folio.status==='open'&&p().can_configure?button('tax-settings','Billing & GST',folio.id):'');
   target.querySelector('.bh-guest-bill-summary')?.after(card);const guest=(db().guests||[]).find(g=>g.id===stay.guest_id);if(guest){const contact=document.createElement('p');contact.className='bh-room-guest-contact';contact.textContent=[guest.phone,guest.address].filter(Boolean).join(' · ');target.querySelector('.bh-stay-dates')?.after(contact)}
   if(folio.status==='open'&&['owner','manager','receptionist'].includes(p().role))target.querySelector('.bh-guest-bill-buttons')?.insertAdjacentHTML('beforeend','<button type="button" class="btn secondary" data-hotel-action="add-guest-room" data-id="'+esc(stay.id)+'">＋ Another room for this guest</button>');
-  const rows=rowsFor(stay);if(rows.length>1){const box=document.createElement('section');box.className='bh-panel bh-linked-booking';box.innerHTML='<h2>'+(stay.group_id?'One booking':'This guest')+' · '+rows.length+' rooms</h2>'+rows.map(r=>'<div class="bh-room-line"><span>Room '+esc(r.room?.number)+' · '+esc(r.stay.status==='in_house'?'Staying':r.stay.status==='checked_out'?'Checked out':'Reserved')+' · Due '+money(r.folio.totals?.balance)+'</span>'+button('open-room','Open',r.folio.id)+'</div>').join('')+'<div class="bh-actions">'+button('booking-bill','Combined bill',stay.id)+(stay.group_id&&rows.filter(r=>r.stay.status==='in_house'&&r.folio.status==='open').length>1?button('booking-checkout','Checkout all rooms',stay.id):'')+'</div>';target.querySelector('.bh-guest-bill-top')?.after(box)}
+  const rows=rowsFor(stay);if(rows.length>1){const box=document.createElement('section');box.className='bh-panel bh-linked-booking';box.innerHTML='<h2>'+(stay.group_id?'One booking':'This guest')+' · '+rows.length+' rooms</h2>'+rows.map(r=>'<div class="bh-room-line"><span>Room '+esc(r.room?.number)+' · '+esc(r.stay.status==='in_house'?'Staying':r.stay.status==='checked_out'?'Checked out':'Reserved')+' · Due '+money(r.folio.totals?.balance)+'</span>'+button('open-room','Open',r.folio.id)+(stay.group_id&&r.stay.status==='in_house'&&r.folio.status==='open'&&H().has('charge_to_room')?button('food-room','＋ Food',r.folio.id):'')+'</div>').join('')+'<div class="bh-actions">'+button('booking-bill','Combined bill',stay.id)+(stay.group_id&&rows.filter(r=>r.stay.status==='in_house'&&r.folio.status==='open').length>1?button('booking-checkout','Checkout all rooms',stay.id):'')+'</div>';target.querySelector('.bh-guest-bill-top')?.after(box)}
   if(stay.status==='checked_out'){const done=document.createElement('p');done.className='bh-note';done.innerHTML='Checkout complete. '+(!H().housekeepingVisible()?'Room is available again. ':'')+'<button type="button" class="ha-text-button" data-bill-action="rooms">Back to rooms</button>';target.querySelector('.bh-guest-bill-top')?.after(done)}
  }
  function paymentFields(){return methods+field('account_note','Online account · Short note',p().tax_profile?.primary_account||'','maxlength="80"')+field('reference','Online transaction reference','','maxlength="100"')+'<label class="bh-check" data-online-verify><input type="checkbox" name="verified"> I verified this online receipt in the selected account.</label>'}
@@ -64,6 +64,15 @@
    if(a==='close'){document.getElementById('bhActionEditor')?.remove();return}
    if(a==='rooms'){await H().navigate('rooms');return}
    if(a==='open-room'){await H().openFolio(id);return}
+   if(a==='food-room'){
+    const folio=getFolio(id),selected=(db().stays||[]).find(s=>s.id===folio?.stay_id);
+    if(!folio||folio.status!=='open'||selected?.status!=='in_house'||!H().has('charge_to_room'))throw Error('Food can only be added to a checked-in room with charge-to-room enabled.');
+    await H().openFolio(id);
+    const picker=document.querySelector('#folios [data-hotel-action="food-menu"]');
+    if(!picker)throw Error('Room menu is unavailable. Open Restaurant POS and choose Charge to room.');
+    picker.click();
+    return;
+   }
    if(a==='tax-settings'){taxEditor(id);return}
    if(a==='booking-bill'){active++;await combined(id);return}
    if(a==='booking-checkout'){active++;const row=rowsFor((db().stays||[]).find(s=>s.id===id)).find(r=>r.stay.status==='in_house'&&r.folio.status==='open');if(row)await checkout(row.folio.id,true);return}
