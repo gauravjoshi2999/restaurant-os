@@ -29,6 +29,28 @@
   background:linear-gradient(115deg,#ff890c,#f46500 72%,#e75b00)!important
  }
  body[data-role="owner"].bite-v3-active #mainApp:has(#orders.page.active)>.main>.top #pageTitle::after{content:"Bite   |   Orders"}
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell{
+  order:2;display:grid;place-items:center;position:relative;flex:0 0 39px;
+  width:39px;height:39px;min-height:39px;padding:0;margin-left:auto;
+  border:1px solid #ffffff58;border-radius:13px;background:#ffffff25;color:#fff
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell svg{
+  width:22px;height:22px
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell i{
+  position:absolute;right:-4px;top:-5px;min-width:17px;height:17px;padding:1px 4px;
+  border-radius:99px;background:#e42f3c;color:#fff;font-size:10px;
+  font-weight:900;font-style:normal;border:2px solid #fff;display:grid;place-items:center
+ }
+ body[data-role="owner"].bite-v3-active #mainApp>.main>.top #biteV3HeaderBell i[hidden]{display:none!important}
+ body[data-role="owner"] #mainApp>.main>.top #biteV3HeaderBell[hidden]{display:none!important}
+ /* The actual property dropdown in the header is canonical; don't repeat it. */
+ body[data-role="owner"].bite-v3-active #mainApp:has(.bh-property-switch:not([hidden])) #biteV3Home .bv3-intro{
+  display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(.bh-property-switch:not([hidden])) #orders .bite-owner-order-stages{
+  top:112px!important
+ }
  body[data-role="owner"].bite-v3-active #mainApp>.main>.top .bite-owner-back{
   color:white!important;background:#ffffff22!important;border:1px solid #ffffff50!important;
  }
