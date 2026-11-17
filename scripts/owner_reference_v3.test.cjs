@@ -10,32 +10,32 @@ function compile(){
  root.window=root;vm.runInNewContext(source,{window:root,console,Date});
  return root.BiteOwnerReferenceV3;
 }
-test('Screenshot Home is implemented as a real owner-only UI, never a static image or fake sales',()=>{
+test('Screenshot Home is implemented as owner-only interactive content from tenant data',()=>{
  const api=compile();
- assert.equal(api.timeLabel(new Date(Date.now()+90*1000)), '01:30');
+ assert.equal(api.timeLabel(new Date(Date.now()+90*1000)),'01:30');
  assert.match(source,/BiteDashboard/);
  assert.match(source,/BiteHospitality\?\.dashboardSnapshot/);
  assert.match(source,/BiteOwnerConfirmations\?\.snapshot/);
- assert.match(source,/todaySales/);
- assert.match(source,/todayPosBilled/);
- assert.match(source,/\.week/);
- assert.match(source,/Payment not collected/);
- assert.doesNotMatch(source,/Rahul Verma|BITE-7842|5,480|456\b/,'mock screenshot figures must not ship to production');
- assert.match(css,/\.bv3-attention/);
- assert.match(css,/\.bv3-kpis/);
- assert.match(css,/\.bv3-insights/);
- assert.match(css,/\.bv3-shortcuts/);
- assert.match(css,/\.bv3-flow-grid/);
+ assert.match(source,/monthRegisterSummary/);
+ assert.match(source,/Room Status/);
+ assert.match(source,/New POS Bill/);
+ assert.match(source,/Daily Book/);
+ assert.match(source,/Staff Attendance/);
+ assert.match(source,/Hotel Register/);
+ assert.match(source,/housekeepingVisible/);
+ assert.match(source,/biteOwnerNoticeTray/);
+ assert.doesNotMatch(source,/Rahul Verma|BITE-7842|5,480|456\b|₹2,290/,'mock screenshot figures must not ship');
+ assert.match(index,/owner-image-home\.css\?v=/);
 });
-test('Owner Home does not repeat existing premium, tools, current paid queue or finance ledger',()=>{
+test('Owner Home replaces the old Sales snapshot without removing existing backend',()=>{
+ const imageCss=fs.readFileSync('assets/owner-image-home.css','utf8');
  assert.match(css,/#overview>\*:not\(#biteV3Home\)\{display:none!important\}/);
- assert.match(css,/@media \(max-width:760px\)/);
- assert.match(css,/body\[data-role="owner"\]/);
- assert.match(source,/Online paid \(net\)/);
- assert.match(source,/POS billed/);
- assert.match(source,/Not cash collected/);
- assert.match(source,/Verified · refunds minus/);
- assert.match(source,/Daily Cashbook|Cashbook for collections/);
+ assert.match(imageCss,/\.boh-feature-grid/);
+ assert.match(imageCss,/\.boh-register/);
+ assert.match(imageCss,/\.boh-notice-tray/);
+ assert.match(imageCss,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.match(source,/return date\.startsWith\(month\)&&\['in_house','checked_out'\]/);
+ assert.match(source,/BiteOwnerOrderBurst\?\.paidOrderIds/);
  assert.match(core,/core\.financialSummary/);
 });
 test('No new order mutation: only existing owner review RPC; no unverified Paid claim',()=>{
