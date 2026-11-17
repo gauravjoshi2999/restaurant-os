@@ -719,6 +719,7 @@ body.bite-session-check #biteSessionSplash{
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
 <link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261117-s1">
+<link rel="stylesheet" href="assets/bite-pos-visits.css?v=20261117-step2">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
@@ -1300,6 +1301,21 @@ body.bite-session-check #biteSessionSplash{
 <div class="modal" id="orderModal"><div class="modal-box"><div class="modal-head"><h2 id="orderModalTitle">New POS Bill</h2><button class="close" onclick="closeModal('orderModal')">✕</button></div><form id="orderForm">
 <div class="pos-draft-toolbar"><span id="posDraftStatus" role="status" aria-live="polite">Auto-save ready</span><div class="pos-draft-actions"><button type="button" class="btn secondary" onclick="BitePOS.saveNow()">Save Draft</button><button type="button" class="btn secondary" onclick="BitePOS.discardActive()">Delete Draft</button></div></div>
 <input type="hidden" id="posReplaceOrderId"><input type="hidden" name="channel" id="orderChannel" value="POS - Counter"><input type="hidden" name="restaurant" id="orderRestaurant">
+<section id="bitePOSVisitControls" aria-label="Restaurant bill service type">
+ <div class="pos-visit-heading"><strong>Order for</strong><small>One bill format</small></div>
+ <div class="pos-visit-choices" role="group" aria-label="Dine-in or Takeaway">
+  <button type="button" id="posVisitDineIn" data-visit-choice="dine_in" aria-pressed="true">🍽️ Dine-in</button>
+  <button type="button" id="posVisitTakeaway" data-visit-choice="takeaway" aria-pressed="false">🥡 Takeaway</button>
+ </div>
+ <div id="posGuestCounter"><div class="pos-visit-guests-head"><label for="posGuestCount">Kitne log khana kha rahe hain?</label><small>Actual diners — item quantity nahi</small></div>
+  <div class="pos-visit-stepper" role="group" aria-label="Number of dine-in guests">
+   <button type="button" data-visit-step="-1" aria-label="Remove one guest">−</button>
+   <input id="posGuestCount" type="number" min="1" max="200" step="1" value="1" inputmode="numeric">
+   <button type="button" data-visit-step="1" aria-label="Add one guest">+</button>
+  </div>
+ </div>
+ <small class="pos-visit-note">Takeaway ki people count alag rakhi jayegi. Room service apne hotel folio flow se hi chalega.</small>
+</section>
 <div class="form-row"><div class="field"><label for="orderCustomerName">Customer name</label><input id="orderCustomerName" type="text" name="customer_name" maxlength="120" placeholder="Yahan customer ka naam likhein" autocomplete="name" autocapitalize="words" spellcheck="false"></div><div class="field"><label for="orderCustomerPhone">Mobile number</label><input id="orderCustomerPhone" name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,18}" maxlength="18" placeholder="Customer mobile"></div></div>
 
 <div class="section-head" style="margin:18px 0 10px"><h3 style="margin:0">Items in this bill</h3></div>
@@ -1344,6 +1360,7 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
 <script src="./assets/bite-pos-v2.js?v=20261117-s1"></script>
+<script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
 <script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
 <script>
@@ -2924,6 +2941,7 @@ async function openOrder(){
  if(modal.classList.contains('show'))return; // A second tap must not reset an unfinished bill.
  const form=document.getElementById('orderForm');
  form.reset();
+ window.BitePOSVisits?.init?.();window.BitePOSVisits?.reset?.();
  document.getElementById('posPaidAmount').value='';
  document.getElementById('orderChannel').value='POS - Counter';
  document.getElementById('orderRestaurant').value=restaurantId;
