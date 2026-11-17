@@ -105,7 +105,7 @@ try:
        else:check('Housekeeping queue' not in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home does not show housekeeping when unchecked')
       if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hybrid Hotel Home readiness disappears when unchecked')
     quick='orders' if kind=='restaurant' else 'hotel-register'
-    if v3:page.locator(f'#biteV3Home button[data-bv3-route="{quick}"]').first.click()
+    if v3:page.locator(f'#biteV3Home button[data-bv3-route="{quick}"]:visible').first.click()
     else:page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
     page.locator(f'#{quick}.active').wait_for(state='visible')
     check(True,f'{kind} quick action opens existing {quick} workspace at {width}px')
