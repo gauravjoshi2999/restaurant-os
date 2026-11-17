@@ -545,7 +545,7 @@
    const response=await ctx.sb.rpc('bite_property_command',{p_property:prop().id,p_action:action,p_payload:payload,p_request:attempt.id});
    if(response.error){if(['P0001','42501','P0002'].includes(response.error.code)||/^(22|23)/.test(response.error.code||''))localStorage.removeItem(key);throw response.error}
    localStorage.removeItem(key);return response.data;
-  }catch(error){throw Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.')}finally{activeWrites=Math.max(0,activeWrites-1)}
+  }catch(error){const failure=Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.');if(error.details)failure.details=error.details;throw failure}finally{activeWrites=Math.max(0,activeWrites-1)}
  }
  function showError(error){const active=document.querySelector('.page.active');const msg=active?.querySelector('.bh-message');if(msg)msg.textContent=error.message||String(error);else root.alert(error.message||String(error))}
  function editor(html){const page=document.querySelector('.page.active');const mount=page?.querySelector('#bhFolioEditor')||page;const old=$('bhActionEditor');old?.remove();const box=document.createElement('div');box.id='bhActionEditor';box.className='bh-panel';box.innerHTML=html;mount.append(box);box.scrollIntoView({block:'nearest',behavior:'smooth'});box.querySelector('input,select,button')?.focus()}

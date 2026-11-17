@@ -19,6 +19,7 @@ extra=r"""
   const c=factory(...args),rpc=c.rpc.bind(c),q=window.__BITE_HOTEL_QA;
   q.db.register_version=1;q.db.next_register_number=1;
   c.rpc=async(name,a={})=>{
+   if(name==='bite_property_command'&&a.p_action==='reserve'&&q.rejectArrivalTimeOnce){q.rejectArrivalTimeOnce=false;return{data:null,error:{code:'22023',message:'Enter a valid arrival time.',details:'{"field":"arrival_time"}'}}}
    if(name==='bite_daily_book'){
     const day=window.BiteOwner.day(),d={day,pos_sales:100,hotel_sales:1575,other_income:50,gross_sales:1725,tax:75,net_sales:1650,expenses:100,staff_advance:200,cash_in:300,cash_out:100,cash_balance:1200,online_in:250,online_out:50,online_balance:200,profit:1550};
     return{data:{from:a.p_from,to:a.p_to,days:[d],journal:[],accounts:[{account:'Second account',method:'UPI',balance:200}],staff:[],gst_invoices:[{date:day,number:'H/26-27/000042',guest:'Synthetic Guest',gstin:'08ABCDE1234F1Z5',total:1575,tax_lines:[{category:'room',sac:'996311',rate:5,taxable:1200,cgst:30,sgst:30},{category:'food',sac:'996331',rate:5,taxable:300,cgst:7.5,sgst:7.5}]}]},error:null};
@@ -122,6 +123,10 @@ try:
    page.screenshot(path=str(OUT/f'ui-hotel-checkin-{width}.png'),full_page=width>760)
    f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
    check('07:17' in f.locator('.bh-review').inner_text(),'Check-in review includes the selected arrival date and time')
+   page.evaluate('__BITE_HOTEL_QA.rejectArrivalTimeOnce=true')
+   f.locator('button[type=submit]').click();field_error(page,f,'arrival_time','Arrival-time save rejected by the server')
+   f.locator('[name=arrival_time]').fill('07:18');f.locator('[name=arrival_time]').fill('07:17')
+   f.locator('button[type=submit]').click();f.locator('.bh-review').wait_for()
    f.locator('button[type=submit]').click()
    page.locator('#folios.active [data-ha-action=extra]').wait_for(state='visible')
    check(page.evaluate('__BITE_DOCUMENT_QA.rows.size')==1,'One private front is retained; optional back adds no empty file')
