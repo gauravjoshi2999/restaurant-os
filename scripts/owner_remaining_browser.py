@@ -122,7 +122,17 @@ try:
    check(page.locator('#biteOwnerBottomNav [data-bite-page=orders]').count()==0,'Disabled online orders have no navigation tab')
    # Actual shell property handoff and late-response invalidation, synthetic transport.
    page.evaluate("localStorage.setItem('qa_multiple_properties','on')")
-   page.evaluate('BiteHospitality.refreshContext(false)');page.evaluate('window.__BITE_HOTEL_QA.delayMs=800;void BiteHospitality.reload()');page.locator('#bitePropertySelect').select_option('34343434-3434-4434-8434-343434343434');page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'rooms');page.locator('#rooms').get_by_text('S-201',exact=True).wait_for(state='visible');page.wait_for_timeout(900)
+   page.evaluate('BiteHospitality.refreshContext(false)');page.evaluate('window.__BITE_HOTEL_QA.delayMs=800;void BiteHospitality.reload()')
+   page.wait_for_function("document.querySelector('#bitePropertySelect')?.options.length===2")
+   if width<=760:
+    page.locator('#biteOwnerBottomNav [data-bite-page=more]').click()
+    selector=page.locator('#biteOwnerMoreScreen #bitePropertySelect')
+    selector.wait_for(state='visible')
+    check(page.locator('#biteOwnerPropertySwitchSection').is_visible(),'More reveals business switching on mobile '+str(width)+'px')
+   else:
+    selector=page.locator('#bitePropertySelect')
+   selector.select_option('34343434-3434-4434-8434-343434343434')
+   page.wait_for_function("document.body.dataset.businessType==='hotel'");nav(page,'rooms');page.locator('#rooms').get_by_text('S-201',exact=True).wait_for(state='visible');page.wait_for_timeout(900)
    check(page.locator('#rooms').get_by_text('101',exact=True).count()==0,'Property handoff reloads the app and clears the prior property workspace')
    check(page.locator('#biteHotelOrderAlert').is_hidden(),'Other property food orders do not show a hotel alert')
    shot(page,'second-property-'+str(width));context.close()
