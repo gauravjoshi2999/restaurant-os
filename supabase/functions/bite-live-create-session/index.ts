@@ -16,10 +16,27 @@ Deno.serve(async req=>{
  if(body?.action==="readiness")return json({ready:true,provider:"cashfree",environment:"production"});
  const id=String(body?.intent_id||"");if(!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return json({error:"Invalid checkout"},400);
  const db=createClient(url,service);
- const {data:intent,error:ie}=await db.from("bite_live_checkout_intents").select("id,customer_id,restaurant_id,amount,currency,status,provider_order_id,provider_attempted_at,priced_items,food_subtotal,delivery_fee,discount_amount,customer_snapshot,created_at").eq("id",id).maybeSingle();
+ const {data:intent,error:ie}=await db.from("bite_live_checkout_intents").select("id,customer_id,restaurant_id,amount,currency,status,confirmation_required,provider_order_id,provider_attempted_at,priced_items,food_subtotal,delivery_fee,discount_amount,customer_snapshot,created_at").eq("id",id).maybeSingle();
  if(ie)return json({error:"Database unavailable"},503);
  if(!intent||intent.customer_id!==user.id)return json({error:"Checkout not found"},404);
  if(intent.status!=="awaiting_payment")return json({error:"Checkout cannot be paid"},409);
+ // NEW: block all newly gated checkouts until restaurant approval has been
+ // committed to Postgres. A customer browser alone must never unlock payment.
+ const {data:confirmation,error:confirmationError}=await db.from("bite_order_confirmations")
+  .select("state,expires_at,reviewed_at").eq("intent_id",id).maybeSingle();
+ if(confirmationError)return json({error:"Restaurant confirmation status unavailable; payment not started"},503);
+ if(intent.confirmation_required||confirmation){
+  if(!confirmation)return json({error:"Restaurant confirmation required before payment",status:"confirmation_required"},409);
+  if(confirmation.state!=="approved")return json({
+   error:confirmation.state==="pending"?"Waiting for restaurant to confirm":"Restaurant did not confirm this request",
+   status:"confirmation_"+confirmation.state
+  },409);
+  const reviewedMs=Date.parse(String(confirmation.reviewed_at||""));
+  const createdMs=Date.parse(String(intent.created_at||""));
+  if(!Number.isFinite(reviewedMs)||!Number.isFinite(createdMs)||Date.now()>=Math.min(reviewedMs+8*60_000,createdMs+15*60_000))
+   return json({error:"Restaurant-approved payment window expired; start a new request",status:"confirmation_expired"},409);
+ }
+
  if(!Array.isArray(intent.priced_items)||intent.priced_items.length<1||intent.priced_items.length>50)return json({error:"Checkout item snapshot missing"},409);
  const snapshotTotal=intent.priced_items.reduce((sum:number,item:any)=>sum+Number(item.quantity)*Number(item.unit_price),0);
  if([intent.food_subtotal,intent.delivery_fee,intent.amount].some(n=>n==null||!Number.isFinite(Number(n)))||Number(intent.delivery_fee)<0||!Number.isFinite(snapshotTotal)||Math.abs(snapshotTotal-Number(intent.food_subtotal))>0.001||!Number.isFinite(Number(intent.discount_amount||0))||Number(intent.discount_amount||0)<0||Number(intent.discount_amount||0)>snapshotTotal||Math.abs(snapshotTotal+Number(intent.delivery_fee)-Number(intent.discount_amount||0)-Number(intent.amount))>0.001)return json({error:"Checkout total mismatch"},409);
