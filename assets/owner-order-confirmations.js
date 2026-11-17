@@ -31,6 +31,9 @@
   const display=!!restaurant&&['new','all'].includes(activeFilter);
   const available=rows.filter(r=>r.state==='pending'&&countdown(r.expires_at).seconds>0);
   el.hidden=!display||available.length===0;
+  const empty=document.getElementById('orderEmpty');
+  if(empty&&display&&available.length)empty.style.display='none';
+  else if(empty&&!document.querySelector('#orderBoard .order-card'))empty.style.display='block';
   const badge=document.querySelector('#biteOwnerOrderStages [data-bite-stage="new"] [data-bite-stage-count]');
   if(badge)badge.textContent=String(Number(paidNewCount||0)+available.length);
   if(el.hidden){el.innerHTML='';return;}
