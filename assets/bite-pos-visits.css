@@ -1,5 +1,6 @@
 /* Bite POS unified dine-in/takeaway visit capture.
    One shared menu/cart/payment form. Hotel room tender stays separate. */
+#orderModal #bitePOSVisitControls[hidden]{display:none!important}
 #orderModal #bitePOSVisitControls{
  border:1px solid #f0d8c6;background:linear-gradient(130deg,#fff9f4,#fff);
  border-radius:17px;padding:14px;margin:7px 0 15px;
