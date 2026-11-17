@@ -28,6 +28,8 @@ PUBLIC_FILES = (
     "assets/owner-capabilities.js",
     "assets/owner-hospitality.js",
     "assets/owner-hospitality.css",
+    "assets/owner-mobile-navigation.js",
+    "assets/owner-reference-v3.css",
     "assets/owner-operations.js",
     "assets/owner-hotel-accounts.js",
     "assets/owner-checkin-flow.js",
