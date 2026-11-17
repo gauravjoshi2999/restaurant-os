@@ -244,6 +244,27 @@
  body[data-role="owner"].bite-v3-active #orders .bv3-orders-heading>span:first-child{display:grid;gap:2px}
  body[data-role="owner"].bite-v3-active #orders .bv3-orders-heading strong{font-size:21px;font-weight:900;letter-spacing:-.6px}
  body[data-role="owner"].bite-v3-active #orders .bv3-orders-heading small{color:#86747e;font-size:11px}
+ body[data-role="owner"].bite-v3-active #orders .bv3-orders-heading{
+  min-height:30px;justify-content:flex-end;padding:0 1px 3px;
+ }
+ body[data-role="owner"].bite-v3-active #orders .bv3-orders-heading>span:first-child{
+  display:none!important;/* Orange main app header already says Bite | Orders. */
+ }
+ body[data-role="owner"].bite-v3-active #orders .bv3-date-disclosure{
+  border:1px solid #ebdfd9;border-radius:12px;margin:0 0 10px;background:#fff;
+  overflow:hidden
+ }
+ body[data-role="owner"].bite-v3-active #orders .bv3-date-disclosure>summary{
+  cursor:pointer;list-style:none;font-size:11px;font-weight:800;color:#775957;
+  padding:10px 12px;min-height:39px;display:flex;align-items:center
+ }
+ body[data-role="owner"].bite-v3-active #orders .bv3-date-disclosure>summary::after{
+  content:"▾";margin-left:auto;color:#b77743
+ }
+ body[data-role="owner"].bite-v3-active #orders .bv3-date-disclosure[open]>summary::after{content:"▴"}
+ body[data-role="owner"].bite-v3-active #orders .bv3-date-disclosure .bite-owner-order-calendar{
+  border:0!important;box-shadow:none!important;margin:0!important
+ }
  body[data-role="owner"].bite-v3-active #orders .bv3-live-state{
   background:#f1ecee;color:#7f7779;border-radius:99px;padding:7px 11px;font-size:11px;font-weight:850
  }
