@@ -21,6 +21,10 @@ declare
  v_stays jsonb:='[]'::jsonb;
  v_index integer:=0;
  v_count integer;
+ v_total_adults integer:=0;
+ v_family_ids jsonb;
+ v_person jsonb;
+ v_side text;
 begin
  if v_actor is null or p_request is null or p_payload is null
     or jsonb_typeof(p_payload)<>'object' then
@@ -60,6 +64,42 @@ begin
  end if;
  if coalesce((p_payload->>'advance_amount')::numeric,0)<>0 then
   raise exception 'Record family payment against a selected room folio after booking; do not duplicate the group receipt';
+ end if;
+ -- Front-end validation is only a convenience. Never permit direct API callers
+ -- to bypass the family photo-ID requirement on an immediate check-in.
+ if v_mode='checkin' then
+  for v_unit in select value from jsonb_array_elements(p_payload->'rooms') loop
+   v_total_adults:=v_total_adults+coalesce((v_unit->>'adults')::integer,0);
+   if jsonb_typeof(v_unit->'registration')<>'object'
+      or nullif(v_unit->'registration'->>'id_front','') is null
+      or nullif(v_unit->'registration'->>'id_back','') is null then
+    raise exception 'Verify guest ID front and back for every selected room';
+   end if;
+  end loop;
+  v_family_ids:=p_payload->'rooms'->0->'registration'->'family_guest_ids';
+  if jsonb_typeof(v_family_ids) is distinct from 'array'
+     or jsonb_array_length(v_family_ids)<greatest(0,v_total_adults-1)
+     or jsonb_array_length(v_family_ids)>39 then
+   raise exception 'Collect and verify ID photos for all adult family members';
+  end if;
+  if (select count(distinct x->>'subject_key') from jsonb_array_elements(v_family_ids)x)
+     <>jsonb_array_length(v_family_ids) then
+   raise exception 'Duplicate family guest ID subject';
+  end if;
+  for v_person in select value from jsonb_array_elements(v_family_ids) loop
+   if nullif(v_person->>'subject_key','') is null or length(trim(coalesce(v_person->>'name','')))<1 then
+    raise exception 'Name and ID subject are required for each additional adult';
+   end if;
+   foreach v_side in array array['front','back'] loop
+    if not exists(select 1 from public.bite_guest_documents d
+      where d.property_id=p_property and d.guest_id=v_lead
+        and d.subject_key=(v_person->>'subject_key')::uuid
+        and d.id=(v_person->>('id_'||v_side))::uuid
+        and d.status='ready' and d.kind='masked_id') then
+     raise exception 'A family guest ID photo is missing or unverified';
+    end if;
+   end loop;
+  end loop;
  end if;
  -- Group created in the same transaction as every room reservation/check-in.
  -- Any full-room, date, capacity, tax or access failure rolls back the WHOLE group.
