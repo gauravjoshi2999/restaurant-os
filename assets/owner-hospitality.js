@@ -774,7 +774,7 @@
   if(!restaurantAccess())return;
   const type=document.createElement('div');type.id='bitePOSOrderType';type.className='bh-workspace';
   type.innerHTML=select('bite_order_type','Order type',option('POS - Counter','Counter',true)+(has('dine_in')?option('POS - Dine-in','Dine-in'):'')+(has('takeaway')?option('POS - Takeaway','Takeaway'):''))+`<label class="bh-field" id="bitePOSTableField" hidden><span>Table (optional)</span><select name="bite_table_id"><option value="">No table assigned</option>${(ctx.getState().restaurantTables||[]).filter(t=>t.is_active!==false).map(t=>option(t.id,t.table_name)).join('')}</select></label>`;
-  $('posPaymentSection').prepend(type);type.querySelector('[name=bite_order_type]').addEventListener('change',e=>{$('orderChannel').value=e.target.value;$('orderChannel').dispatchEvent(new Event('change'));$('bitePOSTableField').hidden=e.target.value!=='POS - Dine-in';if(e.target.value!=='POS - Dine-in')type.querySelector('[name=bite_table_id]').value=''});
+  $('posPaymentSection').prepend(type);type.querySelector('[name=bite_order_type]').addEventListener('change',e=>{$('orderChannel').value=e.target.value;$('orderChannel').dispatchEvent(new Event('change'));$('bitePOSTableField').hidden=e.target.value!=='POS - Dine-in';if(e.target.value!=='POS - Dine-in')type.querySelector('[name=bite_table_id]').value='';root.BitePOSService?.setType(e.target.value==='POS - Takeaway'?'takeaway':'dine_in',{silent:true})});
   root.BitePOSService?.syncLegacy();
   if(!has('charge_to_room'))return;
   const box=document.createElement('div');box.id='biteRoomPOSTender';box.className='bh-workspace';
