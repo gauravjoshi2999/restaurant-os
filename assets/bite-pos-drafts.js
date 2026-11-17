@@ -93,7 +93,7 @@ function fields(){
   balanceAction:f.elements.balance_action?.value||'udhar',
   whatsAppConsent:!!$('posWhatsAppConsent')?.checked,
   replaceOrderId:$('posReplaceOrderId')?.value||'',
-  visitType:$('posVisitTakeaway')?.getAttribute('aria-pressed')==='true'?'takeaway':'dine_in',
+  visitType:$('posVisitTakeaway')?.getAttribute?.('aria-pressed')==='true'?'takeaway':'dine_in',
   guestCount:$('posGuestCount')?.value||''
  };
 }
