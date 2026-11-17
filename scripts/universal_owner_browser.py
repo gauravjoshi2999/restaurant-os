@@ -210,7 +210,7 @@ try:
       screenshot(page,'hybrid-checkout-390')
       nav(page,'pos')
       page.locator('#bitePosV2Desk [data-bpv2-tab="bills"]').click()
-      check(page.locator('#pos [data-bite-pos-view]').count()==0 or page.locator('#posRows [data-room-folio-invoice]').is_visible(),
+      check(page.locator('#posRows [data-room-folio-invoice]').is_visible(),
        'Mobile POS reveals historical room-linked invoice when Bills tab is selected')
       with page.expect_popup() as linked_invoice:page.locator('#posRows [data-room-folio-invoice]').click()
       check('Synthetic Room Diner' in linked_invoice.value.locator('body').inner_text() and '1,240' in linked_invoice.value.locator('body').inner_text(),'Room-linked POS PDF uses the guest folio statement after settlement');linked_invoice.value.close()
