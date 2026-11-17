@@ -1,0 +1,26 @@
+/* Family / group Check-in. Scoped to existing mobile-friendly hotel form. */
+#bhCheckinForm .bf-family{margin:18px 0;padding:14px;border:1px solid #f2d8c0;border-radius:19px;background:linear-gradient(155deg,#fffaf4,#fff1e5);box-shadow:0 6px 19px #873d1714}
+#bhCheckinForm .bf-family-toggle{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;color:#382329}
+#bhCheckinForm .bf-family-toggle input{width:22px;height:22px;flex:none;accent-color:#e76f11}
+#bhCheckinForm .bf-family-toggle span{display:grid;gap:4px}
+#bhCheckinForm .bf-family-toggle strong{font-size:16px;font-weight:850}
+#bhCheckinForm .bf-family-toggle small{font-size:12px;color:#775f60;line-height:1.4}
+#bhCheckinForm .bf-family-body{padding-top:14px;min-width:0}
+#bhCheckinForm .bf-family-body[hidden],#bhCheckinForm .bf-room-fields[hidden]{display:none!important}
+#bhCheckinForm .bf-family-note{margin:10px 0;color:#746366;font-size:12px;line-height:1.5}
+#bhCheckinForm .bf-room{padding:11px;margin:9px 0;border:1px solid #f0ddcd;border-radius:14px;background:#fffcf8;min-width:0}
+#bhCheckinForm .bf-room-switch{display:flex;align-items:center;gap:10px;cursor:pointer;color:#3c2a2a}
+#bhCheckinForm .bf-room-switch input{width:19px;height:19px;flex:none;accent-color:#ec710f}
+#bhCheckinForm .bf-room-switch span{display:grid;gap:4px}
+#bhCheckinForm .bf-room-switch strong{font-size:14px}
+#bhCheckinForm .bf-room-switch small{font-size:12px;color:#7b6668}
+#bhCheckinForm .bf-room-switch:has(input:disabled){opacity:.55;cursor:not-allowed}
+#bhCheckinForm .bf-room-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+#bhCheckinForm .bf-room-fields label{display:grid;gap:5px;font-size:11px;font-weight:750;color:#59454b;min-width:0}
+#bhCheckinForm .bf-room-fields input{width:100%;min-width:0;padding:10px 6px;border:1px solid #dfcec3;border-radius:10px;background:#fff;color:#30272c;font:inherit;font-size:14px;min-height:42px}
+#bhCheckinForm .bf-room-fields .bf-room-name{grid-column:1/-1}
+#bhCheckinForm .bf-room-status{margin:7px 0 0;font-size:11px;color:#a45031}
+#bhCheckinForm .bf-room-status:empty{display:none}
+#bhCheckinForm .bf-family-totals{font-size:13px;font-weight:800;color:#88430c;padding:11px 12px;border-radius:12px;background:#fff7e9}
+@media(max-width:350px){#bhCheckinForm .bf-room-fields{grid-template-columns:repeat(2,minmax(0,1fr))}#bhCheckinForm .bf-room-fields label:nth-child(3){grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){#bhCheckinForm .bf-family{scroll-behavior:auto}}

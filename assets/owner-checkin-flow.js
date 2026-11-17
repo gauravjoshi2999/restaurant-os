@@ -7,7 +7,7 @@
  const uuid=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s||'');
  const fail=(field,text)=>Object.assign(Error(text),{field});
  const field=(n,label,value='',extra='')=>'<label class="bh-field"><span>'+esc(label)+'</span><input name="'+n+'" value="'+esc(value)+'" '+extra+'></label>';
- const count=form=>['male','female','children'].reduce((n,key)=>n+Number(form.elements[key]?.value||0),0);
+ const count=form=>root.BiteFamilyCheckin?.totalPeople?.(form)??['male','female','children'].reduce((n,key)=>n+Number(form.elements[key]?.value||0),0);
  function matches(guests,query){
   const q=String(query||'').trim().toLocaleLowerCase(),digits=/^[+\d ()-]+$/.test(q)?q.replace(/\D/g,''):'';if(!q)return [];
   return guests.filter(g=>String(g.full_name).toLocaleLowerCase().includes(q)||(digits&&String(g.phone).replace(/\D/g,'').includes(digits))).sort((a,b)=>Number(String(b.full_name).toLocaleLowerCase().startsWith(q))-Number(String(a.full_name).toLocaleLowerCase().startsWith(q))).slice(0,6);
