@@ -614,7 +614,7 @@ html{overflow-x:hidden;scroll-behavior:smooth}body{overflow-x:hidden;-webkit-tex
 <link rel="stylesheet" href="assets/owner-layout.css?v=20261113-pos-enabled">
 <link rel="stylesheet" href="assets/owner-menu-options.css?v=20261116-preview1">
 <link rel="stylesheet" href="assets/owner-mobile-navigation.css?v=20261114-inpage-more2">
-<link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2">
+<link rel="stylesheet" href="assets/owner-orders-workspace.css?v=20261114-p2"><link rel="stylesheet" href="assets/owner-order-confirmations.css?v=20261117-confirm1">
 <script src="assets/owner-mobile-navigation.js?v=20261116-owner-v2" defer></script>
 <link rel="stylesheet" href="assets/bite-theme.css?v=20261109-market">
 <link rel="stylesheet" href="assets/completion.css?v=20261110"><script src="assets/bite-invoice.js?v=20261110" defer></script><style id="bite-owner-orders-first">
@@ -1362,7 +1362,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.js';"></script>
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
-<script src="assets/owner-orders-workspace.js?v=20261115-urgency3"></script>
+<script src="assets/owner-orders-workspace.js?v=20261115-urgency3"></script><script src="assets/owner-order-confirmations.js?v=20261117-confirm1"></script>
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
 <script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
 <script src="assets/owner-dashboard.js"></script>
@@ -3985,7 +3985,7 @@ function renderOrderBoard(){
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
- if(access.role==='owner')BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
+ if(access.role==='owner'){BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);BiteOwnerConfirmations.mount(sb,access.restaurantId,activeOrderStatus,channelOrders.filter(o=>o.status==='Received').length);}else BiteOwnerConfirmations.stop();
  const datedOrders=access.role==='owner'?BiteOwnerOrders.dateFilter(channelOrders):channelOrders;
  const orders=BiteOwnerOrders.sortQueue(activeOrderStatus==='all'?datedOrders:datedOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus),activeOrderStatus,access.role);
  const canManage=access.role==='owner';
@@ -4027,6 +4027,36 @@ function renderOrderBoard(){
   const statusClass=o.status==='Completed'?'green':['Cancelled','Rejected'].includes(o.status)?'amber':'';
   const waitInfo=canManage&&!o.isDemo&&o.status==='Received'?BiteOwnerOrders.waitingInfo(o.createdAt):null;
   const waitBadge=waitInfo?'<span class="bite-order-wait" data-bite-order-wait-at="'+esc(o.createdAt||'')+'" data-wait-level="'+waitInfo.level+'">'+esc(waitInfo.label)+'</span>':'';
+  if(canManage){
+    // Compact partner view: the full item photographs, ledger and history are
+    // still available in a disclosure without pushing the next order off-screen.
+    const isNew=o.status==='Received';
+    const compactItems=items.length?items.slice(0,4).map(i=>
+      '<div>'+esc(i.quantity)+' × '+esc(i.item_name)+'</div>').join('')+
+      (items.length>4?'<div>+'+(items.length-4)+' more items</div>':''):'<div>Item details loading…</div>';
+    const compactPayment=platformFinance?.payment_status==='paid'?'✓ Paid online':
+      (o.isDemo?'SIMULATED — NO PAYMENT':'Payment: '+esc(platformFinance?.payment_status||'checking'));
+    const compactActions=isNew?secondaryActions+primaryButton:primaryButton;
+    const otherActions=(isNew?'':secondaryActions)+payBtn+
+      '<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
+    return dateHeading+'<article class="order-card bite-compact-order'+(isNew?' is-new':'')+'" data-order-id="'+esc(o.id)+'">'+
+      '<div class="bite-compact-top"><strong>#'+esc(o.code||o.id.slice(0,8))+'</strong>'+
+      (o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+waitBadge+
+      '<span class="pill '+statusClass+'">'+esc(isNew?'New':o.status)+'</span></div>'+
+      '<div class="bite-compact-person"><strong>'+esc(o.customerName||'Customer')+'</strong>'+
+      '<span class="bite-compact-type">'+esc(o.deliveryType==='delivery'?'Delivery':'Takeaway')+'</span></div>'+
+      '<div class="bite-compact-subline">'+esc(time)+(o.scheduledFor?' · Scheduled':'')+'</div>'+
+      '<div class="bite-compact-meta"><span>'+compactPayment+'</span><b>'+money(o.amount)+'</b></div>'+
+      (isNew?'<div class="bite-compact-food">'+compactItems+'</div>':'<div class="bite-compact-subline">'+items.length+' items · '+esc(o.status)+'</div>')+
+      (isNew&&o.customerNote?'<div class="bite-compact-note">📝 '+esc(o.customerNote)+'</div>':'')+
+      (compactActions?'<div class="bite-compact-buttons">'+compactActions+'</div>':'')+
+      (deliveryNote||'')+
+      '<details class="bite-compact-details"><summary>Order details, bill & other actions</summary>'+
+      (isNew?'':itemHtml)+customerHtml+scheduledHtml+(isNew?'':instructionsHtml)+
+      '<div class="actions order-actions">'+otherActions+'</div>'+platformFinHtml+
+      '<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details>'+
+      '</details></article>';
+  }
   return dateHeading+'<article class="order-card" data-order-id="'+esc(o.id)+'"><div class="order-card-main"><div class="order-card-top"><strong>Order #'+esc(o.code||o.id.slice(0,8))+'</strong>'+(o.isDemo?'<span class="pill amber">DEMO ONLY</span>':'')+(o.status==='Received'?'<span class="order-new-flag"><i class="order-new-dot"></i> NEW ORDER</span>':'')+waitBadge+'<span class="pill '+statusClass+'">'+esc(o.status)+'</span></div><div class="order-restaurant">'+esc(restaurant?.name||'Restaurant')+'</div>' +customerHtml+scheduledHtml+itemHtml+instructionsHtml+'<div class="order-meta">'+esc(o.channel||'Order')+(o.isDemo?' · SIMULATED — NO PAYMENT':'')+(time?' · '+time:'')+'</div>'+payHtml+platformFinHtml+'</div><div class="order-card-side"><strong class="order-card-total">'+money(o.amount)+'</strong><span class="order-card-time">'+(o.status==='Received'?'Action required':'Order total')+'</span></div><div class="order-card-footer"><div class="bite-order-primary-actions">'+primaryButton+deliveryNote+'</div>'+(canManage?'<details class="bite-order-extra"><summary>Bill, cancel & other actions</summary><div class="actions order-actions">'+secondaryActions+payBtn+(isPos&&o.customerPhone&&!o.isDemo?'<button class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'')+'<button class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button></div></details>':'<div class="order-card-owner-hint">Sirf Owner status update kar sakta hai</div>')+'</div>'+payHistory+'<details class="order-history"><summary>Order history ('+history.length+')</summary>'+historyHtml+'</details></article>';
  }).join('');
  document.getElementById('orderEmpty').style.display=orders.length?'none':'block';

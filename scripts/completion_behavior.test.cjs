@@ -54,6 +54,7 @@ function paymentEdge(kind,options={}){
  const client=(url,key)=>key==='anon'?{auth:{getUser:async()=>({data:{user:options.invalidUser?null:{id:'customer',email:'qa@example.invalid'}}})}}:{from:table=>{let update=null,selection='';const q={select:v=>{selection=v;return q;},eq:()=>q,update:v=>{update=v;return q;},maybeSingle:async()=>{
   if(update){updates.push(update);return{data:options.activationRace?null:{id,status:'payment_verified'}};}
   if(table==='customer_contact_profiles')return{data:{full_name:'Later profile',phone:'8888888888'}};
+   if(table==='bite_order_confirmations')return{data:null};
   if(selection==='status,activated_order_id')return{data:{status:'activated',activated_order_id:oid}};
   return{data:{...intent}};
  },then:resolve=>{if(update)updates.push(update);resolve({data:null,error:null});}};return q;},rpc:async(name,args)=>{activations.push({name,args});return{data:oid};}};

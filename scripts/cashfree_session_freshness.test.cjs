@@ -3,12 +3,12 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {stripTypeScriptTypes}=require('node:module');
 const src=stripTypeScriptTypes(fs.readFileSync('supabase/functions/bite-live-create-session/index.ts','utf8').replace(/^import .*;\s*$/gm,''),{mode:'strip'});
 const id='c8b86ab2-1da4-4f47-a9d4-11ea56b8c311',ref='bite_live_'+id.replaceAll('-','');
-async function run({attemptAge=null,providerRef=null,createdAge=null,providerAge=0,orderExpiryMinutes=20,collision=false,owner='customer-1',cfStatus='ACTIVE'}={}){
+async function run({attemptAge=null,providerRef=null,createdAge=null,providerAge=0,orderExpiryMinutes=20,collision=false,owner='customer-1',cfStatus='ACTIVE',confirmationRequired=false,confirmation=null}={}){
  let handler,providerCalls=0,submitted=null,updates=[];
- const intent={id,customer_id:owner,restaurant_id:'restaurant-1',amount:100,currency:'INR',status:'awaiting_payment',provider_order_id:providerRef,provider_attempted_at:attemptAge===null?null:new Date(Date.now()-attemptAge*1000).toISOString(),priced_items:[{quantity:1,unit_price:100}],food_subtotal:100,delivery_fee:0,discount_amount:0,customer_snapshot:{full_name:'QA',phone:'9999999999'},created_at:new Date(Date.now()-(createdAge||0)*1000).toISOString()};
+ const intent={id,customer_id:owner,restaurant_id:'restaurant-1',amount:100,currency:'INR',status:'awaiting_payment',confirmation_required:confirmationRequired,provider_order_id:providerRef,provider_attempted_at:attemptAge===null?null:new Date(Date.now()-attemptAge*1000).toISOString(),priced_items:[{quantity:1,unit_price:100}],food_subtotal:100,delivery_fee:0,discount_amount:0,customer_snapshot:{full_name:'QA',phone:'9999999999'},created_at:new Date(Date.now()-(createdAge||0)*1000).toISOString()};
  const query=(table)=>{let lastUpdate=null;
   const q={select(){return q;},eq(){return q;},lt(){return q;},is(){return q;},update(v){lastUpdate=v;updates.push(v);return q;},
-   async maybeSingle(){return{data:lastUpdate?{id}:table==='customer_contact_profiles'?null:intent,error:null}}};
+   async maybeSingle(){return{data:lastUpdate?{id}:table==='bite_order_confirmations'?confirmation:table==='customer_contact_profiles'?null:intent,error:null}}};
   return q;
  };
  const client={auth:{getUser:async()=>({data:{user:{id:'customer-1',email:'qa@example.invalid'}},error:null})},from:query};
@@ -55,4 +55,21 @@ test('session nearing provider expiry cannot launch checkout',async()=>{
 test('a customer cannot request another customers fresh session',async()=>{
  const r=await run({owner:'someone-else'});
  assert.equal(r.status,404);assert.equal(r.providerCalls,0);
+});
+
+test('payment request is blocked before restaurant owner approval without calling Cashfree',async()=>{
+ const none=await run({confirmationRequired:true});
+ assert.equal(none.status,409);assert.equal(none.payload.status,'confirmation_required');assert.equal(none.providerCalls,0);
+ const pending=await run({confirmationRequired:true,confirmation:{state:'pending',expires_at:new Date(Date.now()+120000).toISOString()}});
+ assert.equal(pending.status,409);assert.equal(pending.payload.status,'confirmation_pending');assert.equal(pending.providerCalls,0);
+ const rejected=await run({confirmationRequired:true,confirmation:{state:'rejected'}});
+ assert.equal(rejected.status,409);assert.equal(rejected.payload.status,'confirmation_rejected');assert.equal(rejected.providerCalls,0);
+});
+test('approved restaurant snapshot permits only fresh confirmed payments',async()=>{
+ const approved={state:'approved',reviewed_at:new Date().toISOString()};
+ const fresh=await run({confirmationRequired:true,confirmation:approved});
+ assert.equal(fresh.status,200);
+ assert.equal(fresh.providerCalls,1);
+ const stale=await run({confirmationRequired:true,confirmation:{state:'approved',reviewed_at:new Date(Date.now()-9*60000).toISOString()}});
+ assert.equal(stale.status,409);assert.equal(stale.payload.status,'confirmation_expired');assert.equal(stale.providerCalls,0);
 });

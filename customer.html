@@ -102,7 +102,7 @@
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 <script src="assets/customer-discovery.js?v=20261110"></script><script src="assets/customer-menu-search.js?v=20261114-search1"></script><script src="assets/customer-menu-personalization.js?v=20261116-choice1"></script>
 <script src="assets/customer-item-notes.js?v=20261113-presets1"></script>
-<script src="assets/customer-cutlery-preference.js?v=20261116-cutlery1"></script>
+<script src="assets/customer-cutlery-preference.js?v=20261116-cutlery1"></script><script src="assets/customer-order-confirmation.js?v=20261117-confirm1"></script><link rel="stylesheet" href="assets/owner-order-confirmations.css?v=20261117-confirm1">
 <script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="assets/bite-direct-order.js?v=20261113"></script>
 <style id="bite-direct-only-style">
@@ -1793,6 +1793,14 @@ async function openCheckout(){
  const checkoutCartSignature=biteCheckoutCartSignature(checkoutRestaurantId,cartEntries());
  if(activeRestaurant&&BiteDiscovery.isClosed(activeRestaurant)&&!window.BiteSchedule?.canSchedule?.(activeRestaurant)){openCartModal();return;}
  window.BiteCheckoutUX?.resetResult?.();const {data,error}=await sb.auth.getSession();if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(error)throw error;if(!data.session){resumeCheckoutAfterLogin=true;showAuth('login');return;}if(pendingLiveCheckout){
+  // Reopening the SAME frozen cart returns to its restaurant confirmation status.
+  // A changed cart still uses the existing safe cancel-and-start-fresh flow.
+  if(pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started&&
+     pendingLiveCheckout.restaurantId===checkoutRestaurantId&&
+     pendingLiveCheckout.cartSignature===checkoutCartSignature&&
+     !window.BiteCheckoutUX?.freshCartRequested){
+   window.BiteCustomerConfirmationOpen?.();return;
+  }
   if(!activeRestaurant||!cartEntries().length){window.BiteCheckoutUX.showPending('Check earlier payment status or browse the menu.');return;}
   // Allow editing the NEW cart immediately; payment is gated until the old
   // Cashfree attempt is proven cancelled or safely expired.
@@ -1841,27 +1849,48 @@ function biteCheckoutCartSignature(restaurantId,entries){
 function syncCheckoutPaymentButton(){
  const btn=$('placeOrderBtn'),note=$('checkoutPaymentNote');
  const freshPending=!!(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested);
+ const approvalRequired=!BITE_SANDBOX_CHECKOUT&&!!pendingLiveCheckout?.confirmationRequired;
+ if(approvalRequired)window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
+ const approval=approvalRequired?window.BiteOrderConfirmation?.view(pendingLiveCheckout.id):null;
+ const confirmationLocked=approvalRequired&&approval?.state!=='approved';
  // Never show an actionable payment button for a closed restaurant without a future slot.
  const needsScheduleTime=!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&typeof activeRestaurant!=='undefined'&&
   !!activeRestaurant&&checkoutMode()==='delivery'&&window.BiteDiscovery?.isClosed?.(activeRestaurant)===true&&
   window.BiteSchedule?.canSchedule?.(activeRestaurant)===true;
  const missingSchedule=needsScheduleTime&&!window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id);
- btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule;
+ btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
  btn.setAttribute('aria-disabled',String(btn.disabled));
- btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Continue payment'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Pay online':'Online payment unavailable';
- // A freshly created intent is NOT an "old checkout". Keep recovery controls
+ if($('quickCancelCheckout')&&approvalRequired)$('quickCancelCheckout').textContent='Cancel confirmation request';
+ btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
+ // Reopen a pending approval, including after refresh/login, without
+// replacing its frozen cart or generating a second payment attempt.
+
+// A freshly created intent is NOT an "old checkout". Keep recovery controls
  // hidden while Cashfree is being prepared or opened, so they never flash
  // between Pay online and the secure payment sheet.
  const showRecovery=Boolean(pendingLiveCheckout)&&!checkoutPaymentBusy;
  $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery);
  $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
- if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':pendingLiveCheckout?'Previous payment needs confirmation. You can return to the menu anytime.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Secure online payment via Cashfree.':'Payment temporarily unavailable.';
+ if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':confirmationLocked?'No payment yet. Restaurant approval ke baad yahin Pay online button aayega.':pendingLiveCheckout?'Restaurant confirmed. Payment is secured by Cashfree; please complete within the shown time.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Send order to restaurant first; pay only after they confirm.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
   if(pendingLiveCheckout&&!freshPending){if(!('paymentWasDisabled' in el.dataset))el.dataset.paymentWasDisabled=String(el.disabled);el.disabled=true;}
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
  });
 }
+window.BiteCustomerConfirmationOpen=function(){
+ if(!pendingLiveCheckout?.confirmationRequired||pendingLiveCheckout.started||
+    window.BiteCheckoutUX?.freshCartRequested)return false;
+ $('checkoutModal').classList.remove('hidden');
+ $('checkoutModal').classList.add('show');
+ $('checkoutFormPanel').classList.remove('hidden');
+ $('checkoutPendingPanel').classList.add('hidden');
+ $('checkoutOutcomePanel').classList.add('hidden');
+ $('checkoutError').textContent='';
+ window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
+ syncCheckoutPaymentButton();
+ return true;
+};
 async function refreshCheckoutPaymentReadiness(){
  const accountSequence=bitePaymentAccountSequence;
  if(BITE_SANDBOX_CHECKOUT){syncCheckoutPaymentButton();return true;}
@@ -1886,6 +1915,7 @@ async function finishVerifiedCheckout(result,options={}){
   !$('checkoutFormPanel').classList.contains('hidden')&&$('checkoutModal').classList.contains('show');
  const completedRestaurantId=pendingLiveCheckout?.restaurantId;
  const pendingCartSignature=pendingLiveCheckout?.cartSignature||null;
+ if(pendingLiveCheckout?.confirmationRequired)window.BiteOrderConfirmation?.stop();
  pendingLiveCheckout=null;checkoutRequestKey=null;window.BiteCustomerExtras?.savePendingCheckout();$('pendingPaymentBanner')?.remove();
  if(window.BiteCheckoutUX)window.BiteCheckoutUX.freshCartRequested=false;
  if(!preserveFreshCart&&completedRestaurantId&&completedRestaurantId===activeRestaurant?.id&&pendingCartSignature&&pendingCartSignature===biteCheckoutCartSignature(activeRestaurant.id,cartEntries())){cart={};itemNotes={};$('customerNote').value='';$('cartOrderNote').value='';$('checkoutCutlery').checked=false;renderCart();}
@@ -1914,6 +1944,7 @@ async function continueLiveCheckout(){
  if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
  const pending=pendingLiveCheckout,accountSequence=bitePaymentAccountSequence;
  if(!pending?.id)throw new Error('No current checkout. Sign in to see your orders.');
+ if(pending.confirmationRequired)await window.BiteOrderConfirmation.assertApproved(sb,pending.id);
  const createdMs=Date.parse(pending.intentCreatedAt||'');
  if(Number.isFinite(createdMs)&&Date.now()-createdMs>15*60*1000){
   const last=await verifyPendingLiveCheckout();
@@ -2071,7 +2102,10 @@ async function cancelPendingCustomerCheckout(options={}){
  button.disabled=true;fresh.disabled=true;button.textContent='Checking payment & cancelling…';fresh.textContent='Checking payment…';if(!background)$('checkoutError').textContent='';
  try{
   let result=null;
-  for(let attempt=0;attempt<2;attempt++){
+  if(pendingLiveCheckout?.confirmationRequired&&!pendingLiveCheckout.started){
+   await window.BiteOrderConfirmation.cancel(sb,id);
+   result={cancelled:true,status:'expired'};
+  }else for(let attempt=0;attempt<2;attempt++){
    const {data,error}=await sb.functions.invoke('bite-live-cancel-checkout',{body:{intent_id:id}});
    if(!bitePaymentContextCurrent(accountSequence,id))return false;
    result=data;
@@ -2104,6 +2138,7 @@ async function cancelPendingCustomerCheckout(options={}){
   if(!result?.cancelled&&!['expired','failed'].includes(result?.status))throw new Error(result?.error||'Payment status abhi clear nahi hai. Menu par laut sakte hain.');
   if(!pendingLiveCheckout||pendingLiveCheckout.id!==id)return;
   clearTimeout(biteCancelFollowupTimer);biteCancelFollowupTimer=null;
+  window.BiteOrderConfirmation?.stop();
   pendingLiveCheckout=null;checkoutRequestKey=null;checkoutQuotedTotal=null;appliedCheckoutCoupon=null;
   window.BiteCheckoutUX.freshCartRequested=false;
   window.BiteCustomerExtras?.savePendingCheckout();
@@ -2213,7 +2248,7 @@ async function submitCustomerOrder(){
   if(selectedDeliverySlot)checkoutArgs.p_scheduled_for=selectedDeliverySlot;
   const preparationRpc=BITE_SANDBOX_CHECKOUT?'create_bite_sandbox_order_draft':selectedDeliverySlot?'bite_prepare_scheduled_checkout_v1':'bite_prepare_checkout_v2';
   const {data:orderId,error}=await sb.rpc(preparationRpc,checkoutArgs);if(accountSequence!==bitePaymentAccountSequence)return;if(error)throw error;
-  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,cartSignature:biteCheckoutCartSignature(activeRestaurant.id,entries),intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await continueLiveCheckout();return;}
+  if(!BITE_SANDBOX_CHECKOUT){pendingLiveCheckout={id:orderId,restaurantId:activeRestaurant.id,cartSignature:biteCheckoutCartSignature(activeRestaurant.id,entries),intentCreatedAt:new Date().toISOString(),session:null,started:false,verifyOnly:false,expectedAmount:checkoutQuotedTotal,confirmationRequired:true};window.BiteCustomerExtras?.savePendingCheckout();syncCheckoutPaymentButton();await window.BiteOrderConfirmation.request(sb,orderId,()=>syncCheckoutPaymentButton());window.BiteCustomerExtras?.renderPendingPaymentBanner?.();$('checkoutError').textContent='Request sent to restaurant. Payment button will appear here after confirmation.';return;}
   window.BiteCheckoutUX?.markPending?.(orderId);
   const {data:payment,error:paymentError}=await sb.functions.invoke('cashfree-sandbox-draft-checkout',{body:{draft_id:orderId}});if(paymentError)throw paymentError;
   if(!payment?.payment_session_id)throw new Error('Payment service is unavailable. Please try again.');
@@ -2532,7 +2567,7 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
  verify();
 })();
 </script>
-<script src="assets/customer-completion.js?v=20261116-account-center2"></script><script src="./android-update-check.js" defer></script>
+<script src="assets/customer-completion.js?v=20261117-ownerconfirm1"></script><script src="./android-update-check.js" defer></script>
 <script id="bite-customer-update-prompt">
 /* Only offer a reload after comparing the actual deployed SHA; never reload during payment. */
 (async function(){
