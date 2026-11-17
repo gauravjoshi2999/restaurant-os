@@ -21,6 +21,26 @@
     {heading:'Restaurant operations',items:[['tables','Tables','Dine-in tables','▦'],['inventory','Stock','Inventory manage karein','▥'],['hr','Staff','Attendance & salary','♙']]},
     {heading:'Reports & settings',items:[['reports','Reports','Sales & business reports','▥'],['settings','Settings','Restaurant & delivery areas','⚙']]}
   ]);
+  // Public mobile navigation follows the owner's *actual* capabilities.
+  // Hidden routes stay available in More; server route guards remain authoritative.
+  function approvedHomeTabs(property,allowed){
+    const pages=new Set(Array.isArray(allowed)?allowed:[]);
+    const home={page:'overview',label:'Home',icon:'home'};
+    const more={page:'more',label:'More',icon:'more'};
+    if(!property)return tabs;
+    const hotel=pages.has('rooms'),restaurant=pages.has('pos')||pages.has('orders');
+    const selected=[home];
+    if(hotel)selected.push({page:'rooms',label:'Hotel',icon:'hotel'});
+    if(restaurant&&pages.has('orders'))selected.push({page:'orders',label:'Bite Orders',icon:'orders'});
+    if(restaurant&&pages.has('pos'))selected.push({page:'pos',label:'Restaurant POS',icon:'pos'});
+    if(!hotel&&!restaurant){
+      // A restricted owner may still have legitimate non-Hotel routes.
+      const first=['hotel-register','menu'].find(page=>pages.has(page));
+      if(first)selected.push({page:first,label:first==='menu'?'Menu':'Hotel',icon:first==='menu'?'menu':'hotel'});
+    }
+    selected.push(more);
+    return selected;
+  }
   function navigationState(role,page,moreOpen=false){
     const visible=role==='owner';
     return {visible,showBack:visible&&(moreOpen||page!=='overview'),
@@ -248,7 +268,7 @@
       if(currentProperty&&state.visible){
         state.active=moreOpen?'more':activeTabs.some(t=>t.page===page)?page:'more';
         // Hybrid Hotel subpages belong to Hotel, not More; the route remains unchanged.
-        if(!moreOpen&&currentProperty.business_type==='hybrid'&&
+        if(!moreOpen&&['hybrid','hotel'].includes(currentProperty.business_type)&&
            ['rooms','hotel-register','reservations','guests','housekeeping','folios','room-service'].includes(page)&&
            activeTabs.some(t=>t.page==='rooms'))state.active='rooms';
       }
@@ -304,8 +324,8 @@
       syncPropertySwitcher();
       syncHomeIdentity();
       const p=root.BiteHospitality?.prop();
-      activeTabs=p?root.BiteHospitality.getTabs():tabs;buildTabs();
       const allowed=p?root.BiteHospitality.routeList({role:'owner',property:p}):null;
+      activeTabs=p?approvedHomeTabs(p,allowed):tabs;buildTabs();
       moreScreen.querySelectorAll('[data-owner-route]').forEach(b=>{b.hidden=!!allowed&&!allowed.includes(b.dataset.ownerRoute)});
       let extra=doc.getElementById('bitePropertyMore');
       if(extra)extra.remove();
@@ -328,7 +348,7 @@
     syncResponsive();sync();
     if(root.BiteHospitality?.prop())root.dispatchEvent(new Event('bite:capabilities'));
   }
-  const api={tabs,sections,navigationState,init};
+  const api={tabs,sections,approvedHomeTabs,navigationState,init};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else {
     root.BiteOwnerMobileNavigation=api;
