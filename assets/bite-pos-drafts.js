@@ -282,7 +282,8 @@ async function editSavedPos(orderId){
  const ident=identity();
  await window.openOrder();
  if(!sameIdentity(ident))return;
- fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar'});
+ const visit=window.BitePOSVisits?.detail?.(orderId);
+ fill({customerName:o.customerName,customerPhone:o.customerPhone,items,replaceOrderId:orderId,paidAmount:'0',balanceAction:'udhar',visitType:visit?.visit_type||'dine_in',guestCount:visit?.guest_count||1});
  touch();setStatus('Correction draft saved automatically · original bill replaces only on Save');
 }
 async function voidSavedPos(orderId){
