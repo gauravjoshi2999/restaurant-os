@@ -185,6 +185,30 @@
    registerRow+
    '<span class="boh-home-end" aria-hidden="true"></span></div>';
  }
+ const legacyHomeDisplays=new WeakMap();
+ function syncLegacyHomeVisibility(){
+  const doc=root.document;
+  if(!doc?.querySelectorAll)return;
+  const compact=doc.body?.dataset?.role==='owner' &&
+   (root.matchMedia?.('(max-width:760px)').matches ?? Number(root.innerWidth||1024)<=760) &&
+   !!doc.body?.classList?.contains?.('bite-v3-active');
+  for(const element of doc.querySelectorAll('#overview > [data-owner-dashboard], #overview > [data-platform-dashboard], #overview > #bitePremiumHome, #overview > #biteHotelHome')){
+   if(compact){
+    if(!legacyHomeDisplays.has(element))legacyHomeDisplays.set(element,{
+     value:element.style.getPropertyValue('display'),
+     priority:element.style.getPropertyPriority('display')
+    });
+    // Legacy role/finance refreshes can set inline display!important.
+    // A scoped CSS override alone cannot beat that inline declaration.
+    element.style.setProperty('display','none','important');
+   }else if(legacyHomeDisplays.has(element)){
+    const prior=legacyHomeDisplays.get(element);
+    if(prior.value)element.style.setProperty('display',prior.value,prior.priority);
+    else element.style.removeProperty('display');
+    legacyHomeDisplays.delete(element);
+   }
+  }
+ }
  function tick(){
   const home=root.document?.getElementById('biteV3Home');
   if(!home||home.hidden)return;
@@ -211,6 +235,7 @@
   const overview=root.document.getElementById('overview');
   if(overview)overview.dataset.biteHomeCompact='true';
   root.document.body.classList.add('bite-v3-active');
+  syncLegacyHomeVisibility();
   setNotices(notices);
   tick();
  }
@@ -395,6 +420,7 @@
   renderHome(true);
  }
  root.addEventListener?.('bite:capabilities',ensureOwnerHome);
+ root.addEventListener?.('resize',syncLegacyHomeVisibility);
  if(root.document?.readyState==='loading'){
   root.document.addEventListener('DOMContentLoaded',ensureOwnerHome,{once:true});
  }else ensureOwnerHome();
@@ -403,6 +429,7 @@
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
    toggleNoticeTray(false);
    root.document?.body?.classList.remove('bite-v3-active');
+   syncLegacyHomeVisibility();
    const bell=root.document?.getElementById('biteV3HeaderBell');if(bell)bell.hidden=true;
    return;
   }
