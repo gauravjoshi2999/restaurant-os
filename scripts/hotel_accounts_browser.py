@@ -50,10 +50,13 @@ def nav(page,route):
 def photo(page,button,skip=False):
  with page.expect_file_chooser() as chooser:button.click()
  chooser.value.set_files([] if skip else {'name':'synthetic-id.png','mimeType':'image/png','buffer':PNG})
+ page.wait_for_function("!document.querySelector('.ha-id-dialog [data-id-stage]').textContent.includes('Preparing a clear')")
 def capture_id(page,form,key='lead',skip_back=False):
  form.locator('[data-id-open="'+key+'"]').click();dialog=page.locator('.ha-id-dialog')
  photo(page,dialog.locator('[data-capture]'));dialog.locator('[data-select-side=front] img').wait_for()
  check(dialog.locator('[data-id-camera]').get_attribute('capture')=='environment','Mobile camera requests the rear lens')
+ if dialog.locator('[data-select-side=front]').get_attribute('aria-pressed')=='true':dialog.locator('[data-next]').click()
+ if skip_back and dialog.locator('[data-remove-photo]').count():dialog.locator('[data-remove-photo]').click()
  photo(page,dialog.locator('[data-capture]'),skip=skip_back)
  check('Add the ID back' in dialog.inner_text(),'Front capture automatically opens the back-photo step in the same dialog')
  if skip_back:
