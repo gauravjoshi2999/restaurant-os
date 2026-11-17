@@ -3097,6 +3097,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  e.preventDefault();
  if(!['owner','manager'].includes(access.role)){alert('POS billing sirf authorized restaurant owner ya manager kar sakte hain.');return;}
  if(!access.restaurantId||document.getElementById('orderRestaurant').value!==access.restaurantId){alert('Restaurant assignment mismatch. Dobara login karein.');return;}
+ window.BitePOSVisits?.syncPropertyType?.();
  const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');
  const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
  const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));
@@ -3104,6 +3105,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  btn.disabled=true;
  try{
   let data,error,sharePayload=null;
+  const visit=channel.startsWith('POS - ')&&!window.BiteHospitality?.roomPOSSelected() ? window.BitePOSVisits?.selected?.() : null;
   if(channel.startsWith('POS - ')&&window.BiteHospitality?.roomPOSSelected()){
    const result=await window.BiteHospitality.createRoomPOS(items);data=result.order_id;
   }else if(channel.startsWith('POS - ')&&access.property&&(channel!=='POS - Counter'||['cashier','manager'].includes(access.property.role))){
@@ -3140,12 +3142,25 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
     p_balance_action:balanceAction,p_writeoff_reason:null
    };
    if(replaceOrderId)args.p_original_order_id=replaceOrderId;
-   const result=await sb.rpc(replaceOrderId?'replace_unpaid_pos_order':'create_pos_order_with_balance_action',args);
+   // Reuse the canonical payment and Khata RPCs in one transaction with visit metadata.
+   const request={order_code:orderCode,customer_name:args.p_customer_name,customer_phone:args.p_customer_phone,
+    items:args.p_items,paid_amount:args.p_paid_amount,payment_method:args.p_payment_method,
+    payment_date:args.p_payment_date,reference:args.p_reference,balance_action:args.p_balance_action,
+    writeoff_reason:args.p_writeoff_reason,original_order_id:replaceOrderId||null};
+   const result=await sb.rpc('bite_create_counter_pos_visit_v1',{
+    p_restaurant_id:f.get('restaurant'),p_visit_type:visit.visitType,
+    p_guest_count:visit.guestCount,p_payload:request
+   });
    data=result.data;error=result.error;
-   // A network timeout after commit must not generate a duplicate bill.
+   // If response was lost after commit, verify both bill and visit match before confirming.
    if(error){
     const check=await sb.from('orders').select('id').eq('restaurant_id',f.get('restaurant')).eq('order_code',orderCode).maybeSingle();
-    if(check.data?.id){data=check.data.id;error=null;}
+    if(check.data?.id){
+     const metadata=await sb.from('restaurant_pos_visit_details')
+      .select('visit_type,guest_count').eq('order_id',check.data.id).eq('restaurant_id',f.get('restaurant')).maybeSingle();
+     if(!metadata.error&&metadata.data?.visit_type===visit.visitType
+        &&Number(metadata.data.guest_count||0)===Number(visit.guestCount||0)){data=check.data.id;error=null;}
+    }
    }
    if(sharePayload)sharePayload.orderCode=orderCode;
   }else{
@@ -3162,7 +3177,10 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
   e.target.reset();closeModal('orderModal');
   // The sale has already committed. A refresh error must not ask the Owner
   // to create a second bill or accidentally charge/record it twice.
-  try{await loadCloudData();}catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
+  try{
+   await loadCloudData();
+   if(access.restaurantId)void window.BitePOSVisits?.refresh?.(sb,access.restaurantId,()=>renderPOSWorkspace());
+  }catch(refreshError){console.warn('POS post-save refresh failed',refreshError);}
   if(sharePayload)showPosWhatsAppBillDialog(sharePayload);
   else alert(channel.startsWith('POS - ')?'POS sale successfully save ho gayi.':'Order successfully create ho gaya.');
  }catch(err){void window.BitePOS?.saveNow();alert('Order save nahi hua: '+(err.message||String(err))+'\nYour draft is preserved; correct and retry.');}
