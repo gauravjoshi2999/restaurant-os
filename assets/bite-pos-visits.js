@@ -23,8 +23,22 @@
  function syncPropertyType(){
   const select=doc.querySelector('#bitePOSOrderType [name="bite_order_type"]');
   if(!select)return;
-  const wanted=activeType()==='takeaway'?'POS - Takeaway':'POS - Dine-in';
-  if(![...select.options].some(o=>o.value===wanted))return;
+  const modes=[...select.options].map(o=>o.value);
+  const dine=modes.includes('POS - Dine-in'),take=modes.includes('POS - Takeaway');
+  const dineButton=$('posVisitDineIn'),takeButton=$('posVisitTakeaway'),controls=$('bitePOSVisitControls');
+  if(dineButton)dineButton.disabled=!dine;
+  if(takeButton)takeButton.disabled=!take;
+  if(controls)controls.hidden=!dine&&!take;
+  if(!dine&&!take)return; // Counter-only outlets retain original protected POS.
+  let wanted=activeType()==='takeaway'?'POS - Takeaway':'POS - Dine-in';
+  if(!modes.includes(wanted)){
+   wanted=dine?'POS - Dine-in':'POS - Takeaway';
+   dineButton?.setAttribute('aria-pressed',String(wanted==='POS - Dine-in'));
+   takeButton?.setAttribute('aria-pressed',String(wanted==='POS - Takeaway'));
+   const input=$('posGuestCount');
+   if(input&&wanted==='POS - Dine-in'&&!(Number(input.value)>0))input.value='1';
+   paint();
+  }
   if(select.value!==wanted){select.value=wanted;select.dispatchEvent(new Event('change',{bubbles:true}));}
   else {$('orderChannel').value=wanted;const table=$('bitePOSTableField');if(table)table.hidden=wanted!=='POS - Dine-in';}
  }
