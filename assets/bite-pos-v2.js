@@ -54,7 +54,8 @@
    '<nav class="bpv2-tabs" aria-label="POS sections">'+
    '<button type="button" data-bpv2-tab="today" aria-pressed="true">Today</button>'+
    '<button type="button" data-bpv2-tab="bills" aria-pressed="false">Bills</button>'+
-   '<button type="button" data-bpv2-tab="drafts" aria-pressed="false">Drafts</button></nav>'+
+   '<button type="button" data-bpv2-tab="drafts" aria-pressed="false">Drafts</button>'+
+   '<button type="button" data-bpv2-tab="reports" aria-pressed="false">Reports</button></nav>'+
    '<div id="bpv2Stats" aria-live="polite"></div>'+
    '<div id="bpv2Recent" aria-live="polite"></div>'+
    '<div class="bpv2-footer-note">Bill amount is not cash received. Online Bite customer orders are separate.</div>';
@@ -86,6 +87,15 @@
   pos.dataset.bitePosView=view;
   for(const btn of el.querySelectorAll("[data-bpv2-tab]"))btn.setAttribute("aria-pressed",String(btn.dataset.bpv2Tab===view));
   const stats=doc.getElementById("bpv2Stats"),recent=doc.getElementById("bpv2Recent");
+  if(view==="reports"){
+   stats.innerHTML='<div id="bpv2ReportsPanel" aria-label="POS Reports"></div>';
+   recent.innerHTML='';
+   root.BitePOSReports?.mount?.({
+    el:doc.getElementById('bpv2ReportsPanel'),client:current.client,
+    restaurant:current.restaurantId,user:current.userId
+   });
+   return;
+  }
   if(view==="drafts"){
    stats.innerHTML='<div class="bpv2-panel-heading"><strong>Saved drafts</strong><small>Resume or delete an unfinished bill below</small></div>';
    recent.innerHTML='';
@@ -118,7 +128,7 @@
  }
  function render(input){
   if(!input||!input.restaurantId)return;
-  current={restaurantId:input.restaurantId,orders:Array.isArray(input.orders)?input.orders.map(o=>({...o})):[]};
+  current={restaurantId:input.restaurantId,userId:input.userId,client:input.client,orders:Array.isArray(input.orders)?input.orders.map(o=>({...o})):[]};
   paint();
  }
  root.BitePOSV2={render,dateKey,numbers,activeView:()=>view};
