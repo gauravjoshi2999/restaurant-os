@@ -43,9 +43,8 @@ test('Broken mobile script shows retry and recovers when the module loads; no pa
  script.onerror();
  assert.equal(renderCalls,0,'a failed retry must never pretend the approvals are connected');
  assert.equal(notice.hidden,false);
- window.BiteOwnerConfirmations={mount(){}};
  vm.runInContext('retryOwnerConfirmations(true)',ctx);
- assert.equal(script,script);
+ window.BiteOwnerConfirmations={mount(){}};
  script.onload();
  assert.equal(notice.hidden,true);
  assert.equal(renderCalls,1);
