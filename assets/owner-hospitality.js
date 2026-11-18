@@ -339,6 +339,13 @@
   }
   if(id==='hr'){renderStaffAccess(target);return}
   if(id==='expenses'){
+   const expKey='hotel:'+(ctx?.getUser?.()?.id||'')+':'+(prop()?.id||'');
+   const rendered=root.BiteV3ExpenseView?.renderHotel?.(target,{
+    key:expKey,records:data.expenses,today:today(),propertyLabel:prop()?.name,
+    canWrite:['owner','manager'].includes(prop()?.role),
+    onChange:()=>{if(prop()?.id===expKey.split(':').at(-1))renderPage('expenses')}
+   });
+   if(rendered)return;
    target.innerHTML=header('Expenses','Property expenses do not count as guest payments.')+notice()+data.expenses.map(e=>`<article class="bh-record"><div><strong>${esc(e.description)}</strong><p>${esc(e.expense_date)} · ${esc(e.method)}</p></div><strong>${money(e.amount)}</strong></article>`).join('')+`<form class="bh-panel bh-form" data-hotel-form="expense">${field('description','Expense','text','','required maxlength="250"')}${field('amount','Amount (₹)','number','','required min="0.01" step="0.01"')}${field('expense_date','Date','date',today(),'required')}${select('method','Paid by',['Cash','UPI','Card','Bank Transfer','Other'].map(m=>option(m,m)).join(''))}${notice()}<button class="btn" type="submit">Record expense</button></form>`;return;
   }
  }
