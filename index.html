@@ -1006,7 +1006,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card table-wrap"><table><thead><tr><th>Payment mode</th><th>Income</th><th>Outflow</th><th>Net</th></tr></thead><tbody id="cashbookModeRows"></tbody></table></div>
  </div>
  <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small">POS receipts, expenses, purchases, staff, khata and refunds</span></div>
-  <div class="card table-wrap"><table><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
+  <div class="card table-wrap"><table><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div><div class="small" id="cashbookReceiptJumpMessage" role="status" aria-live="polite"></div></div>
  </div>
  <div class="card section" id="cashbookClosingCard">
   <div class="section-head"><h2>Daily cash closing</h2><span class="small">Owner only · Day close ke baad entries lock</span></div>
@@ -1809,6 +1809,46 @@ async function loadCashbook(){
   console.error(e);
  }
 }
+// V3 receipt drill-down: read the existing payment source, never create a second receipt.
+async function openCashbookPOSReceipt(paymentId){
+ const rid=cashbookRestaurantId(),day=cashbookDateValue(),session=cashbookSessionToken();
+ if(access.role!=='owner'||!rid||!currentUser?.id||!/^[0-9a-f-]{36}$/i.test(String(paymentId||'')))return;
+ const row=cashbookEntries.find(x=>x.source_type==='order_payment'&&x.restaurant_id===rid&&x.entry_date===day&&String(x.source_id)===paymentId);
+ if(!row){alert('Receipt is not available for this restaurant and date. Refresh the Daily Book.');return}
+ try{
+  const {data:payment,error}=await sb.from('restaurant_order_payments')
+   .select('id,order_id,restaurant_id,payment_date').eq('id',paymentId).eq('restaurant_id',rid).maybeSingle();
+  if(!cashbookSameSession(session))return;
+  if(error)throw error;
+  if(!payment||payment.payment_date!==day)throw Error('This payment cannot be matched to the selected business day.');
+  const order=state.orders.find(o=>o.id===payment.order_id&&o.restaurant===rid&&String(o.channel||'').startsWith('POS - '));
+  if(!order)throw Error('Original POS bill is not available in this Owner session. Refresh the POS records.');
+  printOwnerInvoice(order.id); // Existing tenant-scoped printable bill; no payment mutation.
+ }catch(error){if(cashbookSameSession(session))alert('POS receipt link: '+(error.message||String(error)))}
+}
+async function showPOSReceiptInCashbook(orderId,paymentId){
+ const rid=access.restaurantId,userId=currentUser?.id;
+ if(access.role!=='owner'||!rid||!userId)return;
+ const order=state.orders.find(o=>o.id===orderId&&o.restaurant===rid&&String(o.channel||'').startsWith('POS - '));
+ const payment=state.orderPayments.find(p=>p.id===paymentId&&p.order_id===orderId&&p.restaurant_id===rid);
+ const day=String(payment?.payment_date||'');
+ if(!order||!/^\d{4}-\d{2}-\d{2}$/.test(day)){alert('Verified POS receipt/date missing. Refresh POS before opening Daily Book.');return}
+ const available=window.BiteHospitality?.routeList?.(access);
+ if(Array.isArray(available)&&!available.includes('cashbook')){alert('Cashbook is not available for this business configuration.');return}
+ await showPage('cashbook'); // Its original loader verifies tenant membership.
+ if(currentUser?.id!==userId||access.restaurantId!==rid||access.role!=='owner')return;
+ document.getElementById('cashbookDate').value=day;
+ await loadCashbook(); // The receipt belongs to its actual payment date, not bill/service date.
+ if(currentUser?.id!==userId||access.restaurantId!==rid||cashbookDataReadyKey!==rid+'|'+day)return;
+ const found=cashbookEntries.some(x=>x.source_type==='order_payment'&&x.source_id===paymentId&&x.entry_date===day&&x.restaurant_id===rid);
+ const hint=document.getElementById('cashbookReceiptJumpMessage');
+ if(hint)hint.textContent=found?'Receipt found for '+day+' · '+(order.code||'POS bill'):'Receipt not shown for this day. Check filters and refresh; no entry was added.';
+ if(found){
+  const target=[...document.querySelectorAll('#cashbookRows tr')].find(tr=>tr.dataset.cashbookSourceId===paymentId);
+  target?.scrollIntoView?.({block:'center',behavior:'smooth'});
+  target?.setAttribute('aria-label','Selected POS receipt for '+(order.code||'POS bill'));
+ }
+}
 function renderCashbook(){
  const total=(dir,method)=>cashbookEntries.filter(x=>x.direction===dir&&(!method||x.payment_method===method)).reduce((sum,x)=>sum+Number(x.amount),0);
  const income=total('in'),out=total('out'),cashIn=total('in','Cash'),cashOut=total('out','Cash');
@@ -1820,7 +1860,11 @@ function renderCashbook(){
  const modes=['Cash','UPI','Card','Bank Transfer','Other'];
  document.getElementById('cashbookModeRows').innerHTML=modes.map(m=>'<tr><td><strong>'+m+'</strong></td><td>'+money(total('in',m))+'</td><td>'+money(total('out',m))+'</td><td>'+money(total('in',m)-total('out',m))+'</td></tr>').join('');
  const labels={expense:'Expense ledger',purchase:'Purchase payment',manual:'Manual entry',order_payment:'POS payment',employee_payment:'Staff payment',customer_ledger_payment:'Khata collection',order_refund:'Customer refund'};
- document.getElementById('cashbookRows').innerHTML=cashbookEntries.map(x=>'<tr><td><span class="pill '+(x.direction==='in'?'green':'amber')+'">'+(x.direction==='in'?'Income':'Outflow')+'</span></td><td>'+esc(x.category)+'</td><td>'+esc(x.description||'—')+'</td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(labels[x.source_type]||x.source_type)+'</td></tr>').join('');
+ document.getElementById('cashbookRows').innerHTML=cashbookEntries.map(x=>{
+  const receipt=x.source_type==='order_payment'&&access.role==='owner'&&/^[0-9a-f-]{36}$/i.test(String(x.source_id||''));
+  const source=receipt?'<button type="button" class="btn secondary" onclick="openCashbookPOSReceipt(&quot;'+esc(x.source_id)+'&quot;)">POS receipt · View bill</button>':esc(labels[x.source_type]||x.source_type);
+  return '<tr'+(receipt?' data-cashbook-source-id="'+esc(x.source_id)+'"':'')+'><td><span class="pill '+(x.direction==='in'?'green':'amber')+'">'+(x.direction==='in'?'Income':'Outflow')+'</span></td><td>'+esc(x.category)+'</td><td>'+esc(x.description||'—')+'</td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+source+'</td></tr>';
+ }).join('');
  document.getElementById('cashbookEmpty').style.display=cashbookEntries.length?'none':'block';
  const status=document.getElementById('cashbookStatus');status.textContent=cashbookClosing?'Closed':cashbookDataReadyKey===cashbookKey()?'Open':'Loading…';status.className='tag '+(cashbookClosing?'success':'');
  const closed=!!cashbookClosing,owner=access.role==='owner',ready=cashbookDataReadyKey===cashbookKey();
@@ -3523,10 +3567,15 @@ function renderPOSWorkspace(){
   const payment=roomLinked?'<span class="pill">Room folio</span>':isVoid?'<span class="pill amber">Voided</span>':Number(p.balance_amount)>0?
     '<button class="btn secondary" onclick="openPaymentModal(&quot;'+esc(o.id)+'&quot;)">Add payment</button>':'<span class="pill green">Paid</span>';
   const invoice=roomLinked?(posted?'<button type="button" class="btn secondary" data-room-folio-invoice onclick="BiteHospitality.printStatement(&quot;'+esc(posted.folio_id)+'&quot;)">Guest folio / PDF</button>':'<button type="button" class="btn secondary" onclick="showPage(&quot;settings&quot;)">Review hotel modules</button>'):'<button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
+  const receipts=state.orderPayments.filter(x=>x.restaurant_id===rid&&x.order_id===o.id&&Number(x.amount)>0&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.payment_date||''))).sort((a,b)=>String(b.payment_date).localeCompare(String(a.payment_date)));
+  const latestReceipt=receipts[0];
+  const receiptLink=!roomLinked&&!isVoid&&latestReceipt&&access.role==='owner'?
+   '<button type="button" class="btn secondary" onclick="showPOSReceiptInCashbook(&quot;'+esc(o.id)+'&quot;,&quot;'+esc(latestReceipt.id)+'&quot;)">Daily Book · '+esc(latestReceipt.payment_date)+'</button>'+
+    (receipts.length>1?'<small>'+receipts.length+' receipts · latest shown</small>':''):'';
   const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
    '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
   const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
-  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+(visit?'<br><small>'+esc(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people')+'</small>':'')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+(visit?'<br><small>'+esc(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people')+'</small>':'')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+receiptLink+share+correction+'</td></tr>';
  }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
  // Separate the mobile POS summary from the canonical bill-save, payment,
