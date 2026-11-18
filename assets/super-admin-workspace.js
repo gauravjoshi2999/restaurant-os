@@ -32,6 +32,7 @@
    const header=document.createElement('header');header.id='saHeader';header.dataset.saUi='';
    header.innerHTML='<a class="sa-wordmark" href="?bite_app=admin">Bite<span>Eat. Repeat.</span></a><div class="sa-header-end"><span class="sa-role">Super Admin</span><details id="saMore"><summary>More</summary><div class="sa-more-menu">'+secondary.map(([id,label])=>'<button type="button" data-sa-route="'+id+'">'+label+'</button>').join('')+'<p id="saAccount"></p>'+button('Sign out','logout')+'</div></details></div>';
    document.querySelector('#mainApp .main').prepend(header);
+   new MutationObserver(records=>{if(authorized()&&records.some(r=>r.target.closest?.('table')))labelTables(current);}).observe($('mainApp'),{childList:true,subtree:true});
    for(const [id] of secondary)if(!$(id)){const node=document.createElement('section');node.className='page';node.id=id;document.querySelector('#mainApp .content').append(node);}
   }
   $('saAccount').textContent=ctx.getUser().email||ctx.getUser().phone||'';
@@ -55,7 +56,7 @@
  function pageButtons(){const p=document.querySelector('[data-sa-action=previous]'),n=document.querySelector('[data-sa-action=next]');if(p)p.disabled=offset===0;if(n)n.disabled=offset+rows.length>=total;}
  async function open(id){
   if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;
-  mount();const changed=current!==id;current=id;selectNav();$('saMore').open=false;
+  clearTimeout(refreshTimer);mount();const changed=current!==id;current=id;selectNav();$('saMore').open=false;
   if(changed){offset=0;filter='all';search='';detail=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());document.querySelectorAll('.sa-advanced').forEach(n=>n.open=false);}
   if(!custom.has(id))return;
   const token=++serial;
@@ -115,7 +116,7 @@
   return '<article class="sa-record"><div class="sa-record-top"><div><h2>'+esc(title)+'</h2><p>'+esc(type==='restaurants'?r.city:restaurantName(r.restaurant_id))+'</p></div>'+pill(state)+'</div>'+(type!=='restaurants'?'<div class="sa-record-facts"><span>'+esc(type==='settlements'?r.period_start+' – '+r.period_end:when(r.order_date||r.created_at))+'</span><strong>'+money(amount)+'</strong></div>':'')+'<div class="sa-record-bottom">'+(type==='payments'?'<span>Commission '+money(r.commission_amount)+'</span>':type==='refunds'?'<span>Gateway: '+esc(r.provider_status||'Awaiting update')+'</span>':'<span></span>')+button('View details','detail',type+':'+id)+'</div></article>';
  }
  async function showDetail(kind,id){
-  if(!authorized())return;const token=++serial;const page=current;host(page).innerHTML=heading('Details','',button('Back to list','back'))+'<div class="sa-card">Loading details…</div>'+status();
+  if(!authorized())return;clearTimeout(refreshTimer);detail={kind,id,loading:true};const token=++serial;const page=current;host(page).innerHTML=heading('Details','',button('Back to list','back'))+'<div class="sa-card">Loading details…</div>'+status();
   try{
    if(kind==='restaurants'){
     const [r,menu,zones,owners]=await Promise.all([checked(ctx.sb.from('restaurants').select('*').eq('id',id).single()),checked(ctx.sb.from('menu_items').select('id,name,price,is_available,is_vegetarian').eq('restaurant_id',id).order('name').limit(1000)),checked(ctx.sb.from('restaurant_delivery_zones').select('id,name,is_active,restaurant_delivery_zone_pincodes(postal_code)').eq('restaurant_id',id).order('name')),checked(ctx.sb.rpc('admin_list_owner_assignments'))]);
@@ -187,7 +188,7 @@
  function labelTables(id){for(const table of $(id)?.querySelectorAll('table')||[]){const labels=[...table.querySelectorAll('thead th')].map(t=>t.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.children].forEach((cell,i)=>cell.dataset.saLabel=labels[i]||'Details');}}
  async function navigate(id){if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;await ctx.navigate(id);}
  function clear(){serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
- function init(config){ctx=config;document.addEventListener('click',async e=>{
+ function init(config){ctx=config;setInterval(()=>{if(authorized()&&document.visibilityState==='visible'&&['overview','orders','financials'].includes(current)&&!detail&&!document.activeElement?.closest('form'))void open(current);},60000);document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-sa-route],[data-sa-attention],[data-sa-tab],[data-sa-action]');if(!el||!el.closest('[data-sa-ui]')||!authorized())return;
   if(el.dataset.saRoute){await navigate(el.dataset.saRoute);return;}
   if(el.dataset.saAttention){const dest=el.dataset.saAttention,f=el.dataset.filter;if(dest==='financials')tab=f;await navigate(dest);if(dest!=='financials'&&f!=='all'){filter=f;offset=0;await open(dest);}return;}
@@ -217,5 +218,5 @@
  });
  document.addEventListener('change',e=>{if(!authorized())return;const f=e.target.closest('#saCommissionForm');if(!f)return;if(e.target.name==='scope')void scopeChanged();if(e.target.name==='inherit')f.elements.rate.disabled=e.target.checked;});
  }
- root.BiteSuperAdmin={init,mount,open,handles:id=>authorized()&&custom.has(id),allowed,clear,afterPage:id=>{if(authorized()){current=id;selectNav();labelTables(id);}},refresh:()=>{if(!authorized())return;mount();clearTimeout(refreshTimer);if(current==='overview'&&$('sa-overview'))refreshTimer=setTimeout(()=>{if(authorized()&&current==='overview')void open('overview');},250);},escape:esc};
+ root.BiteSuperAdmin={init,mount,open,handles:id=>authorized()&&custom.has(id),allowed,clear,afterPage:id=>{if(authorized()){current=id;selectNav();labelTables(id);}},refresh:()=>{if(!authorized())return;mount();clearTimeout(refreshTimer);if(['overview','orders','financials'].includes(current)&&$('sa-'+current)&&!detail&&!document.activeElement?.closest('form'))refreshTimer=setTimeout(()=>{if(authorized()&&!detail)void open(current);},250);},escape:esc};
 })(window);
