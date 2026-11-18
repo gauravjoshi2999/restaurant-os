@@ -59,7 +59,7 @@ test('More is an owner-only full content screen, not a sidebar drawer',()=>{
   const styles=fs.readFileSync('assets/owner-mobile-polish.css','utf8');
   const owner=fs.readFileSync('index.html','utf8');
   assert.equal(nav.sections.flatMap(group=>group.items.map(item=>item[0])).join(','),
-    'expenses,cashbook,khata,purchases,tables,inventory,hr,reports,settings');
+    'daily-book,expenses,khata,cashbook,purchases,menu,inventory,hr,reports,reviews,settings');
   assert.doesNotMatch(source,/root\.toggleSidebar\(true\)/);
   assert.match(source,/content\.append\(moreScreen\)/);
   assert.match(source,/currentSection\(\)\?\.setAttribute\('aria-hidden','true'\)/);
