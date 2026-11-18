@@ -17,7 +17,7 @@
  function status(form,text,error=false){const el=form.querySelector('[data-bhe-status]');if(el){el.textContent=text;el.classList.toggle('bhe-error',!!error)}}
  function renderState(form,kind,sync=false){
   const date=currentDate(form),historical=validDate(date)&&date<today();
-  form.noValidate=historical;
+  form.noValidate=historical||form.dataset.bheOriginalNoValidate==='true';
   form.dataset.historicalEntry=String(historical);
   const box=form.querySelector('[data-bhe-calendar]'),extra=form.querySelector('[data-bhe-extra]');
   if(!box)return;
@@ -52,6 +52,7 @@
  }
  function decorate(form,kind){
   if(!ctx||!form||form.dataset.bheDecorated==='true'||kind==='room'&&form.dataset.stayId)return;
+  form.dataset.bheOriginalNoValidate=String(form.noValidate);
   form.dataset.bheDecorated='true';
   const submit=form.querySelector('button[type=submit]');
   form.dataset.bheOriginalSubmit=submit?.textContent||'Save';
