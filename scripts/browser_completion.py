@@ -23,7 +23,14 @@ def observe(page):
  page.on('dialog',lambda dialog:dialog.accept())
 def nav(page,target):
  # Owner mobile: primary bottom tabs and in-content More cards, never sidebar.
- # Super Admin continues to use the existing sidebar navigation.
+ # Super Admin has primary tabs and secondary routes in More.
+ if page.locator('body').get_attribute('data-role')=='super_admin':
+  button=page.locator('#saNavigation [data-sa-route="'+target+'"]')
+  if button.count():button.click()
+  else:
+   page.locator('#saMore summary').click()
+   page.locator('#saMore [data-sa-route="'+target+'"]').click()
+  return
  bottom=page.locator('#biteOwnerBottomNav [data-bite-page="'+target+'"]')
  if bottom.count() and bottom.is_visible():
   bottom.click()
@@ -856,7 +863,7 @@ try:
   check('QA customer' in admin.locator('#biteCustomerRows').inner_text(),'Admin customer directory is reachable from guarded navigation')
   nav(admin,'storefront');admin.locator('#biteCategoryForm [name=name]').fill('QA breakfast');admin.locator('#biteCategoryForm [name=cuisine_tag]').fill('North Indian');admin.locator('#biteCategoryForm button[type=submit]').click()
   check('QA breakfast' in admin.locator('#biteCategoryList').inner_text(),'Admin website category form saves and refreshes')
-  nav(admin,'financials');admin.locator('#biteProviderOperations').wait_for(state='visible')
+  nav(admin,'financials');admin.locator('[data-sa-action=advanced][data-id=financials]').click();admin.locator('#biteProviderOperations').wait_for(state='visible')
   check(admin.locator('#biteDeadlineToggle').is_disabled(),'Acceptance timeout cannot enable without a healthy scheduler')
   check('Payment collected' in admin.locator('#biteProviderOperations').inner_text(),'Admin finance distinguishes collection, settlement and payout stages')
   admin.screenshot(path=str(OUT/'ui-admin.png'),full_page=False)

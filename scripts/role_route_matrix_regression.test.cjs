@@ -11,14 +11,14 @@ function list(block,key){
   return [...m[1].matchAll(/'([^']+)'/g)].map(x=>x[1]);
 }
 const owner=['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];
-const platform=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront'];
+const platform=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront','platform-commission','platform-reports'];
 
 test('Owner canonical navigation has precisely 13 non-admin destinations',()=>{
   assert.deepEqual(list(apply,'ownerPages'),owner);
   assert.deepEqual(list(show,'ownerPages'),owner);
   assert.ok(owner.every(p=>!['restaurants','reconciliation','financials','audit','support','moderation','customers','storefront'].includes(p)));
 });
-test('Super Admin has exactly 10 platform routes, no POS/menu/staff/stock routes',()=>{
+test('Super Admin has exactly 12 platform routes, no POS/menu/staff/stock routes',()=>{
   assert.deepEqual(list(apply,'platformPages'),platform);
   assert.deepEqual(list(show,'platformPages'),platform);
   assert.ok(platform.every(p=>!['pos','menu','hr','inventory','purchases','cashbook'].includes(p)));

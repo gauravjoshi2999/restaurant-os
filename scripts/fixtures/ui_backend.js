@@ -18,6 +18,8 @@
   if(name==='list_my_customer_orders')value=[order];
   if(name==='bite_customer_invoice')value={order_code:order.order_code,date:order.order_date,restaurant:restaurant.name,restaurant_address:restaurant.address,phone:restaurant.phone,customer:'QA customer',status:'Completed',is_demo:true,delivery_type:'delivery',payment_status:'paid',subtotal:150,delivery_fee:20,discount:0,tax:0,total:170,refund:0,items:[{name:'QA वेज थाली',quantity:1,price:150,total:150}]};
   if(name==='bite_reorder_items')value={restaurant_id:rid,items:[{name:meal.name,quantity:1,menu_item_id:mid,price:150,available:true}]};
+  if(name==='bite_super_admin_overview_v1')value={business_date:new Date().toISOString().slice(0,10),orders_today:0,collections_today:0,pending_restaurants:0,delayed_orders:0,refund_followups:0,pending_settlements:0,owner_unassigned:0,open_support:0,checked_at:new Date().toISOString()};
+  if(name==='bite_super_admin_attention_v1')value={rows:[],total_count:0};
   if(name==='bite_admin_business_metrics')value={verified_collections:0,completed_orders:0,completion_percent:null,average_customer_payment:null,commission_booked:0,provider_confirmed_refunds:0,gateway_fee_actual:null,repeat_customer_percent:null,retained_restaurant_percent:null,coverage_note:'QA metrics only; no real business totals.'};
   if(name==='bite_admin_customers')value=[{id:uid,email:user.email,full_name:'QA customer',phone:'9999999999',order_count:1,suspended:false}];
   if(name==='bite_save_coupon'){value=crypto.randomUUID();data.bite_coupons.push({id:value,restaurant_id:p.p_restaurant_id,created_at:new Date().toISOString(),...p.p_coupon});}

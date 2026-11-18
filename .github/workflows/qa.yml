@@ -31,6 +31,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run Chromium customer journey smoke tests
         run: |
+          python scripts/super_admin_browser.py
           python scripts/owner_home_compact_browser.py
           python scripts/family_booking_browser.py
           python scripts/owner_guest_controls_browser.py
@@ -57,6 +58,8 @@ jobs:
         with:
           name: bite-ui-qa-${{ github.sha }}
           path: |
+            dist/launch-qa/super-admin-evidence.json
+            dist/launch-qa/super-admin-*.png
             dist/launch-qa/browser-evidence.json
             dist/launch-qa/ui-*.png
             dist/launch-qa/owner-feedback-mobile-evidence.json
@@ -247,3 +250,34 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118035815_staff_entry_retry_guard.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118040512_staff_room_charge_scope.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_guest_controls_pg_test.sql
+
+  super-admin-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_super_admin_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_super_admin_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_super_admin_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Super Admin role boundaries, review, dates and financial integrity
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/super_admin_pg_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118045931_super_admin_workspace.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/super_admin_db_test.sql
