@@ -899,17 +899,18 @@ body.bite-session-check #biteSessionSplash{
  <div class="welcome"><div><h1>Expense ledger</h1><div class="muted">Restaurant ke roz ke kharche record karein aur date-wise hisaab dekhein.</div></div><button class="btn secondary" type="button" onclick="loadExpenses()">Refresh</button></div>
  <div class="notice">Paid expenses use the original restaurant expense ledger. Report dates and new entry dates stay separate. No bank transfer is initiated by this form.</div>
  <div id="expenseV3Status"></div>
- <div class="card">
+ <div class="card bv3-expense-entry">
+  <div class="bv3-expense-entry-title"><small>OWNER V3 · A04</small><h2>Record paid expense</h2><p>Use this form for money actually paid. Old records can be viewed below without changing this entry date.</p></div>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Restaurant</label><select id="expenseRestaurant"></select></div>
-   <div class="field"><label>Date *</label><input id="expenseDate" type="date" required></div>
+   <div class="field"><label>Expense & payment date *</label><input id="expenseDate" type="date" required></div>
    <div class="field"><label>Category *</label><select id="expenseCategory"><option>Rent</option><option>Salary</option><option>Raw Material</option><option>Electricity</option><option>Gas</option><option>Delivery</option><option>Repair & Maintenance</option><option>Marketing</option><option>Other</option></select></div>
    <div class="field"><label>Expense name *</label><input id="expenseTitle" maxlength="120" placeholder="e.g. Vegetable purchase"></div>
    <div class="field"><label>Amount (₹) *</label><input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
    <div class="field"><label>Payment mode</label><select id="expensePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
-   <div class="field" style="grid-column:1/-1"><label>Note (optional)</label><input id="expenseDescription" maxlength="500" placeholder="Bill number, supplier or extra details"></div>
+   <div class="field" style="grid-column:1/-1"><label>Supplier / receipt reference (optional)</label><input id="expenseDescription" maxlength="500" placeholder="Supplier, bill number or transaction reference"></div>
   </div>
-  <div class="actions" style="margin-top:14px"><button class="btn" id="expenseSaveBtn" type="button" onclick="saveExpense()">Save expense</button><button class="btn secondary" id="expenseCancelEdit" type="button" onclick="resetExpenseForm()" style="display:none">Cancel edit</button><span class="small" id="expenseMessage" role="status"></span></div>
+  <div class="actions" style="margin-top:14px"><button class="btn" id="expenseSaveBtn" type="button" onclick="saveExpense()">Save paid expense</button><button class="btn secondary" id="expenseCancelEdit" type="button" onclick="resetExpenseForm()" style="display:none">Cancel edit</button><span class="small" id="expenseMessage" role="status"></span></div>
  </div>
  <div id="expenseV3Period" aria-label="Expenses period"></div>
  <div class="grid section"><div class="card"><div class="metric-label">Total expenses shown</div><div class="metric" id="expenseTotal">₹0</div></div><div class="card"><div class="metric-label">Entries</div><div class="metric" id="expenseCount">0</div></div></div>
