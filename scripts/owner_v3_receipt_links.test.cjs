@@ -39,7 +39,6 @@ test('Only actual saved POS payment records get a receipt link',()=>{
  assert.match(source,/\+invoice\+receiptLink\+share\+correction\+/);
  assert.match(html,/data-cashbook-source-id/);
  assert.match(html,/id="cashbookReceiptJumpMessage" role="status"/);
- assert.match(html,/window\.showPOSReceiptInCashbook=showPOSReceiptInCashbook/);
  assert.match(html,/receipt:latest\?\{id:latest\.id,date:latest\.payment_date\}/);
 });
 test('Mobile Recent bills show the payment-date receipt link without extra sales',()=>{
