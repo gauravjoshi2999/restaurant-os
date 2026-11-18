@@ -31,8 +31,8 @@
     const hotel=pages.has('rooms'),restaurant=pages.has('pos')||pages.has('orders');
     const selected=[home];
     if(hotel)selected.push({page:'rooms',label:'Hotel',icon:'hotel'});
-    if(restaurant&&pages.has('orders'))selected.push({page:'orders',label:'Bite Orders',icon:'orders'});
-    if(restaurant&&pages.has('pos'))selected.push({page:'pos',label:'Restaurant POS',icon:'pos'});
+    if(restaurant&&pages.has('orders'))selected.push({page:'orders',label:'Orders',icon:'orders'});
+    if(restaurant&&pages.has('pos'))selected.push({page:'pos',label:'POS',icon:'pos'});
     if(!hotel&&!restaurant){
       // A restricted owner may still have legitimate non-Hotel routes.
       const first=['hotel-register','menu'].find(page=>pages.has(page));
@@ -90,7 +90,7 @@
     homeProperty.hidden=true;
     const homeBrand=doc.createElement('span');
     homeBrand.id='biteOwnerHomeBrand';
-    homeBrand.innerHTML='<strong>Bite</strong><small>OWNER</small>';
+    homeBrand.innerHTML='<strong>Bite</strong><small>Eat. Repeat.</small>';
     homeBrand.hidden=true;
     header.append(homeLogo,homeBrand,homeProperty);
     // Preserve the real selector and its existing change handler; move it to More on mobile.
@@ -227,7 +227,7 @@
       graphic.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+icons[tab.icon]+'</svg>';
       const label=doc.createElement('span');label.className='bite-owner-tab-label';
       const hybrid=root.BiteHospitality?.prop?.()?.business_type==='hybrid';
-      label.textContent=hybrid&&tab.page==='orders'?'Bite Orders':hybrid&&tab.page==='pos'?'Restaurant POS':tab.label;
+      label.textContent=tab.label;
       button.append(graphic,label);nav.append(button);
       button.addEventListener('click',()=>{
         if(doc.body.dataset.role!=='owner')return;
