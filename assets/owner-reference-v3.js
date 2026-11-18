@@ -18,7 +18,7 @@
  function loadHomeFinance(force=false){
   const property=root.BiteHospitality?.prop?.(),day=businessDay(),key=homeFinanceKey();
   if(!property?.id||currentAccess?.role!=='owner'||!permitted('daily-book')||
-     typeof root.BiteHotelAccounts?.reportOwnerHomeDay!=='function')return;
+     typeof root.BiteHotelAccounts?.reportOwnerHomeDay!=='function'||root.BiteHotelAccounts?.enabled?.()!==true)return;
   const now=Date.now();
   if(financeQuery.key!==key)financeQuery={key,status:'idle',value:null,error:'',loadedAt:0};
   if(!force&&(
@@ -537,7 +537,7 @@
   if(!input?.matches?.('[data-bv3-business-day]')||currentAccess?.role!=='owner')return;
   const chosen=String(input.value||''),today=todayBusinessDay();
   if(!/^\d{4}-\d{2}-\d{2}$/.test(chosen)||chosen>today||
-     new Date(chosen+'T12:00:00Z').toISOString().slice(0,10)!==chosen){
+     (!Number.isFinite(Date.parse(chosen+'T12:00:00Z'))||new Date(chosen+'T12:00:00Z').toISOString().slice(0,10)!==chosen)){
    input.value=businessDay();return;
   }
   if(chosen===businessDay())return;
