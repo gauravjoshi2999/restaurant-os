@@ -60,7 +60,7 @@ test('Main actions use existing route/permission gates and notification tray ope
   assert.match(source,new RegExp("permitted\\(route\\)"),route);
  }
  assert.match(source,/data-bv3-new-pos="true"/);
- assert.match(source,/data-bv3-attendance="true"/);
+ assert.match(source,/data-bv3-route="\u0027\+routeName\+\u0027"/); // canonical PDF quick actions use existing routes
  assert.match(source,/BiteOwnerHRTabs\.activate/);
  assert.match(source,/data-bv3-notice-index/);
  assert.match(source,/toggleNoticeTray\(false\)/);
