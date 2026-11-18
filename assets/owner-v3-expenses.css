@@ -50,3 +50,25 @@ body[data-role=owner] :is(#expenseV3Cards,.bv3-hotel-expense-list) :is(button,in
  body[data-role=owner] .bv3-expense-fields{grid-template-columns:1fr}
  body[data-role=owner] .bv3-expense-due>button{width:100%}
 }
+
+/* Restaurant paid-expense entry: same design vocabulary on phone and desktop. */
+body[data-role=owner] #expenses .bv3-expense-entry{padding:clamp(15px,2vw,23px);border:1px solid #e7d9ca;border-radius:17px;background:#fff;box-shadow:0 7px 28px #1d26330a}
+body[data-role=owner] #expenses .bv3-expense-entry-title{margin-bottom:16px}
+body[data-role=owner] #expenses .bv3-expense-entry-title small{font-weight:850;font-size:10px;color:#ae5821;letter-spacing:.07em}
+body[data-role=owner] #expenses .bv3-expense-entry-title h2{font-size:clamp(20px,3vw,25px);margin:5px 0;color:#2b3440}
+body[data-role=owner] #expenses .bv3-expense-entry-title p{font-size:12px;line-height:1.5;color:#68798a;margin:3px 0}
+body[data-role=owner] #expenses .bv3-expense-entry .form-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+body[data-role=owner] #expenses .bv3-expense-entry .field{min-width:0}
+body[data-role=owner] #expenses .bv3-expense-entry .field[hidden]{display:none!important}
+body[data-role=owner] #expenses .bv3-expense-entry .field label{font-weight:730;font-size:12px;line-height:1.5;color:#526070}
+body[data-role=owner] #expenses .bv3-expense-entry .field :is(input,select){box-sizing:border-box;min-width:0;width:100%;max-width:100%;min-height:44px;border-radius:10px;border:1px solid #d9dee5;background:#fff;color:#273142;padding:10px;font-size:14px}
+body[data-role=owner] #expenses .bv3-expense-entry .field :is(input,select):focus-visible{outline:3px solid #e9893a;outline-offset:1px}
+body[data-role=owner] #expenses .bv3-expense-entry #expenseSaveBtn{min-height:46px;border-radius:11px;background:#e66d1e;color:white;font-weight:800}
+@media(max-width:760px){
+ body[data-role=owner] #expenses .bv3-expense-entry .form-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:430px){
+ body[data-role=owner] #expenses .bv3-expense-entry .form-row{grid-template-columns:1fr}
+ body[data-role=owner] #expenses .bv3-expense-entry .actions{display:flex;flex-wrap:wrap;gap:8px}
+ body[data-role=owner] #expenses .bv3-expense-entry #expenseSaveBtn{width:100%}
+}
