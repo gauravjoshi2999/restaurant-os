@@ -17,7 +17,7 @@
   const mode=v.mode||'month';
   let from,to;
   if(mode==='day'){from=to=v.day;}
-  else if(mode==='month'){from=v.month+'-01';to=endOfMonth(v.month);}
+  else if(mode==='month'){from=v.month+'-01';to=endOfMonth(v.month);if(from<=today&&to>today)to=today;}
   else if(mode==='range'){from=v.from;to=v.to;}
   else throw Error('Choose Day, Month or Range.');
   if(!validDay(from)||!validDay(to)||from>to)throw Error('Choose a valid date period.');
