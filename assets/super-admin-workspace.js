@@ -96,10 +96,10 @@
    if(filter!=='all')q=q.eq('payment_status',filter);
   }else if(type==='settlements'){
    q=ctx.sb.from('restaurant_settlements').select('*',{count:'exact'}).order('period_start',{ascending:false}).order('id');
-   if(filter!=='all')q=q.eq('status',filter);
+   if(filter==='pending')q=q.neq('status','paid');else if(filter!=='all')q=q.eq('status',filter);
   }else{
    q=ctx.sb.from('bite_refund_jobs').select('*,orders!inner(order_code,channel,is_demo)',{count:'exact'}).eq('orders.channel','Own Platform').eq('orders.is_demo',false).order('created_at',{ascending:false}).order('id');
-   if(filter!=='all')q=q.eq('status',filter);
+   if(filter==='followup')q=q.in('status',['pending_approval','approved','processing','submitted','failed']);else if(filter!=='all')q=q.eq('status',filter);
   }
   // Exact server predicates, one pagination offset and a snapshot-consistent count.
   const attention=['delayed','unassigned'].includes(filter);
@@ -107,7 +107,7 @@
   if(!valid(token))return;if(response.error)throw response.error;
   rows=attention?(response.data.rows||[]):response.data||[];
   total=attention?Number(response.data.total_count):response.count??rows.length;
-  const options=type==='restaurants'?[['all','All'],['pending','Pending review'],['active','Active'],['paused','Paused'],['unassigned','Owner unassigned']]:type==='orders'?[['all','All'],['active','Active'],['delayed','Delayed'],['completed','Completed'],['cancelled','Cancelled']]:type==='payments'?[['all','All'],['paid','Paid'],['pending','Pending'],['refunded','Refunded'],['partially_refunded','Partially refunded']]:type==='settlements'?[['all','All'],['draft','Draft'],['approved','Approved'],['paid','Paid']]:[['all','All'],['pending_approval','Requested'],['approved','Approved'],['processing','Processing'],['submitted','Submitted'],['refunded','Refunded'],['failed','Needs attention'],['rejected','Rejected']];
+  const options=type==='restaurants'?[['all','All'],['pending','Pending review'],['active','Active'],['paused','Paused'],['unassigned','Owner unassigned']]:type==='orders'?[['all','All'],['active','Active'],['delayed','Delayed'],['completed','Completed'],['cancelled','Cancelled']]:type==='payments'?[['all','All'],['paid','Paid'],['pending','Pending'],['refunded','Refunded'],['partially_refunded','Partially refunded']]:type==='settlements'?[['all','All'],['pending','Pending'],['draft','Draft'],['approved','Approved'],['paid','Paid']]:[['all','All'],['followup','Needs follow-up'],['pending_approval','Requested'],['approved','Approved'],['processing','Processing'],['submitted','Submitted'],['refunded','Refunded'],['failed','Needs attention'],['rejected','Rejected']];
   const tabs=current==='financials'?'<div class="sa-tabs" role="tablist" aria-label="Financial records">'+['payments','settlements','refunds'].map(t=>'<button type="button" role="tab" aria-selected="'+(tab===t)+'" data-sa-tab="'+t+'">'+t[0].toUpperCase()+t.slice(1)+'</button>').join('')+'</div>':'';
   host(current).innerHTML=heading(titles[type],type==='orders'?'Website orders · Monitoring':type==='restaurants'?'Review restaurants and help owners sign in':'Collection, refunds and bank payouts have separate statuses')+tabs+'<form id="saListFilters" class="sa-filters"><label>Status<select name="filter">'+options.map(([v,l])=>'<option value="'+v+'" '+(v===filter?'selected':'')+'>'+l+'</option>').join('')+'</select></label>'+(['restaurants','orders'].includes(type)?'<label class="sa-search">'+(type==='restaurants'?'Search restaurant':'Search order code')+'<input name="search" type="search" maxlength="80" value="'+esc(search)+'" placeholder="Type to search"></label>':'')+'<button class="btn secondary" type="submit">Apply</button></form>'+status()+'<div class="sa-records">'+(rows.length?rows.map(r=>record(type,r)).join(''):'<div class="sa-card sa-empty">No matching records.</div>')+'</div>'+pagination()+(['restaurants','financials'].includes(current)?button('More management tools','advanced',current):'');pageButtons();
  }
@@ -189,12 +189,12 @@
   labelTables(id);tools.scrollIntoView({block:'start',behavior:'smooth'});
  }
  function labelTables(id){for(const table of $(id)?.querySelectorAll('table')||[]){const labels=[...table.querySelectorAll('thead th')].map(t=>t.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.children].forEach((cell,i)=>cell.dataset.saLabel=labels[i]||'Details');}}
- async function navigate(id){if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;await ctx.navigate(id);}
+ async function navigate(id){if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;$('saMore').open=false;await ctx.navigate(id);}
  function clear(){restoreLanguage();serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
  function init(config){ctx=config;setInterval(()=>{if(authorized()&&document.visibilityState==='visible'&&['overview','orders','financials'].includes(current)&&!detail&&!document.activeElement?.closest('form'))void open(current);},60000);document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-sa-route],[data-sa-attention],[data-sa-tab],[data-sa-action]');if(!el||!el.closest('[data-sa-ui]')||!authorized())return;
   if(el.dataset.saRoute){await navigate(el.dataset.saRoute);return;}
-  if(el.dataset.saAttention){const dest=el.dataset.saAttention,f=el.dataset.filter;if(dest==='financials')tab=f;await navigate(dest);if(dest!=='financials'&&f!=='all'){filter=f;offset=0;await open(dest);}return;}
+  if(el.dataset.saAttention){const dest=el.dataset.saAttention,f=el.dataset.filter;if(dest==='financials')tab=f;await navigate(dest);if(dest==='financials'){filter=f==='settlements'?'pending':'followup';offset=0;await open(dest);}else if(f!=='all'){filter=f;offset=0;await open(dest);}return;}
   if(el.dataset.saTab){tab=el.dataset.saTab;filter='all';offset=0;detail=null;await open('financials');return;}
   const action=el.dataset.saAction,id=el.dataset.id;
   if(['refresh','back'].includes(action)){detail=null;await open(current);}
