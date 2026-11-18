@@ -3,6 +3,7 @@
 (function(root){
  'use strict';
  let currentState=null,currentAccess=null,timer=null,lastHomeSignature='',searchTerm='';
+ let roomRecoveryProperty='',roomRecoveryAttempted=false,roomRecoveryError=false;
  const icons={
   bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
   bag:'<path d="M5 8h14l1.7 12H3.3L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
@@ -52,6 +53,35 @@
  }
  function hotelSnapshot(){
   return root.BiteHospitality?.dashboardSnapshot?.()||null;
+ }
+ // An initial Owner/Home render can precede hotel workspace hydration, particularly
+ // on slower mobile networks. Retry a missing *read-only* snapshot once per property.
+ // The existing hospitality backend and role-scoped RPC remain the only sources of truth.
+ function recoverRoomSnapshot(snap){
+  const property=root.BiteHospitality?.prop?.();
+  if(!property?.id||!snap?.hotel||currentAccess?.role!=='owner')return;
+  if(roomRecoveryProperty!==property.id){
+   roomRecoveryProperty=property.id;roomRecoveryAttempted=false;roomRecoveryError=false;
+  }
+  if(snap.ready){roomRecoveryError=false;return;}
+  if(roomRecoveryAttempted||typeof root.setTimeout!=='function')return;
+  roomRecoveryAttempted=true;
+  const selectedProperty=property.id,selectedAccess=currentAccess;
+  root.setTimeout(async()=>{
+   if(root.BiteHospitality?.prop?.()?.id!==selectedProperty||
+      currentAccess!==selectedAccess||root.document?.body?.dataset?.role!=='owner')return;
+   if(root.BiteHospitality?.dashboardSnapshot?.()?.ready)return;
+   try{
+    await root.BiteHospitality?.reload?.();
+   }catch(error){
+    if(root.BiteHospitality?.prop?.()?.id!==selectedProperty||currentAccess!==selectedAccess)return;
+    roomRecoveryError=true;
+    root.console?.warn?.('Owner V3 hotel count refresh unavailable',error);
+   }finally{
+    if(root.BiteHospitality?.prop?.()?.id===selectedProperty&&currentAccess===selectedAccess)
+     renderHome(true);
+   }
+  },3500);
  }
  function actionLink(label,route,key,extra=''){
   return '<button type="button" class="bv3-shortcut" data-bv3-route="'+escapeHtml(route)+'" '+(extra||'')+'>'+
@@ -151,12 +181,13 @@
  function roomStatusCard(snap){
   if(!snap?.hotel||!permitted('rooms'))return '';
   const ready=snap.ready===true,hk=root.BiteHospitality?.housekeepingVisible?.()===true;
-  return '<button type="button" class="boh-feature boh-room" data-bv3-route="rooms" aria-label="Open Room Status">'+
+  return '<button type="button" class="boh-feature boh-room" data-bv3-route="rooms" aria-label="Open Room Status'+(ready?'':', room data still loading. Open to retry')+'">'+
    '<span class="boh-card-illustration" aria-hidden="true"></span><span class="boh-feature-icon">'+icon('bed')+'</span>'+
    '<strong>Room Status</strong>'+
    '<span class="boh-room-stat"><span class="boh-dot is-occupied"></span>Occupied <b>'+num(ready?snap.occupied:null)+'</b></span>'+
    '<span class="boh-room-stat"><span class="boh-dot is-available"></span>Available <b>'+num(ready?snap.available:null)+'</b></span>'+
    (hk?'<span class="boh-room-stat"><span class="boh-dot is-cleaning"></span>Cleaning <b>'+num(ready?snap.cleaning:null)+'</b></span>':'')+
+   (!ready?'<span class="boh-room-sync" role="status">'+(roomRecoveryError?'Room data sync failed · Tap to retry':'Syncing room data · Tap to retry')+'</span>':'')+
    '</button>';
  }
  function quickLink(label,route,ico,tone='',extra=''){
@@ -231,11 +262,12 @@
   if(!currentState||currentAccess?.role!=='owner'||(!currentAccess.restaurantId&&!root.BiteHospitality?.prop?.()))return;
   const home=root.document.getElementById('biteV3Home');if(!home)return;
   const data=summary()||{active:[],todayOrders:[],stages:{},week:[],todaySales:0,todayPosBilled:0,todayExpenses:0},snap=hotelSnapshot(),waiting=approvals();
+  recoverRoomSnapshot(snap);
   const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=false;
   const notices=noticeEntries(data,waiting),register=monthRegisterSummary();
   const signature=JSON.stringify([root.BiteHospitality?.prop?.()?.id,currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
-    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
+    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,roomRecoveryError,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
   const overview=root.document.getElementById('overview');
