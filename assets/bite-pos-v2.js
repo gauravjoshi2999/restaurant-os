@@ -71,6 +71,13 @@
      root.printOwnerInvoice(found.id);
     return;
    }
+   const receipt=event.target.closest('[data-bpv2-payment]');
+   if(receipt&&current){
+    const found=current.orders.find(o=>String(o.id)===receipt.dataset.bpv2Payment);
+    if(found?.receipt?.id===receipt.dataset.bpv2PaymentId&&found.restaurant===current.restaurantId&&typeof root.showPOSReceiptInCashbook==='function')
+     void root.showPOSReceiptInCashbook(found.id,found.receipt.id);
+    return;
+   }
    const jump=event.target.closest("[data-bpv2-go]");
    if(jump){view=jump.dataset.bpv2Go;paint();}
   });
@@ -121,7 +128,8 @@
     const amount=Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0));
     return '<article class="bpv2-recent"><span class="bpv2-recent-icon">'+ic('bill')+'</span>'+
      '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+'</small>'+
-     (o.posVisit?'<small class="bpv2-visit-tag">'+safe(o.posVisit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+o.posVisit.guest_count+' people')+'</small>':'')+'</span>'+
+     (o.posVisit?'<small class="bpv2-visit-tag">'+safe(o.posVisit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+o.posVisit.guest_count+' people')+'</small>':'')+
+     (o.receipt?'<button type="button" class="bpv2-receipt-link" data-bpv2-payment="'+safe(o.id)+'" data-bpv2-payment-id="'+safe(o.receipt.id)+'">Daily Book · '+safe(o.receipt.date)+'</button>':'')+'</span>'+
      '<strong class="bpv2-amount">'+money(amount)+'</strong>'+
      '<button type="button" data-bpv2-print="'+safe(o.id)+'" aria-label="Open bill '+safe(o.code||'')+'">'+ic('forward')+'</button></article>';
    }).join('')+'</div>':'<p class="bpv2-empty">No POS bills recorded today. Tap <strong>New POS Bill</strong> to begin.</p>');
