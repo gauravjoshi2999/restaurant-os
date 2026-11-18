@@ -147,44 +147,50 @@ body[data-role="owner"] #biteV3Home button:hover{filter:brightness(.99)}
  body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.side{
   background:#252b35!important;color:#c7ced8!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.content{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.content{
   background:#f6f7f9!important
  }
 }
 /* Mobile PDF H02: readable, compact, no illustrated cards or duplicate dashboard. */
 @media(max-width:760px){
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main{
   background:#f6f7f9!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top{
   background:#fff!important;color:#222a34!important;border-bottom:1px solid #e4e8ed!important;
   box-shadow:none!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top::before{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top::before{
   display:none!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteOwnerHomeLogo{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top{
+  border-radius:0!important;min-height:64px!important;max-height:105px!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeProperty:before{
+  content:none!important;display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeLogo{
   display:none!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteOwnerHomeBrand{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand{
   display:flex!important;flex-direction:column;align-items:flex-start;order:0;
   color:#252a33!important;margin:0!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteOwnerHomeBrand strong{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand strong{
   color:#252a33!important;font-size:21px!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteOwnerHomeBrand small{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand small{
   color:#687585!important;font-size:10px!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteOwnerHomeProperty{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeProperty{
   color:#697788!important;text-align:left!important;order:1;
   font-size:11px!important;font-weight:600!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.top #biteV3HeaderBell{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteV3HeaderBell{
   margin-left:auto!important;color:#ae4f0a!important;background:#fff0e4!important;
   border:0!important;box-shadow:none!important
  }
- body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.main>.content{
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.content{
   background:#f6f7f9!important;padding:10px 10px calc(94px + env(safe-area-inset-bottom))!important
  }
  body[data-role="owner"] #biteV3Home .bv3-pdf-home{border-radius:0;padding:8px 4px 28px}
