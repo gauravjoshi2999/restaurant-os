@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  let currentState=null,currentAccess=null,timer=null,lastHomeSignature='',searchTerm='';
- let roomRecoveryProperty='',roomRecoveryAttempted=false,roomRecoveryError=false;
+ let roomRecoveryProperty='',roomRecoveryAccess=null,roomRecoveryAttempted=false,roomRecoveryError=false;
  const icons={
   bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
   bag:'<path d="M5 8h14l1.7 12H3.3L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
@@ -60,8 +60,9 @@
  function recoverRoomSnapshot(snap){
   const property=root.BiteHospitality?.prop?.();
   if(!property?.id||!snap?.hotel||currentAccess?.role!=='owner')return;
-  if(roomRecoveryProperty!==property.id){
-   roomRecoveryProperty=property.id;roomRecoveryAttempted=false;roomRecoveryError=false;
+  if(roomRecoveryProperty!==property.id||roomRecoveryAccess!==currentAccess){
+   roomRecoveryProperty=property.id;roomRecoveryAccess=currentAccess;
+   roomRecoveryAttempted=false;roomRecoveryError=false;
   }
   if(snap.ready){roomRecoveryError=false;return;}
   if(roomRecoveryAttempted||typeof root.setTimeout!=='function')return;
