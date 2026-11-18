@@ -1849,7 +1849,6 @@ async function showPOSReceiptInCashbook(orderId,paymentId){
   target?.setAttribute('aria-label','Selected POS receipt for '+(order.code||'POS bill'));
  }
 }
-window.showPOSReceiptInCashbook=showPOSReceiptInCashbook;
 function renderCashbook(){
  const total=(dir,method)=>cashbookEntries.filter(x=>x.direction===dir&&(!method||x.payment_method===method)).reduce((sum,x)=>sum+Number(x.amount),0);
  const income=total('in'),out=total('out'),cashIn=total('in','Cash'),cashOut=total('out','Cash');
