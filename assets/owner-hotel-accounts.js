@@ -231,6 +231,40 @@
   const total=Array(14).fill('');total[0]='TOTAL';for(const i of [4,5,6,7,10,12,13])total[i]=rows.slice(1).reduce((n,row)=>n+Number(row[i]||0),0);
   return [...rows,total];
  }
+ // H02/H03 read-only Home metrics, served by the existing authorized Daily Book.
+ // Do not treat cash opening balances, transfers, refundable security holds,
+ // or pending UPI collections as customer revenue/receipts.
+ async function reportOwnerHomeDay(day){
+  const property=p(),user=ctx?.getUser?.(),key=scope(),version=generation;
+  if(!property?.id||!user?.id||!enabled())throw Error('Owner Daily Book access is not ready.');
+  if(typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day)||
+     (!Number.isFinite(Date.parse(day+'T12:00:00Z'))||new Date(day+'T12:00:00Z').toISOString().slice(0,10)!==day))
+   throw Error('Choose a valid business date.');
+  const result=await ctx.sb.rpc('bite_daily_book',{p_property:property.id,p_from:day,p_to:day});
+  assertScope(key,version);
+  if(result.error)throw Error(result.error.message||'Daily Book unavailable.');
+  const daily=(result.data?.days||[]).find(row=>row.day===day);
+  if(!daily)throw Error('The verified Daily Book did not return the selected day.');
+  const sales=Number(daily.gross_sales),expenses=Number(daily.expenses);
+  if(daily.gross_sales==null||daily.expenses==null||!Number.isFinite(sales)||!Number.isFinite(expenses))
+   throw Error('The selected day has incomplete accounting values.');
+  const eligible=(result.data.journal||[]).filter(entry=>{
+   if(entry.day!==day||entry.direction!=='in'||!['Cash','UPI','Card','Bank Transfer'].includes(entry.method))return false;
+   if(entry.source_type==='order_payment')return true;
+   if(entry.source_type==='folio')return ['payment','advance'].includes(entry.category);
+   if(entry.source_type==='daybook')return entry.category==='income';
+   return false;
+  });
+  const received=eligible.reduce((sum,entry)=>sum+Number(entry.amount),0);
+  if(eligible.some(entry=>entry.amount==null)||!Number.isFinite(received))throw Error('The selected day has an invalid receipt.');
+  return {propertyId:property.id,day,sales,expenses,received,receiptCount:eligible.length,
+   source:'bite_daily_book',receivedBasis:'Confirmed POS/guest receipts and recorded other income. Excludes deposits, transfers and opening balances.'};
+ }
+ function selectOwnerHomeMonth(day){
+  if(!enabled()||!p()?.id||typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day))return false;
+  month=day.slice(0,7);
+  return true;
+ }
  async function renderDailyBook(target){
   if(!target||!p())return;
   const key=scope(),version=++reportVersion;
@@ -338,6 +372,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
+ const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

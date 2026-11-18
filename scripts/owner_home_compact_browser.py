@@ -55,6 +55,21 @@ try:
     check(home.get_attribute('hidden') is None,f'{mode} {width}px PDF H02/H03 visible')
     check(page.locator('#biteV3Home .bv3-pdf-metric').count()==4,
           f'{mode} {width}px four Sales/Received/Due/Expenses cards')
+    if mode in ('hotel','hybrid'):
+     check(page.locator('#biteV3Home [data-bv3-business-day]').count()==1,
+           f'{mode} {width}px selected-day input available')
+     if mode=='hybrid' and width==390:
+      picker=page.locator('#biteV3Home [data-bv3-business-day]')
+      picker.fill('2026-10-01')
+      picker.dispatch_event('change')
+      page.wait_for_function("document.querySelector('#biteV3Home .bv3-pdf-today')?.textContent==='HISTORICAL'")
+      check('Live today' in home.inner_text(),
+            'Historical date keeps live room occupancy explicitly labeled Today')
+      check('Today' in home.inner_text(),
+            'Live action sections remain labeled Today on old business date')
+      page.locator('#biteV3Home [data-bv3-date-today]').click()
+      page.wait_for_function("document.querySelector('#biteV3Home .bv3-pdf-today')?.textContent==='LIVE'")
+      check(True,'Today resets historical Home without changing records')
     check(all(label in home.inner_text() for label in ('Sales','Received','Due','Expenses','Recent activity')),
           f'{mode} {width}px PDF money sections')
     check(page.locator('#biteV3Home .boh-feature-grid').count()==0,

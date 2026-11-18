@@ -4,6 +4,43 @@
  'use strict';
  let currentState=null,currentAccess=null,timer=null,lastHomeSignature='',searchTerm='';
  let roomRecoveryProperty='',roomRecoveryAccess=null,roomRecoveryAttempted=false,roomRecoveryError=false;
+ // H02/H03 one selected business day; never cache another owner's data on screen.
+ let selectedFinanceProperty='',selectedFinanceDay='',financeRequest=0;
+ let financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+ function todayBusinessDay(){return root.BiteOwner?.day?.()||new Date().toISOString().slice(0,10);}
+ function businessDay(){
+  const id=root.BiteHospitality?.prop?.()?.id||'no-property',today=todayBusinessDay();
+  if(selectedFinanceProperty!==id){selectedFinanceProperty=id;selectedFinanceDay=today;}
+  if(!selectedFinanceDay||selectedFinanceDay>today)selectedFinanceDay=today;
+  return selectedFinanceDay;
+ }
+ function homeFinanceKey(){return [root.BiteHospitality?.prop?.()?.id||'',currentAccess?.restaurantId||'',businessDay()].join('|');}
+ function loadHomeFinance(force=false){
+  const property=root.BiteHospitality?.prop?.(),day=businessDay(),key=homeFinanceKey();
+  if(!property?.id||currentAccess?.role!=='owner'||!permitted('daily-book')||
+     typeof root.BiteHotelAccounts?.reportOwnerHomeDay!=='function'||root.BiteHotelAccounts?.enabled?.()!==true)return;
+  const now=Date.now();
+  if(financeQuery.key!==key)financeQuery={key,status:'idle',value:null,error:'',loadedAt:0};
+  if(!force&&(
+   financeQuery.status==='loading'||
+   (financeQuery.status==='ready'&&now-financeQuery.loadedAt<60000)||
+   (financeQuery.status==='error'&&now-financeQuery.loadedAt<20000)))return;
+  const request=++financeRequest;
+  financeQuery={key,status:'loading',value:null,error:'',loadedAt:now};
+  Promise.resolve().then(()=>root.BiteHotelAccounts.reportOwnerHomeDay(day)).then(result=>{
+   if(financeRequest!==request||homeFinanceKey()!==key||currentAccess?.role!=='owner'||
+      root.document?.body?.dataset?.role!=='owner')return;
+   if(result?.propertyId!==property.id||result?.day!==day)
+    throw Error('Received a report for a different business or date.');
+   financeQuery={key,status:'ready',value:result,error:'',loadedAt:Date.now()};
+   renderHome(true);
+  }).catch(error=>{
+   if(financeRequest!==request||homeFinanceKey()!==key||currentAccess?.role!=='owner')return;
+   financeQuery={key,status:'error',value:null,error:String(error?.message||error),loadedAt:Date.now()};
+   renderHome(true);
+  });
+ }
+
  const icons={
   bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
   bag:'<path d="M5 8h14l1.7 12H3.3L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/>',
@@ -214,33 +251,43 @@
    (allowed?'<span class="bv3-pdf-open" aria-hidden="true">Open ›</span>':'')+'</'+tag+'>';
  }
  function pdfHomeFinance(data,snap){
-  const isHotel=!!snap?.hotel;
-  // Restaurant-only billing data is known, but marketplace settlement is not cash.
-  // Hybrid/hotel totals must wait for one reconciled source, not combine folio and POS twice.
-  const restaurantReady=!!data&&!isHotel&&!!currentAccess?.restaurantId;
+  const matching=financeQuery.key===homeFinanceKey(),report=matching&&financeQuery.status==='ready'?financeQuery.value:null;
+  const historical=businessDay()!==todayBusinessDay();
+  // A Restaurant-only site may not have the Hotel/Hybrid day-book enabled:
+  // retain its verified today summary, but never display today's totals for a past date.
+  const restaurantReady=!report&&!permitted('daily-book')&&!snap?.hotel&&!historical&&!!data&&!!currentAccess?.restaurantId;
   const restaurantSales=restaurantReady&&Number.isFinite(Number(data.todayPosBilled))&&Number.isFinite(Number(data.todaySales))
-   ?money(Number(data.todayPosBilled)+Number(data.todaySales)): '—';
+   ?money(Number(data.todayPosBilled)+Number(data.todaySales)):'—';
   const restaurantExpenses=restaurantReady&&Number.isFinite(Number(data.todayExpenses))?money(data.todayExpenses):'—';
   const receiptRoute=permitted('daily-book')?'daily-book':permitted('cashbook')?'cashbook':null;
   const dueRoute=permitted('folios')?'folios':permitted('khata')?'khata':null;
+  const loading=matching&&financeQuery.status==='loading';
   return [
-   pdfMetric('Sales',restaurantSales,restaurantReady?'POS bills + paid Bite orders':'Combined ledger pending','reports'),
-   pdfMetric('Received','—','Collection source verification pending',receiptRoute),
-   pdfMetric('Due','—','Open receivables for details',dueRoute),
-   pdfMetric('Expenses',restaurantExpenses,restaurantReady?'Restaurant expenses today':'Combined expense reconciliation pending','expenses')
+   pdfMetric('Sales',report?money(report.sales):restaurantSales,
+    report?'Issued bills · selected service date':loading?'Loading recorded sales…':restaurantReady?'Restaurant POS and paid Bite orders':'Cross-source sales unavailable','reports'),
+   pdfMetric('Received',report?money(report.received):'—',
+    report?'Posted customer receipts · excludes deposits':loading?'Loading confirmed receipts…':'Collection source verification pending',receiptRoute),
+   pdfMetric('Due','—','As-of-date receivables reconciliation pending',dueRoute),
+   pdfMetric('Expenses',report?money(report.expenses):restaurantExpenses,
+    report?'Recorded costs · selected expense date':loading?'Loading recorded expenses…':restaurantReady?'Restaurant expenses today':'Cross-source expenses unavailable','expenses')
   ].join('');
  }
  function homeHtml(data,snap,waiting){
   const ws=root.BiteHospitality?.getWorkspace?.()||{},hotel=!!snap?.hotel&&permitted('rooms'),
-   today=root.BiteOwner?.day?.()||new Date().toISOString().slice(0,10),
+   today=todayBusinessDay(),selectedDay=businessDay(),historical=selectedDay!==today,
    totalRooms=snap?.ready?(ws.rooms||[]).filter(r=>r.active).length:null,
    blocked=snap?.ready?(ws.rooms||[]).filter(r=>r.active&&(r.housekeeping==='blocked'||r.status==='blocked')).length:null,
    checkoutRows=hotel&&permitted('checkouts')&&snap?.ready?(root.BiteHospitality?.checkoutDue?.()||[]):[],
    approvalCount=waiting.length;
   const paidIds=root.BiteOwnerOrderBurst?.paidOrderIds?.(currentState?.financials||[],currentAccess?.restaurantId);
   const paidNew=permitted('orders')?(data?.active||[]).filter(o=>o.status==='Received'&&paidIds?.has?.(o.id)).length:0;
-  const finance=pdfHomeFinance(data,snap);
-  const financeNotice='<p class="bv3-pdf-finance-note" role="note">Sales = billed services, Received = confirmed collections, Due = unpaid balances. Cross-source totals show — until linked accounting is verified; no sample amounts are used.</p>';
+  const finance=pdfHomeFinance(data,snap),financeReady=financeQuery.key===homeFinanceKey()&&financeQuery.status==='ready';
+  const financeStatus=financeQuery.key===homeFinanceKey()?financeQuery.status:'idle';
+  const financeNotice='<p class="bv3-pdf-finance-note" role="status">'+
+   (financeReady?'Selected-day accounting uses the existing authorized Daily Book. Received excludes refundable deposits and internal transfers.':
+    financeStatus==='error'?'Accounts unavailable for this date. No zero has been assumed. <button type="button" class="bv3-pdf-retry" data-bv3-retry-finance="true">Retry accounts</button>':
+    'Sales = billed services, Received = confirmed collections, Due = unpaid balances. Cross-source totals show — until linked accounting is verified; no sample amounts are used.')+
+   '</p>';
   const orderRows=permitted('orders')?
     (approvalCount?pdfRow(approvalCount+' customer request'+(approvalCount===1?'':'s')+' awaiting approval','Payment not collected · Today','orders','urgent'):'')+
     (paidNew?pdfRow(paidNew+' new paid Bite order'+(paidNew===1?'':'s'),'Verified online payment · Today','orders','urgent'):'')+
@@ -258,7 +305,7 @@
     pdfRow(snap?.ready?String(snap.arrivals??0)+' arrival'+(snap.arrivals===1?'':'s')+' due':'Arrivals loading',
      'Review reservations and check-in availability','reservations'):'';
   const rooms=hotel?'<section class="bv3-pdf-panel bv3-pdf-room-panel" aria-label="Rooms summary">'+
-   '<div class="bv3-pdf-panel-head"><h2>Rooms'+(totalRooms===null?'':' / '+totalRooms)+'</h2>'+
+   '<div class="bv3-pdf-panel-head"><h2>Rooms'+(totalRooms===null?'':' / '+totalRooms)+(historical?' · Live today':'')+'</h2>'+
    '<button type="button" data-bv3-route="rooms">Open rooms ›</button></div>'+
    '<div class="bv3-pdf-room-stats">'+
    [['Occupied',snap?.ready?snap.occupied:null],['Ready',snap?.ready?snap.available:null],
@@ -287,9 +334,9 @@
   const quick=quickRoutes.filter(([,routeName])=>permitted(routeName)).map(([title,routeName,extra])=>
    '<button type="button" class="bv3-pdf-quick" data-bv3-route="'+routeName+'" '+extra+'>'+escapeHtml(title)+' <span aria-hidden="true">›</span></button>').join('');
   return '<div class="bv3-pdf-home" data-pdf-screen="H02-H03" aria-label="Bite Owner V3 single workspace">'+
-    '<header class="bv3-pdf-heading"><div><p class="bv3-pdf-kicker">BITE OWNER · TODAY <span class="bv3-pdf-today">LIVE</span></p>'+
-    '<h1>'+escapeHtml(propertyName())+'</h1><small>'+escapeHtml(today)+' · Enabled business departments</small></div>'+
-    (permitted('daily-book')?'<button type="button" class="bv3-pdf-date-link" data-bv3-route="daily-book" aria-label="Open dated Daily Book">View date ›</button>':'')+'</header>'+
+    '<header class="bv3-pdf-heading"><div><p class="bv3-pdf-kicker">BITE OWNER · '+(historical?'SELECTED DAY':'TODAY')+' <span class="bv3-pdf-today">'+(historical?'HISTORICAL':'LIVE')+'</span></p>'+
+    '<h1>'+escapeHtml(propertyName())+'</h1><small>'+escapeHtml(selectedDay)+(historical?' · Historical accounts; live alerts remain today':' · Enabled business departments')+'</small></div>'+
+    (permitted('daily-book')?'<div class="bv3-pdf-date-controls"><label class="bv3-pdf-date-field">Business date<input type="date" data-bv3-business-day="true" value="'+escapeHtml(selectedDay)+'" max="'+escapeHtml(today)+'" aria-label="Selected business date"></label><button type="button" class="bv3-pdf-date-link" data-bv3-date-today="true">Today</button></div>':'')+'</header>'+
     '<section class="bv3-pdf-metrics" aria-label="Business financial summary">'+finance+'</section>'+financeNotice+
     '<div class="bv3-pdf-columns"><div class="bv3-pdf-main-column">'+
     '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Live orders</h2><span class="bv3-pdf-today">Today</span></div>'+orderRows+'</section>'+
@@ -340,11 +387,12 @@
   const home=root.document.getElementById('biteV3Home');if(!home)return;
   const data=summary()||{active:[],todayOrders:[],stages:{},week:[],todaySales:0,todayPosBilled:0,todayExpenses:0},snap=hotelSnapshot(),waiting=approvals();
   recoverRoomSnapshot(snap);
+  loadHomeFinance();
   const headerBell=root.document.getElementById('biteV3HeaderBell');if(headerBell)headerBell.hidden=false;
   const notices=noticeEntries(data,waiting),register=monthRegisterSummary();
   const signature=JSON.stringify([root.BiteHospitality?.prop?.()?.id,currentAccess.restaurantId,data.todayOrders.length,data.active.map(o=>[o.id,o.status]),
     data.todaySales,data.todayPosBilled,data.todayExpenses,(data.week||[]).map(x=>x.amount),snap?.occupied,snap?.available,snap?.arrivals,snap?.openFolios,snap?.cleaning,snap?.restaurant,snap?.ready,root.BiteHospitality?.housekeepingVisible?.(),
-    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,roomRecoveryError,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
+    waiting.map(x=>[x.intent_id,x.state,x.expires_at,x.amount]),notices.map(n=>n.id),register.label,register.count,roomRecoveryError,businessDay(),financeQuery.status,financeQuery.key,financeQuery.value?.received,financeQuery.value?.sales,financeQuery.value?.expenses,root.BiteHospitality?.prop?.()?.tax_profile?.gstin]);
   if(force||signature!==lastHomeSignature){lastHomeSignature=signature;home.innerHTML=homeHtml(data,snap,waiting);}
   home.hidden=false;
   const overview=root.document.getElementById('overview');
@@ -448,6 +496,7 @@
  }
  function route(page,filter,newPos,notification){
   if(!permitted(page))return;
+  if(page==='daily-book')root.BiteHotelAccounts?.selectOwnerHomeMonth?.(businessDay());
   if(notification?.folioId&&page==='folios'){void root.BiteHospitality.openFolio(notification.folioId);return;}
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
    void Promise.resolve(root.openPosFromOverview(null));return;
@@ -465,8 +514,16 @@
  }
  function onClick(e){
   if(currentAccess?.role!=='owner')return;
-  const button=e.target.closest?.('[data-bv3-review],[data-bv3-route]');
+  const button=e.target.closest?.('[data-bv3-review],[data-bv3-route],[data-bv3-date-today],[data-bv3-retry-finance]');
   if(!button||!button.closest('#biteV3Home'))return;
+  if(button.dataset.bv3DateToday==='true'){
+   selectedFinanceDay=todayBusinessDay();financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+   renderHome(true);return;
+  }
+  if(button.dataset.bv3RetryFinance==='true'){
+   financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+   loadHomeFinance(true);renderHome(true);return;
+  }
   if(button.dataset.bv3Review){
    const id=button.dataset.bv3Intent,decision=button.dataset.bv3Review;
    if(decision==='rejected'&&!root.confirm('Reject this request? Customer has not paid yet.'))return;
@@ -475,6 +532,19 @@
    return;
   }
   if(button.dataset.bv3Route)route(button.dataset.bv3Route,button.dataset.bv3Attendance==='true'?'attendance':button.dataset.bv3Gst==='true'?'gst':button.dataset.bv3Filter,button.dataset.bv3NewPos==='true');
+ }
+ function onHomeBusinessDateChange(event){
+  const input=event.target;
+  if(!input?.matches?.('[data-bv3-business-day]')||currentAccess?.role!=='owner')return;
+  const chosen=String(input.value||''),today=todayBusinessDay();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(chosen)||chosen>today||
+     (!Number.isFinite(Date.parse(chosen+'T12:00:00Z'))||new Date(chosen+'T12:00:00Z').toISOString().slice(0,10)!==chosen)){
+   input.value=businessDay();return;
+  }
+  if(chosen===businessDay())return;
+  selectedFinanceDay=chosen;
+  financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+  renderHome(true);
  }
  function initialize(){
   if(root.document?.getElementById('biteV3Home'))return;
@@ -485,6 +555,7 @@
   home.setAttribute('aria-label','Bite owner command center');
   overview.prepend(home);
   home.addEventListener('click',onClick);
+  home.addEventListener('change',onHomeBusinessDateChange);
   const header=root.document.querySelector('#mainApp>.main>.top');
   if(header&&!root.document.getElementById('biteV3HeaderBell')){
    const bell=root.document.createElement('button');
@@ -543,6 +614,7 @@
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
+   financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};selectedFinanceProperty='';selectedFinanceDay='';
    toggleNoticeTray(false);
    root.document?.body?.classList.remove('bite-v3-active');
    syncLegacyHomeVisibility();
