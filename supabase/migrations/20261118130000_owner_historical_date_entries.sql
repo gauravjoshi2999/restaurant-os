@@ -18,12 +18,16 @@ create table if not exists public.bite_owner_historical_entries (
  received_amount numeric(12,2) not null default 0 check (received_amount >= 0 and received_amount <= amount),
  payment_method text check (payment_method in ('Cash','UPI','Card','Bank Transfer','Other')),
  items jsonb not null default '[]'::jsonb,
+ guest_details jsonb not null default '{}'::jsonb,
  notes text not null default '' check (length(notes) <= 500),
  created_by uuid not null default auth.uid(),
  recorded_at timestamptz not null default now(),
  constraint bite_historical_scope check (
    (entry_kind='room' and property_id is not null and restaurant_id is null and departure_date > record_date)
    or (entry_kind='pos' and restaurant_id is not null and property_id is null and departure_date is null)
+ ),
+ constraint bite_historical_guest_details check (
+   jsonb_typeof(guest_details)='object' and octet_length(guest_details::text)<=12000
  ),
  constraint bite_historical_items check (
    jsonb_typeof(items)='array' and jsonb_array_length(items) <= 150
