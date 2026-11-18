@@ -719,7 +719,7 @@ body.bite-session-check #biteSessionSplash{
 .order-cooking-note-inbox{margin:10px 0 4px}
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
-<link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261117-s1">
+<link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261118-v3-receipts">
 <link rel="stylesheet" href="assets/bite-pos-reports.css?v=20261118-historical-report1">
 <link rel="stylesheet" href="assets/bite-pos-visits.css?v=20261117-step2">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
@@ -1364,7 +1364,7 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 @media(max-width:650px){.pos-draft-toolbar,.pos-draft-card{align-items:stretch;flex-direction:column}.pos-draft-actions .btn{flex:1}}
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
-<script src="./assets/bite-pos-v2.js?v=20261117-s1"></script>
+<script src="./assets/bite-pos-v2.js?v=20261118-v3-receipts"></script>
 <script src="./assets/bite-pos-reports.js?v=20261118-historical-report1"></script>
 <script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
@@ -1849,6 +1849,7 @@ async function showPOSReceiptInCashbook(orderId,paymentId){
   target?.setAttribute('aria-label','Selected POS receipt for '+(order.code||'POS bill'));
  }
 }
+window.showPOSReceiptInCashbook=showPOSReceiptInCashbook;
 function renderCashbook(){
  const total=(dir,method)=>cashbookEntries.filter(x=>x.direction===dir&&(!method||x.payment_method===method)).reduce((sum,x)=>sum+Number(x.amount),0);
  const income=total('in'),out=total('out'),cashIn=total('in','Cash'),cashOut=total('out','Cash');
@@ -3584,7 +3585,8 @@ function renderPOSWorkspace(){
   restaurantId:rid,userId:currentUser?.id,client:sb,
   orders:orders.map(o=>{
    const p=paymentSummaryFor(o.id);
-   return {...o,posVisit:window.BitePOSVisits?.detail?.(o.id)||null,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
+   const latest=state.orderPayments.filter(x=>x.restaurant_id===rid&&x.order_id===o.id&&Number(x.amount)>0&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.payment_date||''))).sort((a,b)=>String(b.payment_date).localeCompare(String(a.payment_date)))[0];
+   return {...o,receipt:latest?{id:latest.id,date:latest.payment_date}:null,posVisit:window.BitePOSVisits?.detail?.(o.id)||null,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
     receivedAmount:Number(p.paid_amount||0),dueAmount:Number(p.balance_amount||0)};
   })
  });
