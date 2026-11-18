@@ -171,6 +171,8 @@
   if(!data?.id)throw new Error('Record confirmation unavailable. Retry unchanged details.');
   localStorage.removeItem(pendingKey);
   form.dataset.bheSavedSignature=signature;
+  // The historical bill is confirmed: do not leave it as an unsubmitted live POS draft.
+  if(kind==='pos')try{await root.BitePOS?.finishOrder?.()}catch(e){console.warn('Historical POS saved; draft cleanup needs retry',e)}
   await loadRows(form,kind);
   return data.id;
  }
