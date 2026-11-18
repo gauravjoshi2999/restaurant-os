@@ -292,7 +292,7 @@
     '<section class="bv3-pdf-metrics" aria-label="Business financial summary">'+finance+'</section>'+financeNotice+
     '<div class="bv3-pdf-columns"><div class="bv3-pdf-main-column">'+
     '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Live orders</h2><span class="bv3-pdf-today">Today</span></div>'+orderRows+'</section>'+
-    (hotel?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Arrivals &amp; checkouts</h2></div>'+checkout+arrival+'</section>':'')+
+    (hotel?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Arrivals &amp; checkouts</h2>'+(permitted('checkouts')?'<span data-checkout-count>'+num(snap?.ready?snap.departures:null)+'</span>':'')+'</div>'+checkout+arrival+'</section>':'')+
     '</div><div class="bv3-pdf-side-column">'+rooms+
     '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Recent activity</h2></div>'+
     (recent.length?recent.join(''):'<p class="bv3-pdf-empty">No recent activity available in this session.</p>')+'</section></div></div>'+
