@@ -63,3 +63,35 @@
   body[data-role="owner"] #pos .bpr-date{font-size:12px}
  }
 }
+
+
+/* Old POS register data is visible beside live bills, without pretending to
+   have received gateway funds or a cash settlement. */
+body[data-role="owner"] #pos .bpr-history-note,
+body[data-role="owner"] #pos .bpr-history-alert{
+ font-size:12px;line-height:1.5;border-radius:11px;padding:10px 12px;
+ margin:10px 0 12px;overflow-wrap:anywhere;
+}
+body[data-role="owner"] #pos .bpr-history-note{
+ background:#fff9ed;color:#6a4b1b;border:1px solid #f0d2a6;
+}
+body[data-role="owner"] #pos .bpr-history-alert{
+ background:#fff1f0;color:#9d2a25;border:1px solid #eeafa9;
+}
+body[data-role="owner"] #pos .bpr-old-action{
+ display:grid;gap:7px;background:#fff9f2;border:1px solid #f5d8b7;
+ padding:11px;border-radius:14px;margin:10px 0 15px;min-width:0;
+}
+body[data-role="owner"] #pos .bpr-old-action button{
+ background:linear-gradient(125deg,#ff930e,#ed6a08);color:white;
+ border:0;border-radius:11px;min-height:46px;padding:11px 13px;
+ font-size:13px;font-weight:850;white-space:normal;text-align:center;
+ overflow-wrap:anywhere;cursor:pointer;
+}
+body[data-role="owner"] #pos .bpr-old-action small{
+ color:#755a47;line-height:1.5;font-size:11px;
+}
+@media(max-width:430px){
+ body[data-role="owner"] #pos .bpr-old-action{padding:10px}
+ body[data-role="owner"] #pos .bpr-old-action button{width:100%;font-size:12px}
+}

@@ -29,11 +29,54 @@ function emptyDate(monthValue){return monthValue===istToday().slice(0,7)?istToda
 function summarize(days){
  const rows=Array.isArray(days)?days:[];
  return rows.reduce((out,r)=>{
-  for(const key of ['bills','billed','guests','dine_in','takeaway','untracked'])out[key]+=(Number(r[key])||0);
+  for(const key of ['bills','billed','guests','dine_in','takeaway','untracked','historical_bills','historical_billed','historical_received'])out[key]+=(Number(r[key])||0);
   return out;
- },{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0});
+ },{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0,historical_bills:0,historical_billed:0,historical_received:0});
 }
 function selectedRow(){return (report?.days||[]).find(x=>x.date===selected)||null;}
+// Historical POS snapshots are read-only register entries, not new orders or cash movements.
+// RLS on bite_owner_historical_entries scopes every page to the authenticated outlet.
+async function historicalRowsForMonth(client,scope,period){
+ const out=[],size=500,end=shiftMonth(period,1)+'-01';
+ if(typeof client.from!=='function')throw Error('Historical register access is unavailable');
+ for(let start=0;start<25000;start+=size){
+  const {data,error}=await client.from('bite_owner_historical_entries')
+   .select('id,record_date,recorded_at,customer_name,amount,received_amount,guest_count,visit_type')
+   .eq('restaurant_id',scope).eq('entry_kind','pos')
+   .gte('record_date',period+'-01').lt('record_date',end)
+   .order('record_date',{ascending:false}).order('recorded_at',{ascending:false})
+   .range(start,start+size-1);
+  if(error)throw error;
+  if(!Array.isArray(data))throw Error('Incomplete historical register response');
+  out.push(...data);
+  if(data.length<size)return out;
+ }
+ throw Error('Too many historical entries in this month; request a complete export');
+}
+function mergeHistorical(live,rows){
+ const days=(live.days||[]).map(d=>({...d,historical_bills:0,historical_billed:0,historical_received:0}));
+ const byDay=new Map(days.map(d=>[d.date,d]));
+ const selectedHistory=[];
+ for(const h of rows){
+  const d=byDay.get(h.record_date);if(!d)continue;
+  const billed=Number(h.amount)||0,received=Number(h.received_amount)||0;
+  d.bills=(Number(d.bills)||0)+1;d.billed=(Number(d.billed)||0)+billed;
+  d.historical_bills+=1;d.historical_billed+=billed;d.historical_received+=received;
+  if(h.visit_type==='dine_in'){
+   d.dine_in=(Number(d.dine_in)||0)+1;
+   d.guests=(Number(d.guests)||0)+(Number(h.guest_count)||0);
+  }else if(h.visit_type==='takeaway')d.takeaway=(Number(d.takeaway)||0)+1;
+  if(h.record_date===live.selected_day)selectedHistory.push({
+   id:h.id,code:'Old register',customer:h.customer_name||'Walk-in',billed,
+   service:h.visit_type,guests:h.guest_count,status:'Historical record',
+   source:'historical',received,recordedAt:h.recorded_at
+  });
+ }
+ selectedHistory.sort((a,b)=>String(b.recordedAt||'').localeCompare(String(a.recordedAt||'')));
+ const oldRecent=(live.recent||[]).map(r=>({...r,source:'live'}));
+ return {...live,days,recent:[...selectedHistory,...oldRecent].slice(0,8)};
+}
+
 function summaryCard(name,value,theme,icon){
  return '<div class="bpr-metric '+theme+'"><span class="bpr-metric-icon">'+icon+'</span><span>'+safe(name)+'</span><strong>'+safe(value)+'</strong></div>';
 }
@@ -66,7 +109,8 @@ function billList(){
  if(!rows.length)return '<div class="bpr-empty">Is date ka koi POS bill record nahi mila.</div>';
  return '<div class="bpr-bills">'+rows.map(b=>{
   const service=b.service==='dine_in'?'Dine-in · '+b.guests+' guest(s)':b.service==='takeaway'?'Takeaway':'Old / Untracked';
-  return '<div class="bpr-bill"><span><strong>'+safe(b.code||'POS Bill')+'</strong><small>'+safe(b.customer||'Walk-in')+' · '+safe(service)+'</small></span>'+
+  const history=b.source==='historical';
+  return '<div class="bpr-bill"><span><strong>'+safe(history?'Old POS register':b.code||'POS Bill')+'</strong><small>'+safe(b.customer||'Walk-in')+' · '+safe(service)+(history?' · Historical entry':'')+'</small></span>'+
     '<strong>'+money(b.billed)+'</strong></div>';
  }).join('')+'</div>';
 }
@@ -76,7 +120,7 @@ function showReport(){
  if(!data.length){
   container.innerHTML='<div class="bpr-error">Report data abhi available nahi hai. <button type="button" data-bpr-refresh>Retry</button></div>';return;
  }
- const current=selectedRow()||{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0};
+ const current=selectedRow()||{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0,historical_bills:0,historical_billed:0,historical_received:0};
  const totals=summarize(data);
  const metric=mode==='monthly'?totals:current;
  const metricTitle=mode==='monthly'?'Monthly POS summary':dateLabel(selected);
@@ -93,6 +137,12 @@ function showReport(){
  const today=istToday(),dataToShow=mode==='today'?data.filter(x=>x.date<=selected&&x.date>=(function(){const t=new Date(selected+'T12:00:00Z');t.setUTCDate(t.getUTCDate()-6);return t.toISOString().slice(0,10)})()):data;
  const trend='<div class="bpr-trend"><div class="bpr-heading"><strong>'+(mode==='today'?'Recent 7 days':'Daily sales trend')+'</strong><small>Billed value, not cash received</small></div>'+sparkline(dataToShow)+'</div>';
  const calendar=mode==='calendar'?calendarHtml(data):'';
+ const historicalNote=report.historyError
+   ?'<p class="bpr-history-alert" role="alert">Old register records load nahi hue: '+safe(report.historyError)+'. Live bills only dikh rahe hain. Refresh karein.</p>'
+   :'<p class="bpr-history-note"><strong>'+Number(metric.historical_bills||0)+' old register bill(s)</strong> included · '+money(metric.historical_billed)+' historical billing · '+money(metric.historical_received)+' previously received (record only, not cash collected now).</p>';
+ const addOld=mode!=='monthly'&&selected<today
+   ?'<div class="bpr-old-action"><button type="button" data-bpr-add-old>＋ Add old POS bill · '+safe(dateLabel(selected))+'</button><small>Selected date will automatically fill in the New POS Bill form.</small></div>':'';
+
  const selection='<div class="bpr-heading bpr-date-heading"><strong>'+safe(metricTitle)+'</strong>'+
   '<button type="button" data-bpr-refresh>Refresh ↻</button></div>';
  const recent=mode==='monthly'?'':('<div class="bpr-heading"><strong>Recent bills · '+safe(dateLabel(selected))+'</strong><small>Showing up to 8</small></div>'+billList());
@@ -103,7 +153,7 @@ function showReport(){
    '<button type="button" data-bpr-shift="1" aria-label="Next month">›</button></div>'+
   '<div class="bpr-modes" role="group" aria-label="POS report view">'+
    ['today','calendar','monthly'].map(m=>'<button type="button" data-bpr-mode="'+m+'" aria-pressed="'+String(mode===m)+'">'+m[0].toUpperCase()+m.slice(1)+'</button>').join('')+'</div>'+
-  selection+cards+countNote+
+  selection+cards+countNote+historicalNote+addOld+
   (mode==='calendar'?calendar+trend:trend)+
   recent+'<p class="bpr-note">Online customer orders aur hotel room folio alag hain. Purane bills ki guest count estimate nahi ki gayi. Refund/cancelled sales billed value mein adjust hain.</p></section>';
 }
@@ -123,7 +173,12 @@ async function refresh(force=false){
   if(res.error)throw res.error;
   if(!res.data||res.data.month!==period||!Array.isArray(res.data.days)||res.data.days.length<28)
    throw new Error('Incomplete report response');
-  report=res.data;
+  let historical=[],historyError='';
+  try{historical=await historicalRowsForMonth(sb,scope,period);}
+  catch(e){historyError=e?.message||'Network error';}
+  if(epoch!==request||scope!==restaurantId||authUser!==userId||container==null)return;
+  report=mergeHistorical(res.data,historical);
+  report.historyError=historyError;
   showReport();
  }catch(error){
   if(epoch!==request||scope!==restaurantId)return;
@@ -131,8 +186,24 @@ async function refresh(force=false){
  }finally{if(epoch===request)loading=false;}
 }
 function onClick(e){
- const btn=e.target.closest?.('[data-bpr-mode],[data-bpr-date],[data-bpr-shift],[data-bpr-refresh]');
+ const btn=e.target.closest?.('[data-bpr-mode],[data-bpr-date],[data-bpr-shift],[data-bpr-refresh],[data-bpr-add-old]');
  if(!btn)return;
+ if(btn.hasAttribute('data-bpr-add-old')){
+  const date=selected;
+  if(!date||date>=istToday())return;
+  void (async()=>{
+   if(typeof root.openOrder!=='function')throw Error('New POS Bill cannot be opened');
+   await root.openOrder();
+   root.BiteOwnerHistory?.scan?.();
+   const form=doc.getElementById('orderForm'),input=form?.elements?.history_date;
+   if(!form||!input||!doc.getElementById('orderModal')?.classList.contains('show'))
+    throw Error('Old date calendar is not ready. Refresh and try again.');
+   input.value=date;
+   input.dispatchEvent(new Event('change',{bubbles:true}));
+   form.querySelector('[data-bhe-calendar]')?.scrollIntoView?.({block:'nearest'});
+  })().catch(error=>root.alert?.(error.message||String(error)));
+  return;
+ }
  if(btn.dataset.bprMode){
   mode=btn.dataset.bprMode;
   if(mode==='today'){month=istToday().slice(0,7);selected=istToday();}
@@ -159,5 +230,5 @@ function mount({el,client,restaurant,user}){
  else if(report)showReport();
 }
 function clear(){epoch++;if(container)container.removeEventListener('click',onClick);container=null;sb=null;restaurantId='';userId='';report=null;loading=false;}
-root.BitePOSReports={mount,refresh,clear,summarize,shiftMonth,calendarHtml,istToday};
+root.BitePOSReports={mount,refresh,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth};
 })(window);

@@ -72,7 +72,7 @@
   date.addEventListener('change',()=>{holder.querySelector('[data-bhe-month]').setAttribute('aria-pressed','false');renderState(form,kind,true)});
   holder.querySelector('[data-bhe-today]').addEventListener('click',()=>{date.value=today();renderState(form,kind,true)});
   holder.querySelector('[data-bhe-month]').addEventListener('click',e=>{const isOn=e.currentTarget.getAttribute('aria-pressed')==='true';e.currentTarget.setAttribute('aria-pressed',String(!isOn));void loadRows(form,kind)});
-  form.addEventListener('reset',()=>setTimeout(()=>{if(!form.isConnected)return;date.value=today();renderState(form,kind,false)},0));
+  form.addEventListener('reset',()=>{delete form.dataset.bheSavedSignature;const resetValue=date.defaultValue;setTimeout(()=>{if(!form.isConnected)return;if(!date.value||date.value===resetValue)date.value=today();renderState(form,kind,false)},0)});
   renderState(form,kind);
  }
  function scan(){
@@ -185,8 +185,14 @@
   if(btn?.disabled)return;
   if(btn)btn.disabled=true;
   status(form,'Saving old record online…');
+  const recordDate=currentDate(form);
   void save(form,kind).then(()=>{
-   status(form,'✓ Old '+(kind==='room'?'room':'POS')+' record saved online for '+currentDate(form)+'. Live status/payment unchanged.');
+   status(form,'✓ Old '+(kind==='room'?'room':'POS')+' record saved online for '+recordDate+'. Live status/payment unchanged.');
+   if(kind==='pos'){
+    root.closeModal?.('orderModal');
+    void root.BitePOSReports?.refresh?.(true);
+    root.alert?.('✓ '+recordDate+' ka purana POS bill online register mein save ho gaya. Reports > Calendar mein dekh sakte hain.');
+   }
   }).catch(error=>status(form,'Save failed: '+(error.message||String(error)),true))
     .finally(()=>{if(btn)btn.disabled=false;});
  }
