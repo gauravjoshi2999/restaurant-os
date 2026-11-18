@@ -26,3 +26,13 @@ INSERT INTO public.platform_admins VALUES('11111111-1111-4111-8111-111111111111'
 INSERT INTO public.restaurants(id,name,address,phone,city) VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Synthetic A','QA road','9999999999','Rajsamand'),('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','Synthetic B','QA road','8888888888','Udaipur');
 INSERT INTO public.restaurant_members VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','owner');
 INSERT INTO public.platform_settings VALUES(1,10,NULL,now());
+-- Faithful baseline delivery policies: membership reads/writes, no platform
+-- read permission until the new review migration is applied.
+ALTER TABLE public.restaurant_delivery_zones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.restaurant_delivery_zone_pincodes ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.restaurant_members TO authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.restaurant_delivery_zones,public.restaurant_delivery_zone_pincodes TO authenticated;
+CREATE POLICY fixture_delivery_members ON public.restaurant_delivery_zones FOR ALL TO authenticated USING (EXISTS(SELECT 1 FROM public.restaurant_members m WHERE m.restaurant_id=restaurant_delivery_zones.restaurant_id AND m.user_id=auth.uid() AND m.role IN('owner','manager')));
+CREATE POLICY fixture_pincode_members ON public.restaurant_delivery_zone_pincodes FOR ALL TO authenticated USING (EXISTS(SELECT 1 FROM public.restaurant_members m WHERE m.restaurant_id=restaurant_delivery_zone_pincodes.restaurant_id AND m.user_id=auth.uid() AND m.role IN('owner','manager')));
+INSERT INTO public.restaurant_delivery_zones(id,restaurant_id) VALUES('10000000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),('10000000-0000-4000-8000-000000000002','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+INSERT INTO public.restaurant_delivery_zone_pincodes VALUES('10000000-0000-4000-8000-000000000001','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','313324'),('10000000-0000-4000-8000-000000000002','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','313001');

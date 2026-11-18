@@ -12,6 +12,8 @@ SELECT pg_temp.expect_error('select public.bite_super_admin_overview_v1()','4250
 SELECT pg_temp.expect_error($q$select public.bite_super_admin_review_v1('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','pause','',null)$q$,'42501');
 SELECT pg_temp.expect_error('select public.bite_super_admin_commission_v1(null,15,10)','42501');
 SELECT pg_temp.expect_error($q$select public.bite_super_admin_attention_v1('delayed',0)$q$,'42501');
+SELECT pg_temp.assert_true((SELECT count(*)=1 FROM public.restaurant_delivery_zones),'Owner still reads only the assigned delivery zone');
+SELECT pg_temp.assert_true((SELECT count(*)=1 FROM public.restaurant_delivery_zone_pincodes),'Owner still reads only the assigned pincodes');
 SELECT set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 SELECT pg_temp.expect_error('select public.bite_super_admin_overview_v1()','42501');
 SELECT pg_temp.expect_error('select public.bite_super_admin_commission_v1(null,15,10)','42501');
@@ -28,6 +30,10 @@ INSERT INTO public.orders(id,restaurant_id,order_code,channel,status,is_demo,ord
 INSERT INTO public.order_financials(order_id,channel,is_demo,customer_payable_amount,commission_rate,commission_amount,payment_status) SELECT id,channel,is_demo,CASE WHEN order_code='QA-TODAY' THEN 170 ELSE 999 END,10,17,'paid' FROM public.orders;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
 SET LOCAL ROLE authenticated;
+SELECT pg_temp.assert_true((SELECT count(*)=2 FROM public.restaurant_delivery_zones),'Super Admin can read both restaurants delivery areas for review');
+SELECT pg_temp.assert_true((SELECT count(*)=2 FROM public.restaurant_delivery_zone_pincodes),'Super Admin can read both restaurants pincodes for review');
+DO $$ DECLARE changed int; BEGIN UPDATE public.restaurant_delivery_zones SET is_active=false; GET DIAGNOSTICS changed=ROW_COUNT; IF changed<>0 THEN RAISE EXCEPTION 'Super Admin must not change delivery settings'; END IF; END $$;
+SELECT pg_temp.expect_error($q$insert into public.restaurant_delivery_zones(restaurant_id) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')$q$,'42501');
 SELECT pg_temp.assert_true((public.bite_super_admin_overview_v1()->>'orders_today')::int=1,'Today excludes prior/next India date, demo and POS');
 SELECT pg_temp.assert_true((public.bite_super_admin_overview_v1()->>'collections_today')::numeric=170,'Collection amount is exact verified financial total');
 RESET ROLE;

@@ -2,7 +2,7 @@
 
 Implements the approved eight-page Canva reference `DAHbPJAtG9w` within the existing Owner/Admin application. The three primary destinations are Home, Restaurants and Payments. More exposes platform orders, commission, customer support, reports, audit, customer controls, review reports and website offers. No separate Admin account or role is provisioned.
 
-Restaurant approval, publishing, pause and change requests use a server-verified, row-locked review RPC with an expected update timestamp. Approval requires contact details, an available menu and pickup or an active delivery zone with pincodes. Approval and publishing are separate actions. Existing Owner creation, reset, mapping, verification documents and change-request workflows remain available in management tools.
+Restaurant approval, publishing, pause and change requests use a server-verified, row-locked review RPC with an expected update timestamp. Approval requires contact details, an available menu and pickup or an active delivery zone with pincodes. Approval and publishing are separate actions. Super Admin receives read-only delivery-zone/pincode policies for this review; Owner/Manager operational writes remain unchanged. Existing Owner creation, reset, mapping, verification documents and change-request workflows remain available in management tools.
 
 Overview counts and delayed/unassigned attention pagination are authoritative database reads. Orders, payments, refunds and settlements use bounded lists with real detail records. Provider checks reuse `bite-cashfree-operations`; browsing does not initiate refunds or transfers. Collection, recorded restaurant payable and bank payout remain separate states. Unknown actual gateway fees remain unknown.
 

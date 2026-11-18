@@ -103,3 +103,12 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.bite_super_admin_attention_v1(text,integer) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.bite_super_admin_attention_v1(text,integer) TO authenticated;
+
+-- Onboarding review needs read access to delivery configuration. Operational
+-- writes remain with the existing restaurant Owner/Manager policies.
+CREATE POLICY bite_super_admin_review_delivery_zones
+ ON public.restaurant_delivery_zones FOR SELECT TO authenticated
+ USING ((SELECT public.is_platform_admin()));
+CREATE POLICY bite_super_admin_review_delivery_pincodes
+ ON public.restaurant_delivery_zone_pincodes FOR SELECT TO authenticated
+ USING ((SELECT public.is_platform_admin()));
