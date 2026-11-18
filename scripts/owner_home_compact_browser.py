@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Owner Home visual regression: all four supported mobile widths, all property modes.
-Uses the existing synthetic hospitality backend, never production data.
+"""PDF Owner V3 H01–H03 regression at supported phone widths and desktop.
+Uses existing synthetic hospitality transport: never authenticates or mutates production.
 """
 import json,os,re,subprocess,sys
 from pathlib import Path
@@ -29,7 +29,7 @@ def check(ok,description):
 try:
  with sync_playwright() as pw:
   browser=pw.chromium.launch()
-  for width in (320,360,390,430):
+  for width in (320,360,390,430,1280):
    for mode in ('hotel','restaurant','hybrid'):
     page=browser.new_page(viewport={'width':width,'height':880},device_scale_factor=1)
     page.on('pageerror',lambda e:errors.append(str(e)))
@@ -41,57 +41,51 @@ try:
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
     try:
-     page.locator('#biteV3Home .boh-feature-grid').wait_for(state='visible',timeout=5000)
+     page.locator('#biteV3Home .bv3-pdf-home').wait_for(state='visible',timeout=6000)
     except Exception:
-     debug=page.evaluate("""() => ({
+     print('PDF-OWNER-HOME-DIAGNOSTIC',mode,width,page.evaluate("""() => ({
        role:document.body.dataset.role,business:document.body.dataset.businessType,
-       appVisible:document.getElementById('mainApp')?.getBoundingClientRect().height>0,
-       v3Exists:!!document.getElementById('biteV3Home'),
-       v3Visible:!!document.getElementById('biteV3Home')?.getBoundingClientRect().height,
-       v3Text:document.getElementById('biteV3Home')?.innerText?.slice(0,260),
+       v3:document.getElementById('biteV3Home')?.innerText?.slice(0,340),
        cls:document.body.className,property:window.BiteHospitality?.prop?.()?.name,
-       dashboard:typeof window.BiteOwnerReferenceV3,
-       overview:document.getElementById('overview')?.className,
        nav:document.getElementById('biteOwnerBottomNav')?.innerText,
-       restaurant:typeof access==='object'?access.restaurantId:'not-visible'
-     })""")
-     print('HOME-RESPONSIVE-DIAGNOSTIC',mode,width,debug,flush=True)
+       page:document.getElementById('overview')?.className
+     })"""),flush=True)
      raise
-    grid=page.locator('#biteV3Home .boh-feature-grid')
-    check(grid.get_attribute('data-business-type')==mode,f'{mode} {width}px correct Home mode')
     home=page.locator('#biteV3Home')
-    check(home.is_visible(),f'{mode} {width}px approved Home visible')
+    check(home.get_attribute('hidden') is None,f'{mode} {width}px PDF H02/H03 visible')
+    check(page.locator('#biteV3Home .bv3-pdf-metric').count()==4,
+          f'{mode} {width}px four Sales/Received/Due/Expenses cards')
+    check(all(label in home.inner_text() for label in ('Sales','Received','Due','Expenses','Recent activity')),
+          f'{mode} {width}px PDF money sections')
+    check(page.locator('#biteV3Home .boh-feature-grid').count()==0,
+          f'{mode} {width}px old illustrated feature grid not rendered')
     for unwanted in ('[data-owner-dashboard]','[data-platform-dashboard]','.od-metrics','.od-pos-breakdown','.od-finance-boundary','.od-dashboard-grid','.od-footer','#bitePremiumHome'):
-     check(page.locator('#overview '+unwanted).is_hidden(),f'{mode} {width}px old Home hidden: {unwanted}')
-    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{mode} {width}px no horizontal overflow')
-    check(page.locator('#biteV3Home .boh-register').count()==(0 if mode=='restaurant' else 1),f'{mode} {width}px register allowed only for hotels')
-    check(page.locator('#biteV3Home .boh-room').count()==(0 if mode=='restaurant' else 1),f'{mode} {width}px room status permission')
-    check(page.locator('#biteV3Home .boh-pos').count()==(0 if mode=='hotel' else 1),f'{mode} {width}px POS permission')
-    check(page.locator('#biteV3Home .boh-room-stat.is-cleaning').count()==0,f'{mode} {width}px no unwanted cleaning status')
-    tabs=page.locator('#biteOwnerBottomNav button[data-bite-page]').evaluate_all('(els)=>els.map(e=>e.dataset.bitePage)')
-    expected={'hotel':['overview','rooms','more'],
-              'restaurant':['overview','orders','pos','more'],
-              'hybrid':['overview','rooms','orders','pos','more']}[mode]
-    check(tabs==expected,f'{mode} {width}px bottom tabs: {tabs}')
-    check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),f'{mode} {width}px touch targets')
-    for i,card in enumerate(page.locator('#biteV3Home .boh-feature').all()):
-     title=card.locator(':scope > strong')
-     bounds=title.evaluate("""el=>{
-       const c=el.closest('.boh-feature').getBoundingClientRect();
-       const r=el.getBoundingClientRect();
-       const image=el.parentElement.querySelector('.boh-card-illustration').getBoundingClientRect();
-       return {inside:r.left>=c.left-1&&r.right<=c.right+1&&r.bottom<=c.bottom+1,
-               separation:r.top>=image.top+image.height*.35,
-               readable:getComputedStyle(el).backgroundImage!=='none',
-               width:r.width,height:r.height};
-     }""")
-     check(bounds['inside'] and bounds['separation'] and bounds['readable'],f'{mode} {width}px card #{i+1} title clear of artwork: {bounds}')
-    if mode!='restaurant':
-     check('Cleaning' not in home.inner_text(),f'{mode} {width}px Housekeeping off does not show Cleaning')
+     check(page.locator('#overview '+unwanted).is_hidden(),
+           f'{mode} {width}px old dashboard invisible: {unwanted}')
+    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),
+          f'{mode} {width}px no horizontal overflow')
+    check(page.locator('#biteV3Home .bv3-pdf-room-panel').count()==(0 if mode=='restaurant' else 1),
+          f'{mode} {width}px hotel rooms module permission')
+    check(page.locator('#biteV3Home [data-bv3-new-pos="true"]').count()==(0 if mode=='hotel' else 1),
+          f'{mode} {width}px canonical POS quick action')
+    check(page.locator('#biteV3Home .bv3-pdf-room-stats span').all_text_contents().count('Cleaning')==0,
+          f'{mode} {width}px disabled housekeeping not shown')
+    check(page.locator('#biteV3Home .bv3-pdf-metric').nth(1).locator('strong').inner_text()=='—',
+          f'{mode} {width}px unverified receipt never becomes fake zero')
+    if width<=760:
+     tabs=page.locator('#biteOwnerBottomNav button[data-bite-page]').evaluate_all('(els)=>els.map(e=>e.dataset.bitePage)')
+     expected={'hotel':['overview','rooms','more'],
+               'restaurant':['overview','orders','pos','more'],
+               'hybrid':['overview','rooms','orders','pos','more']}[mode]
+     check(tabs==expected,f'{mode} {width}px PDF H01 owner tabs: {tabs}')
+     check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
+           f'{mode} {width}px bottom nav touch targets')
+    else:
+     check(page.locator('#mainApp>.side').is_visible(),f'{mode} desktop uses original permitted sidebar')
     if mode=='hybrid' and width==390:
-     page.locator('#biteV3Home .boh-room').click()
+     page.locator('#biteV3Home [data-bv3-route="rooms"]').first.click()
      page.locator('#rooms.active').wait_for(state='visible')
-     check(True,'hybrid Room Status opens existing Rooms board')
+     check(True,'Hybrid PDF room summary opens canonical guarded Rooms board')
     page.close()
   check(not errors,'No JavaScript page errors: '+str(errors[:3]))
   browser.close()
