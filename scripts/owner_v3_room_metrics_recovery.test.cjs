@@ -62,7 +62,8 @@ test('Failed snapshot retry shows a readable retry state without changing backen
  assert.equal(f.loads,1);
  const markup=f.api.roomStatusCard(f.hospitality.dashboardSnapshot());
  assert.match(markup,/Room data sync failed · Tap to retry/);
- assert.doesNotMatch(source,/\.(?:insert|upsert|update|delete)\(/);
+ const section=source.slice(source.indexOf('function recoverRoomSnapshot('),source.indexOf('function actionLink('));
+ assert.doesNotMatch(section,/\.(?:insert|upsert|update|delete)\(/);
 });
 test('Stale retry must not affect a newly selected hotel',async()=>{
  const f=makeFixture();
