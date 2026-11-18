@@ -39,4 +39,14 @@ test('Only actual saved POS payment records get a receipt link',()=>{
  assert.match(source,/\+invoice\+receiptLink\+share\+correction\+/);
  assert.match(html,/data-cashbook-source-id/);
  assert.match(html,/id="cashbookReceiptJumpMessage" role="status"/);
+ assert.match(html,/window\.showPOSReceiptInCashbook=showPOSReceiptInCashbook/);
+ assert.match(html,/receipt:latest\?\{id:latest\.id,date:latest\.payment_date\}/);
+});
+test('Mobile Recent bills show the payment-date receipt link without extra sales',()=>{
+ const js=fs.readFileSync(require('node:path').resolve(__dirname,'../assets/bite-pos-v2.js'),'utf8');
+ const css=fs.readFileSync(require('node:path').resolve(__dirname,'../assets/bite-pos-v2.css'),'utf8');
+ assert.match(js,/data-bpv2-payment/);
+ assert.match(js,/showPOSReceiptInCashbook\(found\.id,found\.receipt\.id\)/);
+ assert.match(css,/\.bpv2-receipt-link/);
+ assert.match(html,/bite-pos-v2\.js\?v=20261118-v3-receipts/);
 });
