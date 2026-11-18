@@ -7,7 +7,7 @@
  const money=value=>'₹'+Number(value).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
  const methods={all:'All',cash:'Cash',bank:'UPI / Bank',gateway:'Gateway'};
  const sources={all:'All sources',order_payment:'POS / order',folio:'Hotel / guest',customer_ledger_payment:'Customer Khata',daybook:'Other book',expense:'Expenses / payouts'};
- const knownMethod=method=>['Cash','UPI','Card','Bank Transfer','Gateway','Cashfree'].includes(method);
+ const knownMethod=method=>['Cash','UPI','Card','Bank Transfer'].includes(method); // Gateway promise is not a confirmed bank settlement.
  const group=method=>method==='Cash'?'cash':['UPI','Card','Bank Transfer'].includes(method)?'bank':['Gateway','Cashfree'].includes(method)?'gateway':'other';
  function type(entry){
   if(!entry||!['in','out'].includes(entry.direction))return 'noncash';
