@@ -1,4 +1,5 @@
 -- Endpoints and production-shaped triggers, synthetic records, rollback only.
+-- Arrival fixtures use the hotel's Asia/Kolkata local date, not the UTC DB host date.
 begin;
 create trigger enforce_owner_assignment before insert or update on public.restaurant_members for each row execute function public.enforce_single_restaurant_owner_assignment();
 create function pg_temp.denied(statement text,fragment text) returns void language plpgsql as $$begin
@@ -17,7 +18,7 @@ do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;f2 uuid;e uuid;t uuid;j 
  perform pg_temp.denied(format('select public.bite_property_command(%L,''policy_save'',''{}'',gen_random_uuid())',p),'Review valid');
  out:=public.bite_property_command(p,'room_save','{"number":"R-QA","room_type":"Deluxe","nightly_rate":100,"adults":2,"children":1}',gen_random_uuid());r:=(out->>'id')::uuid;
  out:=public.bite_property_command(p,'guest_save','{"full_name":"SECRET PRIVATE GUEST","phone":"9999999900","country":"France","is_oci":false,"address":"PRIVATE ADDRESS","id_last4":"ABCD"}',gen_random_uuid());g:=(out->>'id')::uuid;
- args:=jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date,'departure',current_date+4,'adults',1,'children',0,'booking_source','external_booking','booking_reference','SYNTHETIC-OTA','advance_amount',400,'advance_method','UPI','advance_reference','SYNTHETIC-BANK','booking_mode','checkin');
+ args:=jsonb_build_object('guest_id',g,'room_id',r,'arrival',(now() at time zone 'Asia/Kolkata')::date,'departure',(now() at time zone 'Asia/Kolkata')::date+4,'adults',1,'children',0,'booking_source','external_booking','booking_reference','SYNTHETIC-OTA','advance_amount',400,'advance_method','UPI','advance_reference','SYNTHETIC-BANK','booking_mode','checkin');
  q:=public.bite_reservation_quote(p,args||'{"mode":"checkin"}'::jsonb);
  assert (q->>'total')::numeric=446.25;
  perform pg_temp.denied(format('select public.bite_property_command(%L,''reserve'',%L,gen_random_uuid())',p,(args||'{"quote_hash":"forged"}'::jsonb)::text),'Room quote changed');
@@ -86,7 +87,7 @@ do $$declare p uuid;p2 uuid;g uuid;r uuid;s uuid;f uuid;f2 uuid;e uuid;t uuid;j 
  assert public.bite_guest_folio(link->>'token')->'refunds'->0->>'reference_tail'='1234';
  q:=public.bite_guest_link(p,f);
  perform pg_temp.denied(format('select public.bite_guest_folio(%L)',link->>'token'),'invalid or expired');
- out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0),gen_random_uuid());f2:=(out->>'folio_id')::uuid;tot:=public.bite_guest_link(p,f2);
+ out:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',(now() at time zone 'Asia/Kolkata')::date+10,'departure',(now() at time zone 'Asia/Kolkata')::date+11,'adults',1,'children',0),gen_random_uuid());f2:=(out->>'folio_id')::uuid;tot:=public.bite_guest_link(p,f2);
  perform public.bite_property_command(p,'guest_link_revoke',jsonb_build_object('folio_id',f),gen_random_uuid());
  assert public.bite_guest_folio(tot->>'token')->>'status'='open';
  perform pg_temp.denied(format('select public.bite_guest_folio(%L)',q->>'token'),'invalid or expired');
