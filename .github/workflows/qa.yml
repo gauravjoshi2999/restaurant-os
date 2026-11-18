@@ -213,4 +213,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/family_booking_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118031835_owner_guest_controls.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118035815_staff_entry_retry_guard.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118040512_staff_room_charge_scope.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_guest_controls_pg_test.sql

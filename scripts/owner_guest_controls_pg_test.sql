@@ -106,4 +106,40 @@ do $$declare p uuid;v jsonb;r jsonb;request uuid:=gen_random_uuid();begin
 end $$;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 select pg_temp.denied(format('select public.bite_hotel_workspace(%L)',(select v from controls_state where k='p')));
+
+-- Room-only food entry must work without granting independent counter billing.
+reset role;
+insert into public.restaurants(id,name,address,phone,status,onboarding_status,created_by) values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Scoped Room Food','','','Active','approved','11111111-1111-4111-8111-111111111111');
+insert into public.restaurant_members values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','11111111-1111-4111-8111-111111111111','owner') on conflict do nothing;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+do $$declare p uuid;r uuid;g uuid;v jsonb;begin
+ p:=public.bite_create_property('Synthetic Scoped Food','hybrid',gen_random_uuid());
+ perform public.bite_property_command(p,'attach_outlet','{"restaurant_id":"cccccccc-cccc-4ccc-8ccc-cccccccccccc"}',gen_random_uuid());
+ r:=(public.bite_property_command(p,'room_save','{"number":"Food-101","room_type":"Deluxe","nightly_rate":900,"adults":2,"children":2}',gen_random_uuid())->>'id')::uuid;
+ g:=(public.bite_property_command(p,'guest_save','{"full_name":"Scoped Food Guest","phone":"6666666660","country":"India"}',gen_random_uuid())->>'id')::uuid;
+ v:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',g,'room_id',r,'arrival',current_date,'departure',current_date+1,'adults',1,'children',0,'nightly_rate',900),gen_random_uuid());
+ perform public.bite_property_command(p,'checkin',jsonb_build_object('id',v->>'id'),gen_random_uuid());
+ perform public.bite_save_staff_access(p,'33333333-3333-4333-8333-333333333333','','manager',true,array['room_charge']);
+ insert into controls_state values('food_property',p),('food_folio',v->>'folio_id');
+end $$;
+select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+do $$declare p uuid;fid uuid;v jsonb;begin
+ select s.v::uuid into p from controls_state s where k='food_property';select s.v::uuid into fid from controls_state s where k='food_folio';
+ if private.bite_staff_can(p,'pos_entry') or private.bite_staff_can(p,'payment_entry') then raise exception 'Room food unexpectedly granted counter billing or money collection';end if;
+ v:=public.bite_property_command(p,'room_pos',jsonb_build_object('folio_id',fid,'restaurant_id','cccccccc-cccc-4ccc-8ccc-cccccccccccc','items',jsonb_build_array(jsonb_build_object('name','Synthetic veg meal','quantity',1,'unit_price',100))),gen_random_uuid());
+ if not exists(select 1 from public.bite_folio_entries where property_id=p and folio_id=fid and source_order_id=(v->>'order_id')::uuid and category='food') then raise exception 'Authorized room food was not posted';end if;
+ if coalesce(current_setting('bite.staff_room_charge_scope',true),'')<>'' then raise exception 'Room permission scope leaked into later commands';end if;
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''pos_sale'',''{}'',gen_random_uuid())',p));
+ raise notice 'PASS: room-only staff posts canonical room-food POS once, without counter billing or money collection rights';
+end $$;
+
+
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+select public.bite_save_staff_access((select v::uuid from controls_state where k='food_property'),'33333333-3333-4333-8333-333333333333','','manager',true,array['pos_entry']);
+select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+do $$begin
+ if not private.bite_staff_can((select v::uuid from controls_state where k='food_property'),'payment_entry') then raise exception 'Pay-now POS entry is missing its receipt permission dependency';end if;
+end $$;
+
 rollback;
