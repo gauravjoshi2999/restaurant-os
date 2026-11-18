@@ -184,7 +184,12 @@ try:
      check('Review & save' in page.locator('#business-modules').inner_text(),'Four-step module review works without duplicate registration')
      screenshot(page,f'hotel-modules-{width}')
      nav(page,'reservations');page.locator('#reservations [data-hotel-action=group-booking]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=name]').fill('Synthetic family group');ed.locator('[name=guest_id]').select_option(index=1);[box.check() for box in ed.locator('[name=room_ids]').all()];[rate.fill('1000') for rate in ed.locator('[name^=rate_]').all()];ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');check(page.evaluate('window.__BITE_HOTEL_QA.db.groups.length')==1,'Group booking opens linked individual room folios')
-     nav(page,'reports');page.locator('#reports [data-hotel-form=report-filter] button[type=submit]').click()
+     nav(page,'reports')
+     page.locator('#bhReportPeriod [data-bv3-period-toggle]').click()
+     page.locator('#bhReportPeriod [data-bv3-period-mode=day]').click()
+     page.locator('#bhReportPeriod [name=day]').fill(page.evaluate('BiteOwner.day()'))
+     page.locator('#bhReportPeriod [type=submit]').click()
+     check(page.locator('#bhReportPeriod .bv3-period-head').is_visible(),'A02 Hotel reports uses shared period picker')
      if width==390:
       page.locator('#bhOperationalReports [data-hotel-action=close-shift]').wait_for(state='visible');check('Food sales (source orders once)' in page.locator('#bhOperationalReports').inner_text(),'Combined report separates source food sales from hotel collections')
       page.locator('#bhOperationalReports [data-hotel-action=close-shift]').click();ed=page.locator('#bhActionEditor form');ed.locator('[name=opening_cash]').fill('100');ed.locator('[name=counted_cash]').fill('1200');ed.locator('button[type=submit]').click();page.locator('#bhActionEditor').wait_for(state='detached');page.locator('#bhOperationalReports').get_by_text('Closed ',exact=False).wait_for(state='visible');check(page.evaluate('window.__BITE_HOTEL_QA.db.closings.length')==1,'Combined closing records one immutable reviewed snapshot')
