@@ -42,6 +42,8 @@ try:
    check(page.locator('[data-sa-today-orders]').inner_text()=='32',f'{width}px Home uses server overview count')
    check('5,440' in page.locator('[data-sa-today-payments]').inner_text(),f'{width}px Home shows verified collection total')
    check(page.locator('#biteHotelHome').is_hidden(),f'{width}px hotel operations stay outside Super Admin')
+   check(page.locator('.workspace-sync-note').is_hidden(),f'{width}px Home omits legacy implementation banner')
+   check(page.locator('[data-sa-today-payments]').evaluate('(e)=>e.getBoundingClientRect().height<parseFloat(getComputedStyle(e).fontSize)*1.6'),f'{width}px collection amount remains on one line')
    fit(page,f'{width}px Home');page.screenshot(path=str(OUT/f'super-admin-home-{width}.png'))
    page.locator('[data-sa-attention=orders]').click();page.locator('#sa-orders .sa-record').wait_for();check(page.locator('#sa-orders .sa-record').count()==1,f'{width}px delayed count opens matching delayed list')
    page.locator('#sa-orders [data-sa-action=detail]').first.click();page.locator('#saProviderResult').wait_for(state='attached');check('Synthetic Veg Thali' in page.locator('#sa-orders').inner_text(),f'{width}px delayed order opens its own items and timeline')

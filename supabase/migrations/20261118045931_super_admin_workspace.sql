@@ -9,7 +9,7 @@ BEGIN
  RETURN jsonb_build_object(
   'business_date',timezone('Asia/Kolkata',now())::date,
   'orders_today',(SELECT count(*) FROM public.orders WHERE channel='Own Platform' AND is_demo IS NOT TRUE AND order_date>=v_start AND order_date<v_start+interval '1 day'),
-  'collections_today',(SELECT coalesce(sum(f.customer_payable_amount),0) FROM public.order_financials f JOIN public.orders o ON o.id=f.order_id WHERE o.channel='Own Platform' AND o.is_demo IS NOT TRUE AND f.is_demo IS NOT TRUE AND f.payment_status IN ('paid','partially_refunded','refunded') AND o.order_date>=v_start AND o.order_date<v_start+interval '1 day'),
+  'collections_today',(SELECT coalesce(sum(f.customer_payable_amount),0) FROM public.order_financials f JOIN public.orders o ON o.id=f.order_id WHERE o.channel='Own Platform' AND f.channel='Own Platform' AND o.is_demo IS NOT TRUE AND f.is_demo IS NOT TRUE AND f.payment_status IN ('paid','partially_refunded','refunded') AND o.order_date>=v_start AND o.order_date<v_start+interval '1 day'),
   'pending_restaurants',(SELECT count(*) FROM public.restaurants WHERE onboarding_status='pending'),
   'delayed_orders',(SELECT count(*) FROM public.orders o JOIN public.restaurants r ON r.id=o.restaurant_id WHERE o.channel='Own Platform' AND o.is_demo IS NOT TRUE AND ((o.status IN ('Received','New') AND o.order_date<now()-interval '5 minutes') OR (o.status IN ('Accepted','Preparing','Ready') AND o.order_date<now()-make_interval(mins=>coalesce(r.estimated_prep_minutes,30)+15)))),
   'pending_settlements',(SELECT count(*) FROM public.restaurant_settlements WHERE status<>'paid'),

@@ -23,7 +23,7 @@
  const field=(label,value)=>'<div class="sa-fact"><dt>'+esc(label)+'</dt><dd>'+esc(value??'Not recorded')+'</dd></div>';
  const restaurantName=id=>ctx.getState().restaurants?.find(r=>r.id===id)?.name||'Restaurant …'+String(id||'').slice(-6);
  function mount(){
-  if(!authorized())return;
+  if(!authorized()){restoreLanguage();return;}
   actor=ctx.getUser().id; $('mainApp').style.display='block';
   if(!$('saNavigation')){
    const nav=document.createElement('nav');nav.id='saNavigation';nav.dataset.saUi='';nav.setAttribute('aria-label','Super Admin primary');
@@ -32,12 +32,15 @@
    const header=document.createElement('header');header.id='saHeader';header.dataset.saUi='';
    header.innerHTML='<a class="sa-wordmark" href="?bite_app=admin">Bite<span>Eat. Repeat.</span></a><div class="sa-header-end"><span class="sa-role">Super Admin</span><details id="saMore"><summary>More</summary><div class="sa-more-menu">'+secondary.map(([id,label])=>'<button type="button" data-sa-route="'+id+'">'+label+'</button>').join('')+'<p id="saAccount"></p>'+button('Sign out','logout')+'</div></details></div>';
    document.querySelector('#mainApp .main').prepend(header);
-   new MutationObserver(records=>{if(authorized()&&records.some(r=>r.target.closest?.('table')))labelTables(current);}).observe($('mainApp'),{childList:true,subtree:true});
+   new MutationObserver(records=>{if(!authorized())return;moveLanguage();if(records.some(r=>r.target.closest?.('table')))labelTables(current);}).observe($('mainApp'),{childList:true,subtree:true});
    for(const [id] of secondary)if(!$(id)){const node=document.createElement('section');node.className='page';node.id=id;document.querySelector('#mainApp .content').append(node);}
   }
+  moveLanguage();
   $('saAccount').textContent=ctx.getUser().email||ctx.getUser().phone||'';
   selectNav();
  }
+ function restoreLanguage(){const row=$('saMore')?.querySelector('.bite-language-row'),target=document.querySelector('#mainApp .top');if(row&&target)target.after(row);}
+ function moveLanguage(){const row=document.querySelector('.bite-language-row');if(row&&$('saMore')&&!row.closest('#saMore'))$('saMore').querySelector('.sa-more-menu').append(row);}
  function selectNav(){
   document.querySelectorAll('#saNavigation [data-sa-route],#saMore [data-sa-route]').forEach(b=>{const active=b.dataset.saRoute===current;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
  }
@@ -187,7 +190,7 @@
  }
  function labelTables(id){for(const table of $(id)?.querySelectorAll('table')||[]){const labels=[...table.querySelectorAll('thead th')].map(t=>t.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.children].forEach((cell,i)=>cell.dataset.saLabel=labels[i]||'Details');}}
  async function navigate(id){if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;await ctx.navigate(id);}
- function clear(){serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
+ function clear(){restoreLanguage();serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
  function init(config){ctx=config;setInterval(()=>{if(authorized()&&document.visibilityState==='visible'&&['overview','orders','financials'].includes(current)&&!detail&&!document.activeElement?.closest('form'))void open(current);},60000);document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-sa-route],[data-sa-attention],[data-sa-tab],[data-sa-action]');if(!el||!el.closest('[data-sa-ui]')||!authorized())return;
   if(el.dataset.saRoute){await navigate(el.dataset.saRoute);return;}
