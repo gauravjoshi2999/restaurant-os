@@ -66,4 +66,5 @@ test('UI always describes old records as separate from live cash and allows date
  assert.ok(html.includes('bite-pos-reports.css?v=20261118-historical-report1'));
  assert.ok(entry.includes("root.BitePOSReports?.refresh?.(true)"));
  assert.ok(entry.includes('delete form.dataset.bheSavedSignature'));
+ assert.ok(entry.includes('date.value===resetValue'), 'A delayed new-bill reset must not overwrite calendar selection');
 });
