@@ -62,7 +62,7 @@
   holder.innerHTML='<div class="bhe-calendar-top"><label><strong>📅 Entry date</strong><input data-bhe-day name="history_date" type="date" max="'+today()+'" value="'+today()+'" aria-label="Select old entry date"></label><button type="button" data-bhe-today>Today</button></div>'+
    '<p class="bhe-hint" data-bhe-hint>Aaj ki entry normal live flow se save hogi.</p>'+
    '<div class="bhe-extra" data-bhe-extra hidden>'+(kind==='room'?
-     '<div class="bhe-fields"><label>Old register room number<input name="history_room_number" maxlength="60" placeholder="e.g. 101"></label><label>Old room bill (₹)<input name="history_room_amount" type="number" min="0" step=".01" value="0"></label><label>Amount already received (₹)<input name="history_room_received" type="number" min="0" step=".01" value="0"></label><label>Payment method<select name="history_room_method"><option value="">Not recorded</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>':
+     '<p class="bhe-muted"><strong>Old register mode:</strong> guest details aur old room bill save honge. Live room change, payment collection, aur photo ID upload nahi hoga. ID photos yahan select karne par bhi save nahi hongi.</p><div class="bhe-fields"><label>Old register room number<input name="history_room_number" maxlength="60" placeholder="e.g. 101"></label><label>Old room bill (₹)<input name="history_room_amount" type="number" min="0" step=".01" value="0"></label><label>Amount already received (₹)<input name="history_room_received" type="number" min="0" step=".01" value="0"></label><label>Payment method<select name="history_room_method"><option value="">Not recorded</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>':
      '<p class="bhe-muted">Items aur received amount isi POS form mein bharein. Old bill online register mein jayega; customer ko naya payment request nahi jayega.</p>')+
    '<div class="bhe-actions"><strong>Saved old records</strong><button type="button" data-bhe-month aria-pressed="false">View whole month</button></div>'+
    '<div data-bhe-list aria-live="polite"></div></div>'+
@@ -132,7 +132,9 @@
    values.guest_count=Number(getField(form,'adults')?.value||1)+Number(getField(form,'children')?.value||0);
    if(values.guest_count<1||values.guest_count>200)throw new Error('Guest count check karein.');
    values.payment_method=received?getField(form,'history_room_method')?.value||null:null;
-   values.notes='Historical guest register only; not a live stay or GST invoice';
+   values.guest_details=Object.fromEntries(['country','address','email','id_type','id_last4','arrived_from','next_destination','transport','vehicle_number','booking_reference','booking_source','compliance_note','male','female','children','arrival_time'].map(key=>[key,String(getField(form,key)?.value||'').slice(0,500)]));
+   values.notes=String(getField(form,'compliance_note')?.value||'').slice(0,500);
+   // Identity files from the live form are never silently copied into historical storage.
    values.items=[];
   }else{
    if(root.BiteHospitality?.roomPOSSelected?.())throw new Error('Old POS bill ko live room khata mein transfer nahi kar sakte. Room charge ko hata kar save karein.');
@@ -154,6 +156,7 @@
    values.notes='Historical POS record only; no live receipt or settlement';
   }
   const pendingKey='bite_historical_request:'+kind+':'+user+':'+id,signature=JSON.stringify(values);
+  if(form.dataset.bheSavedSignature===signature)throw new Error('Yeh old record already save ho chuka hai. Next record ke liye details badlein.');
   let pending=null;try{pending=JSON.parse(localStorage.getItem(pendingKey)||'null')}catch{}
   if(pending&&pending.signature!==signature)throw new Error('Pichhli old entry ka response pending hai. Pehle wahi details dobara Save karke verify karein.');
   if(!pending){pending={request_id:root.crypto.randomUUID(),signature};localStorage.setItem(pendingKey,JSON.stringify(pending))}
@@ -167,6 +170,7 @@
   if(error)throw error;
   if(!data?.id)throw new Error('Record confirmation unavailable. Retry unchanged details.');
   localStorage.removeItem(pendingKey);
+  form.dataset.bheSavedSignature=signature;
   await loadRows(form,kind);
   return data.id;
  }
