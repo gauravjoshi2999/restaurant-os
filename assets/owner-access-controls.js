@@ -75,7 +75,7 @@
     const card=form.closest('.bac-data'),d=card.__deletion;if(!d)throw Error('Review selected records first.');if(form.elements.confirmation.value!==p().name)throw Error('Type the hotel name exactly to confirm.');
     const r=await rpc('bite_owner_data_delete',{p_scope:d.scope,p_ids:d.ids,p_preview_hash:d.preview.preview_hash,p_confirmation:form.elements.confirmation.value,p_request:d.request});
     for(const key of ['bite_register_draft:','bite_family_request:'])try{root.localStorage.removeItem(key+ctx.getUser().id+':'+p().id)}catch{}
-    await H().reload();if(card.isConnected){card.querySelector('[data-data-body]').replaceChildren();status.textContent=r.deleted+' records deleted.'}
+    await H().reload();if(card.isConnected)card.querySelector('[data-data-body]').replaceChildren();const resultStatus=root.document.querySelector('#biteOwnerDataControls .bh-message')||status;if(resultStatus?.isConnected)resultStatus.textContent=r.deleted+' records deleted.'
    }
   }catch(error){if(status?.isConnected)status.textContent=error.message}finally{if(b.isConnected)b.disabled=false}
  }

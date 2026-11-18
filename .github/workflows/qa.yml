@@ -60,6 +60,8 @@ jobs:
             dist/launch-qa/browser-evidence.json
             dist/launch-qa/ui-*.png
             dist/launch-qa/owner-feedback-mobile-evidence.json
+            dist/launch-qa/owner-guest-controls-evidence.json
+            dist/launch-qa/guest-controls-*.png
             dist/launch-qa/universal-owner-browser-evidence.json
             dist/launch-qa/owner-remaining-browser-evidence.json
             dist/launch-qa/guest-documents-browser-evidence.json

@@ -44,9 +44,15 @@
    out.balance=out.charges-out.paid;return out;
   }
   client.rpc=async(name,args={})=>{
-   if(!name.startsWith('bite_')||!['bite_owner_context','bite_create_property','bite_hotel_workspace','bite_property_command','bite_room_charge_targets','bite_property_report','bite_audit_search','bite_unified_audit','bite_reservation_quote','bite_checkout_policy_quote','bite_guest_link'].includes(name))return rpc(name,args);
+   if(!name.startsWith('bite_')||!['bite_owner_context','bite_create_property','bite_hotel_workspace','bite_property_command','bite_room_charge_targets','bite_property_report','bite_audit_search','bite_unified_audit','bite_reservation_quote','bite_checkout_policy_quote','bite_guest_link','bite_save_staff_access'].includes(name))return rpc(name,args);
    window.__BITE_HOTEL_QA.calls.push({name,args});
    if(name==='bite_hotel_workspace'&&window.__BITE_HOTEL_QA.delayMs)await new Promise(done=>setTimeout(done,window.__BITE_HOTEL_QA.delayMs));
+   if(name==='bite_save_staff_access'){
+    if(p.role!=='owner')return{data:null,error:{code:'42501',message:'Only the owner can grant staff access'}};
+    const id=args.p_user||crypto.randomUUID(),member={user_id:id,email:args.p_email,display_name:args.p_email,role:args.p_role,active:args.p_active,permissions:args.p_permissions};
+    const prior=db.members.find(m=>m.user_id===id);if(prior)Object.assign(prior,member);else db.members.push(member);
+    window.__BITE_HOTEL_QA.savedAccess=structuredClone(args);return{data:{id,...member},error:null};
+   }
    if(name==='bite_owner_context')return {data:exists?[structuredClone(p)]:[],error:null};
    if(name==='bite_create_property'){exists=true;p.name=args.p_name;p.business_type=args.p_type;p.capabilities=[...window.BiteCapabilities.defaults[args.p_type]];p.configured_capabilities=[...p.capabilities];return {data:pid,error:null}}
    if(name==='bite_hotel_workspace')return {data:structuredClone({...db,checkin_attempts:[...commandMeta.entries()].filter(([,r])=>['guest_save','reserve','checkin'].includes(r.action)).map(([request_id,r])=>({request_id,action:r.action,...commands.get(request_id).data})),folios:db.folios.map(f=>({...f,totals:totals(f)}))}),error:null};

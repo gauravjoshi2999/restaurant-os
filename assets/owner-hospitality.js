@@ -236,7 +236,8 @@
    const latest=await ctx.sb.rpc('bite_owner_context');if(latest.error)throw latest.error;
    if(version!==loadVersion||prop()?.id!==pid)return;
    const fresh=(latest.data||[]).find(x=>x.id===pid);
-   if(!fresh){data=empty();workspaceReady=false;for(const id of Object.keys(titles))$(id)?.replaceChildren();throw Error('The owner has revoked this hotel access. Sign out to change account.');}
+   if(!fresh){data=empty();workspaceReady=false;root.BiteGuestDocuments?.clear();root.BiteCheckinFlow?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();for(const id of Object.keys(titles))$(id)?.replaceChildren();throw Error('The owner has revoked this hotel access. Sign out to change account.');}
+   if(p.capabilities?.includes('guest_register')&&!fresh.capabilities?.includes('guest_register')){root.BiteGuestDocuments?.clear();root.BiteCheckinFlow?.clear();root.BiteGuestRegister?.clear();}
    Object.assign(p,fresh);applyShell();
   }
   const {data:rows,error}=await ctx.sb.rpc('bite_hotel_workspace',{p_property:pid});
