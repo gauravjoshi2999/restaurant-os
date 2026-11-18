@@ -37,7 +37,7 @@
      '<label class="bf-room-name">Guests staying in this room (optional)<input name="family_note_'+esc(id)+'" type="text" maxlength="120" value="'+esc(draft['family_note_'+id]||'')+'" placeholder="e.g. Parents and children"></label></div>'+
      '<p class="bf-room-status" data-family-room-status></p></div>';
    }).join('')+'</div><p class="bf-family-totals" data-family-total aria-live="polite"></p>'+
-   '<p class="bf-family-note">Before Check in now, verify the front and back of every adult guest ID using Add another guest ID above. Any family advance should be recorded against its chosen room folio after booking, to prevent duplicate receipts. Food can be charged to the selected room from Restaurant POS; the combined statement includes each linked room bill once.</p></div>';
+   '<p class="bf-family-note">Before Check in now, verify 2 guest IDs for this family (front and back). More IDs are optional. Any advance entered here is allocated once across the room folios. Food can be charged to the selected room from Restaurant POS; the combined statement includes each linked room bill once.</p></div>';
   const mode=form.elements.mode;
   mode?.closest('label')?.before(holder);
   const update=()=>{
@@ -105,11 +105,10 @@
   if(people>40)throw fail('family_room_ids','For groups above 40 people, make separate registered bookings.');
   if(f.mode==='checkin'){
    const copies=form.querySelectorAll('[data-ha-party-list] [data-ha-id-card]').length;
-   if(copies<adults-1)throw fail('family_room_ids','This family has '+adults+' adults. Add ID photos for '+(adults-1)+' additional adults before Check in now. Captured: '+copies+'.');
+   if(copies<Math.min(2,adults)-1)throw fail('family_room_ids','This family needs 2 guest IDs in total. Add one additional guest ID; further IDs are optional.');
   }
-  if(Number(f.advance_amount||0)>0)throw fail('advance_amount','For a multi-room booking, record the received advance in the chosen Guest Bill after confirming rooms. This prevents a duplicate receipt.');
   return {name,mode:f.mode,arrival:f.arrival,departure:f.departure,arrival_time:f.arrival_time||'',
-   booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',rooms:rows};
+   booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_account:f.advance_account||'',advance_verified:f.advance_verified==='on',rooms:rows};
  }
 
  // Guest-ID photos are uploaded once to the lead's protected guest-document profile.

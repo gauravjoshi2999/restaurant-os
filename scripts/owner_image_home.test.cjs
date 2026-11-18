@@ -65,8 +65,8 @@ test('Main actions use existing route/permission gates and notification tray ope
  assert.match(source,/focusNotificationOrder\(notification\)/);
  assert.match(nav,/Bite Orders/);
  assert.match(nav,/Restaurant POS/);
- assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-compactfix2/);
- assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-compactfix2/);
+ assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-guest-controls1/);
+ assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-guest-controls1/);
 });
 test('Illustrated design is CSS/SVG, mobile-only with reduced motion and no insecure remote images',()=>{
  for(const asset of ['owner-home-palace.svg','owner-home-service-bell.svg','owner-home-ledger.svg']){

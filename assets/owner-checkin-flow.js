@@ -155,7 +155,7 @@
   selection();
   let extras=[];try{const parsed=JSON.parse(draft.additional_ids||'[]');if(Array.isArray(parsed))extras=parsed.filter(x=>uuid(x.subject_key)).slice(0,39)}catch{}
   const section=form.querySelector('.ha-id-section'),consent=section.querySelector('.bh-check');
-  section.innerHTML='<div class="ha-id-heading"><div><h3>Guest IDs</h3><p>Add both sides of each guest’s ID.</p></div><small data-id-counter></small></div>'+card(null,{id_front:draft.id_front_id,id_back:draft.id_back_id})+'<div data-ha-party-list>'+extras.map(x=>card(x.subject_key,x)).join('')+'</div><input type="hidden" name="additional_ids" value=""><button type="button" class="btn secondary ha-add-id" data-add-id>＋ Add another guest ID</button>';
+  section.innerHTML='<div class="ha-id-heading"><div><h3>Guest IDs</h3><p>Solo guest: 1 ID. Family / group: 2 IDs are enough. Add more if needed.</p></div><small data-id-counter></small></div>'+card(null,{id_front:draft.id_front_id,id_back:draft.id_back_id})+'<div data-ha-party-list>'+extras.map(x=>card(x.subject_key,x)).join('')+'</div><input type="hidden" name="additional_ids" value=""><button type="button" class="btn secondary ha-add-id" data-add-id>＋ Add another guest ID</button>';
   section.insertAdjacentHTML('afterbegin','<p class="ha-saved-id-status" data-saved-id-status role="status"></p>');section.append(consent);section.insertAdjacentHTML('beforeend','<small class="ha-id-private-note">ID copies stay private to authorized hotel staff.</small>');
   const holder=section.querySelector('[data-ha-party-list]');
   form.addEventListener('click',e=>{

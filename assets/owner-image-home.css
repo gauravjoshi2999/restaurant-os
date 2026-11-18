@@ -388,3 +388,10 @@
   box-shadow:0 0 0 6px #ff9c2925,0 8px 20px #451a2624!important;
  }
 }
+
+/* The approved Check-in square also leads to today's checkout queue. */
+.boh-checkin-checkout{position:relative;min-width:0;display:flex;flex-direction:column;border-radius:22px;background:#fff4e9;overflow:hidden}
+.boh-checkin-checkout>.boh-feature{flex:1;width:100%;border-bottom-left-radius:0!important;border-bottom-right-radius:0!important}
+.boh-checkout-link{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;border:0;border-top:1px solid #e9c7ab;background:#ffecd9;color:#652c15;font:700 13px/1.3 system-ui;text-align:left;min-height:48px;cursor:pointer}
+.boh-checkout-link b{margin-left:auto;min-width:26px;padding:4px 6px;border-radius:10px;background:#923d25;color:white;text-align:center}
+.boh-checkout-link svg{width:16px;height:16px;flex:none}

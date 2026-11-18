@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  const C=root.BiteCapabilities;
- const titles={'hotel-register':'Check-in','reservations':'Reservations','rooms':'Rooms','guests':'Guest register','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service','daily-book':'Daily Book'};
+ const titles={'hotel-register':'Check-in','reservations':'Reservations','rooms':'Rooms','guests':'Guest register','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service','daily-book':'Daily Book','checkouts':'Checkouts'};
  let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
  let foodFolio=null,foodMenu=[],foodCart=new Map(),foodQuery='';
  let housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''},housekeepingRequest=0;
@@ -26,11 +26,11 @@
  const notice=()=>'<p class="bh-message" role="status" aria-live="polite"></p>';
  function hotelSubnav(title){
   if(prop()?.business_type!=='hybrid'||!has('hotel_rooms'))return '';
-  const byTitle={'Check-in':'hotel-register','Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Guest register':'guests','Housekeeping':'housekeeping','Guest Bills':'folios','Guest Bill':'folios'};
+  const byTitle={'Check-in':'hotel-register','Hotel Register':'hotel-register','Rooms':'rooms','Reservations':'reservations','Guests':'guests','Guest register':'guests','Housekeeping':'housekeeping','Guest Bills':'folios','Guest Bill':'folios','Checkouts':'checkouts'};
   const page=byTitle[title];
-  const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios'];
+  const routes=['rooms','hotel-register','reservations','guests','housekeeping','folios','checkouts'];
   if(!routes.includes(page))return '';
-  const labels={rooms:'Room board','hotel-register':'Check-in',reservations:'Reservations',guests:'Register',housekeeping:'Housekeeping',folios:'Bills'};
+  const labels={rooms:'Room board','hotel-register':'Check-in',reservations:'Reservations',guests:'Register',housekeeping:'Housekeeping',folios:'Bills',checkouts:'Checkout'};
   const pages=new Set(allowed());
   return '<nav class="bh-hotel-tabs" aria-label="Hotel workspace sections">'+routes.filter(id=>pages.has(id)).map(id=>
    '<button type="button" data-hotel-action="route" data-id="'+id+'"'+(page===id?' aria-current="page"':'')+'>'+esc(labels[id])+'</button>'
@@ -108,7 +108,7 @@
   }
  }
  function init(context){
-  ctx=context;root.BiteOwnerOperations?.init(context);root.BiteGuestDocuments?.init(context);root.BiteHotelAccounts?.init(context);root.BiteGuestRegister?.init(context);
+  ctx=context;root.BiteOwnerAccess?.init(context);root.BiteOwnerOperations?.init(context);root.BiteGuestDocuments?.init(context);root.BiteHotelAccounts?.init(context);root.BiteGuestRegister?.init(context);
   const content=document.querySelector('#mainApp .main>.content');if(!content)return;
   for(const [id,title] of Object.entries(titles)){
    if(!$(id)){const s=document.createElement('section');s.id=id;s.className='page bh-workspace';s.hidden=true;s.setAttribute('aria-label',title);content.append(s)}
@@ -210,7 +210,7 @@
    snapshot.available=rooms.filter(r=>roomState(r)==='ready').length;
    snapshot.cleaning=rooms.filter(r=>['dirty','cleaning'].includes(r.housekeeping)).length;
    snapshot.arrivals=data.stays.filter(s=>s.status==='reserved'&&s.arrival<=todayString).length;
-   snapshot.departures=active.filter(s=>s.departure<=todayString).length;
+   snapshot.departures=checkoutDue().length;
    snapshot.openFolios=data.folios.filter(f=>f.status==='open').length;
   }
   if(canOrders){
@@ -232,10 +232,17 @@
  async function reload(){
   const p=prop();if(!p)return;
   const version=++loadVersion,pid=p.id;
+  if(p.role!=='owner'){
+   const latest=await ctx.sb.rpc('bite_owner_context');if(latest.error)throw latest.error;
+   if(version!==loadVersion||prop()?.id!==pid)return;
+   const fresh=(latest.data||[]).find(x=>x.id===pid);
+   if(!fresh){data=empty();workspaceReady=false;for(const id of Object.keys(titles))$(id)?.replaceChildren();throw Error('The owner has revoked this hotel access. Sign out to change account.');}
+   Object.assign(p,fresh);applyShell();
+  }
   const {data:rows,error}=await ctx.sb.rpc('bite_hotel_workspace',{p_property:pid});
   if(version!==loadVersion||prop()?.id!==pid)return;
   if(error){if(error.code==='42501'){data=empty();workspaceReady=false;for(const id of Object.keys(titles))$(id)?.replaceChildren();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteGuestRegister?.clear()}throw error;}
-  data={...empty(),...rows};workspaceReady=true;renderHome();
+  data={...empty(),...rows};workspaceReady=true;renderHome();root.BiteOwnerAccess?.apply();
   if(typeof root.dispatchEvent==='function')root.dispatchEvent(new Event('bite:owner-summary'));
   const active=document.querySelector('#mainApp .page.active')?.id;
   if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))renderPage(active);
@@ -269,6 +276,18 @@
    '<div class="bh-home-grid"><article class="bh-panel"><h2>Arrivals & checkouts</h2>'+ (arrivals.length||due.length?[...due.map(s=>stayCard(s,'Checkout due')),...arrivals.map(s=>stayCard(s,'Arrival'))].join(''):stateCard('No arrivals or checkouts due.'))+'</article>'+(housekeepingVisible()?'<article class="bh-panel"><h2>Room readiness</h2>'+rooms.slice(0,8).map(r=>`<div class="bh-room-line"><strong>${esc(r.number)}</strong><span>${esc(r.room_type)}</span><span class="bh-chip ${roomState(r)}">${esc(roomState(r))}</span></div>`).join('')+(!rooms.length?stateCard('Add your rooms to start. No sample rooms have been created.'):'')+btn('route','View rooms','rooms')+'</article>':'')+'</div>'+
    (prop().tax_profile?.gstin&&!prop().tax_profile?.reviewed?'<p class="bh-note">Tax setup needs review. Draft statements do not certify GST compliance. Configure rates in Business Modules.</p>':'');
  }
+ function checkoutDue(){
+  if(!has('folios')||!has('reservations'))return [];
+  return data.stays.filter(s=>s.status==='in_house'&&s.departure<=today())
+   .sort((a,b)=>String(a.expected_checkout_at||a.departure).localeCompare(String(b.expected_checkout_at||b.departure)));
+ }
+ function renderCheckouts(){
+  const due=checkoutDue(),target=$('checkouts');if(!target)return;
+  target.innerHTML=header('Checkouts','Today and overdue departures · open a guest bill to review food, room rent and payments.')+
+   '<div class="bh-metrics"><div class="bh-metric"><span>Checkout due</span><strong>'+due.length+'</strong></div></div>'+notice()+
+   searchBox('Search guest or room')+due.map(s=>stayCard(s,s.departure<today()?'Overdue checkout':'Checkout today')).join('')+
+   (!due.length?stateCard('No guest checkout is due today.'):'');
+ }
  function stayCard(s,tag=''){
   const g=data.guests.find(g=>g.id===s.guest_id),r=data.rooms.find(r=>r.id===s.room_id),f=data.folios.find(f=>f.stay_id===s.id),group=data.groups.find(g=>g.id===s.group_id);
   return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)}${s.arrival_time?' · '+esc(String(s.arrival_time).slice(0,5)):''} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
@@ -281,6 +300,7 @@
   if(id==='room-service'){root.BiteOwnerOperations?.tasks(target,'room_service');return}
   if(id==='daily-book'){void root.BiteHotelAccounts?.renderDailyBook(target);return}
   if(id==='hotel-register'){renderRegister();return}
+  if(id==='checkouts'){renderCheckouts();return}
   if(id==='housekeeping'&&!housekeepingVisible()){void ctx.navigate('rooms');return;}
   if(id==='rooms'||id==='housekeeping'){
    const hk=housekeepingVisible(),canEdit=['owner','manager'].includes(prop().role);
@@ -314,7 +334,7 @@
   if(id==='folios'){renderFolios();return}
   if(id==='reports'){renderReports(target);return}
   if(id==='settings'){
-   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);root.BiteHotelAccounts?.settings(target);renderHousekeepingPreference();return;
+   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);root.BiteHotelAccounts?.settings(target);renderHousekeepingPreference();root.BiteOwnerAccess?.settings(target);return;
   }
   if(id==='hr'){renderStaffAccess(target);return}
   if(id==='expenses'){
@@ -322,6 +342,7 @@
   }
  }
  function renderStaffAccess(target,embedded=false){
+  if(root.BiteOwnerAccess){root.BiteOwnerAccess.renderStaff(target,embedded);return}
   target.innerHTML=(embedded?'<h2>Property account access</h2>':header('Staff','Manage property access here. Attendance and payroll stay in their existing workspace.'))+notice()+data.members.map(m=>`<article class="bh-record"><div><strong>${esc(m.display_name||m.email||m.role)}</strong><p>${esc(m.email||'')} · ${esc(m.role)} · ${m.active?'Active':'Revoked'}</p></div>${m.role!=='owner'&&m.active?btn('revoke-member','Revoke access',m.user_id):''}</article>`).join('')+(prop().can_configure?`<form class="bh-panel bh-form" data-hotel-form="member"><h2>Staff account access</h2>${field('email','Staff email (registered account) *','email','','required maxlength="254" autocomplete="off"')}${select('role','Role',['manager','receptionist','cashier','housekeeping','accountant'].map(r=>option(r,r)).join(''))}${select('active','Access',option('true','Active')+option('false','Revoke'))}<p class="bh-note">The staff member signs up with this email first. Verify the email with them before granting access. Restaurant POS also needs its approved outlet assignment. This does not send an invitation.</p>${notice()}<button class="btn" type="submit">Save access</button></form>`:stateCard('Owner manages staff account access.'));
  }
  function searchBox(label){return `<label class="bh-field bh-search"><span>${esc(label)}</span><input type="search" data-hotel-search placeholder="Type to search…" autocomplete="off"></label>`}
@@ -642,7 +663,7 @@
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}
    else if(action==='save-draft'){const f=$('bhCheckinForm');f.querySelector('.bh-message').textContent=persistDraft(f)?'Draft saved on this device. Not checked in.':'Draft could not be saved.'}
    else if(action==='close-editor')$('bhActionEditor')?.remove();
-   else if(action==='revoke-member'){const m=data.members.find(m=>m.user_id===id);if(m&&root.confirm('Revoke '+(m.email||m.display_name)+' access to this property now?')){await command('member',{id,role:m.role,active:false});await reload();const active=document.querySelector('.page.active')?.id;if(active==='hr'&&!restaurantAccess())renderStaffAccess($('hr'));else await augmentPage('hr')}}
+   else if(action==='revoke-member'){const m=data.members.find(m=>m.user_id===id);if(m&&root.confirm('Revoke '+(m.email||m.display_name)+' access to this property now?')){const r=await ctx.sb.rpc('bite_save_staff_access',{p_property:prop().id,p_user:id,p_email:m.email||'',p_role:m.role,p_active:false,p_permissions:m.permissions||[]});if(r.error)throw r.error;await reload();const active=document.querySelector('.page.active')?.id;if(active==='hr'&&!restaurantAccess())renderStaffAccess($('hr'));else await augmentPage('hr')}}
    else if(action==='entry')entryForm(id);
    else if(action==='reverse'||action==='verify-payment')entryForm(action==='reverse'?'reverse':'payment_confirm',id);
    else if(action==='void-payment')entryForm('payment_void',id);
@@ -830,13 +851,14 @@
  function postedOrder(id){return data.entries.find(e=>e.source_order_id===id)||null}
  async function augmentPage(id){
   if(!prop())return;
-  if(id==='settings'&&restaurantAccess()){await reload();root.BiteOwnerOperations?.settings($('settings'));root.BiteHotelAccounts?.settings($('settings'));renderHousekeepingPreference()}
+  if(id==='settings'&&restaurantAccess()){await reload();root.BiteOwnerOperations?.settings($('settings'));root.BiteHotelAccounts?.settings($('settings'));renderHousekeepingPreference();root.BiteOwnerAccess?.settings($('settings'))}
+  root.BiteOwnerAccess?.apply?.($(''+id)||document);
   if(!restaurantAccess())return;
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={header,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
+ root.BiteHospitality={header,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);
