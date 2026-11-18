@@ -72,7 +72,7 @@
   date.addEventListener('change',()=>{holder.querySelector('[data-bhe-month]').setAttribute('aria-pressed','false');renderState(form,kind,true)});
   holder.querySelector('[data-bhe-today]').addEventListener('click',()=>{date.value=today();renderState(form,kind,true)});
   holder.querySelector('[data-bhe-month]').addEventListener('click',e=>{const isOn=e.currentTarget.getAttribute('aria-pressed')==='true';e.currentTarget.setAttribute('aria-pressed',String(!isOn));void loadRows(form,kind)});
-  form.addEventListener('reset',()=>{delete form.dataset.bheSavedSignature;setTimeout(()=>{if(!form.isConnected)return;date.value=today();renderState(form,kind,false)},0)});
+  form.addEventListener('reset',()=>{delete form.dataset.bheSavedSignature;const resetValue=date.defaultValue;setTimeout(()=>{if(!form.isConnected)return;if(!date.value||date.value===resetValue)date.value=today();renderState(form,kind,false)},0)});
   renderState(form,kind);
  }
  function scan(){
