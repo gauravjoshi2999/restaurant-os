@@ -246,7 +246,7 @@
   const daily=(result.data?.days||[]).find(row=>row.day===day);
   if(!daily)throw Error('The verified Daily Book did not return the selected day.');
   const sales=Number(daily.gross_sales),expenses=Number(daily.expenses);
-  if(!Number.isFinite(sales)||!Number.isFinite(expenses))
+  if(daily.gross_sales==null||daily.expenses==null||!Number.isFinite(sales)||!Number.isFinite(expenses))
    throw Error('The selected day has incomplete accounting values.');
   const eligible=(result.data.journal||[]).filter(entry=>{
    if(entry.day!==day||entry.direction!=='in'||!['Cash','UPI','Card','Bank Transfer'].includes(entry.method))return false;
@@ -255,10 +255,15 @@
    if(entry.source_type==='daybook')return entry.category==='income';
    return false;
   });
-  const received=eligible.reduce((sum,entry)=>sum+Number(entry.amount||0),0);
-  if(!Number.isFinite(received))throw Error('The selected day has an invalid receipt.');
+  const received=eligible.reduce((sum,entry)=>sum+Number(entry.amount),0);
+  if(eligible.some(entry=>entry.amount==null)||!Number.isFinite(received))throw Error('The selected day has an invalid receipt.');
   return {propertyId:property.id,day,sales,expenses,received,receiptCount:eligible.length,
    source:'bite_daily_book',receivedBasis:'Confirmed POS/guest receipts and recorded other income. Excludes deposits, transfers and opening balances.'};
+ }
+ function selectOwnerHomeMonth(day){
+  if(!enabled()||!p()?.id||typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day))return false;
+  month=day.slice(0,7);
+  return true;
  }
  async function renderDailyBook(target){
   if(!target||!p())return;
@@ -367,6 +372,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
+ const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
