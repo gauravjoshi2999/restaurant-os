@@ -1,7 +1,7 @@
 /* Hotel register, clean guest bills and the shared Daily Book. Financial writes use scoped RPCs. */
 (function(root){
  'use strict';
- let ctx,active=0,generation=0,report=null,reportScope='',reportVersion=0,month='',collectionFocusDay='';
+ let ctx,active=0,generation=0,report=null,reportScope='',reportVersion=0,month='',collectionFocusDay='',viewPeriod=null;
  const H=()=>root.BiteHospitality,p=()=>H()?.prop(),db=()=>H()?.getWorkspace()||{};
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -16,7 +16,7 @@
  const manager=()=>['owner','manager'].includes(p()?.role);
  const methods=()=>['Cash','UPI','Bank Transfer','Card'].map(x=>option(x,x)).join('');
  function assertScope(key,version){if(key!==scope()||version!==generation)throw Error('Account or property changed. Reopen this action.')}
- function clear(){generation++;reportVersion++;report=null;reportScope='';month='';collectionFocusDay='';root.BiteCheckinFlow?.clear();root.BiteHotelBilling?.clear()}
+ function clear(){generation++;reportVersion++;report=null;reportScope='';month='';collectionFocusDay='';viewPeriod=null;root.BiteCheckinFlow?.clear();root.BiteHotelBilling?.clear()}
  function init(context){ctx=context;root.BiteHotelBilling?.init(context);document.querySelector('#mainApp .content')?.addEventListener('click',click);document.querySelector('#mainApp .content')?.addEventListener('submit',submit)}
  const fieldError=(field,text)=>Object.assign(Error(text),{field});
  const validArrivalTime=value=>typeof value==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
@@ -262,7 +262,7 @@
  }
  function selectOwnerHomeMonth(day){
   if(!enabled()||!p()?.id||typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day))return false;
-  month=day.slice(0,7);collectionFocusDay=day;
+  month=day.slice(0,7);collectionFocusDay=day;viewPeriod={mode:'day',day};
   return true;
  }
  // Open the matching source already present in the signed-in property report.
@@ -296,9 +296,19 @@
   if(!target||!p())return;
   const key=scope(),version=++reportVersion;
   month=month||today().slice(0,7);
-  const from=month+'-01',end=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)),to=root.BiteOwner.day(new Date(end.getTime()+6*3600000));
+  const picker=root.BiteV3Period;
+  if(!picker){target.textContent='Date picker unavailable. Reload Bite to view accounts.';return}
+  const chosen=picker.normalize(viewPeriod||{mode:'month',month},today()),from=chosen.from,to=chosen.to;
   target.innerHTML='<div class="bh-heading"><div><p class="bh-eyebrow">'+esc(p().name)+'</p><h1>Daily Book</h1><p>Sales, expenses, staff advances and cash / online balances.</p></div></div>'+
-   '<form class="bh-form ha-month-form" data-ha-form="month">'+field('month','Month','month',month,'required')+'<button class="btn" type="submit">View month</button></form><div id="haBookBody" role="status">Loading recorded accounts…</div>';
+   '<div id="haPeriod" aria-label="Daily Book period"></div><div id="haBookBody" role="status">Loading recorded accounts…</div>';
+  picker.mount(target.querySelector('#haPeriod'),{value:chosen,today,
+   basis:'Sales: bill / service date · Collections: money movement date',
+   isCurrent:()=>key===scope()&&version===reportVersion,
+   onApply:async next=>{
+    if(key!==scope()||version!==reportVersion)throw Error('Property changed. Reopen Daily Book.');
+    viewPeriod=next;month=next.from.slice(0,7);collectionFocusDay=next.mode==='day'?next.from:'';
+    await renderDailyBook(target);
+   }});
   const r=await ctx.sb.rpc('bite_daily_book',{p_property:p().id,p_from:from,p_to:to});
   if(key!==scope()||version!==reportVersion||!target.isConnected)return;
   const body=target.querySelector('#haBookBody');if(r.error){body.textContent='Daily Book unavailable: '+r.error.message;return}
@@ -308,12 +318,12 @@
    '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
    '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
    '<section class="bh-panel" id="haCollections" aria-label="Source-linked Collections"></section>'+
-   '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Monthly Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
-   (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Month total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
+   '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
+   (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
    '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
-   '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this month.</p>')+'</details>';
-  root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:collectionFocusDay,onOpen:openCollectionSource});
+   '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
+  root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',onOpen:openCollectionSource});
  }
 
  function settings(target){
@@ -363,7 +373,7 @@
    if(a==='accounts'){H().editor('<h2>Opening balance & transfers</h2><div class="bh-actions">'+button('opening','Add opening balance')+button('transfer_in','Transfer in / settlement')+button('transfer_out','Transfer out / withdrawal')+'</div><p class="bh-note">These change money balances and do not create sales or expenses. Record both sides when moving between your own accounts.</p>');return}
    if(a==='excel'||a==='gst'){
     if(!report||reportScope!==scope())throw Error('Reload this property’s report.');
-    root.BiteExports.download(root.BiteExports.workbook(a==='excel'?reportRows(report):gstRows(report)),'Bite-'+(a==='excel'?'Monthly-Accounts-':'GST-Bills-')+month+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
+    root.BiteExports.download(root.BiteExports.workbook(a==='excel'?reportRows(report):gstRows(report)),'Bite-'+(a==='excel'?'Accounts-':'GST-Bills-')+(report.from||month)+'_to_'+(report.to||month)+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
    }
    if(a==='note'){
     const row=report?.journal.find(x=>x.id===id);if(!row)return;

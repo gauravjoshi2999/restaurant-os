@@ -48,12 +48,12 @@
   if(!target||!report||!Array.isArray(report.journal))return false;
   const from=String(report.from||''),to=String(report.to||''),scope=String(options.scope||'');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||!scope)return false;
-  const selected={method:'all',source:'all',day:options.day>=from&&options.day<=to?options.day:''};
+  const selected={method:'all',source:'all'}; // A02 parent is the only record-date control.
   let active=true;
   const visible=()=>active&&options.scope===scope;
   function draw(){
    if(!visible())return;
-   const sum=summarize(report.journal,selected.method,selected.day,selected.source);
+   const sum=summarize(report.journal,selected.method,'',selected.source);
    const tabButtons=Object.entries(methods).map(([k,label])=>
     '<button type="button" data-v3-money-method="'+enc(k)+'" class="v3-money-tab'+(selected.method===k?' active':'')+
     '" aria-pressed="'+(selected.method===k?'true':'false')+'">'+enc(label)+'</button>').join('');
@@ -76,8 +76,6 @@
     }).join(''):'<p class="v3-money-empty">No recorded movements for these filters. Change date, method or source.</p>';
    target.innerHTML='<div class="v3-money-heading"><div><h2>Collections</h2><p>Money movement date · source-linked records</p></div>'+
     '<small>'+enc(from)+' → '+enc(to)+'</small></div><div class="v3-money-filter-row">'+
-    '<label>Day filter<input type="date" data-v3-money-day value="'+enc(selected.day)+'" min="'+enc(from)+'" max="'+enc(to)+'"></label>'+
-    '<button type="button" data-v3-money-all-days>All days</button>'+
     '<label>Source<select data-v3-money-source-filter>'+Object.entries(sources).map(([k,label])=>
     '<option value="'+enc(k)+'"'+(k===selected.source?' selected':'')+'>'+enc(label)+'</option>').join('')+
     '</select></label></div><div class="v3-money-tabs" role="group" aria-label="Collection payment method">'+tabButtons+'</div>'+
@@ -94,7 +92,6 @@
    if(method&&Object.hasOwn(methods,method.dataset.v3MoneyMethod)){
     selected.method=method.dataset.v3MoneyMethod;draw();return;
    }
-   if(event.target.closest?.('[data-v3-money-all-days]')){selected.day='';draw();return;}
    const source=event.target.closest?.('[data-v3-money-source]');
    if(source){
     const record=report.journal.find(x=>x.source_type===source.dataset.v3MoneySource&&
@@ -105,11 +102,8 @@
   target.addEventListener('change',event=>{
    if(!visible())return;
    const e=event.target;
-   if(e.matches?.('[data-v3-money-day]')){
-    const day=String(e.value||'');if(day&&!(day>=from&&day<=to)){draw();return}
-    selected.day=day;draw();
-   }else if(e.matches?.('[data-v3-money-source-filter]')&&Object.hasOwn(sources,e.value)){
-    selected.source=e.value;draw();
+   if(e.matches?.('[data-v3-money-source-filter]')&&Object.hasOwn(sources,e.value)){
+     selected.source=e.value;draw();
    }
   });
   draw();

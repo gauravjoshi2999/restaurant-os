@@ -3,7 +3,7 @@
  'use strict';
  const C=root.BiteCapabilities;
  const titles={'hotel-register':'Check-in','reservations':'Reservations','rooms':'Rooms','guests':'Guest register','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service','daily-book':'Daily Book','checkouts':'Checkouts'};
- let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='';
+ let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='',hotelReportPeriod=null;
  let foodFolio=null,foodMenu=[],foodCart=new Map(),foodQuery='';
  let housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''},housekeepingRequest=0;
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
@@ -160,7 +160,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
-  root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();setupDraft=null;setupStep=1;reportFrom='';reportTo='';
+  root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();setupDraft=null;setupStep=1;reportFrom='';reportTo='';hotelReportPeriod=null;
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
   startPolling();
   // Clear the old property immediately, before any new network response.
@@ -556,15 +556,26 @@
  }
  function reportEntries(){const from=reportFrom||today(),to=reportTo||today();return data.entries.filter(e=>{const d=root.BiteOwner.day(e.created_at);return d>=from&&d<=to})}
  function renderReports(target){
-  const from=reportFrom||today(),to=reportTo||today(),entries=reportEntries(),t=C.hotelTotals(entries),held=C.hotelTotals(data.entries.filter(e=>root.BiteOwner.day(e.created_at)<=to)).deposits,balance=data.folios.reduce((n,f)=>n+Number(f.totals?.balance||0),0);
+  const picker=root.BiteV3Period;
+  const chosen=picker?.normalize(hotelReportPeriod||(
+   reportFrom&&reportTo?(reportFrom===reportTo?{mode:'day',day:reportFrom}:{mode:'range',from:reportFrom,to:reportTo}):
+    {mode:'day',day:today()}),today());
+  const from=chosen?.from||reportFrom||today(),to=chosen?.to||reportTo||today(),entries=reportEntries(),t=C.hotelTotals(entries),held=C.hotelTotals(data.entries.filter(e=>root.BiteOwner.day(e.created_at)<=to)).deposits,balance=data.folios.reduce((n,f)=>n+Number(f.totals?.balance||0),0);
   const methods=['Cash','UPI','Card','Bank Transfer','Other'].map(method=>({method,amount:entries.filter(e=>e.status==='confirmed'&&e.method===method).reduce((n,e)=>n+(['payment','advance','deposit_hold'].includes(e.kind)?Number(e.amount):['refund','deposit_return'].includes(e.kind)?-Number(e.amount):0),0)}));
   const expenses=data.expenses.filter(e=>e.expense_date>=from&&e.expense_date<=to).reduce((n,e)=>n+Number(e.amount),0);
   target.innerHTML=header('Hotel reports','Room and incidental charges, recorded collections and deposit liabilities stay separate.',btn('report-export','Export Excel'))+
-   `<form class="bh-form bh-panel" data-hotel-form="report-filter"><div class="bh-form-grid">${field('from','From','date',from,'required')}${field('to','To','date',to,'required')}</div><button type="submit" class="btn">Apply dates</button>${notice()}</form>`+
+   '<div id="bhReportPeriod" aria-label="Hotel report period"></div>'+
    '<div class="bh-metrics">'+[['Room charges (incl. tax)',money(t.room)],['Incidentals (incl. tax)',money(t.incidentals)],['Recorded collections',money(t.collections)],['Deposit held at end date',money(held)],['Pending in period',money(t.pending)],['Current folio balance',money(balance)]].map(([k,v])=>`<div class="bh-metric"><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')+'</div>'+
    `<p class="bh-note">${money(t.foodOnFolios)} food posted in this period references existing POS sales. Do not add it again to restaurant sales. Deposits and cash collections are not sales. These are ledger record dates and current verification states, not a bank settlement statement.</p>`+
    '<article class="bh-panel"><h2>Recorded money by method</h2>'+methods.map(m=>`<div class="bh-room-line"><strong>${m.method}</strong><span>${money(m.amount)}</span></div>`).join('')+`<p>Property expenses in period: ${money(expenses)}. Restaurant expenses stay in the existing restaurant reports.</p><p class="bh-note">Use the combined closing below to save a snapshot or explicitly lock the hotel and restaurant journals for a day. Online payment processing continues.</p></article>`+
    '<div id="bhOperationalReports"></div><article class="bh-panel"><h2>Recent audit activity</h2>'+data.audit.map(a=>`<div class="bh-room-line"><strong>${esc(a.action)}</strong><span>${esc(new Date(a.created_at).toLocaleString('en-IN'))}</span></div>`).join('')+(!data.audit.length?stateCard('No activity yet.'):'' )+'</article>';
+  if(picker)picker.mount(target.querySelector('#bhReportPeriod'),{value:chosen,today,
+   basis:'Hotel ledger: actual record date · Guest charges kept separate from receipts',
+   isCurrent:()=>!!prop()?.id&&target.isConnected,
+   onApply:async next=>{
+    hotelReportPeriod=next;reportFrom=next.from;reportTo=next.to;
+    renderReports(target);
+   }});
   void loadOperationalReports().catch(showError);
  }
  let auditQuery='',auditBefore=null;

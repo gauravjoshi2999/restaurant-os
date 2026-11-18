@@ -81,6 +81,6 @@ test('H02/H03 selected day stays separate from live alerts and old dashboard',()
  assert.match(homeCss,/\.bv3-pdf-date-field input/);
  assert.match(homeCss,/@media\(max-width:760px\)/);
  assert.match(html,/owner-reference-v3\.js\?v=20261118-h02-finance1/);
- assert.match(html,/owner-hotel-accounts\.js\?v=20261118-a03-collections1/);
+ assert.match(html,/owner-hotel-accounts\.js\?v=20261119-a02-shared1/);
  assert.match(html,/owner-pdf-v3-home\.css\?v=20261118-h02-finance1/);
 });

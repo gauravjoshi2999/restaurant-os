@@ -1,0 +1,29 @@
+/* Shared A02 period controls. Neutral surface, accessible 44px targets. */
+body[data-role="owner"] .bv3-period{border:1px solid #eadacb;border-radius:17px;padding:15px;background:#fffaf4;color:#392f32;margin:10px 0 19px;min-width:0}
+body[data-role="owner"] .bv3-period-head{display:flex;gap:10px;justify-content:space-between;align-items:center;min-width:0}
+body[data-role="owner"] .bv3-period-head>div{display:grid;gap:3px;min-width:0}
+body[data-role="owner"] .bv3-period-head small{font-size:10px;letter-spacing:.065em;font-weight:800;color:#a75e2d}
+body[data-role="owner"] .bv3-period-head strong{font-size:18px;color:#362d30;overflow-wrap:anywhere}
+body[data-role="owner"] .bv3-period-head span{font-size:11px;color:#736a67;overflow-wrap:anywhere}
+body[data-role="owner"] .bv3-period button{min-height:44px;border:1px solid #ddb896;border-radius:11px;padding:9px 13px;background:white;color:#7a4a2f;font:700 13px/1.3 inherit;cursor:pointer}
+body[data-role="owner"] .bv3-period-head>button{flex:0 0 auto;background:#ffeddf;color:#924717}
+body[data-role="owner"] .bv3-period-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:16px 0 12px}
+body[data-role="owner"] .bv3-period-tabs button{min-width:0}
+body[data-role="owner"] .bv3-period-tabs button.active{border-color:#ec8e45;background:#fce7d4;color:#8c3e0b}
+body[data-role="owner"] .bv3-period-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:4px 0 12px}
+body[data-role="owner"] .bv3-period-fields label{display:grid;gap:5px;min-width:0;font-size:12px;font-weight:700;color:#50484a}
+body[data-role="owner"] .bv3-period-fields input{box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:44px;padding:9px 10px;border:1px solid #d9ccc3;border-radius:10px;background:white;color:#2e2930;font-size:14px}
+body[data-role="owner"] .bv3-period-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+body[data-role="owner"] .bv3-period-actions .primary{background:#e97426;color:white;border-color:#d76217}
+body[data-role="owner"] .bv3-period-help{font-size:11px;line-height:1.5;color:#7e6d65;margin:10px 0 0}
+body[data-role="owner"] .bv3-period [role="alert"]{color:#b12626;font-size:12px;line-height:1.5}
+body[data-role="owner"] .bv3-period :is(button,input):focus-visible{outline:3px solid #e87f36;outline-offset:2px}
+@media(max-width:430px){
+ body[data-role="owner"] .bv3-period{padding:11px;border-radius:13px}
+ body[data-role="owner"] .bv3-period-head{align-items:flex-start;flex-wrap:wrap}
+ body[data-role="owner"] .bv3-period-head>button{width:100%}
+ body[data-role="owner"] .bv3-period-tabs{gap:5px}
+ body[data-role="owner"] .bv3-period-tabs button{padding:7px}
+ body[data-role="owner"] .bv3-period-actions>button{flex:1 1 90px}
+}
+@media(max-width:340px){body[data-role="owner"] .bv3-period-fields{grid-template-columns:1fr}}

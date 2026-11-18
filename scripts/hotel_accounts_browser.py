@@ -21,6 +21,7 @@ extra=r"""
   c.rpc=async(name,a={})=>{
    if(name==='bite_property_command'&&a.p_action==='reserve'&&q.rejectArrivalTimeOnce){q.rejectArrivalTimeOnce=false;return{data:null,error:{code:'22023',message:'Enter a valid arrival time.',details:'{"field":"arrival_time"}'}}}
    if(name==='bite_daily_book'){
+    (window.__BITE_A02_DAILY_CALLS ||= []).push({...a});
     const day=window.BiteOwner.day(),d={day,pos_sales:100,hotel_sales:1575,other_income:50,gross_sales:1725,tax:75,net_sales:1650,expenses:100,staff_advance:200,cash_in:300,cash_out:100,cash_balance:1200,online_in:250,online_out:50,online_balance:200,profit:1550};
     return{data:{from:a.p_from,to:a.p_to,days:[d],journal:[],accounts:[{account:'Second account',method:'UPI',balance:200}],staff:[],gst_invoices:[{date:day,number:'H/26-27/000042',guest:'Synthetic Guest',gstin:'08ABCDE1234F1Z5',total:1575,tax_lines:[{category:'room',sac:'996311',rate:5,taxable:1200,cgst:30,sgst:30},{category:'food',sac:'996331',rate:5,taxable:300,cgst:7.5,sgst:7.5}]}]},error:null};
    }
@@ -199,6 +200,26 @@ try:
    check(not returning.locator('[name=id_front]').evaluate('(e)=>e.required'),'Returning guest can reuse a verified private ID front')
    check(page.evaluate('__BITE_DOCUMENT_QA.rows.size')==6,'Returning guest lookup does not create another ID upload')
    nav(page,'daily-book');page.locator('.ha-book-table').wait_for()
+   check(page.locator('#haPeriod .bv3-period').is_visible(),'A02 shared period picker appears in canonical Daily Book')
+   old=page.evaluate("BiteOwner.day(new Date(Date.now()-86400000))")
+   before=page.evaluate("__BITE_HOTEL_QA.calls.filter(x=>x.name==='bite_property_command').length")
+   page.locator('#haPeriod [data-bv3-period-toggle]').click()
+   page.locator('#haPeriod [data-bv3-period-mode=day]').click()
+   page.locator('#haPeriod [name=day]').fill(old)
+   page.locator('#haPeriod [type=submit]').click()
+   page.wait_for_function("(d)=>document.querySelector('#haPeriod')?.textContent.includes(d)",arg=old)
+   args=page.evaluate("__BITE_A02_DAILY_CALLS.at(-1)")
+   check(args['p_from']==old and args['p_to']==old,'A02 Day fetch is property-scoped and uses selected business date')
+   check(page.evaluate("__BITE_HOTEL_QA.calls.filter(x=>x.name==='bite_property_command').length")==before,'A02 report date change creates no bills or payments')
+   page.locator('#haPeriod [data-bv3-period-toggle]').click()
+   page.locator('#haPeriod [data-bv3-period-today]').click()
+   page.locator('#haPeriod [data-bv3-period-cancel]').click()
+   check(page.locator('#haPeriod .bv3-period-head').inner_text().find(old)>=0,'Cancel preserves previous report date')
+   page.locator('#haPeriod [data-bv3-period-toggle]').click()
+   page.locator('#haPeriod [data-bv3-period-mode=month]').click()
+   page.locator('#haPeriod [name=month]').fill(page.evaluate('BiteOwner.day().slice(0,7)'))
+   page.locator('#haPeriod [type=submit]').click()
+   page.locator('.ha-book-table').wait_for()
    check('Second account' in page.locator('#daily-book').inner_text(),'Account-wise online balance appears')
    with page.expect_download() as d:page.locator('[data-ha-action=excel]').click()
    with zipfile.ZipFile(d.value.path()) as z:
