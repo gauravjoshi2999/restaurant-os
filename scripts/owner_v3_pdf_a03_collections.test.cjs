@@ -53,7 +53,7 @@ test('A03: row contains source link, accessible method tabs and honest financial
  const api=collections.render(target,{from:'2026-10-01',to:'2026-10-31',journal},
   {scope:'owner|hotel',day:'2026-10-01',onOpen:x=>opened.push(x)});
  assert.ok(api);
- assert.match(target.innerHTML,/data-v3-money-day/);
+ assert.doesNotMatch(target.innerHTML,/data-v3-money-day/);
  assert.match(target.innerHTML,/role="group" aria-label="Collection payment method"/);
  assert.match(target.innerHTML,/Opening balances, transfers and refundable deposits are not sales/);
  assert.match(target.innerHTML,/data-v3-money-source="order_payment"/);
@@ -73,7 +73,7 @@ test('A03 integrates existing Daily Book instead of creating any payments',()=>{
  assert.match(accounts,/root\.printOwnerInvoice/);
  assert.match(accounts,/customer_ledger_payment/);
  assert.match(accounts,/Original ledger and account notes/);
- assert.match(html,/owner-v3-collections\.js\?v=20261118-a03-collections1/);
+ assert.match(html,/owner-v3-collections\.js\?v=20261119-a02-shared1/);
  assert.match(html,/owner-v3-collections\.css\?v=20261118-a03-collections1/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-collections.js','utf8'),/\.(?:insert|update|upsert|delete|rpc)\s*\(/);
