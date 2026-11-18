@@ -513,8 +513,16 @@
  }
  function onClick(e){
   if(currentAccess?.role!=='owner')return;
-  const button=e.target.closest?.('[data-bv3-review],[data-bv3-route]');
+  const button=e.target.closest?.('[data-bv3-review],[data-bv3-route],[data-bv3-date-today],[data-bv3-retry-finance]');
   if(!button||!button.closest('#biteV3Home'))return;
+  if(button.dataset.bv3DateToday==='true'){
+   selectedFinanceDay=todayBusinessDay();financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+   renderHome(true);return;
+  }
+  if(button.dataset.bv3RetryFinance==='true'){
+   financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+   loadHomeFinance(true);renderHome(true);return;
+  }
   if(button.dataset.bv3Review){
    const id=button.dataset.bv3Intent,decision=button.dataset.bv3Review;
    if(decision==='rejected'&&!root.confirm('Reject this request? Customer has not paid yet.'))return;
@@ -523,6 +531,19 @@
    return;
   }
   if(button.dataset.bv3Route)route(button.dataset.bv3Route,button.dataset.bv3Attendance==='true'?'attendance':button.dataset.bv3Gst==='true'?'gst':button.dataset.bv3Filter,button.dataset.bv3NewPos==='true');
+ }
+ function onHomeBusinessDateChange(event){
+  const input=event.target;
+  if(!input?.matches?.('[data-bv3-business-day]')||currentAccess?.role!=='owner')return;
+  const chosen=String(input.value||''),today=todayBusinessDay();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(chosen)||chosen>today||
+     new Date(chosen+'T12:00:00Z').toISOString().slice(0,10)!==chosen){
+   input.value=businessDay();return;
+  }
+  if(chosen===businessDay())return;
+  selectedFinanceDay=chosen;
+  financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};
+  renderHome(true);
  }
  function initialize(){
   if(root.document?.getElementById('biteV3Home'))return;
@@ -533,6 +554,7 @@
   home.setAttribute('aria-label','Bite owner command center');
   overview.prepend(home);
   home.addEventListener('click',onClick);
+  home.addEventListener('change',onHomeBusinessDateChange);
   const header=root.document.querySelector('#mainApp>.main>.top');
   if(header&&!root.document.getElementById('biteV3HeaderBell')){
    const bell=root.document.createElement('button');
@@ -591,6 +613,7 @@
  function refresh(state,access){
   currentState=state;currentAccess=access;
   if(root.document?.body?.dataset?.role!=='owner'||access?.role!=='owner'){
+   financeRequest++;financeQuery={key:'',status:'idle',value:null,error:'',loadedAt:0};selectedFinanceProperty='';selectedFinanceDay='';
    toggleNoticeTray(false);
    root.document?.body?.classList.remove('bite-v3-active');
    syncLegacyHomeVisibility();
