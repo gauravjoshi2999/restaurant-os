@@ -1389,7 +1389,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <link rel="stylesheet" href="assets/super-admin-workspace.css?v=20261118-sa1"><script src="assets/super-admin-workspace.js?v=20261118-sa1"></script>
 <script src="assets/owner-core.js"></script>
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
-<script src="assets/owner-orders-workspace.js?v=20261115-urgency3"></script><script src="assets/owner-order-confirmations.js?v=20261117-confirm1"></script>
+<script src="assets/owner-orders-workspace.js?v=20261115-urgency3"></script><script src="assets/owner-order-confirmations.js?v=20261118-confirm-mobile-recovery1"></script>
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
 <script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
 <script src="assets/owner-dashboard.js"></script>
@@ -4076,6 +4076,45 @@ function renderIncomingOrderInbox(){
   return '<article class="order-inbox-card"><div class="order-inbox-card-top"><span class="order-inbox-source source-'+channel+'">'+label+'</span><time>'+esc(o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'New')+'</time></div><strong class="order-inbox-order">#'+esc(o.code||o.id.slice(0,8))+' · '+money(o.amount)+'</strong><div class="order-inbox-customer">'+customer+'</div><div class="order-inbox-items">'+(itemText||'Items loading...')+extra+'</div>'+scheduledInbox+instructions+'<div class="order-inbox-actions"><button class="btn" onclick="advanceOrder(\''+esc(o.id)+'\',\'Accepted\')">Accept order</button><button class="btn danger" onclick="advanceOrder(\''+esc(o.id)+'\',\'Rejected\')">Reject</button></div></article>';
  }).join(''):'<div class="order-inbox-empty">Abhi koi naya order nahi hai.<br><small>Naya website order aate hi yahan dikhega.</small></div>';
 }
+// Network/cached-script recovery. The confirmation queue is not a payment or order ledger;
+// its absence must never crash the entire signed-in Owner workspace.
+let ownerConfirmationsLoading=false,ownerConfirmationsLastRetry=0;
+function renderOwnerConfirmationUnavailable(missing){
+ const board=document.getElementById('orderBoard');
+ if(!board)return;
+ let notice=document.getElementById('biteOwnerConfirmationsUnavailable');
+ if(!notice&&missing){
+  notice=document.createElement('div');
+  notice.id='biteOwnerConfirmationsUnavailable';
+  notice.className='notice';
+  notice.setAttribute('role','alert');
+  notice.innerHTML='<strong>Customer approval queue temporarily unavailable.</strong> Existing paid orders and hotel/POS records remain accessible, but new pre-payment approvals cannot be reviewed until this reconnects. <button type="button" class="btn secondary" id="biteRetryOwnerConfirmations">Retry approval queue</button>';
+  board.before(notice);
+  notice.querySelector('button')?.addEventListener('click',()=>retryOwnerConfirmations(true));
+ }
+ if(notice)notice.hidden=!missing;
+}
+function retryOwnerConfirmations(force=false){
+ if(typeof document==='undefined'||typeof window==='undefined'||window.BiteOwnerConfirmations?.mount||access.role!=='owner')return;
+ const now=Date.now();
+ if(ownerConfirmationsLoading||(!force&&now-ownerConfirmationsLastRetry<15000))return;
+ ownerConfirmationsLoading=true;ownerConfirmationsLastRetry=now;
+ const uid=currentUser?.id,rid=access.restaurantId;
+ const script=document.createElement('script');
+ script.async=true;
+ // A distinct, same-origin asset URL bypasses a stale/failed cached script on weak mobile data.
+ script.src='./assets/owner-order-confirmations.js?v=20261118-confirm-mobile-recovery2';
+ const done=()=>{
+  ownerConfirmationsLoading=false;
+  script.remove();
+  if(uid!==currentUser?.id||rid!==access.restaurantId||access.role!=='owner')return;
+  if(window.BiteOwnerConfirmations?.mount){renderOwnerConfirmationUnavailable(false);renderOrderBoard();}
+  else renderOwnerConfirmationUnavailable(true);
+ };
+ script.onload=done;
+ script.onerror=done;
+ document.head.appendChild(script);
+}
 function renderOrderBoard(){
  renderChannelCounts();
  BiteOwnerOrders.prepare(document,access.role,setOrderStatus);
@@ -4084,7 +4123,14 @@ function renderOrderBoard(){
  const counts={all:channelOrders.length,Received:0,Accepted:0,Preparing:0,Ready:0,'Handed Over':0,Completed:0};
  channelOrders.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++});
  Object.entries(counts).forEach(([k,v])=>{const id=k==='all'?'statusCountAll':'statusCount'+k.replace(/\s/g,'');const el=document.getElementById(id);if(el)el.textContent=v});
- if(access.role==='owner'){BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);BiteOwnerConfirmations.mount(sb,access.restaurantId,activeOrderStatus,channelOrders.filter(o=>o.status==='Received').length);}else BiteOwnerConfirmations.stop();
+ if(access.role==='owner'){
+  BiteOwnerOrders.update(document,channelOrders,activeOrderStatus);
+  const confirmations=typeof BiteOwnerConfirmations==='undefined'?null:BiteOwnerConfirmations;
+  const ready=!!confirmations?.mount;
+  renderOwnerConfirmationUnavailable(!ready);
+  if(ready)confirmations.mount(sb,access.restaurantId,activeOrderStatus,channelOrders.filter(o=>o.status==='Received').length);
+  else retryOwnerConfirmations(false);
+ }else if(typeof BiteOwnerConfirmations!=='undefined')BiteOwnerConfirmations.stop?.();
  const datedOrders=access.role==='owner'?BiteOwnerOrders.dateFilter(channelOrders):channelOrders;
  const orders=BiteOwnerOrders.sortQueue(activeOrderStatus==='all'?datedOrders:datedOrders.filter(o=>access.role==='owner'?BiteOwnerOrders.matches(activeOrderStatus,o.status):o.status===activeOrderStatus),activeOrderStatus,access.role);
  const canManage=access.role==='owner';
