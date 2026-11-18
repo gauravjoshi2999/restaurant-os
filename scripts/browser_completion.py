@@ -605,18 +605,18 @@ try:
     bodyClass:document.body.className,
     overviewText:document.getElementById('biteV3Home')?.innerText?.slice(0,450)
   })"""))
-  check(owner.locator('#biteV3Home .boh-feature').count()>=2
-    and owner.locator('#biteV3Home .boh-feature-grid').is_visible()
+  check(owner.locator('#biteV3Home .bv3-pdf-home').is_visible()
+    and owner.locator('#biteV3Home .bv3-pdf-metric').count()==4
     and owner.locator('#biteV3Home [data-bv3-new-pos="true"]').is_visible()
-    and not owner.locator('#biteV3Home .bv3-quiet').count()
+    and owner.locator('#biteV3Home .boh-feature-grid').count()==0
     and owner.locator('#bitePremiumHome').is_hidden()
     and owner.locator('#overview .od-owner-priority').is_hidden(),
-    'Owner Home renders approved operational cards without old KPI, All caught up or duplicated premium UI')
+    'PDF H02 replaces old illustrated Home with four verified-status finance cards and canonical POS action')
   check(owner.locator('.bite-language-row').is_hidden()
     and owner.locator('.side').is_hidden()
     and owner.locator('#mainApp>.main>.top').evaluate(
-       "(el)=>getComputedStyle(el).backgroundImage.includes('linear-gradient') && el.getBoundingClientRect().height>=80 && el.getBoundingClientRect().height<=110"),
-    'Owner mobile header uses approved premium gradient with readable room for property identity')
+       "(el)=>getComputedStyle(el).backgroundColor==='rgb(255, 255, 255)' && el.getBoundingClientRect().height>=56 && el.getBoundingClientRect().height<=120"),
+    'PDF H02 mobile header is clean and readable with original property identity and notifications')
   bell=owner.locator('#biteV3HeaderBell')
   bell.click()
   check(owner.locator('#biteOwnerNoticeTray').is_visible()
