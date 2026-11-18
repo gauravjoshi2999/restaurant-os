@@ -40,6 +40,24 @@ body[data-role="owner"] #biteV3Home .bv3-pdf-date-link{
  background:#fff;border:1px solid #e2e6ec;border-radius:9px;
  font-size:12px;color:#ae530d;font-weight:700
 }
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-controls{
+ display:flex;align-items:flex-end;gap:7px;flex-wrap:wrap;
+ justify-content:flex-end;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-field{
+ display:grid;gap:3px;font-size:10px;font-weight:750;color:#526171;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-field input{
+ box-sizing:border-box;width:150px;max-width:100%;min-width:0;min-height:42px;
+ padding:7px 9px;margin:0!important;border:1px solid #dce2e9!important;
+ border-radius:9px;background:#fff;color:#2e3642;font-size:12px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-controls .bv3-pdf-date-link{min-height:42px}
+body[data-role="owner"] #biteV3Home .bv3-pdf-retry{
+ display:inline-flex;min-height:32px;margin:2px 0 2px 7px;padding:4px 10px;
+ border:1px solid #e2ba98;border-radius:8px;background:#fff2e7;color:#8f480f;
+ font-weight:800;font-size:11px
+}
 body[data-role="owner"] #biteV3Home .bv3-pdf-metrics{
  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
  gap:10px;margin-bottom:10px
@@ -194,7 +212,12 @@ body[data-role="owner"] #biteV3Home button:hover{filter:brightness(.99)}
   background:#f6f7f9!important;padding:10px 10px calc(94px + env(safe-area-inset-bottom))!important
  }
  body[data-role="owner"] #biteV3Home .bv3-pdf-home{border-radius:0;padding:8px 4px 28px}
- body[data-role="owner"] #biteV3Home .bv3-pdf-heading h1{font-size:19px!important}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-heading{flex-wrap:wrap;align-items:flex-start}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-heading>div:first-child{min-width:0;flex:1 1 140px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-date-controls{flex:1 1 170px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-date-field{flex:1 1 110px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-date-field input{width:100%;max-width:175px}
+  body[data-role="owner"] #biteV3Home .bv3-pdf-heading h1{font-size:19px!important}
  body[data-role="owner"] #biteV3Home .bv3-pdf-heading small{font-size:10px}
  body[data-role="owner"] #biteV3Home .bv3-pdf-metrics{
   grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
