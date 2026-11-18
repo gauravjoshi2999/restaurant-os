@@ -179,7 +179,25 @@
  function onSubmit(e){
   const form=e.target;
   const kind=form?.id==='bhCheckinForm'?'room':form?.id==='orderForm'?'pos':null;
-  if(!kind||!isHistorical(form))return;
+  if(!kind)return;
+  // A past PAYMENT date is not the record/bill date. Prevent silent creation
+  // of today's POS order when staff intended to import an old POS bill.
+  if(kind==='pos'&&!isHistorical(form)){
+   const paymentDate=getField(form,'payment_date')?.value||'';
+   if(validDate(paymentDate)&&paymentDate<today()){
+    e.preventDefault();e.stopImmediatePropagation();
+    const dateField=getField(form,'history_date');
+    if(dateField){
+     dateField.value=paymentDate;
+     dateField.dispatchEvent(new Event('change',{bubbles:true}));
+     status(form,'Bill date was Today but payment date was '+paymentDate+'. Old register mode selected. Review the date and press Save old POS record to confirm; no live sale was created.',true);
+     dateField.scrollIntoView?.({behavior:'smooth',block:'center'});
+     dateField.focus?.({preventScroll:true});
+    }else root.alert?.('Purane bill ke liye Entry date chunein; payment date alag hai.');
+    return;
+   }
+  }
+  if(!isHistorical(form))return;
   e.preventDefault();e.stopImmediatePropagation();
   const btn=form.querySelector('button[type=submit]');
   if(btn?.disabled)return;
