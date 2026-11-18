@@ -496,6 +496,7 @@
  }
  function route(page,filter,newPos,notification){
   if(!permitted(page))return;
+  if(page==='daily-book')root.BiteHotelAccounts?.selectOwnerHomeMonth?.(businessDay());
   if(notification?.folioId&&page==='folios'){void root.BiteHospitality.openFolio(notification.folioId);return;}
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
    void Promise.resolve(root.openPosFromOverview(null));return;
