@@ -1540,7 +1540,7 @@ async function loadCloudData(options={}){try{if(access.role==='owner'&&!access.r
  return;
  }const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',scheduledFor:x.scheduled_for||null,deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();if(access.property&&(window.BiteHospitality.has("folios")||window.BiteHospitality.has("charge_to_room")))await window.BiteHospitality.reload();render();if(access.property)window.BiteHospitality.applyShell();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){if(!options.silent)alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err);if(options.throwOnError)throw err}}
 
-let expenseRecords=[], editingExpenseId=null;
+let expenseRecords=[], editingExpenseId=null, expenseRequestVersion=0, expenseLoadedKey='';
 function localDateInput(){return BiteOwner.day()}
 function expenseRestaurantId(){return document.getElementById('expenseRestaurant').value||''}
 async function loadExpenseWorkspace(){
@@ -1557,10 +1557,25 @@ async function loadExpenseWorkspace(){
  await loadExpenses();
 }
 async function loadExpenses(){
- const rid=expenseRestaurantId();if(!rid)return;
+ const rid=expenseRestaurantId(),userId=currentUser?.id||'';if(!rid||!userId)return;
+ const key=userId+':'+rid,version=++expenseRequestVersion;
  const empty=document.getElementById('expenseEmpty');empty.textContent='Expenses load ho rahe hain...';empty.style.display='block';
- try{const {data,error}=await sb.from('restaurant_expenses').select('*').eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;expenseRecords=data||[];state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses()}
- catch(e){empty.textContent='Expenses load nahi hue: '+e.message;console.error(e)}
+ if(expenseLoadedKey!==key){
+  expenseLoadedKey=key;expenseRecords=[];editingExpenseId=null;
+  document.getElementById('expenseRows').innerHTML='';
+  document.getElementById('expenseTotal').textContent='—';
+  document.getElementById('expenseCount').textContent='—';
+  document.getElementById('expenseV3Cards')?.replaceChildren();
+ }
+ try{
+  const {data,error}=await sb.from('restaurant_expenses').select('*').eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});
+  if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
+  if(error)throw error;
+  expenseRecords=data||[];state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses();
+ }catch(e){
+  if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
+  empty.textContent='Expenses load nahi hue: '+e.message;console.error(e);
+ }
 }
 function renderExpenses(){
  const rid=expenseRestaurantId(),key=(currentUser?.id||'')+':'+rid;
