@@ -63,7 +63,7 @@
    '<p class="bhe-hint" data-bhe-hint>Aaj ki entry normal live flow se save hogi.</p>'+
    '<div class="bhe-extra" data-bhe-extra hidden>'+(kind==='room'?
      '<p class="bhe-muted"><strong>Old register mode:</strong> guest details aur old room bill save honge. Live room change, payment collection, aur photo ID upload nahi hoga. ID photos yahan select karne par bhi save nahi hongi.</p><div class="bhe-fields"><label>Old register room number<input name="history_room_number" maxlength="60" placeholder="e.g. 101"></label><label>Old room bill (₹)<input name="history_room_amount" type="number" min="0" step=".01" value="0"></label><label>Amount already received (₹)<input name="history_room_received" type="number" min="0" step=".01" value="0"></label><label>Payment method<select name="history_room_method"><option value="">Not recorded</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>':
-     '<p class="bhe-muted">Items aur received amount isi POS form mein bharein. Old bill online register mein jayega; customer ko naya payment request nahi jayega.</p>')+
+     '<p class="bhe-muted"><strong>Old bill date: '+safe(currentDate(form))+'</strong>. Items aur received amount isi POS form mein bharein. Sirf Payment date badalne se bill ki date nahi badalti. Old bill register mein save hoga; naya payment request nahi jayega.</p>')+
    '<div class="bhe-actions"><strong>Saved old records</strong><button type="button" data-bhe-month aria-pressed="false">View whole month</button></div>'+
    '<div data-bhe-list aria-live="polite"></div></div>'+
    '<p class="bhe-status" data-bhe-status role="status" aria-live="polite"></p>';
