@@ -230,5 +230,5 @@ function mount({el,client,restaurant,user}){
  else if(report)showReport();
 }
 function clear(){epoch++;if(container)container.removeEventListener('click',onClick);container=null;sb=null;restaurantId='';userId='';report=null;loading=false;}
-root.BitePOSReports={mount,refresh,clear,summarize,shiftMonth,calendarHtml,istToday};
+root.BitePOSReports={mount,refresh,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth};
 })(window);
