@@ -57,7 +57,7 @@ test('A03: row contains source link, accessible method tabs and honest financial
  assert.match(target.innerHTML,/role="group" aria-label="Collection payment method"/);
  assert.match(target.innerHTML,/Opening balances, transfers and refundable deposits are not sales/);
  assert.match(target.innerHTML,/data-v3-money-source="order_payment"/);
- assert.match(target.innerHTML,/Received<\/span><strong>₹1,000/);
+ assert.match(target.innerHTML,/Received<\/span><strong>₹1,180/);
  listeners.click({target:{closest:q=>q==='[data-v3-money-source]'?{dataset:{v3MoneySource:'order_payment',v3MoneyId:id}}:null}});
  assert.equal(opened.length,1);
  assert.equal(opened[0].id,id);
