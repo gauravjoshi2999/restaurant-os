@@ -18,7 +18,8 @@ const journal=[
  {id:'123e4567-e89b-12d3-a456-426614174007',day:'2026-10-01',source_type:'property_expense',category:'Expense',direction:'out',method:'Cash',amount:120},
  {id:'123e4567-e89b-12d3-a456-426614174008',day:'2026-10-01',source_type:'folio',category:'refund',direction:'out',method:'UPI',amount:50},
  {id:'123e4567-e89b-12d3-a456-426614174009',day:'2026-10-01',source_type:'daybook',category:'salary_expense',direction:'noncash',method:'Non-cash',amount:999},
- {id:'123e4567-e89b-12d3-a456-426614174010',day:'2026-10-02',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:180}
+ {id:'123e4567-e89b-12d3-a456-426614174010',day:'2026-10-02',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:180},
+ {id:'123e4567-e89b-12d3-a456-426614174011',day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cashfree',amount:245}
 ];
 test('A03: received is posted receipt, not deposits, transfers, opening or salary expense',()=>{
  const all=collections.summarize(journal);
@@ -26,7 +27,7 @@ test('A03: received is posted receipt, not deposits, transfers, opening or salar
  assert.equal(all.paid,170);
  assert.equal(all.receiptCount,5);
  assert.equal(all.paymentCount,2);
- assert.equal(all.excludedCount,3);
+ assert.equal(all.excludedCount,4);
  assert.equal(collections.type(journal[3]),'other');
  assert.equal(collections.type(journal[9]),'noncash');
 });
@@ -42,7 +43,8 @@ test('A03: method, date and source filters preserve actual transaction date',()=
  assert.equal(khata.entries.length,1);
  const gateway=collections.summarize(journal,'gateway','2026-10-01');
  assert.equal(gateway.received,0);
- assert.equal(gateway.entries.length,0);
+ assert.equal(gateway.entries.length,1);
+ assert.equal(gateway.excludedCount,1,'Cashfree pending settlement is not money received');
 });
 test('A03: row contains source link, accessible method tabs and honest financial disclaimer',()=>{
  const listeners={};
