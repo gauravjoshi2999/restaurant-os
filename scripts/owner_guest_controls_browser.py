@@ -29,7 +29,7 @@ try:
   browser=pw.chromium.launch()
   for width in [320,360,390,430]:
    c,page=visit(browser,width,'overdue');nav(page,'overview')
-   link=page.locator('#biteV3Home [data-bv3-route=checkouts]');link.wait_for(state='visible');check(link.locator('[data-checkout-count]').inner_text()=='1',f'{width}px checkout card shows actual due count')
+   link=page.locator('#biteV3Home [data-bv3-route=checkouts]');link.wait_for(state='visible');check(page.locator('#biteV3Home [data-checkout-count]').inner_text()=='1',f'{width}px PDF H02 checkout heading shows actual due count')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{width}px Home fits mobile width')
    link.click();page.locator('#checkouts.active').wait_for();check(page.locator('#checkouts .bh-record').count()==1,f'{width}px checkout opens due guest list')
    page.locator('#checkouts [data-hotel-action=folio]').click();page.locator('#folios.active .bh-guest-bill-top').wait_for();check('Synthetic Returning Guest' in page.locator('#folios').inner_text(),f'{width}px due guest opens correct folio')
