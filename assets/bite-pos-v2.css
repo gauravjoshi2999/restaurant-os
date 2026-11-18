@@ -41,7 +41,8 @@
  }
  body[data-role="owner"] #pos .bpv2-tabs button:focus-visible,
  body[data-role="owner"] #pos [data-bpv2-go]:focus-visible,
- body[data-role="owner"] #pos [data-bpv2-print]:focus-visible{
+ body[data-role="owner"] #pos [data-bpv2-print]:focus-visible,
+ body[data-role="owner"] #pos [data-bpv2-payment]:focus-visible{
   outline:3px solid #ffa34f;outline-offset:2px
  }
  body[data-role="owner"] #pos .bpv2-section-heading{
@@ -104,6 +105,7 @@
   width:33px;height:33px;border:0;border-radius:10px;background:#fff2e7;
   color:#c15c1d;display:grid;place-items:center;cursor:pointer
  }
+ body[data-role="owner"] #pos .bpv2-recent .bpv2-receipt-link{width:auto;height:auto;min-height:32px;min-width:0;max-width:100%;padding:5px 8px;justify-self:start;text-align:left;font-size:10px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
  body[data-role="owner"] #pos .bpv2-empty{
   font-size:12px;line-height:1.5;text-align:center;border-radius:12px;
   padding:20px 13px;color:#8d7974;background:#fff;border:1px dashed #ecdacf
