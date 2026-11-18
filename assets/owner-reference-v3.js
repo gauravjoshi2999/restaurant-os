@@ -105,11 +105,12 @@
   const approvals=waiting.map(item=>({id:'approval:'+item.intent_id,kind:'approval',title:'Order approval needed',
     subtitle:'#'+String(item.intent_id||'').slice(0,8).toUpperCase()+' · '+String(item.customer_name||'Customer'),route:'orders',filter:'new'}));
   const snap=hotelSnapshot();
-  if(snap?.restaurant===false)return approvals;
+  const checkouts=permitted('checkouts')?(root.BiteHospitality?.checkoutDue?.()||[]).map(stay=>{const db=root.BiteHospitality.getWorkspace(),guest=db.guests.find(g=>g.id===stay.guest_id),room=db.rooms.find(r=>r.id===stay.room_id),folio=db.folios.find(f=>f.stay_id===stay.id);return {id:'checkout:'+stay.id,kind:'checkout',title:stay.departure<root.BiteOwner.day()?'Overdue checkout':'Checkout today',subtitle:(guest?.full_name||'Guest')+' · Room '+(room?.number||'—'),route:folio?'folios':'checkouts',folioId:folio?.id}}):[];
+  if(snap?.restaurant===false)return checkouts.concat(approvals);
   const pid=currentAccess?.restaurantId;
   const verified=root.BiteOwnerOrderBurst?.paidOrderIds?.(currentState?.financials||[],pid);
   const paid=(data?.active||[]).filter(order=>order.status==='Received'&&verified?.has?.(order.id));
-  return approvals.concat(paid.map(order=>({id:'paid:'+order.id,kind:'paid',title:'New paid Bite order',
+  return checkouts.concat(approvals,paid.map(order=>({id:'paid:'+order.id,kind:'paid',title:'New paid Bite order',
    subtitle:'#'+String(order.code||order.id||'').slice(0,14),route:'orders',filter:'new'})));
  }
  let notificationList=[],noticeOpen=false;
@@ -121,12 +122,12 @@
   bell.setAttribute('aria-expanded',String(noticeOpen));
   if(!noticeOpen)return;
   tray.innerHTML='<header class="boh-notice-head"><strong>Notifications</strong><button type="button" data-bv3-close-notices aria-label="Close notifications">×</button></header>'+
-   (notificationList.length?'<div class="boh-notice-list">'+notificationList.map((n,i)=>'<button type="button" class="boh-notice-item" data-bv3-notice-index="'+i+'"><span class="boh-notice-symbol">'+icon(n.kind==='approval'?'clock':'bag')+'</span><span><strong>'+escapeHtml(n.title)+'</strong><small>'+escapeHtml(n.subtitle)+'</small></span>'+icon('arrow')+'</button>').join('')+'</div>':
-   '<p class="boh-notice-empty">No new order notifications right now.</p>');
+   (notificationList.length?'<div class="boh-notice-list">'+notificationList.map((n,i)=>'<button type="button" class="boh-notice-item" data-bv3-notice-index="'+i+'"><span class="boh-notice-symbol">'+icon(n.kind==='paid'?'bag':'clock')+'</span><span><strong>'+escapeHtml(n.title)+'</strong><small>'+escapeHtml(n.subtitle)+'</small></span>'+icon('arrow')+'</button>').join('')+'</div>':
+   '<p class="boh-notice-empty">No notifications right now.</p>');
  }
  function setNotices(items){
   notificationList=items;
-  updateOrderBadge(items.length);
+  updateOrderBadge(items.length,items.filter(n=>n.kind!=='checkout').length);
   if(noticeOpen)paintNoticeTray();
  }
  function toggleNoticeTray(force){
@@ -141,6 +142,11 @@
    (sub?'<small>'+escapeHtml(sub)+'</small>':'')+
    (action?'<span class="boh-card-cta">'+escapeHtml(action)+' '+icon('arrow')+'</span>':'<span class="boh-feature-arrow">'+icon('arrow')+'</span>')+
    '</button>';
+ }
+ function checkinCard(snap){
+  if(!permitted('hotel-register'))return '';
+  const card=featureCard('checkin','hotel-register','Check-in','people','New guest / family','Open check-in');
+  return '<article class="boh-checkin-checkout">'+card+(permitted('checkouts')?'<button type="button" class="boh-checkout-link" data-bv3-route="checkouts" aria-label="Open checkouts due"><span>Checkout today</span><b data-checkout-count>'+num(snap?.ready?snap.departures:null)+'</b>'+icon('arrow')+'</button>':'')+'</article>';
  }
  function roomStatusCard(snap){
   if(!snap?.hotel||!permitted('rooms'))return '';
@@ -166,7 +172,7 @@
   const tiles=[];
   if(hotel)tiles.push(roomStatusCard(snap));
   if(food)tiles.push(featureCard('pos','pos','New POS Bill','pos','','Create Bill','data-bv3-new-pos="true"'));
-  if(hotel)tiles.push(featureCard('checkin','hotel-register','Check-in','people','Today arrivals'));
+  if(hotel)tiles.push(checkinCard(snap));
   else if(food)tiles.push(featureCard('orders','orders','Bite Orders','bag',num(snap?.newOrders)+' new orders'));
   if(permitted('daily-book'))tiles.push(featureCard('daily','daily-book','Daily Book','book','Daily records & day summary'));
   else if(food&&permitted('menu'))tiles.push(featureCard('daily','menu','Menu','chef','Edit items & availability'));
@@ -239,7 +245,7 @@
   setNotices(notices);
   tick();
  }
- function updateOrderBadge(count){
+ function updateOrderBadge(count,orderCount=count){
   const topBell=root.document.getElementById('biteV3HeaderBell');
   if(topBell){const badge=topBell.querySelector('i');if(badge){badge.textContent=count>9?'9+':String(count);badge.hidden=!count;}}
   const nav=root.document.getElementById('biteOwnerBottomNav');
@@ -247,8 +253,8 @@
   if(orders){
    let badge=orders.querySelector('.bv3-nav-badge');
    if(!badge){badge=root.document.createElement('span');badge.className='bv3-nav-badge';orders.append(badge);}
-   badge.textContent=count>9?'9+':String(count);
-   badge.hidden=!count;
+   badge.textContent=orderCount>9?'9+':String(orderCount);
+   badge.hidden=!orderCount;
   }
  }
  function updateOrderSearch(){
@@ -333,6 +339,7 @@
  }
  function route(page,filter,newPos,notification){
   if(!permitted(page))return;
+  if(notification?.folioId&&page==='folios'){void root.BiteHospitality.openFolio(notification.folioId);return;}
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
    void Promise.resolve(root.openPosFromOverview(null));return;
   }
@@ -381,7 +388,7 @@
    header.append(bell);
    const tray=root.document.createElement('section');
    tray.id='biteOwnerNoticeTray';tray.className='boh-notice-tray';tray.hidden=true;
-   tray.setAttribute('aria-label','Order notifications');tray.setAttribute('role','region');
+   tray.setAttribute('aria-label','Hotel and order notifications');tray.setAttribute('role','region');
    root.document.querySelector('#mainApp>.main')?.append(tray);
    tray.addEventListener('click',e=>{
     if(e.target.closest?.('[data-bv3-close-notices]')){toggleNoticeTray(false);return;}

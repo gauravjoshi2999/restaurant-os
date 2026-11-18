@@ -69,7 +69,7 @@ test('Family linked bill can post food to an exact room using existing POS menu,
  assert.match(src,/data-hotel-action="food-menu"/);
  assert.doesNotMatch(src,/restaurant_order_payments.*insert/);
  assert.match(HTML,/owner-hotel-billing\.js\?v=20261118-family1/);
- assert.match(HTML,/owner-checkin-flow\.js\?v=20261118-family1/);
+ assert.match(HTML,/owner-checkin-flow\.js\?v=20261118-guest-controls1/);
 });
 
 test('Hotel register includes family room occupants and all protected family ID copy references',()=>{

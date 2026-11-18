@@ -33,6 +33,7 @@ jobs:
         run: |
           python scripts/owner_home_compact_browser.py
           python scripts/family_booking_browser.py
+          python scripts/owner_guest_controls_browser.py
           python scripts/guest_register_history_browser.py
           python scripts/checkin_scenarios_browser.py
           python scripts/checkin_photo_review_browser.py
@@ -59,6 +60,8 @@ jobs:
             dist/launch-qa/browser-evidence.json
             dist/launch-qa/ui-*.png
             dist/launch-qa/owner-feedback-mobile-evidence.json
+            dist/launch-qa/owner-guest-controls-evidence.json
+            dist/launch-qa/guest-controls-*.png
             dist/launch-qa/universal-owner-browser-evidence.json
             dist/launch-qa/owner-remaining-browser-evidence.json
             dist/launch-qa/guest-documents-browser-evidence.json
@@ -208,3 +211,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/hotel_bill_workflow_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118010000_atomic_family_multi_room_booking.sql
           psql -v ON_ERROR_STOP=1 -f scripts/family_booking_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118031835_owner_guest_controls.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118035815_staff_entry_retry_guard.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118040512_staff_room_charge_scope.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_guest_controls_pg_test.sql
