@@ -238,7 +238,7 @@
   const property=p(),user=ctx?.getUser?.(),key=scope(),version=generation;
   if(!property?.id||!user?.id||!enabled())throw Error('Owner Daily Book access is not ready.');
   if(typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day)||
-     new Date(day+'T12:00:00Z').toISOString().slice(0,10)!==day)
+     (!Number.isFinite(Date.parse(day+'T12:00:00Z'))||new Date(day+'T12:00:00Z').toISOString().slice(0,10)!==day))
    throw Error('Choose a valid business date.');
   const result=await ctx.sb.rpc('bite_daily_book',{p_property:property.id,p_from:day,p_to:day});
   assertScope(key,version);
