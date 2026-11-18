@@ -18,10 +18,10 @@ alter table public.restaurant_members enable row level security;
 alter table public.bite_property_members enable row level security;
 alter table public.bite_properties enable row level security;
 alter table public.restaurants enable row level security;
-create policy rm_self on public.restaurant_members to authenticated for select using(user_id=auth.uid());
-create policy pm_self on public.bite_property_members to authenticated for select using(user_id=auth.uid());
-create policy prop_self on public.bite_properties to authenticated for select using(exists(select 1 from public.bite_property_members m where m.property_id=id and m.user_id=auth.uid()));
-create policy rest_self on public.restaurants to authenticated for select using(exists(select 1 from public.restaurant_members m where m.restaurant_id=id and m.user_id=auth.uid()));
+create policy rm_self on public.restaurant_members for select to authenticated using(user_id=auth.uid());
+create policy pm_self on public.bite_property_members for select to authenticated using(user_id=auth.uid());
+create policy prop_self on public.bite_properties for select to authenticated using(exists(select 1 from public.bite_property_members m where m.property_id=id and m.user_id=auth.uid()));
+create policy rest_self on public.restaurants for select to authenticated using(exists(select 1 from public.restaurant_members m where m.restaurant_id=id and m.user_id=auth.uid()));
 insert into public.restaurants(id)values('cccccccc-cccc-4ccc-8ccc-cccccccccccc'),('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
 insert into public.bite_properties(id,origin_restaurant_id)values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','dddddddd-dddd-4ddd-8ddd-dddddddddddd');
