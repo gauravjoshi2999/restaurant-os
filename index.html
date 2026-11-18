@@ -2,6 +2,7 @@
 <html lang="en">
 <head><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="assets/owner-historical-entries.css?v=20261118-date1">
 <title>Bite | Eat. Repeat.</title>
 <meta name="bite-deploy-sha" content="__BITE_BUILD_SHA__">
 <script>
@@ -1400,6 +1401,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-hotel-accounts.js?v=20261117-register1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261118-guest-controls1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
+<script src="assets/owner-historical-entries.js?v=20261118-date1"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
@@ -1409,6 +1411,7 @@ const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSe
 let currentUser=null, state={restaurants:[],orders:[],history:[],financials:[],settlements:[],orderPayments:[],paymentSummaries:[],restaurantTables:[],orderRefunds:[]}, isSignup=false, access={isPlatformAdmin:false,role:null,memberships:[]};
 window.BitePOS?.init({sb,getUser:()=>currentUser,getAccess:()=>access,getState:()=>state});
 window.BiteHospitality?.init({sb,getUser:()=>currentUser,getAccess:()=>access,getState:()=>state,navigate:id=>showPage(id),switchProperty:id=>switchBiteProperty(id)});
+window.BiteOwnerHistory?.init({sb,getUser:()=>currentUser,getAccess:()=>access});
 function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showAuthError(msg){document.body.classList.remove('bite-session-check');const el=document.getElementById('authError');el.textContent=msg;el.style.display='block'}
