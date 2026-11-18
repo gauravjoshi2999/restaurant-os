@@ -278,6 +278,7 @@
    if(lastAudit)recent.push(pdfRow('Hotel activity · '+lastAudit.action,'See property activity and guest records','guests'));
   }
   const quickRoutes=[
+   ['Orders','orders',''],
    ['New POS bill','pos','data-bv3-new-pos="true"'],
    ['New check-in','hotel-register',''],
    ['Daily Book','daily-book',''],
