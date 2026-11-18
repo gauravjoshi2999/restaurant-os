@@ -1,0 +1,43 @@
+/* Date-first historical entry, kept inside the original Owner Guest/POS forms. */
+#bhCheckinForm .bhe-calendar,#orderForm .bhe-calendar{
+ max-width:100%;min-width:0;margin:0 0 17px;padding:13px 14px;
+ border:1px solid #d6dee7;border-radius:14px;background:#f8fafc;
+ box-shadow:0 3px 12px rgba(20,40,70,.04);color:#203044;
+}
+#bhCheckinForm .bhe-calendar.bhe-is-past,#orderForm .bhe-calendar.bhe-is-past{border-color:#e5ac69;background:#fff9ee}
+.bhe-calendar-top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.bhe-calendar-top label{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 160px;font-size:13px}
+.bhe-calendar-top strong{font-size:14px;font-weight:800;line-height:1.4;color:#203044}
+#bhCheckinForm .bhe-calendar input[type="date"],#orderForm .bhe-calendar input[type="date"]{
+ width:100%;max-width:310px;min-width:0;min-height:43px;padding:8px 11px!important;
+ background:white!important;border:1px solid #ccd4df!important;border-radius:10px!important;
+ font-size:14px!important;font-weight:650!important;color:#17263a!important;
+}
+.bhe-calendar button{border:1px solid #c9d3df;background:white;color:#284359;border-radius:9px;min-height:42px;padding:9px 12px;font-weight:750;font-size:12px;cursor:pointer}
+.bhe-calendar button:focus-visible{outline:3px solid #f8b66e;outline-offset:2px}
+.bhe-hint,.bhe-muted,.bhe-status{font-size:12px;line-height:1.5;margin:9px 0 0;color:#526178;overflow-wrap:anywhere}
+.bhe-status:not(:empty){font-weight:650}.bhe-status.bhe-error{color:#a32920}
+.bhe-extra[hidden]{display:none!important}
+.bhe-extra{margin-top:11px;border-top:1px solid #ecd8bc;padding-top:11px}
+.bhe-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bhe-fields label{font-size:12px;font-weight:650;display:grid;gap:5px;min-width:0;color:#41536a}
+#bhCheckinForm .bhe-fields input,#bhCheckinForm .bhe-fields select,#orderForm .bhe-fields input{
+ width:100%;min-width:0;min-height:42px;padding:9px 10px!important;
+ border:1px solid #cfd6df;border-radius:9px;background:#fff;color:#273247;font-size:14px!important;
+}
+.bhe-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:13px 0 9px}
+.bhe-actions strong{font-size:13px}
+.bhe-actions button{min-height:36px;padding:7px 10px}
+.bhe-totals{font-size:12px;color:#526178;margin:0 0 8px}
+.bhe-record{display:flex;justify-content:space-between;gap:10px;min-width:0;padding:9px 0;border-top:1px solid #eadfca;font-size:12px}
+.bhe-record span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.bhe-record span:last-child{text-align:right}
+.bhe-record strong{color:#1e3148;font-size:12px}
+.bhe-record small{color:#687589;font-size:11px}
+@media(max-width:430px){
+ #bhCheckinForm .bhe-calendar,#orderForm .bhe-calendar{padding:11px}
+ .bhe-fields{grid-template-columns:minmax(0,1fr)}
+ .bhe-calendar-top{align-items:stretch}
+ .bhe-calendar-top button{flex:0 0 auto}
+ #bhCheckinForm .bhe-calendar input[type="date"],#orderForm .bhe-calendar input[type="date"]{max-width:100%}
+}
