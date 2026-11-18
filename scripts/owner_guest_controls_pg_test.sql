@@ -53,6 +53,12 @@ do $$declare p uuid;v jsonb;begin
  v:=public.bite_owner_context();
  if v->0->>'can_delete_data'<>'false' or (v->0->'capabilities')?'reporting' then raise exception 'Staff context advertised owner permissions';end if;
  perform public.bite_property_command(p,'guest_save','{"full_name":"Staff entered guest","phone":"6666666660","country":"India"}',gen_random_uuid());
+ -- A normal Check-in form resubmits an unchanged saved room/dates/counts before
+ -- sending checkin. It must not require the ability to modify unrelated stays.
+ v:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',(select s.v::uuid from controls_state s where k='g'),'room_id',(select s.v::uuid from controls_state s where k='r1'),'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0,'nightly_rate',1200),gen_random_uuid());
+ perform public.bite_property_command(p,'reservation_edit',jsonb_build_object('id',v->>'id','room_id',(select s.v::uuid from controls_state s where k='r1'),'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0),gen_random_uuid());
+ perform pg_temp.denied(format('select public.bite_property_command(%L,''reservation_edit'',%L,gen_random_uuid())',p,jsonb_build_object('id',v->>'id','room_id',(select s.v::uuid from controls_state s where k='r1'),'arrival',current_date+10,'departure',current_date+12,'adults',1,'children',0)::text));
+
  perform pg_temp.denied(format('select public.bite_property_command(%L,''payment'',%L,gen_random_uuid())',p,'{"amount":10}'));
  perform pg_temp.denied(format('select public.bite_property_command(%L,''checkout'',%L,gen_random_uuid())',p,'{}'));
  perform pg_temp.denied(format('select public.bite_property_command(%L,''config'',%L,gen_random_uuid())',p,'{}'));
@@ -82,11 +88,11 @@ do $$declare p uuid;v jsonb;r jsonb;request uuid:=gen_random_uuid();begin
  perform public.bite_save_staff_access(p,'33333333-3333-4333-8333-333333333333','','manager',false,'{}');
  perform pg_temp.denied(format('select public.bite_owner_data_preview(%L,''invalid_scope'',''{}'')',p));
  v:=public.bite_owner_data_preview(p,'stays','{}');
- if (v->>'count')::integer<>4 then raise exception 'Removal preview count wrong';end if;
+ if (v->>'count')::integer<>5 then raise exception 'Removal preview count wrong';end if;
  perform pg_temp.denied(format('select public.bite_owner_data_delete(%L,''stays'',''{}'',''stale-hash'',''Synthetic Controls Hotel'',gen_random_uuid())',p));
  perform pg_temp.denied(format('select public.bite_owner_data_delete(%L,''stays'',''{}'',%L,''wrong hotel'',gen_random_uuid())',p,v->>'preview_hash'));
  r:=public.bite_owner_data_delete(p,'stays','{}',v->>'preview_hash','Synthetic Controls Hotel',request);
- if (r->>'deleted')::integer<>4 then raise exception 'Owner removal did not delete selected stays';end if;
+ if (r->>'deleted')::integer<>5 then raise exception 'Owner removal did not delete selected stays';end if;
  if exists(select 1 from public.bite_stays where property_id=p) or exists(select 1 from public.bite_folios where property_id=p) or exists(select 1 from public.bite_folio_entries where property_id=p) then raise exception 'Hotel reset left bills or ledger rows on dashboard';end if;
  r:=public.bite_owner_data_delete(p,'stays','{}',v->>'preview_hash','Synthetic Controls Hotel',request);
  if r->>'already_complete'<>'true' then raise exception 'Removal retry was not idempotent';end if;
