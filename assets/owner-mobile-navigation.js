@@ -16,10 +16,24 @@
     menu:'<path d="M5 5h14M5 10h14M5 15h9M5 20h9"/>',
     more:'<circle cx="5" cy="5" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="19" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/>'
   };
+  // H01 (45-page Owner V3 master): one Accounts group and one Business Tools group.
+  // These are navigation entries into the existing canonical modules, not new ledgers.
   const sections=Object.freeze([
-    {heading:'Roz ka hisaab',items:[['expenses','Kharcha','Daily expenses','₹'],['cashbook','Cashbook','Cash, UPI & day closing','▤'],['khata','Customer Khata','Udhaar aur vasooli','↔'],['purchases','Suppliers','Kharid aur payments','▣']]},
-    {heading:'Restaurant operations',items:[['tables','Tables','Dine-in tables','▦'],['inventory','Stock','Inventory manage karein','▥'],['hr','Staff','Attendance & salary','♙']]},
-    {heading:'Reports & settings',items:[['reports','Reports','Sales & business reports','▥'],['settings','Settings','Restaurant & delivery areas','⚙']]}
+    {heading:'Accounts',items:[
+      ['daily-book','Daily Book','Day summary, collections & closing','▤'],
+      ['expenses','Expenses','Kharcha and payment history','₹'],
+      ['khata','Customer Khata','Udhaar and collections','↔'],
+      ['cashbook','Cashbook','Cash / UPI receipts and movements','▣'],
+      ['purchases','Suppliers','Purchases and supplier dues','▥']
+    ]},
+    {heading:'Business tools',items:[
+      ['menu','Menu','Food items and prices','☷'],
+      ['inventory','Inventory','Stock and availability','▥'],
+      ['hr','Staff','Attendance, leave and salary','♙'],
+      ['reports','Reports','Sales and business reports','▤'],
+      ['reviews','Reviews','Customer ratings and feedback','☆'],
+      ['settings','Settings','Business settings and modules','⚙']
+    ]}
   ]);
   // Public mobile navigation follows the owner's *actual* capabilities.
   // Hidden routes stay available in More; server route guards remain authoritative.
@@ -72,11 +86,11 @@
     // Real More workspace: the same owner-only routes, without opening the sidebar.
     const moreScreen=doc.createElement('section');
     moreScreen.id='biteOwnerMoreScreen';moreScreen.className='bite-owner-more-screen';
-    moreScreen.hidden=true;moreScreen.setAttribute('aria-label','More restaurant owner sections');
+    moreScreen.hidden=true;moreScreen.setAttribute('aria-label','More owner business tools');
     const moreHead=doc.createElement('header');
     moreHead.className='bite-more-head';
-    const moreTitle=doc.createElement('h1');moreTitle.textContent='Saare sections';
-    const moreIntro=doc.createElement('p');moreIntro.textContent='Restaurant ka har zaroori kaam ek jagah.';
+    const moreTitle=doc.createElement('h1');moreTitle.textContent='More';
+    const moreIntro=doc.createElement('p');moreIntro.textContent='Accounts aur business tools — ek hi jagah.';
     moreHead.append(moreTitle,moreIntro);moreScreen.append(moreHead);
     // Use the existing selected Bite identity and current business name on Home.
     const homeLogo=doc.createElement('img');
@@ -145,6 +159,9 @@
         button.append(glyph,copy,arrow);
         button.addEventListener('click',()=>{
           if(doc.body.dataset.role!=='owner'||!mobile())return;
+          const property=root.BiteHospitality?.prop?.();
+          const allowed=property?root.BiteHospitality?.routeList?.({role:'owner',property}):null;
+          if(Array.isArray(allowed)&&!allowed.includes(page))return;
           moreChildPage=page;
           closeMore();
           if(typeof root.showPage==='function')void root.showPage(page);
@@ -326,7 +343,14 @@
       const p=root.BiteHospitality?.prop();
       const allowed=p?root.BiteHospitality.routeList({role:'owner',property:p}):null;
       activeTabs=p?approvedHomeTabs(p,allowed):tabs;buildTabs();
-      moreScreen.querySelectorAll('[data-owner-route]').forEach(b=>{b.hidden=!!allowed&&!allowed.includes(b.dataset.ownerRoute)});
+      moreScreen.querySelectorAll('[data-owner-route]').forEach(b=>{
+        b.hidden=!!allowed&&!allowed.includes(b.dataset.ownerRoute);
+      });
+      // Do not leave blank headings for disabled business modules.
+      moreScreen.querySelectorAll('.bite-more-group').forEach(group=>{
+        if(group.id==='biteOwnerPropertySwitchSection'||group.id==='bitePropertyMore')return;
+        if(group.querySelector('.bite-more-grid'))group.hidden=![...group.querySelectorAll('[data-owner-route]')].some(b=>!b.hidden);
+      });
       let extra=doc.getElementById('bitePropertyMore');
       if(extra)extra.remove();
       if(p){
@@ -338,7 +362,13 @@
           const b=doc.createElement('button');b.type='button';b.className='bite-more-item';b.dataset.ownerRoute=page;
           const glyph=doc.createElement('span');glyph.className='bite-more-item-icon';glyph.textContent=icon;glyph.setAttribute('aria-hidden','true');
           const copy=doc.createElement('span');copy.className='bite-more-item-copy';const strong=doc.createElement('strong');strong.textContent=label;const small=doc.createElement('small');small.textContent=description;copy.append(strong,small);
-          b.append(glyph,copy);b.addEventListener('click',()=>{moreChildPage=page;closeMore();if(typeof root.showPage==='function')void root.showPage(page)});grid.append(b);
+          b.append(glyph,copy);b.addEventListener('click',()=>{
+            const actual=root.BiteHospitality?.prop?.();
+            const scoped=actual?root.BiteHospitality?.routeList?.({role:'owner',property:actual}):null;
+            if(Array.isArray(scoped)&&!scoped.includes(page))return;
+            moreChildPage=page;closeMore();
+            if(typeof root.showPage==='function')void root.showPage(page);
+          });grid.append(b);
         }
         extra.append(grid);moreHead.after(extra);
       }
