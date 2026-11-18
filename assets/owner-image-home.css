@@ -349,6 +349,12 @@
   width:100%;min-width:0;margin:3px 0;gap:5px;flex-wrap:nowrap;
  }
  body[data-role="owner"] #biteV3Home .boh-feature .boh-room-stat b{flex:0 0 auto}
+ body[data-role="owner"] #biteV3Home .boh-room-sync{
+  position:relative;z-index:2;display:block;width:100%;margin-top:7px;
+  padding:6px 7px;border-radius:9px;background:#fff8ed;
+  color:#8d572d;font-size:10px;font-weight:750;line-height:1.35;
+  text-align:left;overflow-wrap:anywhere
+ }
  body[data-role="owner"] #biteV3Home .boh-feature .boh-card-cta{
   flex:0 0 auto;margin-top:auto;min-height:40px;
  }
