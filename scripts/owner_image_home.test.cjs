@@ -30,23 +30,26 @@ function harness({housekeeping=false,gst=false,paid=true}={}){
  root.BiteOwnerReferenceV3.refresh({financials:[]},{role:'owner',restaurantId:'r-a'});
  return {home,badge,snap,root};
 }
-test('Hybrid Home uses actual hotel counts, approved cards and property register, not image dummy values',()=>{
+test('PDF H01–H03 Home uses real tenant status, not old illustrated-card dashboard or sample rupees',()=>{
  const {home,badge}=harness();
- for(const label of ['Room Status','New POS Bill','Check-in','Daily Book','Staff Attendance','Expenses','Hotel Register']){
+ for(const label of ['Sales','Received','Due','Expenses','Live orders','Arrivals &amp; checkouts','Rooms','Recent activity','New POS bill','New check-in','Daily Book','Reports']){
   assert.ok(home.innerHTML.includes(label),label);
  }
- assert.match(home.innerHTML,/Occupied <b>3<\/b>/);
- assert.match(home.innerHTML,/Available <b>7<\/b>/);
- assert.match(home.innerHTML,/Nov · 1 entry/);
- assert.doesNotMatch(home.innerHTML,/Cleaning|All caught up|Business snapshot|₹2,290/);
- assert.equal(badge.textContent,'2'); // pending approval + verified new paid order
+ assert.match(home.innerHTML,/data-pdf-screen="H02-H03"/);
+ assert.match(home.innerHTML,/Occupied<\/span><b>3<\/b>/);
+ assert.match(home.innerHTML,/Ready<\/span><b>7<\/b>/);
+ assert.doesNotMatch(home.innerHTML,/boh-feature-grid|boh-card-illustration|Room Status|New POS Bill|₹10,500|₹8,000|₹2,500/);
+ assert.match(home.innerHTML,/Collection source verification pending/);
+ assert.equal(badge.textContent,'2'); // one pending approval + one verified new paid order
 });
-test('Housekeeping controls cleaning visibility; GST shortcut follows registered tax settings',()=>{
+test('PDF H02 respects optional housekeeping and does not fabricate GST or accounting totals',()=>{
  const off=harness({housekeeping:false,gst:false});
  const on=harness({housekeeping:true,gst:true});
- assert.doesNotMatch(off.home.innerHTML,/Cleaning|GST Collection/);
- assert.match(on.home.innerHTML,/Cleaning <b>1<\/b>/);
- assert.match(on.home.innerHTML,/GST Collection/);
+ assert.doesNotMatch(off.home.innerHTML,/Cleaning<\/span>/);
+ assert.match(on.home.innerHTML,/Cleaning<\/span><b>1<\/b>/);
+ assert.doesNotMatch(off.home.innerHTML,/GST Collection|₹10,500/);
+ assert.doesNotMatch(on.home.innerHTML,/GST Collection|₹10,500/);
+ assert.match(on.home.innerHTML,/Cross-source totals show —/);
 });
 test('Unverified Received order is not advertised as paid in notification badge',()=>{
  const {badge}=harness({paid:false});
@@ -57,16 +60,17 @@ test('Main actions use existing route/permission gates and notification tray ope
   assert.match(source,new RegExp("permitted\\(route\\)"),route);
  }
  assert.match(source,/data-bv3-new-pos="true"/);
- assert.match(source,/data-bv3-attendance="true"/);
+ assert.match(source,/const quickRoutes=/); // canonical PDF links preserve the guarded route function
  assert.match(source,/BiteOwnerHRTabs\.activate/);
  assert.match(source,/data-bv3-notice-index/);
  assert.match(source,/toggleNoticeTray\(false\)/);
  assert.match(source,/route\(item\.route,item\.filter,false,item\)/);
  assert.match(source,/focusNotificationOrder\(notification\)/);
- assert.match(nav,/Bite Orders/);
- assert.match(nav,/Restaurant POS/);
+ assert.match(nav,/label:'Orders'/);
+ assert.match(nav,/label:'POS'/);
  assert.match(markup,/assets\/owner-image-home\.css\?v=20261118-room-hydration1/);
- assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-room-hydration1/);
+ assert.match(markup,/assets\/owner-reference-v3\.js\?v=20261118-pdf-stage1a/);
+ assert.match(markup,/assets\/owner-pdf-v3-home\.css\?v=20261118-stage1-h03a/);
 });
 test('Illustrated design is CSS/SVG, mobile-only with reduced motion and no insecure remote images',()=>{
  for(const asset of ['owner-home-palace.svg','owner-home-service-bell.svg','owner-home-ledger.svg']){
@@ -94,6 +98,9 @@ test('Approved Home hides old KPIs on mobile without deleting payments or report
   assert.ok(markup.includes('class="'+old)||markup.includes(' '+old),'original underlying bindings remain intact '+old);
  }
  assert.match(source,/overview\.dataset\.biteHomeCompact='true'/);
+ const pdf=fs.readFileSync('assets/owner-pdf-v3-home.css','utf8');
+ assert.match(pdf,/#overview>:not\(#biteV3Home\)/);
+ assert.match(pdf,/@media\(min-width:761px\)/);
  assert.match(styles,/mask-image:linear-gradient/);
  assert.match(styles,/\.boh-feature>strong/);
 });
@@ -113,10 +120,10 @@ test('Hotel-only Owner boots V3 Home without an online restaurant outlet or stal
   BiteDashboard:{summarize:()=>{throw Error('Hotel-only must not read an outlet summary')} }};
  root.window=root;
  vm.runInNewContext(source,{window:root,console,Date,Intl});
- assert.match(home.innerHTML,/Room Status/);
- assert.match(home.innerHTML,/Check-in/);
+ assert.match(home.innerHTML,/Rooms/);
+ assert.match(home.innerHTML,/New check-in/);
  assert.match(home.innerHTML,/Daily Book/);
- assert.match(home.innerHTML,/Hotel Register/);
- assert.doesNotMatch(home.innerHTML,/New POS Bill|Cleaning/);
+ assert.match(home.innerHTML,/Arrivals &amp; checkouts/);
+ assert.doesNotMatch(home.innerHTML,/New POS bill|Cleaning<\/span>/);
  assert.equal(badge.hidden,true);
 });

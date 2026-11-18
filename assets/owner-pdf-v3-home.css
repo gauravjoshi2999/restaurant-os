@@ -1,0 +1,231 @@
+/* Bite Owner PDF V3 · H01–H03, stage 1.
+   ONE owner Home renderer at every breakpoint. Keep legacy APIs and hidden pages
+   mounted for compatibility, but never show duplicate Owner dashboard sections. */
+body[data-role="owner"].bite-v3-active #mainApp #overview>:not(#biteV3Home){
+ display:none!important;visibility:hidden!important
+}
+body[data-role="owner"].bite-v3-active #mainApp #overview>#biteV3Home{
+ display:block!important;visibility:visible!important;width:100%;max-width:1150px;
+ min-width:0;margin:0 auto!important;padding:0!important
+}
+body[data-role="owner"].bite-v3-active #mainApp #overview>#biteV3Home[hidden]{display:none!important}
+body[data-role="owner"] #biteV3Home .bv3-pdf-home,
+body[data-role="owner"] #biteV3Home .bv3-pdf-home *{box-sizing:border-box}
+body[data-role="owner"] #biteV3Home .bv3-pdf-home{
+ color:#222833;background:#f6f7f9;border-radius:16px;
+ padding:18px 20px 32px;max-width:1120px;margin:0 auto;
+ font:14px/1.5 system-ui,"Noto Sans Devanagari",Arial,sans-serif;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-heading{
+ display:flex;justify-content:space-between;align-items:center;gap:12px;
+ margin:0 0 16px;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-heading h1{
+ margin:2px 0 3px;font-size:clamp(18px,2.25vw,24px)!important;
+ font-weight:800;letter-spacing:-.04em;line-height:1.3;
+ color:#242a33!important;overflow-wrap:anywhere
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-heading small{
+ font-size:12px;color:#7a8491;display:block
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-kicker{
+ margin:0;font-size:11px!important;font-weight:800;letter-spacing:.045em;color:#a1541b
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-today{
+ display:inline-flex;align-items:center;padding:3px 7px;border-radius:7px;
+ background:#ffebd9;color:#a94e0c;font-size:10px;font-weight:800;letter-spacing:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-link{
+ flex:none;min-height:38px;padding:8px 11px;
+ background:#fff;border:1px solid #e2e6ec;border-radius:9px;
+ font-size:12px;color:#ae530d;font-weight:700
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metrics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:10px;margin-bottom:10px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metric{
+ position:relative;min-width:0;display:flex;flex-direction:column;
+ align-items:flex-start;justify-content:flex-start;text-align:left;
+ border:1px solid #e4e8ee!important;background:#fff!important;
+ border-radius:13px!important;padding:13px 13px 12px!important;
+ box-shadow:none!important;color:#252b34!important;cursor:default
+}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-metric{cursor:pointer}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metric>span:first-child{
+ color:#687484;font-size:12px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metric strong{
+ color:#242833;font-size:clamp(19px,2.4vw,27px);font-weight:850;
+ line-height:1.4;letter-spacing:-.035em;white-space:nowrap
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metric small{
+ color:#738092;font-size:10px;line-height:1.4;min-height:28px;
+ overflow-wrap:anywhere
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-metric-arrow{
+ position:absolute;right:10px;top:10px;color:#cb621c;font-size:16px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-finance-note{
+ margin:0 0 14px;color:#647083;font-size:11px;line-height:1.45
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-columns{
+ display:grid;grid-template-columns:1.12fr 1fr;gap:13px;
+ align-items:start;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-main-column,
+body[data-role="owner"] #biteV3Home .bv3-pdf-side-column{
+ display:grid;gap:13px;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-panel{
+ background:transparent;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-panel-head{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:8px;min-width:0;margin:0 0 9px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-panel-head h2,
+body[data-role="owner"] #biteV3Home .bv3-pdf-quick-section h2{
+ margin:0!important;font-size:14px!important;font-weight:800;line-height:1.4;
+ color:#4d5a6a!important
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-panel-head>button{
+ min-height:35px;background:transparent;color:#b45213;border:0;
+ padding:6px 3px;font-weight:750;font-size:12px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-row{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:60px;padding:12px!important;margin-bottom:8px!important;
+ border:1px solid #e3e7ed!important;border-radius:12px!important;background:#fff!important;
+ text-align:left;color:#29313c!important;box-shadow:none!important
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-row-copy{display:flex;flex:1;flex-direction:column;min-width:0}
+body[data-role="owner"] #biteV3Home .bv3-pdf-row strong{
+ font-size:13px;font-weight:800;color:#232b35;line-height:1.35
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-row small{
+ color:#7b8491;font-size:11px;line-height:1.45;margin-top:3px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-open{
+ border-radius:8px;background:#fff0e4;color:#af510c;
+ padding:7px 8px;font-size:11px;font-weight:800;flex:none
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-empty{
+ background:#fff;padding:13px;border:1px solid #e2e7ed;
+ color:#7c8794;border-radius:11px;font-size:12px;margin:0 0 8px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 9px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats>div{
+ display:flex;flex-direction:column;justify-content:center;
+ border:1px solid #e2e7ed;background:#fff;border-radius:12px;
+ padding:12px 9px;min-width:0
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats span{font-size:11px;color:#778292}
+body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats b{
+ font-size:22px;line-height:1.5;color:#242c37;font-weight:850
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-quick-section{margin-top:18px}
+body[data-role="owner"] #biteV3Home .bv3-pdf-quick-grid{
+ display:flex;flex-wrap:wrap;gap:8px;margin-top:9px
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-quick{
+ min-height:43px;border:1px solid #ebc9b5;background:#fff5ed;
+ color:#a44c0b;font-size:12px;font-weight:800;
+ padding:9px 12px;border-radius:10px;display:flex;gap:14px;align-items:center;
+ justify-content:space-between;cursor:pointer
+}
+body[data-role="owner"] #biteV3Home .bv3-pdf-quick span{font-size:19px}
+body[data-role="owner"] #biteV3Home :is(button.bv3-pdf-metric,.bv3-pdf-row,.bv3-pdf-quick,.bv3-pdf-date-link):focus-visible{
+ outline:3px solid #ed8c3c;outline-offset:2px
+}
+body[data-role="owner"] #biteV3Home button:hover{filter:brightness(.99)}
+/* Desktop: functional existing side-nav becomes the PDF's dark single sidebar.
+   Do not delete its buttons or the canonical guarded route handlers. */
+@media(min-width:761px){
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active)>.side{
+  background:#252b35!important;color:#c7ced8!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.content{
+  background:#f6f7f9!important
+ }
+}
+/* Mobile PDF H02: readable, compact, no illustrated cards or duplicate dashboard. */
+@media(max-width:760px){
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main{
+  background:#f6f7f9!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top{
+  background:#fff!important;color:#222a34!important;border-bottom:1px solid #e4e8ed!important;
+  box-shadow:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top::before{
+  display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top{
+  border-radius:0!important;min-height:64px!important;max-height:105px!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeProperty:before{
+  content:none!important;display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeLogo{
+  display:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand{
+  display:flex!important;flex-direction:column;align-items:flex-start;order:0;
+  color:#252a33!important;margin:0!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand strong{
+  color:#252a33!important;font-size:21px!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeBrand small{
+  color:#687585!important;font-size:10px!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteOwnerHomeProperty{
+  color:#697788!important;text-align:left!important;order:1;
+  font-size:11px!important;font-weight:600!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.top #biteV3HeaderBell{
+  margin-left:auto!important;color:#ae4f0a!important;background:#fff0e4!important;
+  border:0!important;box-shadow:none!important
+ }
+ body[data-role="owner"].bite-v3-active #mainApp:has(#overview.page.active):not([data-bite-more-open="true"])>.main>.content{
+  background:#f6f7f9!important;padding:10px 10px calc(94px + env(safe-area-inset-bottom))!important
+ }
+ body[data-role="owner"] #biteV3Home .bv3-pdf-home{border-radius:0;padding:8px 4px 28px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-heading h1{font-size:19px!important}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-heading small{font-size:10px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
+ }
+ body[data-role="owner"] #biteV3Home .bv3-pdf-metric{
+  padding:10px!important;min-height:96px
+ }
+ body[data-role="owner"] #biteV3Home .bv3-pdf-metric strong{
+  font-size:23px!important
+ }
+ body[data-role="owner"] #biteV3Home .bv3-pdf-metric small{font-size:9px;min-height:20px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-columns{grid-template-columns:1fr;gap:13px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats{gap:6px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats>div{padding:9px 6px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats span{font-size:10px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats b{font-size:20px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-quick{min-width:0}
+ body[data-role="owner"] #biteOwnerBottomNav{
+  background:#fff!important;border-top:1px solid #e3e8ef!important;box-shadow:0 -3px 18px #1018280c!important
+ }
+ body[data-role="owner"] #biteOwnerBottomNav .bite-owner-tab.active{
+  background:#fff0e4!important;color:#c45d14!important
+ }
+}
+@media(max-width:350px){
+ body[data-role="owner"] #biteV3Home .bv3-pdf-home{padding:7px 1px 24px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-metric strong{font-size:19px!important}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats span{font-size:9px}
+ body[data-role="owner"] #biteV3Home .bv3-pdf-room-stats b{font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-role="owner"] #biteV3Home .bv3-pdf-home *{animation:none!important;transition:none!important}
+}

@@ -16,15 +16,16 @@ test('Screenshot Home is implemented as owner-only interactive content from tena
  assert.match(source,/BiteDashboard/);
  assert.match(source,/BiteHospitality\?\.dashboardSnapshot/);
  assert.match(source,/BiteOwnerConfirmations\?\.snapshot/);
- assert.match(source,/monthRegisterSummary/);
- assert.match(source,/Room Status/);
- assert.match(source,/New POS Bill/);
- assert.match(source,/Daily Book/);
- assert.match(source,/Staff Attendance/);
- assert.match(source,/Hotel Register/);
+ assert.match(source,/monthRegisterSummary/); // legacy data helper retained only for compatibility
+ assert.match(source,/data-pdf-screen="H02-H03"/);
+ for(const name of ['Sales','Received','Due','Expenses','Live orders','Arrivals &amp; checkouts','Rooms','Recent activity'])
+  assert.ok(source.includes(name),name);
+ assert.match(source,/Cross-source totals show —/);
+ assert.doesNotMatch(source,/₹10,500|₹8,000/);
  assert.match(source,/housekeepingVisible/);
  assert.match(source,/biteOwnerNoticeTray/);
  assert.doesNotMatch(source,/Rahul Verma|BITE-7842|5,480|456\b|₹2,290/,'mock screenshot figures must not ship');
+ assert.match(index,/owner-pdf-v3-home\.css\?v=/);
  assert.match(index,/owner-image-home\.css\?v=/);
 });
 test('Owner Home replaces the old Sales snapshot without removing existing backend',()=>{

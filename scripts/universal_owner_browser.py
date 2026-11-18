@@ -55,16 +55,12 @@ try:
     # Owner sessions can restore a non-Home route: navigate to Home explicitly for the visual contract.
     page.evaluate("showPage('overview')")
     page.locator('#overview.active').wait_for(state='visible')
-    # Screenshot V3 replaces premium Home on mobile; desktop remains unchanged.
-    v3=width<760 and page.locator('#biteV3Home').is_visible()
-    if v3:
-     check(page.locator('#biteV3Home .boh-feature-grid').is_visible() and page.locator('#biteV3Home .boh-feature').count()>=3,f'{kind} mobile Home shows permitted operational tiles at {width}px')
-     check(page.locator('#bitePremiumHome').is_hidden(),f'{kind} no duplicate premium Home on mobile')
-     links=page.locator('#biteV3Home button[data-bv3-route]').evaluate_all('(es)=>es.map(e=>e.dataset.bv3Route)')
-    else:
-     page.locator('#bitePremiumHome .bite-premium-hero-cta').first.wait_for(state='visible')
-     check(page.locator('#bitePremiumHome').get_attribute('data-mode')==kind,f'{kind} premium desktop Home correct at {width}px')
-     links=page.locator('#bitePremiumHome button[data-page]').evaluate_all('(es)=>es.map(e=>e.dataset.page)')
+    # PDF V3 is the single Owner Home on both desktop and mobile.
+    v3=page.locator('#biteV3Home .bv3-pdf-home').is_visible()
+    check(v3 and page.locator('#biteV3Home .bv3-pdf-metric').count()==4,
+          f'{kind} PDF H02/H03 financial cards visible at {width}px')
+    check(page.locator('#bitePremiumHome').is_hidden(),f'{kind} no duplicate premium Home at {width}px')
+    links=page.locator('#biteV3Home button[data-bv3-route]').evaluate_all('(es)=>es.map(e=>e.dataset.bv3Route)')
     check(len(set(links))>=1,f'{kind} working shortcuts at {width}px')
     check(('hotel-register' in links)==(kind!='restaurant'),f'{kind} hotel shortcut capability at {width}px')
     orders_access=('orders' in links or page.locator('#biteOwnerBottomNav [data-bite-page="orders"]').count()>0)
@@ -106,8 +102,7 @@ try:
        else:check('Housekeeping queue' not in page.locator('#bitePremiumHome').inner_text(),'Hybrid Home does not show housekeeping when unchecked')
       if kind=='hybrid':check(page.locator('#biteHotelHome h2:has-text("Room readiness")').count()==0,'Hybrid Hotel Home readiness disappears when unchecked')
     quick='orders' if kind=='restaurant' else 'hotel-register'
-    if v3:page.locator(f'#biteV3Home button[data-bv3-route="{quick}"]:visible').first.click()
-    else:page.locator(f'#bitePremiumHome .bite-premium-hero-cta[data-page="{quick}"]').click()
+    page.locator(f'#biteV3Home button[data-bv3-route="{quick}"]:visible').first.click()
     page.locator(f'#{quick}.active').wait_for(state='visible')
     check(True,f'{kind} quick action opens existing {quick} workspace at {width}px')
     page.evaluate("showPage('overview')")
@@ -115,27 +110,18 @@ try:
     check(page.locator('#biteHotelHome .bh-hotel-tabs').count()==0,f'{kind} home does not duplicate Hotel navigation')
     check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{kind} Home no horizontal overflow at {width}px')
     if width<760:
-     if v3:
-      check(page.locator('#mainApp>.main>.top').evaluate('(e)=>getComputedStyle(e).backgroundImage.includes("linear-gradient")'),f'{kind} warm branded header is readable at {width}px')
-     else:check(page.locator('#pageTitle').evaluate('(e)=>getComputedStyle(e).color')!='rgb(255, 255, 255)',f'{kind} header title readable on warm background')
+     check(page.locator('#mainApp>.main>.top').evaluate('(e)=>getComputedStyle(e).backgroundColor==="rgb(255, 255, 255)"'),
+           f'{kind} PDF H02 clean white header is readable at {width}px')
     if width<760:
      actual=page.locator('#biteOwnerBottomNav [data-bite-page]').evaluate_all('(es)=>es.map(e=>e.dataset.bitePage)')
      expected=['overview','orders','pos','more'] if kind=='restaurant' else ['overview','rooms','orders','pos','more'] if kind=='hybrid' else ['overview','rooms','more']
      check(actual==expected,f'{kind} capability tabs at {width}px')
-     if v3:
-      grid=page.locator('#biteV3Home .boh-feature-grid')
-      check(grid.get_attribute('data-business-type')==kind,f'{kind} Home grid uses actual property capabilities')
-      check(page.locator('#biteV3Home .boh-register').is_visible()==(kind!='restaurant'),f'{kind} register is hotel-only')
-      check(page.locator('#biteV3Home [data-bv3-new-pos=true]').count()==(0 if kind=='hotel' else 1),f'{kind} POS card only when permitted')
-      for old in ['.od-metrics','.od-pos-breakdown','.od-finance-boundary','.od-dashboard-grid','.od-footer','[data-owner-dashboard]']:
-       check(page.locator('#overview '+old).is_hidden(),f'{kind} no legacy financial card {old} on mobile')
-      # The artwork fades out above titles; text is always painted on its own
-      # opaque gradient and must remain within the card at every test viewport.
-      for card in page.locator('#biteV3Home .boh-feature').all():
-       title=card.locator(':scope > strong')
-       check(title.is_visible() and title.evaluate(
-          "(el)=>{const c=el.closest('.boh-feature').getBoundingClientRect(),r=el.getBoundingClientRect(),img=el.parentElement.querySelector('.boh-card-illustration').getBoundingClientRect(),cs=getComputedStyle(el);return r.left>=c.left-1&&r.right<=c.right+1&&r.top>=img.top+img.height*.35&&r.bottom<=c.bottom+1&&cs.backgroundImage!=='none'}"),
-          f'{kind} title stays inside its card and clear of the illustration at {width}px')
+     check(page.locator('#biteV3Home .bv3-pdf-home').get_attribute('data-pdf-screen')=='H02-H03',f'{kind} PDF V3 Home selected')
+     check(page.locator('#biteV3Home .bv3-pdf-room-panel').count()==(kind!='restaurant'),f'{kind} room summary tenant scope')
+     check(page.locator('#biteV3Home [data-bv3-new-pos=true]').count()==(0 if kind=='hotel' else 1),f'{kind} POS shortcut only when permitted')
+     for old in ['.od-metrics','.od-pos-breakdown','.od-finance-boundary','.od-dashboard-grid','.od-footer','[data-owner-dashboard]']:
+      check(page.locator('#overview '+old).is_hidden(),f'{kind} no legacy financial card {old} on mobile')
+     check(page.locator('#biteV3Home .boh-feature-grid').count()==0,f'{kind} no old illustrated Home tiles')
 
      check(all(v>=44 for v in page.locator('#biteOwnerBottomNav button').evaluate_all('(es)=>es.map(e=>e.getBoundingClientRect().height)')),f'{kind} 44px navigation targets at {width}px')
     if kind=='hotel':
