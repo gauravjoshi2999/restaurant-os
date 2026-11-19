@@ -2280,7 +2280,17 @@ async function saveHREmployeePayment(){
  try{const {error}=await sb.from('restaurant_employee_payments').insert({restaurant_id:rid,employee_id:eid,payment_date:date,period_month:periodMonth,payment_type:document.getElementById('hrPaymentType').value,amount,payment_method:document.getElementById('hrPaymentMethod').value,reference:document.getElementById('hrPaymentReference').value.trim()||null,notes:document.getElementById('hrPaymentNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;document.getElementById('hrPaymentAmount').value='';document.getElementById('hrPaymentReference').value='';document.getElementById('hrPaymentNotes').value='';document.getElementById('hrPaymentMessage').textContent='Payment saved';await loadHRData()}
  catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}
 }
-document.getElementById('hrRestaurant').addEventListener('change',loadHRData);
+document.getElementById('hrRestaurant').addEventListener('change',()=>{
+ // Never carry an employee ID or pending form values into a different restaurant.
+ resetHREmployeeForm();
+ for(const id of ['hrAttendanceEmployee','hrLeaveEmployee','hrPaymentEmployee'])document.getElementById(id).value='';
+ for(const id of ['hrAttendanceNotes','hrLeaveReason','hrPaymentReference','hrPaymentNotes'])document.getElementById(id).value='';
+ document.getElementById('hrAttendanceMessage').textContent='';
+ document.getElementById('hrEmployeeMessage').textContent='';
+ document.getElementById('hrLeaveMessage').textContent='';
+ document.getElementById('hrPaymentMessage').textContent='';
+ void loadHRData();
+});
 document.getElementById('hrAttendanceDate').addEventListener('change',()=>{void loadHRAttendanceDay()});
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
 document.getElementById('hrAttendanceRegister').addEventListener('click',event=>{
