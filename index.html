@@ -2313,7 +2313,9 @@ function renderKhataLedger(){
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
  document.getElementById('khataLedgerEmpty').textContent=!c?'Select a customer to view their Khata.':
   !report?.verified?'Historical statement unavailable until all linked records are verified.':
-  'Is customer ke Khata mein abhi koi entry nahi hai for this selected period. Earlier dues remain in opening balance.';
+  !khataEntries.some(x=>x.customer_id===c.id)?
+  'Is customer ke Khata mein abhi koi entry nahi hai.':
+  'No transactions in this selected period. Earlier dues remain in opening balance.';
 }
 function collectKhataDue(customerId){
  const customer=khataCustomers.find(x=>x.id===customerId&&x.status==='Active');
