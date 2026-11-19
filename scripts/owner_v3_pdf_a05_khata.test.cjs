@@ -126,3 +126,12 @@ test('A05 unverified customer never appears as Clear or collectible due',()=>{
  assert.equal(khata.filterCustomers(list,balances,'','due').length,0);
  assert.equal(khata.filterCustomers(list,balances,'','advance').length,0);
 });
+
+test('A05 canonical database migration archive matches the isolated PG17 tested SQL and live Supabase version',()=>{
+ const staged=fs.readFileSync('docs/sql/owner_a05_customer_receipts_staging.sql','utf8');
+ const applied=fs.readFileSync('supabase/migrations/20261119045445_owner_a05_customer_khata_idempotent_receipts.sql','utf8');
+ assert.equal(applied,staged);
+ assert.match(applied,/receipt_request_id uuid/);
+ assert.match(applied,/record_restaurant_khata_receipt/);
+ assert.match(applied,/receipt_request_id=p_request_id/);
+});
