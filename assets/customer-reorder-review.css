@@ -1,0 +1,77 @@
+/* Bite Customer Reorder review — modal above existing Cart, never above payment UX. */
+body[data-bite-app="customer"] dialog.bite-reorder-review:not([open]){display:none}
+body[data-bite-app="customer"] dialog.bite-reorder-review[open]{
+ box-sizing:border-box;display:flex;flex-direction:column;
+ width:min(520px,calc(100vw - 24px));max-width:520px;
+ max-height:min(88dvh,780px);padding:0;overflow:hidden;
+ border:1px solid #ECDCCE;border-radius:23px;
+ background:#FFF;color:#1F293D;box-shadow:0 18px 80px rgba(42,27,18,.26);
+}
+body[data-bite-app="customer"] dialog.bite-reorder-review::backdrop{background:rgba(24,25,35,.65)}
+body[data-bite-app="customer"] .bite-reorder-review>header{
+ padding:22px 22px 16px;border-bottom:1px solid #EFE5DC;flex:none;
+}
+body[data-bite-app="customer"] .bite-reorder-review h2{
+ font-size:clamp(21px,5vw,25px);line-height:1.2;letter-spacing:-.5px;
+ color:#1F293D;margin:0 0 7px;font-weight:850;
+}
+body[data-bite-app="customer"] .bite-reorder-review>header p{
+ margin:0;color:#5C6473;font-size:13px;line-height:1.5;
+}
+body[data-bite-app="customer"] .bite-reorder-content{
+ flex:1;min-height:0;overflow-y:auto;padding:14px 22px 18px;overscroll-behavior:contain;
+}
+body[data-bite-app="customer"] .bite-reorder-lines{padding:0;margin:0;list-style:none;display:grid;gap:9px}
+body[data-bite-app="customer"] .bite-reorder-lines li{
+ display:flex;flex-direction:column;gap:4px;padding:12px 13px;
+ border:1px solid #EAE0D8;border-radius:12px;background:#FFFDFB;
+}
+body[data-bite-app="customer"] .bite-reorder-lines li strong{
+ font-size:14px;color:#1F293D;font-weight:790;overflow-wrap:anywhere;
+}
+body[data-bite-app="customer"] .bite-reorder-line-meta{
+ font-size:12px;color:#536071;line-height:1.45;
+}
+body[data-bite-app="customer"] .bite-reorder-lines li.is-unavailable{
+ border-color:#F5CBC7;background:#FFF5F3;
+}
+body[data-bite-app="customer"] .bite-reorder-lines li.is-unavailable .bite-reorder-line-meta{color:#9F2D25}
+body[data-bite-app="customer"] .bite-reorder-total{
+ font-size:14px;font-weight:850;line-height:1.45;
+ margin:16px 0 0;padding:12px 0;border-top:1px solid #EAE0D8;color:#1F293D;
+}
+body[data-bite-app="customer"] .bite-reorder-hint{
+ color:#536071;font-size:12px;line-height:1.5;margin:6px 0 0;
+}
+body[data-bite-app="customer"] .bite-reorder-warning{
+ font-size:12px;line-height:1.5;color:#7D421C;background:#FFF2E4;
+ border-radius:10px;padding:11px 12px;margin:12px 0 0;
+}
+body[data-bite-app="customer"] .bite-reorder-actions{
+ display:flex;gap:10px;padding:13px 20px max(14px,env(safe-area-inset-bottom));
+ border-top:1px solid #EFE5DC;background:#FFF;flex:none;
+}
+body[data-bite-app="customer"] .bite-reorder-actions button{
+ min-height:46px;flex:1;border-radius:12px;font-weight:800;font-size:13px;padding:10px 12px;
+}
+body[data-bite-app="customer"] .bite-reorder-actions button.secondary{
+ background:#FFF;color:#344159;border:1px solid #DCE0E5;
+}
+body[data-bite-app="customer"] .bite-reorder-actions button.primary{
+ background:#B7420B;color:#FFF;border:1px solid #B7420B;
+}
+body[data-bite-app="customer"] .bite-reorder-review button:focus-visible{
+ outline:3px solid #B7420B;outline-offset:2px;
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] dialog.bite-reorder-review[open]{
+  width:calc(100vw - 16px);max-height:calc(100dvh - 32px);border-radius:17px;
+ }
+ body[data-bite-app="customer"] .bite-reorder-review>header{padding:17px 15px 13px}
+ body[data-bite-app="customer"] .bite-reorder-content{padding:11px 15px 13px}
+ body[data-bite-app="customer"] .bite-reorder-actions{padding:12px;gap:7px}
+ body[data-bite-app="customer"] .bite-reorder-actions button{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-bite-app="customer"] .bite-reorder-review *{transition:none!important}
+}
