@@ -72,9 +72,21 @@
     else if(row.previousUnit===null)meta.textContent='Current '+rupees(row.currentLine)+' · previous price unavailable';
     else if(row.changed)meta.textContent='Was '+rupees(row.previousLine)+' · now '+rupees(row.currentLine);
     else meta.textContent='Current '+rupees(row.currentLine)+' · unchanged';
-    li.append(label,meta);list.append(li);
+    li.append(label,meta);
+    if(!row.available){
+     const remove=document.createElement('button');remove.type='button';
+     remove.className='bite-reorder-discard';remove.textContent='Remove unavailable';
+     remove.addEventListener('click',()=>li.remove());
+     li.append(remove);
+    }
+    list.append(li);
    }
    content.append(list);
+   if(review.previousSubtotal!==null){
+    const before=document.createElement('p');before.className='bite-reorder-previous-total';
+    before.textContent='Previous food items subtotal: '+rupees(review.previousSubtotal);
+    content.append(before);
+   }
    const totals=document.createElement('p');totals.className='bite-reorder-total';
    totals.textContent='Current available items subtotal: '+rupees(review.currentSubtotal);
    content.append(totals);
