@@ -87,7 +87,7 @@
    onApply:next=>{if(scope!==key)throw Error('Restaurant changed. Reload Customer Khata.');selectedPeriod=next;onChange?.();}
   });
  }
- function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange}){
+ function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange,onCollect,onOpening}){
   if(!host)return {verified:false};
   const p=periodFor(key,today),report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
   host.innerHTML=customer?
@@ -101,7 +101,10 @@
     '<div><span>Receipts</span><strong>'+cash(report.receiptCents/100)+'</strong></div>'+
     '<div><span>Balance at period end</span><strong>'+esc(signed(report.closingCents))+'</strong></div></div>':
     '<p role="alert" class="v3-khata-warning">'+esc(report.reason||'Statement not available.')+'</p>')+
-   '<div class="v3-khata-statement-actions"><button type="button" data-v3-khata-copy>Copy statement</button>'+
+   '<div class="v3-khata-statement-actions">'+
+   (Number(balance)>0&&customer.status==='Active'?'<button type="button" class="primary" data-v3-khata-collect-due>Collect due</button>':'')+
+   (customer.status==='Active'?'<button type="button" data-v3-khata-opening>Add opening balance</button>':'')+
+   '<button type="button" data-v3-khata-copy>Copy statement</button>'+
    '<button type="button" data-v3-khata-print>Print statement</button></div>'+
    '<p class="v3-khata-guidance">Opening due is an old receivable, not new sales. If the same old bill is also entered into POS, review its source before adding opening dues.</p>'+
    '<p id="v3KhataShareStatus" role="status"></p>':
@@ -109,9 +112,16 @@
   if(customer){
    mountPeriod(host.querySelector('#v3KhataStatementPeriod'),{key,today,onChange});
    host.onclick=async e=>{
+    const collect=e.target.closest?.('[data-v3-khata-collect-due]');
+    const opening=e.target.closest?.('[data-v3-khata-opening]');
     const copy=e.target.closest?.('[data-v3-khata-copy]');
     const print=e.target.closest?.('[data-v3-khata-print]');
-    if(print){root.print?.();return}
+    if(collect){onCollect?.(customer.id);return}
+    if(opening){onOpening?.(customer.id);return}
+    if(print){
+     if(!report.verified){host.querySelector('#v3KhataShareStatus').textContent='The history is incomplete. Refresh Khata before printing a statement.';return;}
+     root.print?.();return;
+    }
     if(copy){
      const result=host.querySelector('#v3KhataShareStatus');
      if(!report.verified){result.textContent='Full verified statement not available. Please refresh Khata.';return}
@@ -120,7 +130,7 @@
        (x.entry_type==='credit'?'Received ':'Due ')+cash(x.amount)+' · balance '+signed(x.balanceAfterCents)),
        'Closing: '+signed(report.closingCents),
        'Includes linked POS bills, POS receipts, refunds and manual Khata entries. Not a tax invoice.'].join('\n');
-     try{await root.navigator?.clipboard?.writeText(contents);result.textContent='Statement copied.'}
+     try{if(typeof root.navigator?.clipboard?.writeText!=='function')throw Error('Clipboard unavailable');await root.navigator.clipboard.writeText(contents);result.textContent='Statement copied.'}
      catch{result.textContent='Could not copy statement. Use Print statement.'}
     }
    };
