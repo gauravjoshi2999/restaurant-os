@@ -2218,7 +2218,7 @@ function renderHR(){
  document.getElementById('hrActiveCount').textContent=String(active);document.getElementById('hrPresentCount').textContent=String(present);
  document.getElementById('hrPendingLeaves').textContent=String(pending);document.getElementById('hrPaidMonth').textContent=money(paid);
  document.getElementById('hrEmployeeCount').textContent=hrEmployees.length+' employees';
- document.getElementById('hrEmployeeRows').innerHTML=hrEmployees.map(e=>'<tr><td>'+esc(e.employee_code||'—')+'</td><td><strong>'+esc(e.full_name)+'</strong></td><td>'+esc(e.position||'—')+'</td><td>'+esc(e.phone||'—')+'</td><td>'+money(e.salary_amount)+' / '+esc(e.salary_period)+'</td><td><span class="pill '+(e.status==='Active'?'green':'')+'">'+esc(e.status)+'</span></td><td><button class="btn secondary" onclick="editHREmployee(\''+esc(e.id)+'\')">Edit</button> '+(access.role==='owner'?'<button class="btn danger" onclick="deleteHREmployee(\''+esc(e.id)+'\')">Delete</button>':'')+'</td></tr>').join('');
+ document.getElementById('hrEmployeeRows').innerHTML=hrEmployees.map(e=>'<tr><td>'+esc(e.employee_code||'—')+'</td><td><strong>'+esc(e.full_name)+'</strong></td><td>'+esc(e.position||'—')+'</td><td>'+esc(e.phone||'—')+'</td><td>'+money(e.salary_amount)+' / '+esc(e.salary_period)+'</td><td><span class="pill '+(e.status==='Active'?'green':'')+'">'+esc(e.status)+'</span></td><td><button class="btn secondary" onclick="editHREmployee(\''+esc(e.id)+'\')">Edit</button> '+(access.role==='owner'&&e.status==='Active'?'<button class="btn danger" onclick="deleteHREmployee(\''+esc(e.id)+'\')">Deactivate</button>':'')+'</td></tr>').join('');
  document.getElementById('hrEmployeeEmpty').style.display=hrEmployees.length?'none':'block';
  document.getElementById('hrAttendanceRows').innerHTML=hrAttendance.slice(0,50).map(a=>'<tr><td>'+esc(a.attendance_date)+'</td><td>'+esc(employeeName(a.employee_id))+'</td><td>'+esc(a.status)+'</td><td>'+esc(a.check_in||'—')+'</td><td>'+esc(a.check_out||'—')+'</td><td>'+esc(a.notes||'—')+'</td></tr>').join('');
  document.getElementById('hrAttendanceEmpty').style.display=hrAttendance.length?'none':'block';
@@ -2270,14 +2270,29 @@ function editHREmployee(id){
 async function saveHREmployee(){
  const rid=hrRestaurantId(),name=document.getElementById('hrEmployeeName').value.trim(),code=document.getElementById('hrEmployeeCode').value.trim(),salary=Number(document.getElementById('hrEmployeeSalary').value);
  if(!rid||name.length<2||!Number.isFinite(salary)||salary<0){document.getElementById('hrEmployeeMessage').textContent='Name aur valid salary amount bharein.';return}
- const payload={restaurant_id:rid,employee_code:code||null,full_name:name,phone:document.getElementById('hrEmployeePhone').value.trim()||null,position:document.getElementById('hrEmployeePosition').value.trim()||null,joining_date:document.getElementById('hrEmployeeJoining').value||localDateInput(),salary_amount:salary,salary_period:document.getElementById('hrEmployeeSalaryPeriod').value,status:document.getElementById('hrEmployeeStatus').value,notes:document.getElementById('hrEmployeeNotes').value.trim()||null};
+ const employeePhone=document.getElementById('hrEmployeePhone').value.trim();
+ const possible=window.BiteOwnerA08Profiles?.duplicates(
+  hrEmployees.filter(e=>e.restaurant_id===rid),{employee_code:code,full_name:name,phone:employeePhone},editingHREmployeeId)||[];
+ if(possible.length&&!confirm('Possible duplicate: '+possible.slice(0,2).map(e=>e.full_name).join(', ')+'. Existing profile review kiya? Phir bhi save?')){
+  document.getElementById('hrEmployeeMessage').textContent='Possible duplicate employee. Review existing profile.';return;
+ }
+ const payload={restaurant_id:rid,employee_code:code||null,full_name:name,phone:employeePhone||null,position:document.getElementById('hrEmployeePosition').value.trim()||null,joining_date:document.getElementById('hrEmployeeJoining').value||localDateInput(),salary_amount:salary,salary_period:document.getElementById('hrEmployeeSalaryPeriod').value,status:document.getElementById('hrEmployeeStatus').value,notes:document.getElementById('hrEmployeeNotes').value.trim()||null};
  try{let result;if(editingHREmployeeId)result=await sb.from('restaurant_employees').update(payload).eq('id',editingHREmployeeId).eq('restaurant_id',rid);else result=await sb.from('restaurant_employees').insert({...payload,created_by:currentUser.id});if(result.error)throw result.error;document.getElementById('hrEmployeeMessage').textContent='Employee saved';resetHREmployeeForm();await loadHRData()}
  catch(e){document.getElementById('hrEmployeeMessage').textContent='Save nahi hua: '+e.message;console.error(e)}
 }
 async function deleteHREmployee(id){
- if(access.role!=='owner'||!confirm('Employee profile delete karein? Attendance/payment records hone par database deletion rok dega.'))return;
- try{const {error}=await sb.from('restaurant_employees').delete().eq('id',id).eq('restaurant_id',hrRestaurantId());if(error)throw error;await loadHRData()}
- catch(e){alert('Employee delete nahi hua: '+e.message)}
+ if(access.role!=='owner'||!currentUser?.id||!window.BiteOwnerA08Profiles?.uuid(id))return;
+ const rid=hrRestaurantId(),employee=hrEmployees.find(e=>e.id===id&&e.restaurant_id===rid&&e.status==='Active');
+ if(!employee)return;
+ if(!confirm(employee.full_name+' ko Inactive karein? Attendance, leave aur salary records safe rahenge.'))return;
+ const userId=currentUser.id;
+ try{
+  const {data,error}=await sb.from('restaurant_employees').update({status:'Inactive'})
+   .eq('id',id).eq('restaurant_id',rid).eq('status','Active').select('id');
+  if(error)throw error;
+  if(data?.length!==1)throw Error('Employee state changed. Refresh and review.');
+  if(currentUser?.id===userId&&hrRestaurantId()===rid)await loadHRData();
+ }catch(e){alert('Deactivate nahi hua: '+e.message)}
 }
 async function saveHRAttendance(){
  const rid=hrRestaurantId(),eid=document.getElementById('hrAttendanceEmployee').value,date=document.getElementById('hrAttendanceDate').value,status=document.getElementById('hrAttendanceStatus').value,checkIn=document.getElementById('hrCheckIn').value,checkOut=document.getElementById('hrCheckOut').value,notes=document.getElementById('hrAttendanceNotes').value.trim();
