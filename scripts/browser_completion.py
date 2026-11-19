@@ -826,6 +826,8 @@ try:
   owner.locator('#hr .bite-hr-tabs').wait_for(state='visible')
   check(owner.locator('#hrEmployeePanel').is_visible() and owner.locator('#hrAttendancePanel').is_hidden(),
     'Mobile Staff opens the Employee form alone, not split with Attendance')
+  owner.locator('#hrV3AddEmployee').click()
+  owner.locator('#hrEmployeeName').wait_for(state='visible')
   owner.locator('#hrEmployeeName').fill('QA unsaved employee')
   owner.locator('#hr [data-hr-tab="attendance"]').click()
   check(owner.locator('#hrAttendancePanel').is_visible() and owner.locator('#hrEmployeePanel').is_hidden(),
