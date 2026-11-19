@@ -36,7 +36,8 @@ create policy salary_closings_owner_read on public.restaurant_employee_salary_cl
 create or replace function public.owner_close_employee_salary_month(
  p_restaurant_id uuid,p_employee_id uuid,p_period_month date,
  p_approved_gross numeric,p_approved_bonus numeric,p_approved_deduction numeric,
- p_advance_applied numeric,p_request_id uuid,p_note text default ''
+ p_advance_applied numeric,p_expected_paid numeric,p_expected_available numeric,
+ p_request_id uuid,p_note text default ''
 ) returns uuid
 language plpgsql security definer set search_path = ''
 as $function$
@@ -62,7 +63,10 @@ begin
     p_period_month>=date_trunc('month',v_today)::date then
    raise exception 'Only completed salary months may be closed';
  end if;
- if p_approved_gross is null or p_approved_bonus is null or
+ if p_expected_paid is null or p_expected_available is null or
+    p_expected_paid<0 or p_expected_available<0 or
+    p_expected_paid<>round(p_expected_paid,2) or p_expected_available<>round(p_expected_available,2) or
+    p_approved_gross is null or p_approved_bonus is null or
     p_approved_deduction is null or p_advance_applied is null or
     p_approved_gross<0 or p_approved_bonus<0 or
     p_approved_deduction<0 or p_advance_applied<0 or
@@ -123,6 +127,9 @@ begin
  select coalesce(sum(advance_applied),0) into v_used
  from public.restaurant_employee_salary_closings
  where restaurant_id=p_restaurant_id and employee_id=p_employee_id;
+ if p_expected_paid<>v_payments or p_expected_available<>greatest(v_advances-v_used,0) then
+   raise exception 'Recorded payments or advances changed. Reload the salary closing preview.';
+ end if;
  if p_advance_applied>greatest(v_advances-v_used,0) then
    raise exception 'Advance adjustment exceeds verified unused advances';
  end if;
@@ -142,5 +149,5 @@ begin
  return v_id;
 end;
 $function$;
-revoke all on function public.owner_close_employee_salary_month(uuid,uuid,date,numeric,numeric,numeric,numeric,uuid,text) from public,anon,authenticated;
-grant execute on function public.owner_close_employee_salary_month(uuid,uuid,date,numeric,numeric,numeric,numeric,uuid,text) to authenticated;
+revoke all on function public.owner_close_employee_salary_month(uuid,uuid,date,numeric,numeric,numeric,numeric,numeric,numeric,uuid,text) from public,anon,authenticated;
+grant execute on function public.owner_close_employee_salary_month(uuid,uuid,date,numeric,numeric,numeric,numeric,numeric,numeric,uuid,text) to authenticated;
