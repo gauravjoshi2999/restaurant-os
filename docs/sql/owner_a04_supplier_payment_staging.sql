@@ -2,10 +2,14 @@
 -- Safe, additive source: legacy restaurant_purchases.paid_amount remains initial
 -- paid-at-purchase amount (no historical guessing / backfill).
 -- Apply after matching isolated PostgreSQL 17 QA; not part of GitHub Pages deploy.
+create unique index if not exists restaurant_purchases_tenant_id_unique
+ on public.restaurant_purchases(restaurant_id,id);
 create table if not exists public.restaurant_supplier_payments(
  id uuid primary key default gen_random_uuid(),
  restaurant_id uuid not null,
- purchase_id uuid not null references public.restaurant_purchases(id) on delete restrict,
+ purchase_id uuid not null,
+ constraint restaurant_supplier_payments_purchase_scope_fkey
+  foreign key (restaurant_id,purchase_id) references public.restaurant_purchases(restaurant_id,id) on delete restrict,
  payment_date date not null,
  amount numeric(14,2) not null check (amount>0 and amount=round(amount,2)),
  method text not null check (method in ('Cash','UPI','Card','Bank Transfer')),
@@ -29,7 +33,7 @@ create policy restaurant_supplier_payment_read on public.restaurant_supplier_pay
 -- When a purchase has a separate payment, its historical paid-at-purchase amount,
 -- purchase day and total cannot be silently rewritten.
 create or replace function public.bite_guard_supplier_paid_purchase()
-returns trigger language plpgsql set search_path='' as $$
+returns trigger language plpgsql security definer set search_path='' as $
 declare later_total numeric;
 begin
  select coalesce(sum(amount),0) into later_total
@@ -44,7 +48,8 @@ begin
    raise exception 'This purchase has supplier payments. Change only non-financial details; record further payments separately.';
  end if;
  return new;
-end $$;
+end $;
+revoke all on function public.bite_guard_supplier_paid_purchase() from public,anon,authenticated;
 drop trigger if exists restaurant_supplier_paid_purchase_guard on public.restaurant_purchases;
 create trigger restaurant_supplier_paid_purchase_guard
  before update on public.restaurant_purchases
