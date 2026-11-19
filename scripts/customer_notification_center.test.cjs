@@ -70,6 +70,9 @@ test('customer loads notification center and remains explicit about unsupported 
  assert.match(html,/id="biteNotificationFeed"/);
  assert.match(html,/id="biteNotificationEntries"/);
  assert.match(html,/id="biteNotificationMarkRead"/);
+ assert.match(html,/id="biteNotificationAll"/);
+ assert.match(html,/id="biteNotificationUnread"/);
+ assert.match(styles,/\.bite-notification-tabs button\[aria-pressed="true"\]/);
  assert.match(html,/assets\/customer-notification-center\.js\?v=20261119-feed1/);
  assert.match(html,/assets\/customer-notification-center\.css\?v=20261119-feed1/);
  assert.match(html,/not saved notification history or phone push/i);
