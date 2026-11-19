@@ -298,7 +298,7 @@
     '<p class="bh-room-detail-empty">'+esc(state==='ready'?'No active stay in this room. Confirm the dates and availability before check-in.':state==='occupied'?'Room is occupied, but its linked stay is not available. Refresh before making changes.':'No current stay is linked to this room.')+'</p>')+
    (nextBooking&&inHouse?'<p class="bh-note">Next reservation: '+esc(shortDate(nextBooking.arrival))+' – '+esc(shortDate(nextBooking.departure))+'. Check date availability before extending the current stay.</p>':'')+
    '<div class="bh-room-detail-actions">'+
-   (state==='ready'?btn('room-detail-checkin','＋ New check-in',room.id):'')+
+   (state==='ready'&&has('guest_register')?btn('room-detail-checkin','＋ New check-in',room.id):'')+
    (folio&&has('folios')?btn('folio','Open guest bill',folio.id):'')+
    (canFood?btn('room-detail-food','＋ Add food',folio.id):'')+
    (canCharge?btn('room-detail-extra','＋ Hotel extra',folio.id):'')+
@@ -720,11 +720,11 @@
    }
    else if(action==='room-detail-checkin'){
     const room=data.rooms.find(r=>r.id===id);
-    if(!room||roomState(room)!=='ready')throw Error('This room is not available now. Refresh Rooms and choose another.');
+    if(!room||!has('guest_register')||roomState(room)!=='ready')throw Error('This room is not available for your check-in access. Refresh Rooms and choose another.');
     const hasPending=pendingRegistration().length>0;
     await ctx.navigate('hotel-register');
     const form=$('bhCheckinForm');
-    if(form&&!hasPending&&!form.dataset.stayId&&form.elements.room_id&&
+    if(form&&!hasPending&&!form.dataset.stayId&&!form.elements.full_name?.value?.trim()&&!form.elements.phone?.value?.trim()&&form.elements.room_id&&
        [...form.elements.room_id.options].some(option=>option.value===id)){
      form.elements.room_id.value=id;
      form.elements.room_id.dispatchEvent(new Event('change',{bubbles:true}));
