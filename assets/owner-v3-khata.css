@@ -55,3 +55,25 @@ body[data-role=owner] :is(.v3-khata-toolbar,.v3-khata-statement) :is(button,inpu
  body[data-role=owner] #khata .v3-khata-statement-actions,body[data-role=owner] #khata .bv3-period-head button,body[data-role=owner] #khata #khataLedgerRows button{display:none!important}
  body[data-role=owner] #khata .v3-khata-statement{box-shadow:none;border:0}
 }
+
+/* Confirmed receipts and careful historical-opening UX. */
+body[data-role=owner] #khata .field[hidden]{display:none!important}
+body[data-role=owner] #khata .v3-khata-confirm{display:flex;align-items:flex-start;gap:8px;line-height:1.5;font-size:11px;font-weight:650;color:#846347;margin-top:10px}
+body[data-role=owner] #khata .v3-khata-confirm input{flex:0 0 auto;width:19px;height:19px;margin-top:2px}
+body[data-role=owner] #khata #khataOpeningReview{padding:12px 14px;border:1px solid #efd3b4;border-radius:12px;background:#fff8ed;margin:12px 0;color:#7c4d24}
+body[data-role=owner] #khata #khataOpeningReview[hidden]{display:none!important}
+body[data-role=owner] #khata #khataOpeningReview label{display:flex;align-items:flex-start;gap:9px;margin-top:9px;line-height:1.5;font-size:12px}
+body[data-role=owner] #khata #khataOpeningReview input{width:19px;height:19px;flex:0 0 auto}
+body[data-role=owner] #khata #khataOpeningReview p{margin:6px 0 0;font-size:11px}
+body[data-role=owner] #khata .v3-khata-statement-actions button.primary{background:#e77428;color:white;border-color:#d45e19}
+body[data-role=owner] #khata .v3-khata-statement #v3KhataShareStatus{color:#3e665a;font-size:12px;line-height:1.5}
+@media(max-width:430px){
+ body[data-role=owner] #khata .v3-khata-person-top{flex-wrap:wrap}
+ body[data-role=owner] #khata .v3-khata-person-top>span{white-space:normal;overflow-wrap:anywhere}
+ body[data-role=owner] #khata #khataOpeningReview{padding:10px}
+}
+@media print{
+ body[data-role=owner] #khata .v3-khata-ledger-table{display:block!important;overflow:visible!important}
+ body[data-role=owner] #khata #khataLedgerSection .v3-khata-statement-head{break-inside:avoid}
+ body[data-role=owner] #khata .v3-khata-toolbar,body[data-role=owner] #khata #khataV3Cards{display:none!important}
+}
