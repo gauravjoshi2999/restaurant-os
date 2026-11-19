@@ -27,7 +27,7 @@ function harness({selected=rid,status='all',queryText=''}={}){
  const sb={from:query,rpc(name){calls.push({rpc:name});return Promise.resolve({data:{rows:data,total_count:1},error:null});}};
  const ctx={sb,getState:()=>({restaurants:[{id:rid,name:'Rajsamand Kitchen'},{id:other,name:'Another Hotel'}]})};
  const sandbox={ctx,current:'orders',tab:'payments',filter:status,search:queryText,restaurantFilter:selected,offset:0,total:0,rows:[],
-  loading(){},valid:()=>true,host:()=>page,heading:()=>'',status:()=>'',esc:v=>String(v),record:()=>'<article class="sa-record"></article>',pageButtons(){},button:()=>'',Number,Promise};
+  loading(){},valid:()=>true,host:()=>page,heading:()=>'',status:()=>'',esc:v=>String(v),record:()=>'<article class="sa-record"></article>',pageButtons(){},pagination:()=>'',button:()=>'',Number,Promise};
  vm.runInNewContext(source.slice(start,end)+'\nthis.runListing=listing;',sandbox);
  return {sandbox,calls,page};
 }
