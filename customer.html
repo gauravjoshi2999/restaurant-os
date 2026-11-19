@@ -517,8 +517,15 @@ async function openRestaurant(id,options={}){
   cutleryRequested:!!$('checkoutCutlery')?.checked,
   appliedCheckoutCoupon,checkoutRequestKey
  };
- if(activeRestaurant&&activeRestaurant.id!==id&&cartEntries().length){
-  if(!options.cartSwitchConfirmed&&!confirm('Aapke cart mein '+activeRestaurant.name+' ke items hain. Naye restaurant par jaane se cart clear ho jayega. Kya aage badhein?'))return false;
+ // The last cart may be in localStorage but not yet restored after refresh or a slow discovery request.
+ const storedBeforeSwitch=readSavedCustomerCart();
+ const storedItems=storedBeforeSwitch?.items;
+ const storedOtherCart=!!(storedBeforeSwitch?.restaurantId&&storedBeforeSwitch.restaurantId!==id&&
+  storedItems&&typeof storedItems==='object'&&Object.values(storedItems).some(q=>Number(q)>0));
+ const inMemoryOtherCart=!!(activeRestaurant&&activeRestaurant.id!==id&&cartEntries().length);
+ if((storedOtherCart||inMemoryOtherCart)&&!options.cartSwitchConfirmed){
+  const currentName=activeRestaurant?.name||restaurants.find(row=>row.id===storedBeforeSwitch?.restaurantId)?.name||'aapke purane restaurant';
+  if(!confirm('Aapke cart mein '+currentName+' ke items hain. Naye restaurant par jaane se cart replace hoga. Kya aage badhein?'))return false;
  }
  ++biteCheckoutOpenSequence;const openSequence=++biteRestaurantOpenSequence;activeRestaurant=nextRestaurant;const savedCart=readSavedCustomerCart();const matchingCart=savedCart?.restaurantId===id&&savedCart.items&&typeof savedCart.items==='object';
  cart=matchingCart?{...savedCart.items}:{};
