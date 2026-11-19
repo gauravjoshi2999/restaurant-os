@@ -505,8 +505,23 @@ function saveCustomerCart(){
  }catch(e){console.warn('Cart could not be saved on this device',e);}
 }
 function clearCustomerCart(){cart={};itemNotes={};try{localStorage.removeItem(CUSTOMER_CART_STORAGE_KEY);}catch(e){}if($('customerNote'))$('customerNote').value='';if($('cartOrderNote'))$('cartOrderNote').value='';$('checkoutCutlery').checked=false;if(menuItems.length)renderMenuItems();}
-async function openRestaurant(id){if(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURANT_ID)return;const nextRestaurant=restaurants.find(r=>r.id===id);if(!nextRestaurant)return;if(activeRestaurant&&activeRestaurant.id!==id&&cartEntries().length){if(!confirm('Aapke cart mein '+activeRestaurant.name+' ke items hain. Naye restaurant par jaane se cart clear ho jayega. Kya aage badhein?'))return;clearCustomerCart();}++biteCheckoutOpenSequence;const openSequence=++biteRestaurantOpenSequence;activeRestaurant=nextRestaurant;const savedCart=readSavedCustomerCart();const matchingCart=savedCart?.restaurantId===id&&savedCart.items&&typeof savedCart.items==='object';
- cart=matchingCart?savedCart.items:{};
+async function openRestaurant(id,options={}){
+ if(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURANT_ID)return false;
+ const nextRestaurant=restaurants.find(r=>r.id===id);
+ if(!nextRestaurant)return false;
+ // Keep the previous in-memory cart and restaurant until the new published menu loads.
+ // Menu network errors, stale requests and failed reorders must not delete saved selections.
+ const previousState={
+  restaurant:activeRestaurant,menuItems,cart:{...cart},itemNotes:{...itemNotes},
+  customerNote:$('customerNote')?.value||'',cartOrderNote:$('cartOrderNote')?.value||'',
+  cutleryRequested:!!$('checkoutCutlery')?.checked,
+  appliedCheckoutCoupon,checkoutRequestKey
+ };
+ if(activeRestaurant&&activeRestaurant.id!==id&&cartEntries().length){
+  if(!options.cartSwitchConfirmed&&!confirm('Aapke cart mein '+activeRestaurant.name+' ke items hain. Naye restaurant par jaane se cart clear ho jayega. Kya aage badhein?'))return false;
+ }
+ ++biteCheckoutOpenSequence;const openSequence=++biteRestaurantOpenSequence;activeRestaurant=nextRestaurant;const savedCart=readSavedCustomerCart();const matchingCart=savedCart?.restaurantId===id&&savedCart.items&&typeof savedCart.items==='object';
+ cart=matchingCart?{...savedCart.items}:{};
  itemNotes=matchingCart?BiteItemNotes.normalizeNotes(savedCart.itemNotes,Object.keys(cart)):{};
  $('customerNote').value=matchingCart?String(savedCart.generalNote||'').slice(0,500):'';
  $('cartOrderNote').value=$('customerNote').value;
@@ -518,7 +533,30 @@ async function openRestaurant(id){if(BITE_DIRECT_MODE&&id!==BITE_DIRECT_RESTAURA
  // Non-blocking refresh: the latest Owner-uploaded cover appears when opening
  // an already loaded restaurant, without resetting menu/cart/payment details.
  void refreshCustomerCoverPhotos();
- window.BiteCustomerExtras?.renderFavouriteButton();appliedCheckoutCoupon=null;checkoutRequestKey=null;$('menuItems').innerHTML='<div class="empty">Menu load ho raha hai...</div>';try{const [cats,items,reviews]=await Promise.all([sb.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',id).eq('is_active',true).order('sort_order'),sb.from('menu_items').select('id,category_id,name,description,price,is_vegetarian,is_kids_choice,image_url').eq('restaurant_id',id).eq('is_available',true).order('sort_order'),sb.from('restaurant_reviews').select('id,rating,review,response,created_at').eq('restaurant_id',id).eq('status','Published').order('created_at',{ascending:false}).limit(30)]);if(cats.error)throw cats.error;if(items.error)throw items.error;if(reviews.error)throw reviews.error;if(openSequence!==biteRestaurantOpenSequence)return;menuItems=items.data||[];renderRestaurantReviews(reviews.data||[]);cart=Object.fromEntries(Object.entries(cart).filter(([itemId,q])=>menuItems.some(i=>i.id===itemId)&&Number.isInteger(Number(q))&&Number(q)>0).map(([itemId,q])=>[itemId,Math.min(99,Number(q))]));itemNotes=BiteItemNotes.normalizeNotes(itemNotes,Object.keys(cart));renderCart();renderMenu(cats.data||[]);window.BiteRestaurantDetails?.render(activeRestaurant,menuItems)}catch(e){if(openSequence!==biteRestaurantOpenSequence)return;cart={};itemNotes={};renderCart();$('menuItems').innerHTML='<div class="empty">Menu load nahi ho paaya. Restaurant ka published menu check karein.</div>';console.error(e)}if(openSequence===biteRestaurantOpenSequence&&!BITE_DIRECT_MODE)window.scrollTo({top:0,behavior:'smooth'})}
+ window.BiteCustomerExtras?.renderFavouriteButton();appliedCheckoutCoupon=null;checkoutRequestKey=null;$('menuItems').innerHTML='<div class="empty">Menu load ho raha hai...</div>';try{const [cats,items,reviews]=await Promise.all([sb.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',id).eq('is_active',true).order('sort_order'),sb.from('menu_items').select('id,category_id,name,description,price,is_vegetarian,is_kids_choice,image_url').eq('restaurant_id',id).eq('is_available',true).order('sort_order'),sb.from('restaurant_reviews').select('id,rating,review,response,created_at').eq('restaurant_id',id).eq('status','Published').order('created_at',{ascending:false}).limit(30)]);if(cats.error)throw cats.error;if(items.error)throw items.error;if(reviews.error)throw reviews.error;if(openSequence!==biteRestaurantOpenSequence)return false;const nextMenuItems=items.data||[];if(Array.isArray(options.requiredMenuIds)&&options.requiredMenuIds.length&&!options.requiredMenuIds.some(itemId=>nextMenuItems.some(item=>item.id===itemId)))throw Error('Reorder items are no longer available. Your previous cart is safe.');menuItems=nextMenuItems;renderRestaurantReviews(reviews.data||[]);cart=Object.fromEntries(Object.entries(cart).filter(([itemId,q])=>menuItems.some(i=>i.id===itemId)&&Number.isInteger(Number(q))&&Number(q)>0).map(([itemId,q])=>[itemId,Math.min(99,Number(q))]));itemNotes=BiteItemNotes.normalizeNotes(itemNotes,Object.keys(cart));renderCart();renderMenu(cats.data||[]);window.BiteRestaurantDetails?.render(activeRestaurant,menuItems)}catch(e){
+  if(openSequence!==biteRestaurantOpenSequence)return false;
+  activeRestaurant=previousState.restaurant;
+  menuItems=previousState.menuItems;
+  cart=previousState.cart;
+  itemNotes=previousState.itemNotes;
+  $('customerNote').value=previousState.customerNote;
+  $('cartOrderNote').value=previousState.cartOrderNote;
+  $('checkoutCutlery').checked=previousState.cutleryRequested;
+  appliedCheckoutCoupon=previousState.appliedCheckoutCoupon;
+  checkoutRequestKey=previousState.checkoutRequestKey;
+  // Do not renderCart here: it persists to storage, which must remain untouched on failure.
+  $('menuItems').innerHTML='<div class="empty" role="status">Menu load nahi ho paaya. Aapka cart safe hai. Dobara try karein.</div>';
+  if(!BITE_DIRECT_MODE){
+   showCustomerView('home');
+   if($('resultCount'))$('resultCount').textContent='Menu unavailable. Your cart is safe. Please retry.';
+  }
+  window.BiteHomeCart?.sync?.();
+  console.error(e);
+  return false;
+ }
+ if(openSequence===biteRestaurantOpenSequence&&!BITE_DIRECT_MODE)window.scrollTo({top:0,behavior:'smooth'});
+ return openSequence===biteRestaurantOpenSequence;
+}
 function renderRestaurantReviews(reviews){
  const box=$('restaurantReviews');if(!box)return;
  box.innerHTML=reviews.length?reviews.map(r=>'<article style="border:1px solid #eee;border-radius:12px;padding:12px;margin:9px 0"><div style="display:flex;justify-content:space-between;gap:8px"><strong>'+safe(r.rating)+' ★</strong><small class="muted">'+formatOrderDate(r.created_at)+'</small></div><p style="margin:8px 0">'+safe(r.review)+'</p>'+(r.response?'<div style="background:#f6faf7;border-radius:8px;padding:9px"><strong>Restaurant response</strong><p style="margin:4px 0">'+safe(r.response)+'</p></div>':'')+'<button class="secondary" type="button" data-report-review="'+safe(r.id)+'">Report review</button><div id="reviewReportForm-'+safe(r.id)+'" class="hidden" style="margin-top:10px"><label>Reason</label><select data-report-reason><option>Fake or misleading</option><option>Abusive or inappropriate</option><option>Spam or advertising</option><option>Unrelated to restaurant</option><option>Other</option></select><label>Details (optional)</label><textarea data-report-details rows="2" maxlength="1000" placeholder="Extra detail"></textarea><button class="primary" type="button" data-submit-review-report="'+safe(r.id)+'">Submit report</button><div class="small" data-report-message></div></div></article>').join(''):'<div class="muted">Abhi koi published review nahi hai.</div>';
