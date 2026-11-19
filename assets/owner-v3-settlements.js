@@ -202,7 +202,7 @@
   if(!input?.el)return;
   if(host&&host!==input.el)host.removeEventListener('click',click);
   if(host!==input.el)input.el.addEventListener('click',click);
-  host=input.el;ctx=input;selected='payments';void refresh();
+  host=input.el;ctx=input;selected='payments';return refresh();
  }
  function clear(){
   token++;if(host){host.removeEventListener('click',click);host.replaceChildren();}
