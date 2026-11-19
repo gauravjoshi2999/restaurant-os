@@ -75,3 +75,12 @@ body[data-bite-app="customer"] .bite-reorder-review button:focus-visible{
 @media(prefers-reduced-motion:reduce){
  body[data-bite-app="customer"] .bite-reorder-review *{transition:none!important}
 }
+
+body[data-bite-app="customer"] .bite-reorder-previous-total{
+ font-size:12px;color:#536071;margin:13px 0 0;
+}
+body[data-bite-app="customer"] .bite-reorder-discard{
+ align-self:flex-start;background:#FFF;border:1px solid #E2B2AD;
+ color:#97392F;border-radius:8px;min-height:36px;padding:7px 10px;
+ font-size:12px;font-weight:750;margin-top:4px;
+}
