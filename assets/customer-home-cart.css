@@ -59,3 +59,6 @@ body[data-bite-app="customer"] #cartModal .bite-cart-line-remove{
  #cartFloating #floatingCartRestaurant{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){#cartFloating *{transition:none!important}}
+
+/* Accessible status text without a visible stray line below the floating dock. */
+body[data-bite-app="customer"] #floatingCartRemovedStatus{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
