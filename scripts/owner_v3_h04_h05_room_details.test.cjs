@@ -103,11 +103,27 @@ test('H04/H05 links, assets and responsive CSS are wired into the existing Owner
  assert.match(source,/else if\(action==='room-detail-checkin'\)/);
  assert.match(source,/Reserved today/);
  assert.match(source,/Other \/ unavailable/);
- assert.match(index,/owner-hospitality\.js\?v=20261119-h04h05-1/);
- assert.match(index,/owner-hotel-polish\.css\?v=20261119-h04h05-1/);
+ assert.match(index,/owner-hospitality\.js\?v=20261119-h04filter1/);
+ assert.match(index,/owner-hotel-polish\.css\?v=20261119-h04filter1/);
  assert.match(css,/Owner V3 H04–H05/);
  assert.match(css,/@media\(max-width:480px\)/);
  assert.match(css,/@media\(max-width:350px\)/);
  const body=source.slice(source.indexOf('function roomDetailMarkup('),source.indexOf('function renderHome()'));
  assert.doesNotMatch(body,/\.(?:insert|upsert|update|delete)\(/,'room detail must be read-only');
+});
+
+
+test('H04 floor and room-type filtering remains read-only, reversible and correctly scoped',()=>{
+ assert.match(source,/data-room-filter="floor"/);
+ assert.match(source,/data-room-filter="type"/);
+ assert.match(source,/data-room-floor/);
+ assert.match(source,/data-room-type/);
+ assert.match(source,/function applyRoomFilters\(target\)/);
+ assert.match(source,/roomFilters=\{floor:'',type:''\}/);
+ assert.match(source,/data-room-filter-empty/);
+ assert.match(source,/card\.style\.setProperty\('display','none','important'\)/);
+ assert.match(source,/Clear filters/);
+ assert.match(css,/\.bh-room-card\[hidden\]/);
+ const body=source.slice(source.indexOf('function applyRoomFilters(target)'),source.indexOf('function pendingRegistration()'));
+ assert.doesNotMatch(body,/\.(?:insert|update|upsert|delete|rpc)\(/);
 });
