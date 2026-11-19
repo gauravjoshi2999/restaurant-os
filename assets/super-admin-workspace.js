@@ -7,7 +7,7 @@
  const secondary=[['orders','Orders'],['platform-commission','Commission'],['support','Customer support'],['platform-reports','Reports'],['audit','Audit log'],['customers','Customers'],['moderation','Review reports'],['storefront','Website & offers']];
  const capabilities=Object.freeze({super_admin:Object.freeze([...primary.map(x=>x[0]),...secondary.map(x=>x[0])])});
  const custom=new Set(['overview','restaurants','orders','financials','platform-commission','platform-reports']);
- let ctx=null,serial=0,actor=null,current='overview',rows=[],offset=0,total=0,filter='all',search='',tab='payments',detail=null,commission=null,report=null,commissionRequest=0,refreshTimer=null;
+ let ctx=null,serial=0,actor=null,current='overview',rows=[],offset=0,total=0,filter='all',search='',restaurantFilter='',tab='payments',detail=null,commission=null,report=null,commissionRequest=0,refreshTimer=null;
  const $=id=>document.getElementById(id);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const money=v=>v==null?'Awaiting confirmation':new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(v));
@@ -60,7 +60,7 @@
  async function open(id){
   if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;
   clearTimeout(refreshTimer);mount();const changed=current!==id;current=id;selectNav();$('saMore').open=false;
-  if(changed){offset=0;filter='all';search='';detail=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());document.querySelectorAll('.sa-advanced').forEach(n=>n.open=false);}
+  if(changed){offset=0;filter='all';search='';restaurantFilter='';detail=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());document.querySelectorAll('.sa-advanced').forEach(n=>n.open=false);}
   if(!custom.has(id))return;
   const token=++serial;
   try{
@@ -109,7 +109,8 @@
    if(filter==='active')q=q.in('status',['Received','New','Accepted','Preparing','Ready','Handed Over']);
    if(filter==='completed')q=q.eq('status','Completed');
    if(filter==='cancelled')q=q.in('status',['Cancelled','Rejected']);
-   if(search)q=q.ilike('order_code','%'+search.replace(/[%_\\]/g,'\\$&')+'%');
+   if(filter!=='delayed'&&restaurantFilter)q=q.eq('restaurant_id',restaurantFilter);
+   if(filter!=='delayed'&&search)q=q.ilike('order_code','%'+search.replace(/[%_\\]/g,'\\$&')+'%');
   }else if(type==='payments'){
    q=ctx.sb.from('order_financials').select('*,orders!inner(order_code,channel,is_demo)',{count:'exact'}).eq('channel','Own Platform').eq('is_demo',false).eq('orders.channel','Own Platform').eq('orders.is_demo',false).order('created_at',{ascending:false}).order('id');
    if(filter!=='all')q=q.eq('payment_status',filter);
@@ -127,8 +128,10 @@
   rows=attention?(response.data.rows||[]):response.data||[];
   total=attention?Number(response.data.total_count):response.count??rows.length;
   const options=type==='restaurants'?[['all','All'],['pending','Pending review'],['active','Active'],['paused','Paused'],['unassigned','Owner unassigned']]:type==='orders'?[['all','All'],['active','Active'],['delayed','Delayed'],['completed','Completed'],['cancelled','Cancelled']]:type==='payments'?[['all','All'],['paid','Paid'],['pending','Pending'],['refunded','Refunded'],['partially_refunded','Partially refunded']]:type==='settlements'?[['all','All'],['pending','Pending'],['draft','Draft'],['approved','Approved'],['paid','Paid']]:[['all','All'],['followup','Needs follow-up'],['pending_approval','Requested'],['approved','Approved'],['processing','Processing'],['submitted','Submitted'],['refunded','Refunded'],['failed','Needs attention'],['rejected','Rejected']];
+  const choices=type==='orders'&&filter!=='delayed'?(ctx.getState().restaurants||[]).filter(r=>/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(r?.id)&&typeof r?.name==='string').sort((a,b)=>a.name.localeCompare(b.name)):[];
+  const restaurantPicker=type==='orders'&&filter!=='delayed'?'<label>Restaurant<select name="restaurant"><option value="">All restaurants</option>'+choices.map(r=>'<option value="'+esc(r.id)+'" '+(restaurantFilter===r.id?'selected':'')+'>'+esc(r.name)+'</option>').join('')+'</select></label>':'';
   const tabs=current==='financials'?'<div class="sa-tabs" role="tablist" aria-label="Financial records">'+['payments','settlements','refunds'].map(t=>'<button type="button" role="tab" aria-selected="'+(tab===t)+'" data-sa-tab="'+t+'">'+t[0].toUpperCase()+t.slice(1)+'</button>').join('')+'</div>':'';
-  host(current).innerHTML=heading(titles[type],type==='orders'?'Website orders · Monitoring':type==='restaurants'?'Review restaurants and help owners sign in':'Collection, refunds and bank payouts have separate statuses')+tabs+'<form id="saListFilters" class="sa-filters"><label>Status<select name="filter">'+options.map(([v,l])=>'<option value="'+v+'" '+(v===filter?'selected':'')+'>'+l+'</option>').join('')+'</select></label>'+(['restaurants','orders'].includes(type)?'<label class="sa-search">'+(type==='restaurants'?'Search restaurant':'Search order code')+'<input name="search" type="search" maxlength="80" value="'+esc(search)+'" placeholder="Type to search"></label>':'')+'<button class="btn secondary" type="submit">Apply</button></form>'+status()+'<div class="sa-records">'+(rows.length?rows.map(r=>record(type,r)).join(''):'<div class="sa-card sa-empty">No matching records.</div>')+'</div>'+pagination()+(['restaurants','financials'].includes(current)?button('More management tools','advanced',current):'');pageButtons();
+  host(current).innerHTML=heading(titles[type],type==='orders'?'Website orders · Monitoring':type==='restaurants'?'Review restaurants and help owners sign in':'Collection, refunds and bank payouts have separate statuses')+tabs+'<form id="saListFilters" class="sa-filters"><label>Status<select name="filter">'+options.map(([v,l])=>'<option value="'+v+'" '+(v===filter?'selected':'')+'>'+l+'</option>').join('')+'</select></label>'+restaurantPicker+(['restaurants','orders'].includes(type)&&!(type==='orders'&&filter==='delayed')?'<label class="sa-search">'+(type==='restaurants'?'Search restaurant':'Search order code')+'<input name="search" type="search" maxlength="80" value="'+esc(search)+'" placeholder="Type to search"></label>':'')+'<button class="btn secondary" type="submit">Apply</button></form>'+(type==='orders'&&filter==='delayed'?'<p class="sa-footnote">Delayed orders use a platform-wide server alert rule. Restaurant and order-code filters are not applied to this view.</p>':'')+status()+'<div class="sa-records">'+(rows.length?rows.map(r=>record(type,r)).join(''):'<div class="sa-card sa-empty">No matching records.</div>')+'</div>'+pagination()+(['restaurants','financials'].includes(current)?button('More management tools','advanced',current):'');pageButtons();
  }
  function record(type,r){
   const id=type==='payments'?r.order_id:r.id;
@@ -209,7 +212,7 @@
  }
  function labelTables(id){for(const table of $(id)?.querySelectorAll('table')||[]){const labels=[...table.querySelectorAll('thead th')].map(t=>t.textContent);for(const row of table.querySelectorAll('tbody tr'))[...row.children].forEach((cell,i)=>cell.dataset.saLabel=labels[i]||'Details');}}
  async function navigate(id){if(!authorized()||!allowed(ctx.getAccess().role).includes(id))return;$('saMore').open=false;await ctx.navigate(id);}
- function clear(){restoreLanguage();serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
+ function clear(){restoreLanguage();serial++;commissionRequest++;clearTimeout(refreshTimer);actor=null;current='overview';tab='payments';offset=0;filter='all';search='';restaurantFilter='';rows=[];detail=null;commission=null;report=null;document.querySelectorAll('.sa-workspace').forEach(n=>n.replaceChildren());$('saMore')?.removeAttribute('open');if($('saAccount'))$('saAccount').textContent='';}
  function init(config){ctx=config;setInterval(()=>{if(authorized()&&document.visibilityState==='visible'&&['overview','orders','financials'].includes(current)&&!detail&&!document.activeElement?.closest('form'))void open(current);},60000);document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-sa-route],[data-sa-attention],[data-sa-tab],[data-sa-action]');if(!el||!el.closest('[data-sa-ui]')||!authorized())return;
   if(el.dataset.saRoute){await navigate(el.dataset.saRoute);return;}
@@ -233,7 +236,7 @@
  });
  document.addEventListener('submit',async e=>{if(!e.target.closest('[data-sa-ui]')||!authorized())return;const f=e.target;
   if(!['saListFilters','saRequestChanges','saCommissionForm','saReportForm'].includes(f.id))return;e.preventDefault();
-  if(f.id==='saListFilters'){filter=f.elements.filter.value;search=(f.elements.search?.value||'').trim();offset=0;await open(current);}
+  if(f.id==='saListFilters'){filter=f.elements.filter.value;search=(filter==='delayed'?'':f.elements.search?.value||'').trim();restaurantFilter=current==='orders'&&filter!=='delayed'?(f.elements.restaurant?.value||''):'';offset=0;await open(current);}
   else if(f.id==='saRequestChanges'){e.submitter.disabled=true;try{await review('request_changes',f.elements.note.value.trim());}finally{e.submitter.disabled=false;}}
   else if(f.id==='saCommissionForm')await saveCommission(f,e.submitter);
   else {const token=++serial;try{await reports(token,{from:f.elements.from.value,to:f.elements.to.value});}catch(error){if(valid(token))message(error.message,true);}}
