@@ -53,6 +53,7 @@
   return new Promise(resolve=>{
    const dialog=document.createElement('dialog');
    dialog.className='bite-reorder-review';
+   dialog.setAttribute('role','dialog');
    dialog.setAttribute('aria-labelledby','biteReorderReviewTitle');
    dialog.setAttribute('aria-describedby','biteReorderReviewInfo');
    const heading=document.createElement('header');
