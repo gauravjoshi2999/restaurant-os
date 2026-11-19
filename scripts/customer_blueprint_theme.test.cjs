@@ -60,6 +60,13 @@ test('Detailed food preference is available inside Filters, not as a prominent d
  assert.match(css,/#biteFilterApply/);
 });
 
+test('Customer logo is warm-orange and does not alter the shared platform mark',()=>{
+ const mark=fs.readFileSync('assets/bite-customer-orange-mark.svg','utf8');
+ assert.match(mark,/fill="#B7420B"/);
+ assert.doesNotMatch(mark,/#087B4D/i);
+ assert.match(html,/assets\\/bite-customer-orange-mark\\.svg\\?v=20261119-orange1/);
+ assert.equal((html.match(/bite-customer-orange-mark\\.svg/g)||[]).length>=2,true);
+});
 test('Theme does not modify transactions, customer orders or other panels',()=>{
  assert.doesNotMatch(css,/fetch\(|sb\.|Cashfree|supabase|payment_session|window\.|localStorage|--green:/i);
  assert.doesNotMatch(css,/(?:^|[\s,{])(?:#owner|#admin|#superAdmin|body\[data-bite-app="owner"\])/i);
