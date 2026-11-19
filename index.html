@@ -747,6 +747,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
 <link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
 <link rel="stylesheet" href="assets/owner-supplier-dues.css?v=20261119-a04-dues1">
+<link rel="stylesheet" href="assets/owner-v3-khata.css?v=20261119-a05-1">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -1121,7 +1122,17 @@ body.bite-session-check #biteSessionSplash{
 
 <section class="page" id="khata">
  <div class="welcome"><div><h1>Customer Khata</h1><div class="muted">Customer ka udhar, jama aur bacha hua balance.</div></div><button class="btn secondary" type="button" onclick="loadKhataData()">Refresh</button></div>
- <div class="notice">Yahan opening balance, udhar aur customer se mili jama entry record hoti hai. Saved mobile number se linked POS sale aur payment bhi Khata me automatically dikhenge. Jama payment Cashbook me income banegi; POS payment dobara manually enter na karein.</div>
+ <div class="notice">Opening dues, original POS bills, POS payments, refunds and manual receipts are linked in one Khata. A manual receipt is a Cashbook collection, not a second sale. Never enter a POS payment again.</div>
+ <div class="v3-khata-toolbar">
+  <div class="v3-khata-find"><label for="khataV3Search">Find customer by name or mobile
+    <input id="khataV3Search" placeholder="Name / mobile" type="search" autocomplete="off"></label></div>
+  <div class="v3-khata-filters" role="group" aria-label="Customer balance filter">
+   <button type="button" data-v3-khata-filter="all" aria-pressed="true">All customers</button>
+   <button type="button" data-v3-khata-filter="due" aria-pressed="false">Due</button>
+   <button type="button" data-v3-khata-filter="advance" aria-pressed="false">Advance</button>
+   <button type="button" data-v3-khata-filter="clear" aria-pressed="false">Clear</button>
+  </div>
+ </div>
  <div class="card"><div class="form-row" style="align-items:end">
   <div class="field"><label>Restaurant</label><select id="khataRestaurant"></select></div>
   <div class="field"><label>Khata status</label><div class="small" id="khataStatus">Loading…</div></div>
@@ -1141,7 +1152,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="actions"><button class="btn" type="button" onclick="saveKhataCustomer()">＋ Save customer</button><span class="small" id="khataCustomerMessage" role="status"></span></div>
   </div>
   <div class="card">
-   <div class="section-head"><h2>New Khata entry</h2><span class="small">Udhar / Jama</span></div>
+   <div class="section-head"><h2>New Khata entry</h2><span class="small">Udhar / Jama</span></div><p class="v3-khata-caution">If this is an old due, verify it has not already been imported as a POS bill. For a receipt, use the actual date the money arrived.</p>
    <div class="form-row">
     <div class="field"><label>Customer *</label><select id="khataEntryCustomer"></select></div>
     <div class="field"><label>Entry type *</label><select id="khataEntryType"><option value="debit">Udhar / Debit</option><option value="credit">Jama / Payment received</option></select></div>
@@ -1151,13 +1162,15 @@ body.bite-session-check #biteSessionSplash{
     <div class="field"><label>Reference</label><input id="khataEntryReference" maxlength="100" placeholder="Bill / receipt no."></div>
    </div>
    <div class="field"><label>Description</label><input id="khataEntryDescription" maxlength="250" placeholder="Opening balance, bill no. or payment note"></div>
-   <div class="actions"><button class="btn" type="button" onclick="saveKhataEntry()">Save Khata entry</button><span class="small" id="khataEntryMessage" role="status"></span></div>
+   <div class="actions"><button class="btn" id="khataSaveEntryBtn" type="button" onclick="saveKhataEntry()">Save Khata entry</button><span class="small" id="khataEntryMessage" role="status"></span></div>
   </div>
  </div>
  <div class="section"><div class="section-head"><h2>Customer accounts</h2><span class="small" id="khataListCount">0 customers</span></div>
-  <div class="card table-wrap"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Balance</th><th>Khata</th></tr></thead><tbody id="khataCustomerRows"></tbody></table><div class="empty" id="khataCustomerEmpty">No customer accounts added.</div></div>
+  <div id="khataV3Cards" aria-label="Mobile customer account cards"></div>
+  <div class="card table-wrap v3-khata-desktop-table"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Status</th><th>Balance</th><th>Khata</th></tr></thead><tbody id="khataCustomerRows"></tbody></table><div class="empty" id="khataCustomerEmpty">No customer accounts added.</div></div>
  </div>
  <div class="section" id="khataLedgerSection" tabindex="-1"><div class="section-head"><h2 id="khataLedgerTitle">Customer ledger</h2><span class="small" id="khataLedgerBalance">Select a customer</span></div>
+  <div id="khataV3Statement" class="v3-khata-statement"></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Entry</th><th>Description</th><th>Payment mode</th><th>Amount</th><th>Balance after entry</th></tr></thead><tbody id="khataLedgerRows"></tbody></table><div class="empty" id="khataLedgerEmpty">Select a customer to view their Khata.</div></div>
  </div>
 </section>
@@ -1410,7 +1423,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
