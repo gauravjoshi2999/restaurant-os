@@ -11,7 +11,7 @@ const end=html.indexOf('\nfunction renderRestaurantReviews(',start);
 assert.ok(start>=0&&end>start,'real restaurant-opening source must be present');
 const source=html.slice(start,end);
 
-function setup({menuError=false,confirmSwitch=true,matchingMenu=true}={}){
+function setup({menuError=false,confirmSwitch=true,matchingMenu=true,renderMenuError=false}={}){
  const previousRestaurant={id:'restaurant-old',name:'Old Restaurant',cuisine_tags:['Indian'],city:'Jaipur',accepts_delivery:true};
  const nextRestaurant={id:'restaurant-next',name:'Next Restaurant',cuisine_tags:['Indian'],city:'Jaipur',accepts_delivery:true};
  const oldItems=[{id:'old-dish',price:100,name:'Old meal'}];
@@ -38,7 +38,7 @@ function setup({menuError=false,confirmSwitch=true,matchingMenu=true}={}){
   BiteDiscovery:{isClosed:()=>false},
   BiteRestaurantCovers:{choose:()=>({})},
   setCustomerCoverImage(){},refreshCustomerCoverPhotos(){},
-  renderMenu(){},renderMenuItems(){},renderRestaurantReviews(){},
+  renderMenu(){if(renderMenuError)throw Error('Menu UI could not render');},renderMenuItems(){},renderRestaurantReviews(){},
   renderCart(){calls.renderCart++;persistent.items={...ctx.cart};},
   showCustomerView(view){calls.view=view;},
   $:field,console:{error(){},warn(){}},
@@ -91,6 +91,15 @@ test('confirmed switch commits replacement only after published menu succeeds',a
  assert.deepEqual({...x.ctx.cart},{});
  assert.equal(x.calls.renderCart,1);
  assert.deepEqual(x.persistent.items,{});
+});
+
+test('menu UI rendering failure does not save an empty replacement cart',async()=>{
+ const x=setup({renderMenuError:true});
+ assert.equal(await x.ctx.openRestaurantTest('restaurant-next'),false);
+ assert.equal(x.ctx.activeRestaurant.id,'restaurant-old');
+ assert.deepEqual({...x.ctx.cart},{'old-dish':2});
+ assert.deepEqual(x.persistent.items,{'old-dish':2});
+ assert.equal(x.calls.renderCart,0,'cart must not be persisted until the menu UI is valid');
 });
 
 test('reorder preflight mismatch cannot wipe an existing cart',async()=>{
