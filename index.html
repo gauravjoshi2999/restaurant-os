@@ -719,7 +719,7 @@ body.bite-session-check #biteSessionSplash{
 .order-cooking-note-inbox{margin:10px 0 4px}
 </style>
 <link rel="stylesheet" href="assets/owner-pos-menu-workspace.css">
-<link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261117-s1">
+<link rel="stylesheet" href="assets/bite-pos-v2.css?v=20261119-receipt1">
 <link rel="stylesheet" href="assets/bite-pos-reports.css?v=20261118-historical-report1">
 <link rel="stylesheet" href="assets/bite-pos-visits.css?v=20261117-step2">
 <link rel="stylesheet" href="assets/owner-home-finance.css">
@@ -1386,8 +1386,15 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 .pos-draft-actions .btn{min-height:38px;padding:8px 11px}
 @media(max-width:650px){.pos-draft-toolbar,.pos-draft-card{align-items:stretch;flex-direction:column}.pos-draft-actions .btn{flex:1}}
 </style>
+<style>
+.pos-original-receipts{display:inline-block;margin:3px 5px 4px 0;vertical-align:middle;max-width:100%}
+.pos-original-receipts summary{cursor:pointer;color:#a34a12;font-weight:750;font-size:12px;min-height:36px;padding:7px 9px;border:1px solid #efc4a1;border-radius:9px}
+.pos-original-receipt-items{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0}
+.pos-original-receipt-items .btn{font-size:11px;min-height:38px;max-width:100%;white-space:normal}
+@media(max-width:430px){.pos-original-receipts,.pos-original-receipt-items .btn{width:100%}}
+</style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
-<script src="./assets/bite-pos-v2.js?v=20261117-s1"></script>
+<script src="./assets/bite-pos-v2.js?v=20261119-receipt1"></script>
 <script src="./assets/bite-pos-reports.js?v=20261118-historical-report1"></script>
 <script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
@@ -1423,7 +1430,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-pos-receipt1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -3847,6 +3854,20 @@ function loadPOSWorkspace(){
  void window.BitePOSVisits?.refresh?.(sb,access.restaurantId,()=>renderPOSWorkspace());
  void window.BitePOS?.refreshDrafts();
 }
+function posDailyBookReceipts(orderId,restaurantId){
+ if(access.role!=='owner'||!window.BiteHotelAccounts?.enabled?.()||
+    !window.BiteHospitality?.routeList?.(access)?.includes('daily-book'))return [];
+ return (state.orderPayments||[]).filter(row=>row.order_id===orderId&&row.restaurant_id===restaurantId&&
+  window.BiteHotelAccounts.findPosReceipt?.(state,restaurantId,orderId,row.id)&&
+  row.payment_date<=localDateInput()).slice().sort((a,b)=>String(b.payment_date).localeCompare(String(a.payment_date)));
+}
+async function showPOSReceiptInDailyBook(orderId,paymentId){
+ const userId=currentUser?.id,rid=access.restaurantId;
+ if(access.role!=='owner'||!userId||!rid)return;
+ const result=await window.BiteHotelAccounts?.focusPosReceipt?.(orderId,paymentId);
+ if(currentUser?.id===userId&&access.role==='owner'&&access.restaurantId===rid&&result&&!result.ok)
+  alert(result.reason||'Daily Book payment source could not be verified.');
+}
 function renderPOSWorkspace(){
  // The owner has exactly one linked restaurant. Never expose another tenant's POS data.
  const rid=access.role==='owner'?access.restaurantId:null;
@@ -3868,10 +3889,13 @@ function renderPOSWorkspace(){
   const payment=roomLinked?'<span class="pill">Room folio</span>':isVoid?'<span class="pill amber">Voided</span>':Number(p.balance_amount)>0?
     '<button class="btn secondary" onclick="openPaymentModal(&quot;'+esc(o.id)+'&quot;)">Add payment</button>':'<span class="pill green">Paid</span>';
   const invoice=roomLinked?(posted?'<button type="button" class="btn secondary" data-room-folio-invoice onclick="BiteHospitality.printStatement(&quot;'+esc(posted.folio_id)+'&quot;)">Guest folio / PDF</button>':'<button type="button" class="btn secondary" onclick="showPage(&quot;settings&quot;)">Review hotel modules</button>'):'<button type="button" class="btn secondary" onclick="printOwnerInvoice(&quot;'+esc(o.id)+'&quot;)">Bill / PDF</button>';
+  const receipts=!roomLinked&&!isVoid?posDailyBookReceipts(o.id,rid):[];
+  const receiptLink=receipts.length?'<details class="pos-original-receipts"><summary>Daily Book · '+receipts.length+' receipt(s)</summary><div class="pos-original-receipt-items">'+
+   receipts.map(r=>'<button type="button" class="btn secondary" onclick="showPOSReceiptInDailyBook(&quot;'+esc(o.id)+'&quot;,&quot;'+esc(r.id)+'&quot;)">'+esc(r.payment_date)+' · '+money(r.amount)+'</button>').join('')+'</div></details>':'';
   const share=access.role==='owner'&&!o.isDemo&&!isVoid&&window.BiteDirectOrder?.normalizeIndianMobile(o.customerPhone)?
    '<button type="button" class="btn secondary" onclick="sharePosBillForOrder(&quot;'+esc(o.id)+'&quot;)">WhatsApp Bill</button>':'';
   const correction=canCorrect?'<button type="button" class="btn secondary" onclick="BitePOS.editSavedPos(&quot;'+esc(o.id)+'&quot;)">Edit</button><button type="button" class="btn secondary" onclick="BitePOS.voidSavedPos(&quot;'+esc(o.id)+'&quot;)">Void</button>':'';
-  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+(visit?'<br><small>'+esc(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people')+'</small>':'')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+share+correction+'</td></tr>';
+  return '<tr><td>'+esc(new Date(o.createdAt).toLocaleDateString('en-IN'))+'</td><td><strong>'+esc(o.code)+'</strong></td><td>'+esc(o.customerName||'Walk-in')+'</td><td>'+(isVoid?'Voided':'Sale')+(visit?'<br><small>'+esc(visit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+visit.guest_count+' people')+'</small>':'')+'</td><td>'+money(Math.max(0,o.amount-Number(o.waivedOffAmount||0)))+(o.waivedOffAmount>0?'<br><small>Discount / waiver '+money(o.waivedOffAmount)+'</small>':'')+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+(roomLinked?'Transferred':money(p.balance_amount))+'</strong></td><td>'+payment+'</td><td>'+invoice+receiptLink+share+correction+'</td></tr>';
  }).join('');
  document.getElementById('posEmpty').style.display=orders.length?'none':'block';
  // Separate the mobile POS summary from the canonical bill-save, payment,
@@ -3880,7 +3904,9 @@ function renderPOSWorkspace(){
   restaurantId:rid,userId:currentUser?.id,client:sb,
   orders:orders.map(o=>{
    const p=paymentSummaryFor(o.id);
-   return {...o,posVisit:window.BitePOSVisits?.detail?.(o.id)||null,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
+   const receipt=posDailyBookReceipts(o.id,rid)[0];
+   return {...o,receipt:receipt?{id:receipt.id,date:receipt.payment_date}:null,
+    posVisit:window.BitePOSVisits?.detail?.(o.id)||null,roomLinked:!!window.BiteHospitality?.postedOrder(o.id),
     receivedAmount:Number(p.paid_amount||0),dueAmount:Number(p.balance_amount||0)};
   })
  });
