@@ -10,3 +10,20 @@ test('older register entries use issued guest identity before the current profil
 test('register export includes all rows and excludes private photo identifiers or URLs',()=>{
  const rows=R.records({guests:[{id:'g',full_name:'Synthetic guest',phone:'9999999999'}],stays:[{id:'s',guest_id:'g',register_number:1,arrival:'2026-11-17',registration:{id_front:'PRIVATE-FRONT',id_back:'PRIVATE-BACK',additional_ids:[{name:'Companion',id_front:'PRIVATE-COMPANION'}]}}]});const sheet=R.exportRows(rows);assert.equal(sheet.length,2);assert(sheet[0].includes('Permanent address'));assert(sheet[1].includes('Companion'));assert(!JSON.stringify(sheet).includes('PRIVATE-'));assert(sheet[1].includes('Yes'));
 });
+
+
+test('H06 original entry date supports Day, Month and Range without changing saved stays',()=>{
+ const rows=R.records({stays:[
+  {id:'oct',arrival:'2026-10-01',registration:{entry_date:'2026-10-01'}},
+  {id:'nov10',arrival:'2026-11-10',registration:{entry_date:'2026-11-10'}},
+  {id:'nov12',arrival:'2026-11-12',registration:{entry_date:'2026-11-12'}},
+  {id:'bad',arrival:'2026-10-11',registration:{entry_date:'invalid-date'}}
+ ]});
+ const select=period=>rows.filter(r=>R.inPeriod(r,period)).map(r=>r.id);
+ assert.deepEqual(select(null),['nov12','nov10','bad','oct']);
+ assert.deepEqual(select({mode:'day',from:'2026-10-01',to:'2026-10-01'}),['oct']);
+ assert.deepEqual(select({mode:'month',from:'2026-11-01',to:'2026-11-19'}),['nov12','nov10']);
+ assert.deepEqual(select({mode:'range',from:'2026-10-01',to:'2026-11-10'}),['nov10','oct']);
+ assert.deepEqual(select({mode:'day',from:'2026-09-10',to:'2026-09-10'}),[]);
+ assert.equal(rows.length,4,'Only the read-only filtered presentation changes');
+});
