@@ -117,3 +117,12 @@ test('A05 receipt RPC is request-idempotent, tenant/role guarded and original-le
  assert.match(html,/function collectKhataDue\(customerId\)/);
  assert.doesNotMatch(sql,/create table.*customer.*khata.*ledger/i);
 });
+
+test('A05 unverified customer never appears as Clear or collectible due',()=>{
+ const list=[{id:'missing',full_name:'Unknown',status:'Active'},{id:'null',full_name:'Null',status:'Active'}];
+ const balances=[{customer_id:'null',balance:null}];
+ assert.equal(khata.filterCustomers(list,balances,'','all').length,2);
+ assert.equal(khata.filterCustomers(list,balances,'','clear').length,0);
+ assert.equal(khata.filterCustomers(list,balances,'','due').length,0);
+ assert.equal(khata.filterCustomers(list,balances,'','advance').length,0);
+});
