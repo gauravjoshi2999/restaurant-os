@@ -10,7 +10,7 @@ const LABELS={
  'Handed Over':'Out for delivery',Delivered:'Order delivered',Completed:'Order completed',
  Cancelled:'Order cancelled',Rejected:'Restaurant could not accept your order'
 };
-function createController(onAlert=()=>{}){
+function createController(onAlert=()=>{},onVerified=()=>{}){
  let userId=null,enabled=false;
  const known=new Map();
  function setUser(id){
@@ -30,8 +30,13 @@ function createController(onAlert=()=>{}){
     typeof row.id!=='string'||typeof row.status!=='string')return false;
   const before=known.get(row.id)||payload?.old?.status||null;
   known.set(row.id,row.status);
-  if(!enabled||!before||before===row.status)return false;
+  if(!before||before===row.status)return false;
   const label=LABELS[row.status]||'Order status updated';
+  // Deliver an authenticated, ownership-checked transition to the current-session center.
+  // The alert preference controls toast visibility, not the verified order record.
+  if(Object.prototype.hasOwnProperty.call(LABELS,row.status))
+   onVerified({userId,orderId:row.id,status:row.status,label});
+  if(!enabled)return false;
   onAlert(label);
   return true;
  }
@@ -72,7 +77,9 @@ function attachBrowser(){
   document.body.append(toast);
   dismissTimer=root.setTimeout(dismiss,6000);
  }
- const core=createController(emit);
+ const core=createController(emit,detail=>{
+  document.dispatchEvent(new CustomEvent('bite:verified-order-update',{detail}));
+ });
  function useSession(session){
   const user=session?.user||null;
   const old=core.currentUser();
