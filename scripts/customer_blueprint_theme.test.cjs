@@ -36,6 +36,7 @@ test('Approved Bite palette uses AA-readable dark-orange text buttons',()=>{
  assert.match(css,/--bite-brand-orange:#F36C22/);
  assert.match(css,/--bite-primary:#B7420B/);
  assert.match(css,/--bite-canvas:#F8F6F2/);
+ assert.match(css,/--bite-surface:#FFFEFC/);
  assert.match(css,/--bite-ink:#1F293D/);
  assert.ok(contrast('#B7420B','#FFFFFF')>=4.5);
  assert.ok(contrast('#1F293D','#F8F6F2')>=7);
