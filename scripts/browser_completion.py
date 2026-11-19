@@ -420,8 +420,19 @@ try:
   customer.screenshot(path=str(OUT/'ui-order-details-premium.png'),full_page=True)
   customer.locator('#biteDetailBack').click()
   order_card.wait_for(state='visible')
-  customer.locator('[data-reorder]').click();customer.locator('#cartModal.show').wait_for(state='visible')
-  check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),'Reorder opens a reviewable cart with current available items')
+  customer.locator('[data-reorder]').click()
+  review=customer.locator('dialog.bite-reorder-review[open]')
+  review.wait_for(state='visible')
+  check('QA Veg Thali' in review.inner_text()
+    and 'Current available items subtotal' in review.inner_text(),
+    'Reorder displays current verified menu items and subtotal before cart replacement')
+  check(not customer.locator('#cartModal.show').is_visible(),
+    'Reorder does not silently replace the cart before review confirmation')
+  customer.screenshot(path=str(OUT/'ui-customer-reorder-review.png'),full_page=False)
+  review.get_by_role('button',name='Continue to cart').click()
+  customer.locator('#cartModal.show').wait_for(state='visible')
+  check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),
+    'Confirmed Reorder opens editable cart with current available items')
   check(customer.locator('#cartModalLines [data-cart-inc]').first.get_attribute('aria-label').startswith('Add one')
     and customer.locator('#cartModalLines [data-cart-dec]').first.get_attribute('aria-label').startswith('Remove one'),
     'Cart quantity controls have accessible dish-specific names')
