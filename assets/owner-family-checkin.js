@@ -45,7 +45,7 @@
    holder.querySelector('[data-family-fields]').hidden=!on;
    const primary=form.elements.room_id.value,arrival=form.elements.arrival.value,departure=form.elements.departure.value;
    const d=workspace.stays||[],guard=root.BiteCheckinGuard?.roomAvailability,checkoutMode=form.elements.mode.value;
-   let count=1,base=Number(form.elements.nightly_rate?.value??rooms.find(r=>String(r.id)===primary)?.nightly_rate??0),adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0)||Number(form.elements.adults?.value||0);
+   let count=1,base=Number(form.elements.nightly_rate?.value??rooms.find(r=>String(r.id)===primary)?.nightly_rate??0),adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0)||Number(form.elements.adults?.value||0),children=Number(form.elements.children?.value||0);
    for(const row of holder.querySelectorAll('[data-family-room]')){
     const id=row.dataset.familyRoom,room=rooms.find(x=>String(x.id)===id),box=row.querySelector('input[type=checkbox]'),fields=row.querySelector('.bf-room-fields');
     const reason=id===primary?'Lead room already selected':(guard&&arrival&&departure?guard(room,d,arrival,departure,checkoutMode,'',today(),{...prop(),housekeeping_enabled:root.BiteHospitality?.housekeepingVisible?.()}):'');
@@ -53,10 +53,10 @@
     if(unavailable&&box.checked)box.checked=false;
     box.disabled=unavailable;row.querySelector('[data-family-room-status]').textContent=reason||'';
     fields.hidden=!box.checked;
-    if(on&&box.checked){count++;base+=Number(form.elements['family_rate_'+id]?.value||0);adult+=Number(form.elements['family_adults_'+id]?.value||0);}
+    if(on&&box.checked){count++;base+=Number(form.elements['family_rate_'+id]?.value||0);adult+=Number(form.elements['family_adults_'+id]?.value||0);children+=Number(form.elements['family_children_'+id]?.value||0);}
    }
    const nights=Math.max(0,Math.round((Date.parse(departure)-Date.parse(arrival))/86400000)||0);
-   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · Estimated room rent '+money(base*nights)+(nights>0?' for '+nights+' night(s)':'')+' (tax/fees shown at review)':'';
+   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · '+children+' children · '+(adult+children)+' guests · Estimated room rent '+money(base*nights)+(nights>0?' for '+nights+' night(s)':'')+' (tax/fees shown at review)':'';
    if(form.elements.additional_ids&&form.querySelector('[data-ha-id-card]'))root.BiteCheckinFlow?.sync?.(form);
   };
   holder.addEventListener('change',e=>{
