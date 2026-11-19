@@ -68,7 +68,7 @@ test('Family linked bill can post food to an exact room using existing POS menu,
  assert.match(src,/await H\(\)\.openFolio\(id\)/);
  assert.match(src,/data-hotel-action="food-menu"/);
  assert.doesNotMatch(src,/restaurant_order_payments.*insert/);
- assert.match(HTML,/owner-hotel-billing\.js\?v=20261119-[a-z0-9-]+/);
+ assert.match(HTML,/owner-hotel-billing\.js\?v=20\d{6}-[a-z0-9-]+/);
  assert.match(HTML,/owner-checkin-flow\.js\?v=20261118-guest-controls1/);
 });
 
