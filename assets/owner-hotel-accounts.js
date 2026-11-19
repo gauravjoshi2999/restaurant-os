@@ -385,10 +385,16 @@
   renderOldPosReconciliation(body,{from,to,key,version});
  }
 
+ function linkedRegisterRestaurant(){
+  const outlets=Array.isArray(p()?.outlets)?p().outlets.filter(x=>/^[0-9a-f-]{36}$/i.test(String(x))):[];
+  const active=ctx.getAccess?.()?.restaurantId;
+  // Never guess across multiple restaurants; use only a linked selected outlet.
+  return active&&outlets.includes(active)?active:outlets.length===1?outlets[0]:'';
+ }
  // Keep the imported old-register snapshot separate from posted account movements.
  async function openOldPosDay(day,recordId,reportKey,version,restaurantId){
   if(reportKey!==scope()||version!==reportVersion||!p()?.id||!ctx?.getUser?.()?.id||
-     p()?.origin_restaurant_id!==restaurantId)return;
+     linkedRegisterRestaurant()!==restaurantId)return;
   const access=ctx.getAccess?.();
   if(access?.role!=='owner'||access?.restaurantId!==restaurantId||
      !H()?.routeList?.(access)?.includes('pos')){
@@ -401,11 +407,11 @@
   else root.alert?.('POS calendar is unavailable. Open POS → Reports and select '+day+'.');
  }
  function renderOldPosReconciliation(body,{from,to,key,version}){
-  const target=body?.querySelector('#haHistoricalPOS'),restaurantId=p()?.origin_restaurant_id||'';
+  const target=body?.querySelector('#haHistoricalPOS'),restaurantId=linkedRegisterRestaurant()||'';
   if(!target||!root.BiteV3HistoricalReconcile)return;
   const userId=ctx?.getUser?.()?.id;
   const current=()=>!!userId&&ctx?.getUser?.()?.id===userId&&key===scope()&&
-   version===reportVersion&&p()?.origin_restaurant_id===restaurantId;
+   version===reportVersion&&linkedRegisterRestaurant()===restaurantId;
   void root.BiteV3HistoricalReconcile.mount(target,{
    client:ctx.sb,restaurantId,from,to,today:today(),scope:key,
    journal:report?.journal||[],isCurrent:current,
