@@ -1,0 +1,32 @@
+/* Owner V3 A07: one inventory source for desktop and mobile */
+body[data-role="owner"] #inventory .biv3-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 14px}
+body[data-role="owner"] #inventory .biv3-toolbar input{flex:1 1 180px;min-width:0;min-height:44px;border-radius:12px;border:1px solid #ded8d2;padding:9px 12px;background:#fff;color:#252c35;font:inherit}
+body[data-role="owner"] #inventory .biv3-quick-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body[data-role="owner"] #inventory .biv3-quick-nav button{min-height:44px;border-radius:11px;border:1px solid #e8c49e;background:#fff9f2;color:#8f461b;font-weight:750;padding:9px 12px;cursor:pointer}
+body[data-role="owner"] #inventory .biv3-quick-nav button[aria-current="page"]{background:#e95c18;color:#fff;border-color:#e95c18}
+body[data-role="owner"] #inventory .biv3-summary{font-size:12px;color:#6b625b;margin:6px 0 12px}
+body[data-role="owner"] #inventory .biv3-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+body[data-role="owner"] #inventory .biv3-card{background:#fff;border:1px solid #e5e4e6;border-radius:15px;padding:14px;display:grid;gap:10px;min-width:0;box-shadow:0 2px 12px #14141408}
+body[data-role="owner"] #inventory .biv3-card.is-low{border-color:#f1bc83;background:#fffaf4}
+body[data-role="owner"] #inventory .biv3-item{display:grid;gap:3px;min-width:0}
+body[data-role="owner"] #inventory .biv3-item strong{font-size:15px;color:#252c35;overflow-wrap:anywhere}
+body[data-role="owner"] #inventory .biv3-item small{font-size:11px;color:#697384;overflow-wrap:anywhere}
+body[data-role="owner"] #inventory .biv3-values{display:grid;gap:3px}
+body[data-role="owner"] #inventory .biv3-values strong{font-size:20px;color:#2d3340;overflow-wrap:anywhere}
+body[data-role="owner"] #inventory .biv3-values small{font-size:11px;color:#697384}
+body[data-role="owner"] #inventory .biv3-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+body[data-role="owner"] #inventory .biv3-stock-label{font-size:11px;color:#317048;font-weight:800}
+body[data-role="owner"] #inventory .is-low .biv3-stock-label{color:#af5a18}
+body[data-role="owner"] #inventory .biv3-actions button{background:#fff0e4;color:#97460e;border:1px solid #f2bb90;border-radius:9px;min-height:44px;padding:8px 14px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+body[data-role="owner"] #inventory .biv3-actions button:focus-visible,body[data-role="owner"] #inventory .biv3-quick-nav button:focus-visible{outline:3px solid #f3924c;outline-offset:2px}
+body[data-role="owner"] #inventory .biv3-empty{font-size:13px;color:#596474;padding:12px}
+body[data-role="owner"] #inventory #inventoryV3Cards{margin:0 0 15px}
+@media(max-width:760px){
+ body[data-role="owner"] #inventory .biv3-list{grid-template-columns:1fr}
+ body[data-role="owner"] #inventory #inventoryStockTable{display:none}
+ body[data-role="owner"] #inventory .biv3-quick-nav{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ body[data-role="owner"] #inventory .biv3-quick-nav button{font-size:12px;padding:8px}
+ body[data-role="owner"] #inventory .biv3-toolbar input{width:100%}
+ body[data-role="owner"] #inventory .biv3-card{padding:12px}
+}
+@media(min-width:761px){body[data-role="owner"] #inventory #inventoryV3Cards .biv3-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
