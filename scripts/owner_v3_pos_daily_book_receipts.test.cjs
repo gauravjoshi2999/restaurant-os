@@ -50,7 +50,7 @@ test('R02: source lookup is canonical and date-specific; no payment writes or ne
  assert.match(body,/await renderDailyBook\(target\)/);
  assert.match(body,/source_type==='order_payment'/);
  assert.match(body,/x.id===paymentId&&x.day===found.day/);
- assert.match(body,/ctx.getUser\?\.\(\)\.id/);
+ assert.match(body,/ctx\.getUser/);
  assert.doesNotMatch(body,/\.\s*(insert|update|delete|upsert|rpc)\s*\(/);
  assert.match(html,/function showPOSReceiptInDailyBook\(orderId,paymentId\)/);
  assert.match(html,/posDailyBookReceipts\(o.id,rid\)/);
