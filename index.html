@@ -2178,6 +2178,7 @@ document.getElementById('hrAttendanceDate').addEventListener('change',renderHR);
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
 
 let khataCustomers=[],khataBalances=[],khataEntries=[],selectedKhataCustomerId=null;
+let khataComplete=false,khataRequestVersion=0,khataLoadedScope='',khataSearchQuery='',khataFilter='all',khataCollectDueCustomerId=null,khataEntrySaving=false;
 function khataRestaurantId(){return document.getElementById('khataRestaurant').value||''}
 async function loadKhataWorkspace(){
  const sel=document.getElementById('khataRestaurant'),previous=sel.value;
@@ -2186,35 +2187,85 @@ async function loadKhataWorkspace(){
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('khataStatus').textContent='No restaurant access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
- document.getElementById('khataEntryDate').value=localDateInput();toggleKhataPaymentMode();await loadKhataData();
+ sel.closest('.field').hidden=eligible.length===1;
+ document.getElementById('khataEntryDate').value=localDateInput();
+ document.getElementById('khataEntryDate').max=localDateInput();
+ toggleKhataPaymentMode();await loadKhataData();
 }
 async function loadKhataData(){
- const rid=khataRestaurantId();if(!rid)return;
+ const rid=khataRestaurantId(),userId=currentUser?.id||'';if(!rid||!userId)return;
+ const scope=userId+':'+rid,version=++khataRequestVersion;
+ if(scope!==khataLoadedScope){
+  khataLoadedScope=scope;khataCustomers=[];khataBalances=[];khataEntries=[];khataComplete=false;
+  selectedKhataCustomerId=null;khataSearchQuery='';khataFilter='all';khataCollectDueCustomerId=null;
+  document.getElementById('khataV3Search').value='';
+  document.getElementById('khataCustomerRows').replaceChildren();
+  document.getElementById('khataLedgerRows').replaceChildren();
+ }
+ document.getElementById('khataStatus').textContent='Loading canonical customer ledger…';
  try{
-  const [customers,balances,entries]=await Promise.all([
+  const [customers,balances]=await Promise.all([
    sb.from('restaurant_customers').select('*').eq('restaurant_id',rid).order('full_name'),
-   sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('full_name'),
-   sb.from('restaurant_customer_ledger').select('*').eq('restaurant_id',rid).order('entry_date',{ascending:false}).limit(1000)
+   sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('full_name')
   ]);
-  for(const x of [customers,balances,entries])if(x.error)throw x.error;
-  khataCustomers=customers.data||[];khataBalances=balances.data||[];khataEntries=entries.data||[];
-  if(!khataCustomers.some(c=>c.id===selectedKhataCustomerId))selectedKhataCustomerId=khataCustomers[0]?.id||null;
+  for(const response of [customers,balances])if(response.error)throw response.error;
+  const pageSize=500,maxPages=40,entries=[];
+  let complete=false;
+  for(let page=0;page<maxPages;page++){
+   if(version!==khataRequestVersion||khataRestaurantId()!==rid||currentUser?.id!==userId)return;
+   const start=page*pageSize;
+   const result=await sb.from('restaurant_customer_ledger').select('*').eq('restaurant_id',rid)
+    .order('entry_date',{ascending:false}).order('created_at',{ascending:false}).order('entry_id',{ascending:false})
+    .range(start,start+pageSize-1);
+   if(result.error)throw result.error;
+   const batch=result.data||[];entries.push(...batch);
+   if(batch.length<pageSize){complete=true;break;}
+  }
+  if(version!==khataRequestVersion||khataRestaurantId()!==rid||currentUser?.id!==userId)return;
+  khataCustomers=customers.data||[];khataBalances=balances.data||[];khataEntries=entries;khataComplete=complete;
+  if(!khataCustomers.some(c=>c.id===selectedKhataCustomerId))
+   selectedKhataCustomerId=khataCustomers[0]?.id||null;
   renderKhata();
- }catch(e){document.getElementById('khataStatus').textContent='Khata load nahi hua: '+e.message;console.error(e)}
+ }catch(e){
+  if(version!==khataRequestVersion||khataRestaurantId()!==rid||currentUser?.id!==userId)return;
+  khataComplete=false;
+  document.getElementById('khataStatus').textContent='Khata load nahi hua: '+e.message;
+  document.getElementById('khataV3Statement').textContent='Unable to verify ledger. Refresh Customer Khata.';
+  console.error(e);
+ }
 }
 function renderKhata(){
  const due=khataBalances.filter(b=>Number(b.balance)>0).reduce((n,b)=>n+Number(b.balance),0);
  const advance=khataBalances.filter(b=>Number(b.balance)<0).reduce((n,b)=>n+Math.abs(Number(b.balance)),0);
  document.getElementById('khataCustomerCount').textContent=String(khataCustomers.length);
- document.getElementById('khataTotalDue').textContent=money(due);document.getElementById('khataTotalAdvance').textContent=money(advance);
- document.getElementById('khataListCount').textContent=khataCustomers.length+' customers';
- document.getElementById('khataStatus').textContent=khataCustomers.length+' customer accounts · '+khataEntries.length+' ledger entries';
+ document.getElementById('khataTotalDue').textContent=money(due);
+ document.getElementById('khataTotalAdvance').textContent=money(advance);
+ const visible=window.BiteV3Khata?.filterCustomers(khataCustomers,khataBalances,khataSearchQuery,khataFilter)||khataCustomers;
+ document.getElementById('khataListCount').textContent=visible.length+' of '+khataCustomers.length+' customers';
+ document.getElementById('khataStatus').textContent=khataCustomers.length+' customer accounts · '+khataEntries.length+
+  (khataComplete?' linked ledger entries':'+ entries; historical list truncated, balance-after hidden');
  const active=khataCustomers.filter(c=>c.status==='Active');
  const old=document.getElementById('khataEntryCustomer').value;
- document.getElementById('khataEntryCustomer').innerHTML='<option value="">Select customer</option>'+active.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name)+(c.phone?' · '+esc(c.phone):'')+'</option>').join('');
+ document.getElementById('khataEntryCustomer').innerHTML='<option value="">Select customer</option>'+
+  active.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.full_name)+(c.phone?' · '+esc(c.phone):'')+'</option>').join('');
  if(active.some(c=>c.id===old))document.getElementById('khataEntryCustomer').value=old;
- document.getElementById('khataCustomerRows').innerHTML=khataCustomers.map(c=>{const b=khataBalances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0),label=bal>0?'Udhar':bal<0?'Advance':'Clear';return '<tr data-khata-customer-id="'+esc(c.id)+'"'+(selectedKhataCustomerId===c.id?' class="is-selected"':'')+'><td><strong>'+esc(c.full_name)+'</strong></td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.status)+'</td><td><strong>'+money(Math.abs(bal))+' '+label+'</strong></td><td><button class="btn secondary" onclick="selectKhataCustomer(\''+esc(c.id)+'\')">Open</button></td></tr>'}).join('');
- document.getElementById('khataCustomerEmpty').style.display=khataCustomers.length?'none':'block';
+ document.getElementById('khataCustomerRows').innerHTML=visible.map(c=>{
+  const b=khataBalances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0),label=bal>0?'Udhar':bal<0?'Advance':'Clear';
+  return '<tr data-khata-customer-id="'+esc(c.id)+'"'+(selectedKhataCustomerId===c.id?' class="is-selected"':'')+'>'+
+   '<td><strong>'+esc(c.full_name)+'</strong></td><td>'+esc(c.phone||'—')+'</td><td>'+esc(c.status)+'</td>'+
+   '<td><strong>'+money(Math.abs(bal))+' '+label+'</strong></td>'+
+   '<td><button class="btn secondary" onclick="selectKhataCustomer(\''+esc(c.id)+'\')">Open</button>'+
+   (bal>0&&c.status==='Active'?'<button class="btn" onclick="collectKhataDue(\''+esc(c.id)+'\')">Collect due</button>':'')+
+   '</td></tr>';
+ }).join('');
+ document.getElementById('khataCustomerEmpty').style.display=visible.length?'none':'block';
+ document.getElementById('khataCustomerEmpty').textContent='No customer accounts match this search.';
+ window.BiteV3Khata?.customerCards(document.getElementById('khataV3Cards'),{
+  customers:visible,balances:khataBalances,selectedId:selectedKhataCustomerId,
+  onSelect:selectKhataCustomer,onCollect:collectKhataDue
+ });
+ document.querySelectorAll('[data-v3-khata-filter]').forEach(btn=>
+  btn.setAttribute('aria-pressed',String(btn.dataset.v3KhataFilter===khataFilter)));
  renderKhataLedger();
 }
 function selectKhataCustomer(id){
