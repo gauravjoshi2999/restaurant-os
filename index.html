@@ -746,6 +746,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-v3-collections.css?v=20261118-a03-collections1">
 <link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
 <link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
+<link rel="stylesheet" href="assets/owner-supplier-dues.css?v=20261119-a04-dues1">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -939,8 +940,8 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Supplier name (if not saved)</label><input id="purchaseSupplierName" maxlength="120" placeholder="Optional for new supplier"></div>
    <div class="field"><label>Purchase date *</label><input id="purchaseDate" type="date"></div>
    <div class="field"><label>Invoice / bill no.</label><input id="purchaseInvoice" maxlength="80" placeholder="Optional"></div>
-   <div class="field"><label>Paid amount (₹)</label><input id="purchasePaid" type="number" min="0" step="0.01" value="0"></div>
-   <div class="field"><label>Payment mode</label><select id="purchasePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
+   <div class="field"><label>Paid at purchase date (₹)</label><input id="purchasePaid" type="number" min="0" step="0.01" value="0"></div>
+   <div class="field"><label>Initial payment method</label><select id="purchasePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
    <div class="field" style="grid-column:1/-1"><label>Notes</label><input id="purchaseNotes" maxlength="500" placeholder="Bill details, credit terms or extra note"></div>
   </div>
   <div class="section-head"><h2>Purchased items</h2><button class="btn secondary" type="button" onclick="addPurchaseItemRow()">＋ Add item</button></div>
@@ -948,6 +949,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="order-total-bar"><span>Purchase total</span><strong id="purchaseTotal">₹0.00</strong></div>
   <div class="actions"><button class="btn" id="purchaseSaveBtn" type="button" onclick="savePurchase()">Save purchase</button><button class="btn secondary" id="purchaseCancelBtn" type="button" onclick="resetPurchaseForm()" style="display:none">Cancel edit</button><span class="small" id="purchaseMessage" role="status"></span></div>
  </div>
+ <div id="supplierDueSummary" aria-label="Supplier outstanding balances"></div>
  <div class="section"><div class="section-head"><h2>Purchase history</h2><span class="small" id="purchaseSummary">All records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Supplier</th><th>Bill no.</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead><tbody id="purchaseRows"></tbody></table><div class="empty" id="purchaseEmpty">Abhi koi purchase record nahi hai.</div></div></div>
 
 </section>
@@ -1408,7 +1410,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -1608,6 +1610,7 @@ document.getElementById('expenseRestaurant').addEventListener('change',()=>{rese
 
 
 let purchaseSuppliers=[],purchaseRecords=[],purchaseItems=[],editingPurchaseId=null;
+let supplierPaymentRecords=[],supplierPaymentAvailable=false,purchaseRequestVersion=0,purchaseLoadedScope='';
 function purchaseRestaurantId(){return document.getElementById('purchaseRestaurant').value||''}
 async function loadPurchaseWorkspace(){
  const select=document.getElementById('purchaseRestaurant'),previous=select.value;
@@ -1665,7 +1668,7 @@ function updatePurchaseTotal(){
  document.getElementById('purchaseTotal').textContent=money(total);return Math.round((total+Number.EPSILON)*100)/100;
 }
 function resetPurchaseForm(){
- editingPurchaseId=null;document.getElementById('purchaseSupplier').value='';document.getElementById('purchaseSupplierName').value='';document.getElementById('purchaseDate').value=localDateInput();document.getElementById('purchaseInvoice').value='';document.getElementById('purchasePaid').value='0';document.getElementById('purchasePayment').value='Cash';document.getElementById('purchaseNotes').value='';document.getElementById('purchaseItemRows').innerHTML='';addPurchaseItemRow();document.getElementById('purchaseSaveBtn').textContent='Save purchase';document.getElementById('purchaseCancelBtn').style.display='none';document.getElementById('purchaseMessage').textContent='';
+ editingPurchaseId=null;document.getElementById('purchasePaid').readOnly=false;document.getElementById('purchasePayment').disabled=false;document.getElementById('purchaseDate').readOnly=false;document.getElementById('purchaseSupplier').value='';document.getElementById('purchaseSupplierName').value='';document.getElementById('purchaseDate').value=localDateInput();document.getElementById('purchaseInvoice').value='';document.getElementById('purchasePaid').value='0';document.getElementById('purchasePayment').value='Cash';document.getElementById('purchaseNotes').value='';document.getElementById('purchaseItemRows').innerHTML='';addPurchaseItemRow();document.getElementById('purchaseSaveBtn').textContent='Save purchase';document.getElementById('purchaseCancelBtn').style.display='none';document.getElementById('purchaseMessage').textContent='';
 }
 async function loadPurchases(){
  const rid=purchaseRestaurantId();if(!rid)return;
