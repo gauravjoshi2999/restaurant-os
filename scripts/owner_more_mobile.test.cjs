@@ -34,7 +34,7 @@ test('Mobile Staff tabs preserve existing employee, attendance, leave and paymen
  for(const save of ['saveHREmployee()','saveHRAttendance()','saveHRLeave()','saveHREmployeePayment()']){
   assert.ok(html.includes(save),'Existing handler missing: '+save);
  }
- assert.match(html,/owner-hr-mobile-tabs\.js\?v=20261114-onecol1/);
+ assert.match(html,/owner-hr-mobile-tabs\\.js\\?v=20261119-[a-z0-9-]+/);
  assert.match(css,/\.bite-hr-editor-grid>\.card\[data-hr-panel\]:not\(\[data-hr-selected="true"\]\)/);
 });
 test('HR activation only toggles visibility attributes and cannot mutate unsaved fields',()=>{
