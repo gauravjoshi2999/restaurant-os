@@ -68,7 +68,8 @@ test('Daily Book view is read-only, mobile responsive and keeps original live KP
  for(const marker of ['id="haHistoricalPOS"','BiteV3HistoricalReconcile.mount','renderOldPosReconciliation(body',
   'owner-v3-historical-reconcile.js?v=','owner-v3-historical-reconcile.css?v='])
   assert.ok((html+accounts).includes(marker),marker);
- assert.match(accounts,/p\(\)\?\.origin_restaurant_id/);
+ assert.match(accounts,/function linkedRegisterRestaurant\(/);
+ assert.match(accounts,/p\(\)\?\.outlets/);
  assert.match(accounts,/renderOldPosReconciliation\(body,\{from,to,key,version\}\)/);
  assert.match(posV2,/openReportDate/);
  assert.match(posReports,/function focusDate\(day\)/);
