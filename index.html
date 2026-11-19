@@ -726,6 +726,8 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
 <script src="assets/owner-hr-mobile-tabs.js?v=20261114-onecol1" defer></script>
+<script src="assets/owner-v3-attendance.js?v=20261119-a08-1" defer></script>
+<link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
@@ -1052,6 +1054,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="metric-label">Pending leaves</div><div class="metric" id="hrPendingLeaves">0</div></div>
   <div class="card"><div class="metric-label">Paid this month</div><div class="metric" id="hrPaidMonth">₹0.00</div></div>
  </div>
+ <section id="hrAttendanceRegister" class="card" aria-label="Selected date staff attendance" aria-live="polite">Attendance day loading…</section>
  <nav class="bite-hr-tabs" aria-label="Staff ka kaam chunein" role="tablist">
  <button type="button" class="bite-hr-tab" data-hr-tab="employee" role="tab" aria-selected="true" aria-controls="hrEmployeePanel">Employees</button>
  <button type="button" class="bite-hr-tab" data-hr-tab="attendance" role="tab" aria-selected="false" aria-controls="hrAttendancePanel">Attendance</button>
@@ -2118,6 +2121,7 @@ document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
 let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
+let hrLoadVersion=0,hrDayVersion=0,hrDayReport=null,hrDayKey="";
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2125,7 +2129,7 @@ async function loadHRWorkspace(){
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
+ if(!eligible.length){hrLoadVersion++;hrDayVersion++;hrDayReport=null;hrDayKey='';hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];document.getElementById('hrAttendanceRegister').textContent='No Owner/Manager restaurant access';document.getElementById('hrPresentCount').textContent='—';document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput();document.getElementById('hrAttendanceDate').value=today;document.getElementById('hrEmployeeJoining').value=today;
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
@@ -2133,8 +2137,44 @@ async function loadHRWorkspace(){
  document.getElementById('hrPaymentCard').style.display=access.role==='owner'?'block':'none';
  await loadHRData();
 }
+async function loadHRAttendanceDay(){
+ const rid=hrRestaurantId(),day=document.getElementById('hrAttendanceDate').value,userId=currentUser?.id||'';
+ const key=userId+':'+rid+':'+day,version=++hrDayVersion;
+ const target=document.getElementById('hrAttendanceRegister');
+ hrDayReport=null;hrDayKey='';document.getElementById('hrPresentCount').textContent='—';
+ if(!rid||!userId||!window.BiteV3Attendance?.iso?.(day)){
+  target.textContent='Choose a valid restaurant and attendance date.';return;
+ }
+ target.textContent='Loading recorded attendance for '+day+'…';
+ const active=()=>version===hrDayVersion&&currentUser?.id===userId&&hrRestaurantId()===rid&&
+  document.getElementById('hrAttendanceDate').value===day;
+ try{
+  const records=await window.BiteV3Attendance.load({client:sb,restaurantId:rid,date:day,isCurrent:active});
+  if(!active())return;
+  const summary=window.BiteV3Attendance.summarize({employees:hrEmployees,records,date:day,restaurantId:rid});
+  if(!active())return;
+  hrDayReport=summary;hrDayKey=key;
+  target.innerHTML=window.BiteV3Attendance.html(summary);
+  document.getElementById('hrPresentCount').textContent=String(summary.present+summary.half);
+ }catch(error){
+  if(!active())return;
+  hrDayReport=null;hrDayKey='';
+  target.innerHTML='<p role="alert">Attendance for '+esc(day)+' could not be verified: '+esc(error?.message||'Network error')+'. Retry Refresh. No unmarked staff was counted absent.</p>';
+ }
+}
 async function loadHRData(){
- const rid=hrRestaurantId();if(!rid)return;
+ const rid=hrRestaurantId(),userId=currentUser?.id||'',version=++hrLoadVersion;
+ if(!rid||!userId)return;
+ const isCurrent=()=>version===hrLoadVersion&&hrRestaurantId()===rid&&currentUser?.id===userId;
+ // Clear all previous tenant rows before the four requests settle.
+ hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayReport=null;hrDayKey='';hrDayVersion++;
+ document.getElementById('hrEmployeeRows').replaceChildren();
+ document.getElementById('hrAttendanceRows').replaceChildren();
+ document.getElementById('hrLeaveRows').replaceChildren();
+ document.getElementById('hrPaymentRows').replaceChildren();
+ document.getElementById('hrAttendanceRegister').textContent='Loading employee list…';
+ document.getElementById('hrPresentCount').textContent='—';
+ document.getElementById('hrStatus').textContent='Loading selected restaurant HR…';
  try{
   const [e,a,l,p]=await Promise.all([
    sb.from('restaurant_employees').select('*').eq('restaurant_id',rid).order('full_name'),
@@ -2142,10 +2182,20 @@ async function loadHRData(){
    sb.from('restaurant_employee_leaves').select('*').eq('restaurant_id',rid).order('start_date',{ascending:false}).limit(300),
    sb.from('restaurant_employee_payments').select('*').eq('restaurant_id',rid).order('payment_date',{ascending:false}).limit(300)
   ]);
+  if(!isCurrent())return;
   for(const x of [e,a,l,p])if(x.error)throw x.error;
-  hrEmployees=e.data||[];hrAttendance=a.data||[];hrLeaves=l.data||[];hrPayments=p.data||[];
+  for(const [rows,key] of [[e.data,'employees'],[a.data,'attendance'],[l.data,'leaves'],[p.data,'payments']])
+   if(!Array.isArray(rows)||rows.some(item=>item.restaurant_id!==rid))throw Error('Incomplete '+key+' restaurant scope.');
+  hrEmployees=e.data;hrAttendance=a.data;hrLeaves=l.data;hrPayments=p.data;
   renderHR();
- }catch(err){document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
+  await loadHRAttendanceDay();
+ }catch(err){
+  if(!isCurrent())return;
+  document.getElementById('hrAttendanceRegister').textContent='HR data unavailable for this restaurant. Retry Refresh.';
+  document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;
+  document.getElementById('hrPresentCount').textContent='—';
+  console.error(err);
+ }
 }
 function renderHREmployeeSelects(){
  const optionRows=list=>'<option value="">Select employee</option>'+list.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.full_name)+(e.employee_code?' · '+esc(e.employee_code):'')+'</option>').join('');
@@ -2153,7 +2203,8 @@ function renderHREmployeeSelects(){
 }
 function renderHR(){
  const active=hrEmployees.filter(e=>e.status==='Active').length,today=document.getElementById('hrAttendanceDate').value;
- const present=hrAttendance.filter(a=>a.attendance_date===today&&['Present','Half Day'].includes(a.status)).length;
+ const key=(currentUser?.id||'')+':'+hrRestaurantId()+':'+today;
+ const present=hrDayReport&&hrDayKey===key?String(hrDayReport.present+hrDayReport.half):'—';
  const pending=hrLeaves.filter(l=>l.status==='Pending').length,month=(document.getElementById('hrPaymentMonth').value||localDateInput().slice(0,7))+'-01';
  const paid=hrPayments.filter(p=>p.period_month===month&&['Salary','Advance','Bonus'].includes(p.payment_type)).reduce((n,p)=>n+Number(p.amount),0);
  document.getElementById('hrActiveCount').textContent=String(active);document.getElementById('hrPresentCount').textContent=String(present);
@@ -2230,8 +2281,24 @@ async function saveHREmployeePayment(){
  catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}
 }
 document.getElementById('hrRestaurant').addEventListener('change',loadHRData);
-document.getElementById('hrAttendanceDate').addEventListener('change',renderHR);
+document.getElementById('hrAttendanceDate').addEventListener('change',()=>{void loadHRAttendanceDay()});
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
+document.getElementById('hrAttendanceRegister').addEventListener('click',event=>{
+ const button=event.target.closest?.('[data-v3-attendance-employee]');
+ if(!button||!hrDayReport)return;
+ const id=button.dataset.v3AttendanceEmployee,entry=hrDayReport.rows.find(x=>x.id===id);
+ if(!entry||hrDayKey!==(currentUser?.id||'')+':'+hrRestaurantId()+':'+document.getElementById('hrAttendanceDate').value)return;
+ const sel=document.getElementById('hrAttendanceEmployee');
+ if(!Array.from(sel.options).some(o=>o.value===id))return;
+ sel.value=id;
+ document.getElementById('hrAttendanceStatus').value=entry.recorded?entry.status:'Present';
+ document.getElementById('hrCheckIn').value=entry.check_in||'';
+ document.getElementById('hrCheckOut').value=entry.check_out||'';
+ document.getElementById('hrAttendanceNotes').value=entry.notes||'';
+ window.BiteOwnerHRTabs?.activate?.(document,'attendance');
+ document.getElementById('hrAttendancePanel').scrollIntoView?.({block:'start',behavior:'smooth'});
+ sel.focus();
+});
 
 let khataCustomers=[],khataBalances=[],khataEntries=[],selectedKhataCustomerId=null;
 let khataComplete=false,khataRequestVersion=0,khataLoadedScope='',khataSearchQuery='',khataFilter='all',khataCollectDueCustomerId=null,khataEntrySaving=false,khataReceiptRequestId=null,khataReceiptSignature='';
