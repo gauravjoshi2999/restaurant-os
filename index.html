@@ -2283,14 +2283,62 @@ function selectKhataCustomer(id){
  }
 }
 function renderKhataLedger(){
- const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),b=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId);
+ const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),
+  balanceRow=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId),
+  bal=Number(balanceRow?.balance||0),
+  verified=khataComplete&&!!balanceRow;
  document.getElementById('khataLedgerTitle').textContent=c?'Khata · '+c.full_name:'Customer ledger';
- const bal=Number(b?.balance||0);document.getElementById('khataLedgerBalance').textContent=c?(bal>0?'Due '+money(bal):bal<0?'Advance '+money(Math.abs(bal)):'Balance clear'):'Select a customer';
- const rows=khataEntries.filter(x=>x.customer_id===selectedKhataCustomerId).sort((a,b)=>b.entry_date.localeCompare(a.entry_date)||b.created_at.localeCompare(a.created_at));
- let running=bal;
- document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{const effect=x.entry_type==='debit'?Number(x.amount):-Number(x.amount),current=running;running-=effect;return '<tr><td>'+esc(x.entry_date)+'</td><td><span class="pill '+(x.entry_type==='debit'?'amber':'green')+'">'+(x.entry_type==='debit'?'Udhar':'Jama')+'</span></td><td>'+esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'')+'</td><td>'+esc(x.payment_method||'—')+'</td><td>'+money(x.amount)+'</td><td>'+money(current)+'</td></tr>'}).join('');
+ document.getElementById('khataLedgerBalance').textContent=c?
+  (!balanceRow?'Balance unverified':bal>0?'Current due '+money(bal):
+    bal<0?'Current advance '+money(Math.abs(bal)):'Current balance clear'):'Select a customer';
+ const key=(currentUser?.id||'')+':'+khataRestaurantId(),today=localDateInput();
+ const report=window.BiteV3Khata?.renderStatement({
+  host:document.getElementById('khataV3Statement'),customer:c,
+  entries:khataEntries,balance:bal,complete:verified,key,today,onChange:renderKhataLedger
+ });
+ const rows=report?.verified?report.rows:[];
+ document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{
+  const effect=x.entry_type==='debit';
+  const label=window.BiteV3Khata.sourceLabel(x);
+  const description=esc(x.description||'—')+(x.reference?' · '+esc(x.reference):'');
+  const balanceAfter=x.balanceAfterCents;
+  const after=balanceAfter>0?money(balanceAfter/100)+' due':
+   balanceAfter<0?money(Math.abs(balanceAfter)/100)+' advance':'Clear';
+  return '<tr><td>'+esc(x.entry_date)+'</td>'+
+   '<td><span class="pill '+(effect?'amber':'green')+'">'+(effect?'Udhar':'Jama')+'</span>'+
+   '<small class="v3-khata-source">'+esc(label)+'</small></td>'+
+   '<td>'+description+'</td><td>'+esc(x.payment_method||'—')+'</td>'+
+   '<td>'+money(x.amount)+'</td><td>'+esc(after)+'</td></tr>';
+ }).join('');
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
- document.getElementById('khataLedgerEmpty').textContent=c?'Is customer ke Khata mein abhi koi entry nahi hai.':'Select a customer to view their Khata.';
+ document.getElementById('khataLedgerEmpty').textContent=!c?'Select a customer to view their Khata.':
+  !report?.verified?'Historical statement unavailable until all linked records are verified.':
+  'No transactions in this date period. The opening balance above still carries earlier dues.';
+}
+function collectKhataDue(customerId){
+ const customer=khataCustomers.find(x=>x.id===customerId&&x.status==='Active');
+ const b=khataBalances.find(x=>x.customer_id===customerId);
+ const due=Number(b?.balance);
+ if(!customer||!Number.isFinite(due)||due<=0||!khataComplete){
+  document.getElementById('khataEntryMessage').textContent='Please refresh the complete Khata balance before collecting a due.';
+  return;
+ }
+ selectedKhataCustomerId=customerId;
+ khataCollectDueCustomerId=customerId;
+ const selected=document.getElementById('khataEntryCustomer');
+ selected.value=customerId;
+ document.getElementById('khataEntryType').value='credit';
+ toggleKhataPaymentMode();
+ document.getElementById('khataEntryAmount').value=due.toFixed(2);
+ document.getElementById('khataEntryDate').value=localDateInput();
+ document.getElementById('khataEntryDescription').value='Collection against outstanding Khata due';
+ document.getElementById('khataEntryReference').value='';
+ document.getElementById('khataEntryMessage').textContent='Collect due: '+money(due)+
+  '. For partial receipt, reduce the amount. Do not enter a POS receipt again.';
+ renderKhataLedger();
+ const form=document.getElementById('khataSaveEntryBtn').closest('.card');
+ form?.scrollIntoView?.({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',block:'center'});
+ document.getElementById('khataEntryAmount').focus({preventScroll:true});
 }
 function toggleKhataPaymentMode(){const credit=document.getElementById('khataEntryType').value==='credit';document.getElementById('khataPaymentModeField').style.display=credit?'block':'none'}
 async function saveKhataCustomer(){
