@@ -428,7 +428,27 @@ try:
     'Reorder displays current verified menu items and subtotal before cart replacement')
   check(not customer.locator('#cartModal.show').is_visible(),
     'Reorder does not silently replace the cart before review confirmation')
-  customer.screenshot(path=str(OUT/'ui-customer-reorder-review.png'),full_page=False)
+  for review_width in (320,360,390,430):
+    customer.set_viewport_size({'width':review_width,'height':844})
+    check(customer.evaluate("""() => {
+      const d=document.querySelector('dialog.bite-reorder-review[open]');
+      if(!d)return false;
+      const r=d.getBoundingClientRect(),actions=d.querySelectorAll('.bite-reorder-actions button');
+      return r.left>=-1 && r.right<=innerWidth+1 && r.top>=-1 && r.bottom<=innerHeight+1 &&
+       actions.length===2 && [...actions].every(el=>{
+         const b=el.getBoundingClientRect();
+         return b.width>=96 && b.height>=44 && b.left>=r.left-1 && b.right<=r.right+1 &&
+          b.top>=r.top-1 && b.bottom<=r.bottom+1;
+       });
+    }"""),f'Reorder review and both actions fit {review_width}px mobile viewport')
+    customer.screenshot(path=str(OUT/f'ui-customer-reorder-review-{review_width}.png'),full_page=False)
+  customer.set_viewport_size({'width':390,'height':844})
+  review.get_by_role('button',name='Cancel').click()
+  check(customer.locator('dialog.bite-reorder-review[open]').count()==0 and
+    customer.locator('#cartCount').inner_text()=='(0)',
+    'Cancel Reorder preserves the previously empty cart without opening checkout')
+  customer.locator('[data-reorder]').click()
+  review.wait_for(state='visible')
   review.get_by_role('button',name='Continue to cart').click()
   customer.locator('#cartModal.show').wait_for(state='visible')
   check('QA Veg Thali' in customer.locator('#cartModalLines').inner_text(),
