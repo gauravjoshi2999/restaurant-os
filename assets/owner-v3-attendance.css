@@ -1,0 +1,24 @@
+/* A08 staff daily register — mobile-first, scoped and read-only until Mark action. */
+#hr #hrAttendanceRegister{padding:16px;margin:16px 0;border:1px solid #e3e7ec;border-radius:16px;background:#fff}
+#hr .v3-attendance-head{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;flex-wrap:wrap}
+#hr .v3-attendance-head h2{font-size:18px;color:#243243;margin:0}
+#hr .v3-attendance-head p,#hr .v3-attendance-head small{margin:4px 0;font-size:12px;color:#58687a}
+#hr .v3-attendance-counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:15px 0}
+#hr .v3-attendance-counts>div{background:#f7fafc;border:1px solid #e8edf1;border-radius:12px;padding:11px;display:grid;gap:5px;min-width:0}
+#hr .v3-attendance-counts span{font-size:11px;color:#516071}
+#hr .v3-attendance-counts strong{font-size:23px;line-height:1.2;color:#233346}
+#hr .v3-attendance-help{color:#627080;font-size:12px;line-height:1.6}
+#hr .v3-attendance-list{display:grid;gap:8px;margin-top:13px}
+#hr .v3-attendance-person{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:11px;align-items:center;padding:12px;border:1px solid #e7e9ec;border-radius:12px;background:#fff}
+#hr .v3-attendance-person-main{display:grid;gap:4px;min-width:0}
+#hr .v3-attendance-person-main strong{font-size:14px;overflow-wrap:anywhere;color:#243343}
+#hr .v3-attendance-person-main small{font-size:12px;color:#6a7889}
+#hr .v3-attendance-status{font-size:12px;border-radius:20px;padding:7px 10px;background:#f2f5f8;color:#394a60;white-space:nowrap}
+#hr .v3-attendance-status[data-status="Present"]{background:#e8f6ed;color:#25643b}
+#hr .v3-attendance-status[data-status="Half Day"]{background:#fef0d5;color:#86561c}
+#hr .v3-attendance-status[data-status="Absent"]{background:#fff0ee;color:#a63f32}
+#hr .v3-attendance-person button{min-height:44px;border:1px solid #f1ae7f;background:#fff2e7;color:#964916;border-radius:10px;font-size:12px;font-weight:750;padding:9px 13px;cursor:pointer}
+#hr .v3-attendance-person button:focus-visible{outline:3px solid #f58535;outline-offset:2px}
+#hr .v3-attendance-empty{font-size:13px;color:#556579}
+@media(max-width:760px){#hr .v3-attendance-counts{grid-template-columns:repeat(3,minmax(0,1fr))}#hr .v3-attendance-person{grid-template-columns:minmax(0,1fr) auto}#hr .v3-attendance-person button{grid-column:1/-1;width:100%}}
+@media(max-width:430px){#hr #hrAttendanceRegister{padding:11px;margin:12px 0}#hr .v3-attendance-counts{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}#hr .v3-attendance-counts>div{padding:9px}#hr .v3-attendance-counts strong{font-size:20px}#hr .v3-attendance-head h2{font-size:17px}}
