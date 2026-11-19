@@ -23,7 +23,7 @@
   const s=String(entry.source_type||'');
   return {order_payment:'POS payment',folio:'Guest folio',customer_ledger_payment:'Khata collection',
    daybook:'Daily Book',property_expense:'Property expense',expense:'Restaurant expense',
-   purchase:'Supplier purchase',order_refund:'Order refund',employee_payment:'Staff payment'}[s]||'Money movement';
+   purchase:'Initial supplier payment',supplier_payment:'Supplier payment',order_refund:'Order refund',employee_payment:'Staff payment'}[s]||'Money movement';
  }
  function sourceGroup(entry){
   return ['order_payment','folio','customer_ledger_payment','daybook'].includes(entry.source_type)?
@@ -63,7 +63,7 @@
      String(b.id||'').localeCompare(String(a.id||''))).map(x=>{
      const t=type(x),direction=x.direction==='out'?'−':'+',note=t==='received'?'Confirmed receipt':
       t==='paid'?'Recorded payout':t==='unverified'?'Unverified method · not in totals':'Other movement · not in Received';
-     const sourceButton=['order_payment','folio','customer_ledger_payment','expense','property_expense'].includes(x.source_type)&&
+     const sourceButton=['order_payment','folio','customer_ledger_payment','expense','property_expense','purchase','supplier_payment'].includes(x.source_type)&&
        /^[a-f0-9-]{36}$/i.test(String(x.id||''))?
       '<button type="button" class="v3-money-source" data-v3-money-source="'+enc(x.source_type)+
        '" data-v3-money-id="'+enc(x.id)+'">Open original source</button>':'';
