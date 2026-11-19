@@ -158,6 +158,27 @@ test('a server price change requires reviewing the new total before any SDK paym
 test('sandbox refuses a new delivery address before any persistent write or payment request',async()=>{
  const t=setup({sandbox:true,delivery:true,values:{savedAddress:'new'}});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.length,0);assert.match(t.element('checkoutError').textContent,/saved address/);
 });
+test('live checkout refuses an altered saved-address PIN before any profile, address or order write',async()=>{
+ const t=setup({delivery:true,savedPostal:'313399'});
+ await t.submit();
+ assert.equal(t.writes,0,'PIN mismatch must not silently mutate saved delivery address or contact profile');
+ assert.equal(t.calls.filter(c=>c.kind==='rpc'||c.kind==='sdk').length,0,'No checkout intent or Cashfree attempt');
+ assert.match(t.element('checkoutError').textContent,/original PIN/);
+ assert.match(t.element('checkoutError').textContent,/saved address was not changed/i);
+});
+test('live checkout accepts a matching saved PIN without updating address data',async()=>{
+ const t=setup({delivery:true,savedPostal:'313324'});
+ await t.submit();
+ const rpc=t.calls.find(c=>c.kind==='rpc');
+ assert.equal(rpc?.args?.p_address_id,'saved-address');
+ assert.equal(t.writes,1,'Only the existing contact profile upsert is permitted; no address UPDATE');
+});
+test('checkout no longer updates the saved address postal code as a side effect',()=>{
+ assert.doesNotMatch(source,/\.update\(\{postal_code:enteredPin/);
+ assert.match(source,/selectedSavedAddressId/);
+ assert.match(source,/Saved address original PIN does not match/);
+});
+
 test('sandbox cannot rewrite the PIN of a saved address',async()=>{
  const t=setup({sandbox:true,delivery:true,savedPostal:'313399'});await t.submit();assert.equal(t.writes,0);assert.equal(t.calls.length,0);assert.match(t.element('checkoutError').textContent,/original PIN/);
 });
