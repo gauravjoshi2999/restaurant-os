@@ -64,8 +64,8 @@ test('Customer logo is warm-orange and does not alter the shared platform mark',
  const mark=fs.readFileSync('assets/bite-customer-orange-mark.svg','utf8');
  assert.match(mark,/fill="#B7420B"/);
  assert.doesNotMatch(mark,/#087B4D/i);
- assert.match(html,/assets\\/bite-customer-orange-mark\\.svg\\?v=20261119-orange1/);
- assert.equal((html.match(/bite-customer-orange-mark\\.svg/g)||[]).length>=2,true);
+ assert.ok(html.includes('assets/bite-customer-orange-mark.svg?v=20261119-orange1'));
+ assert.ok(html.split('assets/bite-customer-orange-mark.svg').length-1>=2);
 });
 test('Theme does not modify transactions, customer orders or other panels',()=>{
  assert.doesNotMatch(css,/fetch\(|sb\.|Cashfree|supabase|payment_session|window\.|localStorage|--green:/i);
