@@ -1696,6 +1696,8 @@ async function loadPurchases(){
   renderPurchases();return true;
  }catch(e){
   if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  supplierPaymentAvailable=false;document.getElementById('purchaseRows').replaceChildren();
+  document.getElementById('supplierDueSummary').textContent='Unable to verify current supplier balances. Refresh Purchases.';
   empty.textContent='Purchase load nahi hue: '+e.message;console.error(e);return false;
  }
 }
@@ -1704,12 +1706,12 @@ function renderPurchases(){
  rows.innerHTML=purchaseRecords.map(p=>{
   const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—';
   const payments=supplierPaymentRecords.filter(x=>x.purchase_id===p.id);
-  const balance=supplierPaymentAvailable&&helper?helper.outstanding(p,payments):Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
-  const paidTotal=supplierPaymentAvailable&&helper?helper.paid(p,payments):Number(p.paid_amount);
+  const balance=supplierPaymentAvailable&&helper?helper.outstanding(p,payments):null;
+  const paidTotal=supplierPaymentAvailable&&helper?helper.paid(p,payments):null;
   const history=payments.length?'<details><summary>'+payments.length+' later payment(s)</summary>'+payments.map(x=>'<p class="small">'+esc(x.payment_date)+' · '+esc(x.method)+' · '+money(x.amount)+(x.reference?' · '+esc(x.reference):'')+'</p>').join('')+'</details>':'';
   const payButton=supplierPaymentAvailable&&helper&&access.role==='owner'&&balance>0?'<button class="btn" onclick="openSupplierPayment(\''+esc(p.id)+'\')">Pay supplier</button>':'';
   const deleteButton=payments.length?'':'<button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button>';
-  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+money(paidTotal)+history+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions">'+payButton+'<button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button>'+deleteButton+'</div>':'<span class="small">View only</span>')+'</td></tr>';
+  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+(paidTotal===null?money(p.paid_amount)+'<small>Initial only · verify later payments</small>':money(paidTotal)+history)+'</td><td><strong>'+(balance===null?'Unverified':money(balance))+'</strong></td><td>'+(access.role==='owner'?'<div class="actions">'+payButton+'<button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button>'+deleteButton+'</div>':'<span class="small">View only</span>')+'</td></tr>';
  }).join('');
  document.getElementById('purchaseEmpty').style.display=purchaseRecords.length?'none':'block';
  document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records · due based on actual recorded supplier payments';
@@ -1737,6 +1739,7 @@ function openSupplierPayment(id){
     return result.data;
    },
    onSuccess:async ()=>{
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
     const ok=await loadPurchases();
     document.getElementById('purchaseMessage').textContent=ok?
      'Supplier payment recorded once on the actual payment date. Cashbook will reflect it.' :
