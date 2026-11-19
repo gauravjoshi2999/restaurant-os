@@ -229,6 +229,13 @@ function mount({el,client,restaurant,user}){
  if(!report&&!loading)void refresh();
  else if(report)showReport();
 }
+function focusDate(day){
+ if(!container||!sb||!restaurantId||!userId||typeof day!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(day)||
+    day>istToday()||!Number.isFinite(new Date(day+'T00:00:00Z').getTime())||
+    new Date(day+'T00:00:00Z').toISOString().slice(0,10)!==day)return false;
+ month=day.slice(0,7);selected=day;mode='calendar';
+ void refresh(true);return true;
+}
 function clear(){epoch++;if(container)container.removeEventListener('click',onClick);container=null;sb=null;restaurantId='';userId='';report=null;loading=false;}
-root.BitePOSReports={mount,refresh,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth};
+root.BitePOSReports={mount,refresh,focusDate,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth};
 })(window);
