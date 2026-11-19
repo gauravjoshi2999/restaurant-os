@@ -77,6 +77,16 @@ test('Daily Book view is read-only, mobile responsive and keeps original live KP
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-historical-reconcile.js','utf8'),
   /\.(?:insert|update|upsert|delete|rpc)\s*\(/);
 });
+test('R03 pure HTML render actually displays old billed/received values',async()=>{
+ const {client}=clientFor([row]);
+ const host={isConnected:true,innerHTML:'',onclick:null};
+ const result=await api.mount(host,{client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',
+  today:'2026-11-19',scope:'owner:hotel',isCurrent:()=>true,journal:[]});
+ assert.equal(result.ok,true);
+ assert.match(host.innerHTML,/160/,'Old register amount should be visible in HTML');
+ assert.match(host.innerHTML,/Old billed/);
+ assert.match(host.innerHTML,/data-v3-old-pos-id/);
+});
 test('Old date in canonical POS report remains historical and is not a normal payment or invoice',()=>{
  assert.match(posReports,/Old POS register/);
  assert.match(posReports,/historyError/);
