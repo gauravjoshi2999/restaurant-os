@@ -893,24 +893,38 @@ async function loadCustomerSupportTickets(sequence=customerAccountViewSequence,u
   box.innerHTML=tickets.length?tickets.map(t=>'<article style="border:1px solid #eee;border-radius:12px;padding:12px;margin:9px 0"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>'+safe(t.subject)+'</strong><span class="orderstatus '+statusClass(t.status)+'">'+safe(t.status)+'</span></div><small class="muted">'+safe(t.category)+' · '+formatOrderDate(t.created_at)+'</small><p style="margin:8px 0">'+safe(t.message)+'</p>'+(t.admin_response?'<div style="background:#f5faf7;padding:10px;border-radius:8px"><strong>BITE Support</strong><p style="margin:4px 0">'+safe(t.admin_response)+'</p></div>':'<small class="muted">Support team ka response pending hai.</small>')+'</article>').join(''):'<div class="muted">Abhi koi support request nahi hai.</div>';
  }catch(error){if(!biteAccountRequestActive(sequence,userId))return;box.textContent='Support requests load nahi hui: '+(error.message||String(error));}
 }
+let biteSupportSubmitPending=false;
 $('customerSupportForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
+ // Lock synchronously, before the asynchronous auth check, against double-tap submits.
+ if(biteSupportSubmitPending)return;
  const errorBox=$('customerSupportError'),button=$('customerSupportSubmit');
  const category=$('customerSupportCategory').value,orderId=$('customerSupportOrder').value||null;
  const subject=$('customerSupportSubject').value.trim(),message=$('customerSupportMessage').value.trim();
  errorBox.textContent='';
  if(subject.length<3||subject.length>120||message.length<10||message.length>2000){errorBox.textContent='Subject 3–120 aur message 10–2000 characters ka hona chahiye.';return;}
- const {data:sessionData}=await sb.auth.getSession();
- if(!sessionData.session){showAuth('login');return;}
- button.disabled=true;button.textContent='Sending…';
+ const ownerAtSubmit=activeCustomerId;
+ let requestedUserId=null;
+ biteSupportSubmitPending=true;button.disabled=true;button.textContent='Sending…';
  try{
-  const {error}=await sb.from('customer_support_tickets').insert({customer_id:sessionData.session.user.id,order_id:orderId,category,subject,message});
+  const {data:sessionData,error:authError}=await sb.auth.getSession();
+  if(authError)throw authError;
+  requestedUserId=sessionData?.session?.user?.id||null;
+  if(!requestedUserId){showAuth('login');return;}
+  if(ownerAtSubmit&&ownerAtSubmit!==requestedUserId)return;
+  if(activeCustomerId&&activeCustomerId!==requestedUserId)return;
+  const {error}=await sb.from('customer_support_tickets').insert({customer_id:requestedUserId,order_id:orderId,category,subject,message});
   if(error)throw error;
+  if(activeCustomerId!==requestedUserId)return;
   $('customerSupportForm').reset();
   errorBox.textContent='Support request bhej di gayi.';
   await loadCustomerSupportTickets();
- }catch(error){errorBox.textContent=error.message||'Support request send nahi hui.';}
- finally{button.disabled=false;button.textContent='Send support request';}
+ }catch(error){
+  if(ownerAtSubmit&&ownerAtSubmit!==activeCustomerId)return;
+  if(requestedUserId&&requestedUserId!==activeCustomerId)return;
+  errorBox.textContent='Request status confirm nahi ho paaya. Dobara bhejne se pehle My support requests check karein.';
+ }
+ finally{biteSupportSubmitPending=false;button.disabled=false;button.textContent='Send support request';}
 });
 
 $('accountAddresses').addEventListener('click',async e=>{
