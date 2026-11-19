@@ -2135,7 +2135,7 @@ async function loadHRWorkspace(){
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){hrLoadVersion++;hrDayVersion++;hrDayReport=null;hrDayKey='';hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];document.getElementById('hrAttendanceRegister').textContent='No Owner/Manager restaurant access';document.getElementById('hrPresentCount').textContent='—';document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
+ if(!eligible.length){hrLoadVersion++;hrDayVersion++;hrDayReport=null;hrDayKey='';hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];document.getElementById('hrAttendanceRegister').textContent='No Owner/Manager restaurant access';document.getElementById('hrPresentCount').textContent='—';document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';document.getElementById('hrProfileCards').replaceChildren();return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput();document.getElementById('hrAttendanceDate').value=today;document.getElementById('hrEmployeeJoining').value=today;
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
@@ -2147,7 +2147,7 @@ async function loadHRAttendanceDay(){
  const rid=hrRestaurantId(),day=document.getElementById('hrAttendanceDate').value,userId=currentUser?.id||'';
  const key=userId+':'+rid+':'+day,version=++hrDayVersion;
  const target=document.getElementById('hrAttendanceRegister');
- hrDayReport=null;hrDayKey='';document.getElementById('hrPresentCount').textContent='—';
+ hrDayReport=null;hrDayKey='';document.getElementById('hrPresentCount').textContent='—';renderHREmployeeCards();
  if(!rid||!userId||!window.BiteV3Attendance?.iso?.(day)){
   target.textContent='Choose a valid restaurant and attendance date.';return;
  }
@@ -2176,6 +2176,7 @@ async function loadHRData(){
  const isCurrent=()=>version===hrLoadVersion&&hrRestaurantId()===rid&&currentUser?.id===userId;
  // Clear all previous tenant rows before the four requests settle.
  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayReport=null;hrDayKey='';hrDayVersion++;
+ document.getElementById('hrProfileCards').replaceChildren();
  document.getElementById('hrEmployeeRows').replaceChildren();
  document.getElementById('hrAttendanceRows').replaceChildren();
  document.getElementById('hrLeaveRows').replaceChildren();
