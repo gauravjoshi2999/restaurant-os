@@ -192,6 +192,7 @@
    if(!active(n,restaurant,user,employeeId,month))return;
    display('hrA10Message','Monthly salary closing saved. This is an approval, NOT a salary payment.');
    await load();
+   if(active(n,restaurant,user,employeeId,month))void ctx.refreshSalaryStatus?.();
   }catch(e){
    if(active(n,restaurant,user,employeeId,month))
     display('hrA10Message','Closing not confirmed: '+(e?.message||'Retry failed')+'. Retry with unchanged details or refresh. Do not record a duplicate payment.');
