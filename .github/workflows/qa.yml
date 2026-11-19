@@ -77,6 +77,7 @@ jobs:
           python scripts/browser_smoke.py
           python scripts/browser_completion.py
           python scripts/customer_reorder_review_browser.py
+          python scripts/customer_support_topics_browser.py
           python scripts/owner_cash_closing_smoke.py
           python scripts/pos_payment_browser_smoke.py
           python scripts/owner_mobile_navigation_smoke.py
