@@ -8,8 +8,12 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1];os.chdir(ROOT)
 subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=True)
 base=(ROOT/'dist/qa/admin-flow.html').read_text()
-needle='<script src="assets/super-admin-workspace.js?v=20261118-sa1"></script>'
-assert needle in base
+prefix='<script src="assets/super-admin-workspace.js?v='
+start=base.find(prefix)
+assert start>=0,'Current Super Admin controller script tag is missing'
+end=base.find('</script>',start)
+assert end>start,'Malformed Super Admin controller tag'
+needle=base[start:end+len('</script>')]
 base=base.replace(needle,'<script>'+(ROOT/'scripts/fixtures/super_admin_backend.js').read_text()+'</script>'+needle)
 (ROOT/'dist/qa/super-admin-flow.html').write_text(base)
 OUT=ROOT/'dist/launch-qa';OUT.mkdir(parents=True,exist_ok=True)
