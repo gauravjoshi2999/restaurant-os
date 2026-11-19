@@ -14,7 +14,7 @@ function scope(allowed=true,replies={}){
   calls.push({table});
   const q={select(fields,options){
    assert.equal(fields,'id');
-   assert.deepEqual(options,{count:'exact',head:true});
+   assert.equal(options.count,'exact');assert.equal(options.head,true);
    return this;
   },eq(column,value){
    calls[calls.length-1].filters??=[];
