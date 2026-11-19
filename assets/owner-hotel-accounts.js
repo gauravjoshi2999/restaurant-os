@@ -291,6 +291,7 @@
   }
   if(entry.source_type==='customer_ledger_payment'){if(rid)await ctx.navigate('khata');return}
   if(['expense','property_expense'].includes(entry.source_type)){await ctx.navigate('expenses');return}
+  if(['purchase','supplier_payment'].includes(entry.source_type)){if(rid)await ctx.navigate('purchases');return}
  }
  async function renderDailyBook(target){
   if(!target||!p())return;
