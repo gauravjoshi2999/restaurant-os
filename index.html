@@ -2211,6 +2211,14 @@ async function loadKhataData(){
  if(key!==khataLoadedScope){
   khataLoadedScope=key;khataCustomers=[];khataBalances=[];khataEntries=[];khataHistoryComplete=false;
   selectedKhataCustomerId=null;khataSearchText='';khataFilter='all';khataOpeningMode=false;
+  document.getElementById('khataEntryAmount').value='';
+  document.getElementById('khataEntryReference').value='';
+  document.getElementById('khataEntryDescription').value='';
+  document.getElementById('khataEntryType').value='debit';
+  document.getElementById('khataEntryDate').value=localDateInput();
+  document.getElementById('khataReceiptConfirm').checked=false;
+  document.getElementById('khataOpeningConfirm').checked=false;
+  toggleKhataPaymentMode();
   document.getElementById('khataV3Search').value='';
   document.getElementById('khataCustomerRows').replaceChildren();
   document.getElementById('khataV3Cards').replaceChildren();
