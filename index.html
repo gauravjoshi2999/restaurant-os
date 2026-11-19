@@ -2377,7 +2377,7 @@ function renderKhataLedger(){
  document.getElementById('khataLedgerEmpty').style.display=rows.length?'none':'block';
  document.getElementById('khataLedgerEmpty').textContent=!c?'Select a customer to view their Khata.':
   !khataHistoryComplete?'Only the latest 1,000 entries are available. Older statements are not verified.':
-  'No transactions for this customer during the selected period.';
+  'Is customer ke Khata mein abhi koi entry nahi hai for the selected period.';
 }
 function toggleKhataPaymentMode(){
  const credit=document.getElementById('khataEntryType').value==='credit';
