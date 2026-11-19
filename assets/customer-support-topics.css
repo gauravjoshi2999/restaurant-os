@@ -1,0 +1,29 @@
+/* Bite Customer — accessible support shortcuts, scoped to customer only. */
+body[data-bite-app="customer"] .bite-support-topics{padding:10px 0 14px}
+body[data-bite-app="customer"] .bite-support-topics-label{
+ display:block;color:#1F293D;font-weight:800;font-size:13px;margin:0 0 10px;
+}
+body[data-bite-app="customer"] .bite-support-chips{
+ display:flex;flex-wrap:wrap;gap:8px;
+}
+body[data-bite-app="customer"] .bite-support-chips button{
+ min-height:44px;max-width:100%;padding:9px 12px;
+ border:1px solid #E4D9D0;border-radius:13px;
+ background:#FFFEFC;color:#354053;font-size:12px;font-weight:750;
+ text-align:left;overflow-wrap:anywhere;line-height:1.35;
+}
+body[data-bite-app="customer"] .bite-support-chips button[aria-pressed="true"]{
+ background:#FFF0E6;border-color:#B7420B;color:#92390C;
+}
+body[data-bite-app="customer"] .bite-support-chips button:focus-visible{
+ outline:3px solid #B7420B;outline-offset:2px;
+}
+body[data-bite-app="customer"] #biteSupportTopicHelp:not([hidden]){
+ display:block;margin:9px 0 0;padding:11px 12px;
+ border:1px solid #EBD8C8;border-radius:12px;
+ background:#FFF6EE;color:#354053;font-size:12px;line-height:1.55;
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] .bite-support-chips{gap:6px}
+ body[data-bite-app="customer"] .bite-support-chips button{font-size:11.5px;padding:8px 10px}
+}
