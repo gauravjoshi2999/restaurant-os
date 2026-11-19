@@ -27,6 +27,7 @@ PUBLIC_FILES = (
     "assets/bite-pos-drafts.js",
     "assets/owner-capabilities.js",
     "assets/owner-hospitality.js",
+    "assets/owner-hotel-polish.css",
     "assets/owner-hospitality.css",
     "assets/owner-reference-v3.js",
     "assets/owner-reference-v3.css",

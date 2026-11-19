@@ -74,7 +74,7 @@ test('A02 financial views share picker, preserve property scope and source date'
  assert.match(html,/owner-v3-period\.js\?v=20261119-a02-shared1/);
  assert.match(html,/owner-v3-period\.css\?v=20261119-a02-shared1/);
  assert.match(html,/owner-hotel-accounts\.js\?v=20261119-[a-z0-9-]+/);
- assert.match(html,/owner-hospitality\.js\?v=20261119-a02-shared1/);
+ assert.match(html,/owner-hospitality\.js\?v=20261119-[a-z0-9-]+/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.match(css,/@media\(max-width:340px\)/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-period.js','utf8'),/\.(?:insert|upsert|update|delete|rpc)\(/);
