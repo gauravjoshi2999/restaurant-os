@@ -746,6 +746,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-v3-collections.css?v=20261118-a03-collections1">
 <link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
 <link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
+<link rel="stylesheet" href="assets/owner-supplier-dues.css?v=20261119-a04-dues1">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -939,8 +940,8 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Supplier name (if not saved)</label><input id="purchaseSupplierName" maxlength="120" placeholder="Optional for new supplier"></div>
    <div class="field"><label>Purchase date *</label><input id="purchaseDate" type="date"></div>
    <div class="field"><label>Invoice / bill no.</label><input id="purchaseInvoice" maxlength="80" placeholder="Optional"></div>
-   <div class="field"><label>Paid amount (₹)</label><input id="purchasePaid" type="number" min="0" step="0.01" value="0"></div>
-   <div class="field"><label>Payment mode</label><select id="purchasePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
+   <div class="field"><label>Paid at purchase date (₹)</label><input id="purchasePaid" type="number" min="0" step="0.01" value="0"></div>
+   <div class="field"><label>Initial payment method</label><select id="purchasePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
    <div class="field" style="grid-column:1/-1"><label>Notes</label><input id="purchaseNotes" maxlength="500" placeholder="Bill details, credit terms or extra note"></div>
   </div>
   <div class="section-head"><h2>Purchased items</h2><button class="btn secondary" type="button" onclick="addPurchaseItemRow()">＋ Add item</button></div>
@@ -948,6 +949,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="order-total-bar"><span>Purchase total</span><strong id="purchaseTotal">₹0.00</strong></div>
   <div class="actions"><button class="btn" id="purchaseSaveBtn" type="button" onclick="savePurchase()">Save purchase</button><button class="btn secondary" id="purchaseCancelBtn" type="button" onclick="resetPurchaseForm()" style="display:none">Cancel edit</button><span class="small" id="purchaseMessage" role="status"></span></div>
  </div>
+ <div id="supplierDueSummary" aria-label="Supplier outstanding balances"></div>
  <div class="section"><div class="section-head"><h2>Purchase history</h2><span class="small" id="purchaseSummary">All records</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Supplier</th><th>Bill no.</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Action</th></tr></thead><tbody id="purchaseRows"></tbody></table><div class="empty" id="purchaseEmpty">Abhi koi purchase record nahi hai.</div></div></div>
 
 </section>
@@ -1408,7 +1410,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -1608,6 +1610,7 @@ document.getElementById('expenseRestaurant').addEventListener('change',()=>{rese
 
 
 let purchaseSuppliers=[],purchaseRecords=[],purchaseItems=[],editingPurchaseId=null;
+let supplierPaymentRecords=[],supplierPaymentAvailable=false,purchaseRequestVersion=0,purchaseLoadedScope='';
 function purchaseRestaurantId(){return document.getElementById('purchaseRestaurant').value||''}
 async function loadPurchaseWorkspace(){
  const select=document.getElementById('purchaseRestaurant'),previous=select.value;
@@ -1618,7 +1621,7 @@ async function loadPurchaseWorkspace(){
  select.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  document.getElementById('purchaseSaveBtn').disabled=!['owner','manager'].includes(access.role);
  document.getElementById('supplierSaveBtn').disabled=!['owner','manager'].includes(access.role);
- document.getElementById('purchaseDate').value=localDateInput();
+ document.getElementById('purchaseDate').max=localDateInput();
  resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases();
 }
 async function loadPurchaseInventoryItems(){
@@ -1665,38 +1668,104 @@ function updatePurchaseTotal(){
  document.getElementById('purchaseTotal').textContent=money(total);return Math.round((total+Number.EPSILON)*100)/100;
 }
 function resetPurchaseForm(){
- editingPurchaseId=null;document.getElementById('purchaseSupplier').value='';document.getElementById('purchaseSupplierName').value='';document.getElementById('purchaseDate').value=localDateInput();document.getElementById('purchaseInvoice').value='';document.getElementById('purchasePaid').value='0';document.getElementById('purchasePayment').value='Cash';document.getElementById('purchaseNotes').value='';document.getElementById('purchaseItemRows').innerHTML='';addPurchaseItemRow();document.getElementById('purchaseSaveBtn').textContent='Save purchase';document.getElementById('purchaseCancelBtn').style.display='none';document.getElementById('purchaseMessage').textContent='';
+ editingPurchaseId=null;document.getElementById('purchasePaid').readOnly=false;document.getElementById('purchasePayment').disabled=false;document.getElementById('purchaseDate').readOnly=false;document.getElementById('purchaseSupplier').value='';document.getElementById('purchaseSupplierName').value='';document.getElementById('purchaseDate').value=localDateInput();document.getElementById('purchaseInvoice').value='';document.getElementById('purchasePaid').value='0';document.getElementById('purchasePayment').value='Cash';document.getElementById('purchaseNotes').value='';document.getElementById('purchaseItemRows').innerHTML='';addPurchaseItemRow();document.getElementById('purchaseSaveBtn').textContent='Save purchase';document.getElementById('purchaseCancelBtn').style.display='none';document.getElementById('purchaseMessage').textContent='';
 }
 async function loadPurchases(){
- const rid=purchaseRestaurantId();if(!rid)return;
+ const rid=purchaseRestaurantId(),userId=currentUser?.id||'';if(!rid||!userId)return false;
+ const version=++purchaseRequestVersion,scope=userId+':'+rid;
  const empty=document.getElementById('purchaseEmpty');empty.textContent='Purchases load ho rahe hain...';empty.style.display='block';
+ if(scope!==purchaseLoadedScope){
+  purchaseLoadedScope=scope;purchaseRecords=[];purchaseItems=[];supplierPaymentRecords=[];supplierPaymentAvailable=false;
+  document.getElementById('purchaseRows').replaceChildren();
+  document.getElementById('supplierDueSummary').textContent='Loading supplier dues…';
+ }
  try{
-  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;
-  purchaseRecords=data||[];const ids=purchaseRecords.map(x=>x.id);purchaseItems=[];
-  if(ids.length){const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);if(res.error)throw res.error;purchaseItems=res.data||[]}
-  renderPurchases();
- }catch(e){empty.textContent='Purchase load nahi hue: '+e.message;console.error(e)}
+  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  if(error)throw error;
+  const records=data||[],ids=records.map(x=>x.id);
+  let items=[],paymentRows=[],paymentAvailable=false;
+  if(ids.length){
+   const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);
+   if(res.error)throw res.error;items=res.data||[];
+  }
+  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at').eq('restaurant_id',rid).order('payment_date',{ascending:false});
+  if(!pay.error){paymentRows=pay.data||[];paymentAvailable=true}
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  purchaseRecords=records;purchaseItems=items; supplierPaymentRecords=paymentRows;supplierPaymentAvailable=paymentAvailable;
+  renderPurchases();return true;
+ }catch(e){
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  supplierPaymentAvailable=false;document.getElementById('purchaseRows').replaceChildren();
+  document.getElementById('supplierDueSummary').textContent='Unable to verify current supplier balances. Refresh Purchases.';
+  empty.textContent='Purchase load nahi hue: '+e.message;console.error(e);return false;
+ }
 }
 function renderPurchases(){
- const rows=document.getElementById('purchaseRows');
+ const helper=window.BiteSupplierDues,rows=document.getElementById('purchaseRows');
  rows.innerHTML=purchaseRecords.map(p=>{
-  const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—',balance=Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
-  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button><button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>';
+  const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—';
+  const payments=supplierPaymentRecords.filter(x=>x.purchase_id===p.id);
+  const balance=supplierPaymentAvailable&&helper?helper.outstanding(p,payments):null;
+  const paidTotal=supplierPaymentAvailable&&helper?helper.paid(p,payments):null;
+  const history=payments.length?'<details><summary>'+payments.length+' later payment(s)</summary>'+payments.map(x=>'<p class="small">'+esc(x.payment_date)+' · '+esc(x.method)+' · '+money(x.amount)+(x.reference?' · '+esc(x.reference):'')+'</p>').join('')+'</details>':'';
+  const payButton=supplierPaymentAvailable&&helper&&access.role==='owner'&&balance>0?'<button class="btn" onclick="openSupplierPayment(\''+esc(p.id)+'\')">Pay supplier</button>':'';
+  const deleteButton=payments.length?'':'<button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button>';
+  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+(paidTotal===null?money(p.paid_amount)+'<small>Initial only · verify later payments</small>':money(paidTotal)+history)+'</td><td><strong>'+(balance===null?'Unverified':money(balance))+'</strong></td><td>'+(access.role==='owner'?'<div class="actions">'+payButton+'<button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button>'+deleteButton+'</div>':'<span class="small">View only</span>')+'</td></tr>';
  }).join('');
  document.getElementById('purchaseEmpty').style.display=purchaseRecords.length?'none':'block';
- document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records';
+ document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records · due based on actual recorded supplier payments';
+ helper?.renderSummary(document.getElementById('supplierDueSummary'),{
+  purchases:purchaseRecords,payments:supplierPaymentRecords,available:supplierPaymentAvailable,
+  owner:access.role==='owner',onOpen:openSupplierPayment
+ });
+}
+function openSupplierPayment(id){
+ if(access.role!=='owner'||!supplierPaymentAvailable)return;
+ const rid=purchaseRestaurantId(),userId=currentUser?.id;
+ const purchase=purchaseRecords.find(p=>p.id===id&&p.restaurant_id===rid);
+ if(!purchase)return;
+ try{
+  window.BiteSupplierDues.open({
+   purchase,payments:supplierPaymentRecords,today:localDateInput(),owner:true,
+   onSave:async ({purchaseId,amount,date,method,reference,requestId})=>{
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId||access.role!=='owner')
+     throw Error('Restaurant account changed. Reopen Purchases.');
+    const result=await sb.rpc('record_restaurant_supplier_payment',{
+      p_restaurant_id:rid,p_purchase_id:purchaseId,p_amount:amount,
+      p_payment_date:date,p_method:method,p_request_id:requestId,p_reference:reference
+    });
+    if(result.error)throw result.error;
+    return result.data;
+   },
+   onSuccess:async ()=>{
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
+    const ok=await loadPurchases();
+    document.getElementById('purchaseMessage').textContent=ok?
+     'Supplier payment recorded once on the actual payment date. Cashbook will reflect it.' :
+     'Payment saved but Purchases did not refresh. Refresh before recording anything again.';
+   }
+  });
+ }catch(error){
+  document.getElementById('purchaseMessage').textContent=error.message||'Supplier payment form unavailable.';
+ }
 }
 function editPurchase(id){
  if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;
  const its=purchaseItems.filter(x=>x.purchase_id===id);if(its.some(x=>x.inventory_item_id)){document.getElementById('purchaseMessage').textContent='Ye purchase stock me post ho chuka hai. Stock history ko safe rakhne ke liye item edit/delete locked hai.';return}
- editingPurchaseId=id;document.getElementById('purchaseSupplier').value=p.supplier_id||'';document.getElementById('purchaseSupplierName').value=p.supplier_name_snapshot||'';document.getElementById('purchaseDate').value=p.purchase_date;document.getElementById('purchaseInvoice').value=p.invoice_number||'';document.getElementById('purchasePaid').value=p.paid_amount;document.getElementById('purchasePayment').value=p.payment_method==='Unpaid'?'Cash':p.payment_method;document.getElementById('purchaseNotes').value=p.notes||'';document.getElementById('purchaseItemRows').innerHTML='';
+ const hasLaterPayment=supplierPaymentRecords.some(x=>x.purchase_id===id);
+ editingPurchaseId=id;document.getElementById('purchaseSupplier').value=p.supplier_id||'';document.getElementById('purchaseSupplierName').value=p.supplier_name_snapshot||'';document.getElementById('purchaseDate').value=p.purchase_date;document.getElementById('purchaseInvoice').value=p.invoice_number||'';document.getElementById('purchasePaid').value=p.paid_amount;document.getElementById('purchasePayment').value=p.payment_method==='Unpaid'?'Cash':p.payment_method;document.getElementById('purchaseNotes').value=p.notes||'';
+ document.getElementById('purchasePaid').readOnly=hasLaterPayment;
+ document.getElementById('purchasePayment').disabled=hasLaterPayment;
+ document.getElementById('purchaseDate').readOnly=hasLaterPayment;
+ document.getElementById('purchaseItemRows').innerHTML='';
  const editItems=purchaseItems.filter(x=>x.purchase_id===id);editItems.forEach(x=>addPurchaseItemRow(x));if(!editItems.length)addPurchaseItemRow();
- document.getElementById('purchaseSaveBtn').textContent='Update purchase';document.getElementById('purchaseCancelBtn').style.display='inline-flex';document.getElementById('purchaseMessage').textContent='Purchase selected for editing';
+ document.getElementById('purchaseSaveBtn').textContent='Update purchase';document.getElementById('purchaseCancelBtn').style.display='inline-flex';document.getElementById('purchaseMessage').textContent=hasLaterPayment?'This bill has separate supplier payments; initial paid amount and purchase date are locked. Record further payments with Pay supplier.':'Purchase selected for editing';
 }
 async function savePurchase(){
  if(!['owner','manager'].includes(access.role))return;
  const rid=purchaseRestaurantId(),supplierId=document.getElementById('purchaseSupplier').value||null,supplierName=document.getElementById('purchaseSupplierName').value.trim(),date=document.getElementById('purchaseDate').value,invoice=document.getElementById('purchaseInvoice').value.trim(),paid=Number(document.getElementById('purchasePaid').value),items=readPurchaseItems(),total=updatePurchaseTotal(),notes=document.getElementById('purchaseNotes').value.trim();
- if(!rid||!date||(!supplierId&&!supplierName)||!items.length||items.some(x=>!x.item_name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_cost)||x.unit_cost<0)||!Number.isFinite(paid)||paid<0||paid>total){document.getElementById('purchaseMessage').textContent='Supplier, date, valid item details aur paid amount (total se zyada nahi) check karein.';return}
+ if(!rid||!date||!window.BiteV3Period?.validDay(date)||date>localDateInput()||(!supplierId&&!supplierName)||!items.length||items.some(x=>!x.item_name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_cost)||x.unit_cost<0)||!Number.isFinite(paid)||paid<0||paid>total){document.getElementById('purchaseMessage').textContent='Supplier, date, valid item details aur paid amount (total se zyada nahi) check karein.';return}
  const method=paid===0?'Unpaid':document.getElementById('purchasePayment').value;
  const header={supplier_id:supplierId||'',supplier_name_snapshot:supplierId?(purchaseSuppliers.find(x=>x.id===supplierId)?.name||supplierName||''):supplierName,purchase_date:date,invoice_number:invoice,total_amount:total,paid_amount:paid,payment_method:method,notes};
  const btn=document.getElementById('purchaseSaveBtn');btn.disabled=true;
@@ -1708,7 +1777,7 @@ async function savePurchase(){
  }catch(e){document.getElementById('purchaseMessage').textContent='Save mein dikkat: '+e.message;console.error(e)}finally{btn.disabled=!['owner','manager'].includes(access.role)}
 }
 async function deletePurchase(id){
- if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;if(purchaseItems.some(x=>x.purchase_id===id&&x.inventory_item_id)){alert('Ye purchase stock me post ho chuka hai. Inventory history ko safe rakhne ke liye delete locked hai.');return}if(!confirm('Is purchase ko delete karna hai?'))return;
+ if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;if(supplierPaymentRecords.some(x=>x.purchase_id===id)){alert('This supplier bill has recorded payments and cannot be deleted.');return}if(purchaseItems.some(x=>x.purchase_id===id&&x.inventory_item_id)){alert('Ye purchase stock me post ho chuka hai. Inventory history ko safe rakhne ke liye delete locked hai.');return}if(!confirm('Is purchase ko delete karna hai?'))return;
  try{const {error}=await sb.from('restaurant_purchases').delete().eq('id',id).eq('restaurant_id',purchaseRestaurantId());if(error)throw error;await loadPurchases()}catch(e){alert('Delete nahi hua: '+e.message)}
 }
 document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases()});

@@ -49,6 +49,7 @@ jobs:
           python scripts/pos_payment_browser_smoke.py
           python scripts/owner_mobile_navigation_smoke.py
           python scripts/universal_owner_browser.py
+          python scripts/owner_supplier_dues_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
 
@@ -69,6 +70,7 @@ jobs:
             dist/launch-qa/owner-remaining-browser-evidence.json
             dist/launch-qa/guest-documents-browser-evidence.json
             dist/launch-qa/hotel-accounts-browser-evidence.json
+            dist/launch-qa/supplier-payments-*.png
             dist/launch-qa/checkin-25-scenarios-evidence.json
             dist/launch-qa/checkin-photo-review-evidence.json
             dist/launch-qa/guest-register-history-evidence.json
@@ -78,6 +80,37 @@ jobs:
             dist/launch-qa/receipt.pdf
             dist/launch-qa/guest-hotel-bill.pdf
           if-no-files-found: ignore
+
+  supplier-payment-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_supplier_qa
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_supplier_qa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_supplier_qa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify append-only supplier payments, tenant RLS, legacy purchase parity and closed-day guard
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/supplier_payments_pg_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/sql/owner_a04_supplier_payment_staging.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/supplier_payments_pg_test.sql
 
   owner-historical-postgres-qa:
     runs-on: ubuntu-latest
