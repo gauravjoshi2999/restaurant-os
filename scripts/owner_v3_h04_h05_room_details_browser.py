@@ -39,6 +39,39 @@ try:
    page.locator('#rooms.active .bh-room-grid .bh-room-card').first.wait_for(state='visible')
    cards=page.locator('#rooms .bh-room-card')
    check(cards.count()==2,f'{width}px real room board shows only two fixture rooms')
+   # Synthetic floor values are added only to the isolated browser fixture.
+   page.evaluate("""() => {
+     const d=window.__BITE_HOTEL_QA.db;
+     d.rooms[0].floor='Ground';d.rooms[1].floor='First';
+   }""")
+   page.evaluate("BiteHospitality.reload()")
+   page.evaluate("BiteHospitality.redraw()")
+   page.locator('#rooms.active [data-room-filter="floor"] option[value="Ground"]').wait_for(state='attached')
+   page.locator('#rooms [data-room-filter="floor"]').select_option('Ground')
+   diag=page.evaluate("""() => ({
+     selected:document.querySelector('#rooms [data-room-filter=floor]')?.value,
+     visible:[...document.querySelectorAll('#rooms .bh-room-card')].map(e=>({
+       floor:e.dataset.roomFloor,type:e.dataset.roomType,hidden:e.hidden,
+       display:getComputedStyle(e).display,room:e.innerText.slice(0,35)
+     }))
+   })""")
+   check(page.locator('#rooms .bh-room-card:visible').count()==1 and
+         '101' in page.locator('#rooms .bh-room-card:visible').inner_text(),
+         f'{width}px floor filter shows only Ground room · {diag}')
+   page.locator('#rooms [data-room-filter="type"]').select_option('Suite')
+   check(page.locator('#rooms .bh-room-card:visible').count()==0 and
+         page.locator('#rooms [data-room-filter-empty]').is_visible(),
+         f'{width}px combined floor/type filters truthfully show no matching room')
+   page.locator('#rooms [data-hotel-action="clear-room-filters"]').click()
+   check(page.locator('#rooms .bh-room-card:visible').count()==2,
+         f'{width}px clear filters restores all configured rooms')
+   page.locator('#rooms [data-room-filter="type"]').select_option('Suite')
+   check(page.locator('#rooms .bh-room-card:visible').count()==1 and
+         '102' in page.locator('#rooms .bh-room-card:visible').inner_text(),
+         f'{width}px type filter shows Suite without touching room data')
+   page.locator('#rooms [data-hotel-action="clear-room-filters"]').click()
+   check(page.evaluate('window.__BITE_HOTEL_QA.db.rooms.length===2'),
+         f'{width}px room filters never modify synthetic backend rooms')
    overview=page.locator('#rooms .bh-room-overview').inner_text()
    check('Reserved today' in overview and 'Other / unavailable' in overview,
          f'{width}px room overview distinguishes non-available states')
