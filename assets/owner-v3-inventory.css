@@ -30,3 +30,9 @@ body[data-role="owner"] #inventory #inventoryV3Cards{margin:0 0 15px}
  body[data-role="owner"] #inventory .biv3-card{padding:12px}
 }
 @media(min-width:761px){body[data-role="owner"] #inventory #inventoryV3Cards .biv3-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+@media(max-width:430px){
+ body[data-role="owner"] #inventory .biv3-toolbar{gap:9px}
+ body[data-role="owner"] #inventory .biv3-values strong{font-size:18px}
+ body[data-role="owner"] #inventory .biv3-quick-nav button{padding:7px 4px;font-size:11px}
+}
