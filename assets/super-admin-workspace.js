@@ -70,10 +70,26 @@
    else await listing(token);
   }catch(error){if(valid(token))failed(id,error);}
  }
+ async function sourceCount(table,filters=[]){
+  // Count only; never read private customer/restaurant rows for Home statistics.
+  if(!authorized())throw Error('Super Admin session unavailable');
+  let query=ctx.sb.from(table).select('id',{count:'exact',head:true});
+  for(const [column,value] of filters)query=query.eq(column,value);
+  const {count,error}=await query;
+  if(error||!Number.isSafeInteger(count)||count<0)throw Error('Source count unavailable');
+  return count;
+ }
  async function home(token){
   loading(current,'Super Admin Home');const d=await checked(ctx.sb.rpc('bite_super_admin_overview_v1'));if(!valid(token))return;
+  const figures=await Promise.allSettled([
+   sourceCount('restaurants'),
+   sourceCount('restaurants',[['is_published',true],['status','Active'],['onboarding_status','approved']]),
+   sourceCount('orders',[['channel','Own Platform'],['is_demo',false]])
+  ]);
+  if(!valid(token))return;
+  const showCount=i=>figures[i].status==='fulfilled'?esc(figures[i].value):'Unverified';
   const attention=[['Pending restaurant review',d.pending_restaurants,'restaurants','pending'],['Delayed orders',d.delayed_orders,'orders','delayed'],['Refund follow-up',d.refund_followups,'financials','refunds'],['Pending settlements',d.pending_settlements,'financials','settlements'],['Owner access unassigned',d.owner_unassigned,'restaurants','unassigned'],['Customer support',d.open_support,'support','all']];
-  host(current).innerHTML=heading('Super Admin Home','Overview · '+d.business_date+' · India time')+'<div class="sa-metrics"><article class="sa-card"><span>Today’s orders</span><strong data-sa-today-orders>'+esc(d.orders_today)+'</strong></article><article class="sa-card"><span>Recorded paid-order value</span><strong data-sa-today-payments>'+money(d.collections_today)+'</strong><small>Internal ledger snapshot; provider and bank confirmation separate</small></article></div><section class="sa-card sa-attention"><h2>Needs your attention</h2>'+attention.map(([label,count,route,f])=>'<button type="button" data-sa-attention="'+route+'" data-filter="'+f+'"><span>'+esc(label)+'<b>'+esc(count)+' '+(count===1?'record':'records')+'</b></span><span>View details <span aria-hidden="true">›</span></span></button>').join('')+'</section><p class="sa-footnote">Live platform records · Demo orders excluded · Updated '+esc(when(d.checked_at))+'</p>'+status();
+  host(current).innerHTML=heading('Super Admin Home','Overview · '+d.business_date+' · India time')+'<div class="sa-metrics"><article class="sa-card"><span>Today’s orders</span><strong data-sa-today-orders>'+esc(d.orders_today)+'</strong></article><article class="sa-card"><span>Recorded paid-order value</span><strong data-sa-today-payments>'+money(d.collections_today)+'</strong><small>Internal ledger snapshot; provider and bank confirmation separate</small></article><article class="sa-card"><span>All restaurants</span><strong data-sa-all-restaurants>'+showCount(0)+'</strong><small>Authorised directory total</small></article><article class="sa-card"><span>Published restaurants</span><strong data-sa-active-restaurants>'+showCount(1)+'</strong><small>Approved, active and published</small></article><article class="sa-card"><span>Website orders (all time)</span><strong data-sa-platform-orders>'+showCount(2)+'</strong><small>Non-demo Own Platform orders</small></article></div><section class="sa-card sa-attention"><h2>Needs your attention</h2>'+attention.map(([label,count,route,f])=>'<button type="button" data-sa-attention="'+route+'" data-filter="'+f+'"><span>'+esc(label)+'<b>'+esc(count)+' '+(count===1?'record':'records')+'</b></span><span>View details <span aria-hidden="true">›</span></span></button>').join('')+'</section><p class="sa-footnote">Live platform records · Demo orders excluded · Updated '+esc(when(d.checked_at))+'</p>'+status();
   const readinessHost=document.createElement('div');readinessHost.id='saPilotReadiness';readinessHost.dataset.saUi='';
   host(current).append(readinessHost);
   void root.BitePilotReadiness?.mount?.({client:ctx.sb,container:readinessHost,isCurrent:()=>valid(token)&&current==='overview'});
