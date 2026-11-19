@@ -79,5 +79,5 @@ test('Hotel register includes family room occupants and all protected family ID 
  assert.match(src,/uniqueIds/);
  assert.match(src,/Family \/ group booking/);
  assert.match(src,/Guests staying in this room/);
- assert.match(HTML,/owner-guest-register\.js\?v=20261118-family1/);
+ assert.match(HTML,/owner-guest-register\.js\?v=20261119-[a-z0-9-]+/);
 });
