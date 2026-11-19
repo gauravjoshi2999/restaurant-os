@@ -1671,23 +1671,81 @@ function resetPurchaseForm(){
  editingPurchaseId=null;document.getElementById('purchasePaid').readOnly=false;document.getElementById('purchasePayment').disabled=false;document.getElementById('purchaseDate').readOnly=false;document.getElementById('purchaseSupplier').value='';document.getElementById('purchaseSupplierName').value='';document.getElementById('purchaseDate').value=localDateInput();document.getElementById('purchaseInvoice').value='';document.getElementById('purchasePaid').value='0';document.getElementById('purchasePayment').value='Cash';document.getElementById('purchaseNotes').value='';document.getElementById('purchaseItemRows').innerHTML='';addPurchaseItemRow();document.getElementById('purchaseSaveBtn').textContent='Save purchase';document.getElementById('purchaseCancelBtn').style.display='none';document.getElementById('purchaseMessage').textContent='';
 }
 async function loadPurchases(){
- const rid=purchaseRestaurantId();if(!rid)return;
+ const rid=purchaseRestaurantId(),userId=currentUser?.id||'';if(!rid||!userId)return false;
+ const version=++purchaseRequestVersion,scope=userId+':'+rid;
  const empty=document.getElementById('purchaseEmpty');empty.textContent='Purchases load ho rahe hain...';empty.style.display='block';
+ if(scope!==purchaseLoadedScope){
+  purchaseLoadedScope=scope;purchaseRecords=[];purchaseItems=[];supplierPaymentRecords=[];supplierPaymentAvailable=false;
+  document.getElementById('purchaseRows').replaceChildren();
+  document.getElementById('supplierDueSummary').textContent='Loading supplier dues…';
+ }
  try{
-  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;
-  purchaseRecords=data||[];const ids=purchaseRecords.map(x=>x.id);purchaseItems=[];
-  if(ids.length){const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);if(res.error)throw res.error;purchaseItems=res.data||[]}
-  renderPurchases();
- }catch(e){empty.textContent='Purchase load nahi hue: '+e.message;console.error(e)}
+  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  if(error)throw error;
+  const records=data||[],ids=records.map(x=>x.id);
+  let items=[],paymentRows=[],paymentAvailable=false;
+  if(ids.length){
+   const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);
+   if(res.error)throw res.error;items=res.data||[];
+  }
+  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at').eq('restaurant_id',rid).order('payment_date',{ascending:false});
+  if(!pay.error){paymentRows=pay.data||[];paymentAvailable=true}
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  purchaseRecords=records;purchaseItems=items; supplierPaymentRecords=paymentRows;supplierPaymentAvailable=paymentAvailable;
+  renderPurchases();return true;
+ }catch(e){
+  if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
+  empty.textContent='Purchase load nahi hue: '+e.message;console.error(e);return false;
+ }
 }
 function renderPurchases(){
- const rows=document.getElementById('purchaseRows');
+ const helper=window.BiteSupplierDues,rows=document.getElementById('purchaseRows');
  rows.innerHTML=purchaseRecords.map(p=>{
-  const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—',balance=Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
-  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+money(p.paid_amount)+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button><button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>';
+  const its=purchaseItems.filter(x=>x.purchase_id===p.id),linked=its.filter(x=>x.inventory_item_id).length,supplier=purchaseSuppliers.find(x=>x.id===p.supplier_id),name=supplier?.name||p.supplier_name_snapshot||'—';
+  const payments=supplierPaymentRecords.filter(x=>x.purchase_id===p.id);
+  const balance=supplierPaymentAvailable&&helper?helper.outstanding(p,payments):Math.max(0,Number(p.total_amount)-Number(p.paid_amount));
+  const paidTotal=supplierPaymentAvailable&&helper?helper.paid(p,payments):Number(p.paid_amount);
+  const history=payments.length?'<details><summary>'+payments.length+' later payment(s)</summary>'+payments.map(x=>'<p class="small">'+esc(x.payment_date)+' · '+esc(x.method)+' · '+money(x.amount)+(x.reference?' · '+esc(x.reference):'')+'</p>').join('')+'</details>':'';
+  const payButton=supplierPaymentAvailable&&helper&&access.role==='owner'&&balance>0?'<button class="btn" onclick="openSupplierPayment(\''+esc(p.id)+'\')">Pay supplier</button>':'';
+  const deleteButton=payments.length?'':'<button class="btn danger" onclick="deletePurchase(\''+esc(p.id)+'\')">Delete</button>';
+  return '<tr><td>'+esc(p.purchase_date)+'</td><td><strong>'+esc(name)+'</strong></td><td>'+esc(p.invoice_number||'—')+'</td><td>'+its.length+' item(s)'+(linked?' · '+linked+' stock linked':'')+'</td><td>'+money(p.total_amount)+'</td><td>'+money(paidTotal)+history+'</td><td><strong>'+money(balance)+'</strong></td><td>'+(access.role==='owner'?'<div class="actions">'+payButton+'<button class="btn secondary" onclick="editPurchase(\''+esc(p.id)+'\')">Edit</button>'+deleteButton+'</div>':'<span class="small">View only</span>')+'</td></tr>';
  }).join('');
  document.getElementById('purchaseEmpty').style.display=purchaseRecords.length?'none':'block';
- document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records';
+ document.getElementById('purchaseSummary').textContent=purchaseRecords.length+' purchase records · due based on actual recorded supplier payments';
+ helper?.renderSummary(document.getElementById('supplierDueSummary'),{
+  purchases:purchaseRecords,payments:supplierPaymentRecords,available:supplierPaymentAvailable,
+  owner:access.role==='owner',onOpen:openSupplierPayment
+ });
+}
+function openSupplierPayment(id){
+ if(access.role!=='owner'||!supplierPaymentAvailable)return;
+ const rid=purchaseRestaurantId(),userId=currentUser?.id;
+ const purchase=purchaseRecords.find(p=>p.id===id&&p.restaurant_id===rid);
+ if(!purchase)return;
+ try{
+  window.BiteSupplierDues.open({
+   purchase,payments:supplierPaymentRecords,today:localDateInput(),owner:true,
+   onSave:async ({purchaseId,amount,date,method,reference,requestId})=>{
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId||access.role!=='owner')
+     throw Error('Restaurant account changed. Reopen Purchases.');
+    const result=await sb.rpc('record_restaurant_supplier_payment',{
+      p_restaurant_id:rid,p_purchase_id:purchaseId,p_amount:amount,
+      p_payment_date:date,p_method:method,p_request_id:requestId,p_reference:reference
+    });
+    if(result.error)throw result.error;
+    return result.data;
+   },
+   onSuccess:async ()=>{
+    const ok=await loadPurchases();
+    document.getElementById('purchaseMessage').textContent=ok?
+     'Supplier payment recorded once on the actual payment date. Cashbook will reflect it.' :
+     'Payment saved but Purchases did not refresh. Refresh before recording anything again.';
+   }
+  });
+ }catch(error){
+  document.getElementById('purchaseMessage').textContent=error.message||'Supplier payment form unavailable.';
+ }
 }
 function editPurchase(id){
  if(access.role!=='owner')return;const p=purchaseRecords.find(x=>x.id===id);if(!p)return;
