@@ -33,7 +33,7 @@ create policy restaurant_supplier_payment_read on public.restaurant_supplier_pay
 -- When a purchase has a separate payment, its historical paid-at-purchase amount,
 -- purchase day and total cannot be silently rewritten.
 create or replace function public.bite_guard_supplier_paid_purchase()
-returns trigger language plpgsql security definer set search_path='' as $
+returns trigger language plpgsql security definer set search_path='' as $$
 declare later_total numeric;
 begin
  select coalesce(sum(amount),0) into later_total
@@ -48,7 +48,7 @@ begin
    raise exception 'This purchase has supplier payments. Change only non-financial details; record further payments separately.';
  end if;
  return new;
-end $;
+end $$;
 revoke all on function public.bite_guard_supplier_paid_purchase() from public,anon,authenticated;
 drop trigger if exists restaurant_supplier_paid_purchase_guard on public.restaurant_purchases;
 create trigger restaurant_supplier_paid_purchase_guard
