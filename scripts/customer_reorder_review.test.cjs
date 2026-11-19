@@ -80,5 +80,6 @@ test('historical price RPC keeps customer ownership and existing authenticated s
  assert.match(sql,/'available',coalesce\(m\.is_available,false\)/);
  assert.match(sql,/revoke all on function public\.bite_reorder_items\(uuid\) from public,anon;/);
  assert.match(sql,/grant execute on function public\.bite_reorder_items\(uuid\) to authenticated;/);
- assert.doesNotMatch(sql,/update public\.|delete from public\.|cashfree|payment_|settlement/i);
+ const statementText=sql.replace(/^--.*$/gm,'');
+ assert.doesNotMatch(statementText,/update\s+public\.|delete\s+from\s+public\.|cashfree|payment_|settlement/i);
 });
