@@ -1149,7 +1149,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field"><label>Mobile number</label><input id="khataCustomerPhone" maxlength="18" inputmode="tel" placeholder="10 digit mobile"></div>
    <div class="field"><label>Address</label><input id="khataCustomerAddress" maxlength="250" placeholder="Optional address"></div>
    <div class="field"><label>Note</label><input id="khataCustomerNotes" maxlength="250" placeholder="Optional"></div>
-   <div class="actions"><button class="btn" type="button" onclick="saveKhataCustomer()">＋ Save customer</button><span class="small" id="khataCustomerMessage" role="status"></span></div>
+   <div class="actions"><button class="btn" id="khataSaveCustomerBtn" type="button" onclick="saveKhataCustomer()">＋ Save customer</button><span class="small" id="khataCustomerMessage" role="status"></span></div>
   </div>
   <div class="card">
    <div class="section-head"><h2>New Khata entry</h2><span class="small">Udhar / Jama</span></div><p class="v3-khata-caution">If this is an old due, verify it has not already been imported as a POS bill. For a receipt, use the actual date the money arrived.</p>
@@ -2376,22 +2376,113 @@ function toggleKhataPaymentMode(){
  document.getElementById('khataPaymentModeField').style.display=credit?'block':'none';
  document.getElementById('khataOpeningReview').hidden=!khataOpeningMode;
 }
+let khataCustomerSaving=false;
 async function saveKhataCustomer(){
- const rid=khataRestaurantId(),name=document.getElementById('khataCustomerName').value.trim(),phone=document.getElementById('khataCustomerPhone').value.trim();
- if(!rid||name.length<2){document.getElementById('khataCustomerMessage').textContent='Customer name sahi bharein.';return}
- try{const {error}=await sb.from('restaurant_customers').insert({restaurant_id:rid,full_name:name,phone:phone||null,address:document.getElementById('khataCustomerAddress').value.trim()||null,notes:document.getElementById('khataCustomerNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;
-  document.getElementById('khataCustomerName').value='';document.getElementById('khataCustomerPhone').value='';document.getElementById('khataCustomerAddress').value='';document.getElementById('khataCustomerNotes').value='';document.getElementById('khataCustomerMessage').textContent='Customer saved';await loadKhataData();
- }catch(e){document.getElementById('khataCustomerMessage').textContent='Customer save nahi hua: '+e.message;console.error(e)}
+ if(khataCustomerSaving)return;
+ const rid=khataRestaurantId(),userId=currentUser?.id||'';
+ const name=document.getElementById('khataCustomerName').value.trim();
+ const phone=document.getElementById('khataCustomerPhone').value.trim();
+ const message=document.getElementById('khataCustomerMessage');
+ if(!rid||!userId||name.length<2){
+  message.textContent='Customer name sahi bharein.';return;
+ }
+ const button=document.getElementById('khataSaveCustomerBtn');
+ khataCustomerSaving=true;if(button)button.disabled=true;
+ try{
+  const {error}=await sb.from('restaurant_customers').insert({
+   restaurant_id:rid,full_name:name,phone:phone||null,
+   address:document.getElementById('khataCustomerAddress').value.trim()||null,
+   notes:document.getElementById('khataCustomerNotes').value.trim()||null,created_by:userId
+  });
+  if(error)throw error;
+  if(khataRestaurantId()!==rid||currentUser?.id!==userId)return;
+  document.getElementById('khataCustomerName').value='';
+  document.getElementById('khataCustomerPhone').value='';
+  document.getElementById('khataCustomerAddress').value='';
+  document.getElementById('khataCustomerNotes').value='';
+  message.textContent='Customer saved';
+  await loadKhataData();
+ }catch(e){
+  if(khataRestaurantId()===rid&&currentUser?.id===userId)
+   message.textContent='Customer save nahi hua: '+e.message+'. Check existing accounts before retrying.';
+  console.error(e);
+ }finally{
+  khataCustomerSaving=false;if(button)button.disabled=false;
+ }
 }
 async function saveKhataEntry(){
- const rid=khataRestaurantId(),customer=document.getElementById('khataEntryCustomer').value,type=document.getElementById('khataEntryType').value,amount=Number(document.getElementById('khataEntryAmount').value),date=document.getElementById('khataEntryDate').value,method=type==='credit'?document.getElementById('khataPaymentMode').value:null,reference=document.getElementById('khataEntryReference').value.trim(),description=document.getElementById('khataEntryDescription').value.trim();
- if(!rid||!customer||!date||!Number.isFinite(amount)||amount<=0){document.getElementById('khataEntryMessage').textContent='Customer, date aur valid amount bharein.';return}
- try{const {error}=await sb.from('restaurant_customer_ledger_entries').insert({restaurant_id:rid,customer_id:customer,entry_date:date,entry_type:type,amount,payment_method:method,reference:reference||null,description:description||null,created_by:currentUser.id});if(error)throw error;
-  document.getElementById('khataEntryAmount').value='';document.getElementById('khataEntryReference').value='';document.getElementById('khataEntryDescription').value='';document.getElementById('khataEntryMessage').textContent='Khata entry saved';selectedKhataCustomerId=customer;await loadKhataData();
- }catch(e){document.getElementById('khataEntryMessage').textContent='Khata entry save nahi hui: '+e.message;console.error(e)}
+ if(khataEntrySaving)return;
+ const rid=khataRestaurantId(),userId=currentUser?.id||'';
+ const customer=document.getElementById('khataEntryCustomer').value;
+ const type=document.getElementById('khataEntryType').value;
+ const amountRaw=document.getElementById('khataEntryAmount').value;
+ const amount=Number(amountRaw),date=document.getElementById('khataEntryDate').value;
+ const method=type==='credit'?document.getElementById('khataPaymentMode').value:null;
+ const reference=document.getElementById('khataEntryReference').value.trim();
+ const description=document.getElementById('khataEntryDescription').value.trim();
+ const message=document.getElementById('khataEntryMessage');
+ const today=localDateInput();
+ if(!rid||!userId||!khataCustomers.some(c=>c.id===customer&&c.status==='Active')){
+  message.textContent='Select an active customer from this restaurant.';return;
+ }
+ if(!window.BiteV3Period?.validDay(date)||date>today||amountRaw===''||!Number.isFinite(amount)||
+  amount<=0||Math.abs(amount*100-Math.round(amount*100))>1e-6||!['debit','credit'].includes(type)){
+  message.textContent='Choose a valid date no later than today and a positive amount with two decimals.';return;
+ }
+ if(type==='credit'&&!document.getElementById('khataReceiptConfirm').checked){
+  message.textContent='Confirm that money was actually received. Never duplicate an existing POS payment.';return;
+ }
+ if(khataOpeningMode&&(!document.getElementById('khataOpeningConfirm').checked||date>=today||type!=='debit')){
+  message.textContent='Opening due needs the original past date and confirmation that it is not already in linked bills.';return;
+ }
+ if(type==='credit'&&!['Cash','UPI','Card','Bank Transfer','Other'].includes(method)){
+  message.textContent='Choose the actual payment method.';return;
+ }
+ const button=document.getElementById('khataSaveEntryBtn');
+ khataEntrySaving=true;button.disabled=true;message.textContent='Saving Khata entry…';
+ try{
+  const {error}=await sb.from('restaurant_customer_ledger_entries').insert({
+   restaurant_id:rid,customer_id:customer,entry_date:date,entry_type:type,
+   amount,payment_method:method,reference:reference||null,description:description||null,created_by:userId
+  });
+  if(error)throw error;
+  if(khataRestaurantId()!==rid||currentUser?.id!==userId)return;
+  document.getElementById('khataEntryAmount').value='';
+  document.getElementById('khataEntryReference').value='';
+  document.getElementById('khataEntryDescription').value='';
+  document.getElementById('khataReceiptConfirm').checked=false;
+  document.getElementById('khataOpeningConfirm').checked=false;
+  khataOpeningMode=false;document.getElementById('khataOpeningReview').hidden=true;
+  document.getElementById('khataEntryDate').value=today;
+  message.textContent=type==='credit'?'Receipt recorded in Khata and Cashbook, not as a second sale.':'Due entered in the existing Khata ledger.';
+  selectedKhataCustomerId=customer;
+  await loadKhataData();
+ }catch(e){
+  if(khataRestaurantId()===rid&&currentUser?.id===userId)
+   message.textContent='Not confirmed: '+e.message+'. Refresh Khata and check the ledger before retrying, to prevent duplicate entries.';
+  console.error(e);
+ }finally{
+  khataEntrySaving=false;button.disabled=false;
+ }
 }
-document.getElementById('khataRestaurant').addEventListener('change',()=>{selectedKhataCustomerId=null;loadKhataData()});
-document.getElementById('khataEntryType').addEventListener('change',toggleKhataPaymentMode);
+document.getElementById('khataRestaurant').addEventListener('change',()=>{
+ selectedKhataCustomerId=null;khataOpeningMode=false;loadKhataData();
+});
+document.getElementById('khataEntryType').addEventListener('change',()=>{
+ khataOpeningMode=false;
+ document.getElementById('khataOpeningConfirm').checked=false;
+ document.getElementById('khataReceiptConfirm').checked=false;
+ toggleKhataPaymentMode();
+});
+document.getElementById('khataV3Search').addEventListener('input',event=>{
+ khataSearchText=String(event.target.value||'');renderKhata();
+});
+document.getElementById('khataV3Toolbar').addEventListener('click',event=>{
+ const button=event.target.closest?.('[data-v3-khata-filter]');
+ const value=button?.dataset?.v3KhataFilter;
+ if(!['all','due','advance','clear'].includes(value))return;
+ khataFilter=value;renderKhata();
+});
 
 let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[];
 function reportRestaurantId(){return document.getElementById('reportRestaurant').value||''}
