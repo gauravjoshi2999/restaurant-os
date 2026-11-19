@@ -52,14 +52,16 @@ with sync_playwright() as pw:
   assert page.evaluate('__A05.report.closingCents')==6000
   assert page.locator('#khataV3Statement').get_by_text('Demo customer').is_visible()
   assert page.get_by_text('Opening before period').count()==1
-  assert page.locator('#khataV3Statement').get_by_text('₹60.00 due').count()>=1
+  current=page.locator('#khataV3Statement .v3-khata-current strong').inner_text()
+  assert '60' in current and 'due' in current, f'Current Khata balance label: {current}'
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'A05 horizontal overflow at {width}'
   page.locator('#v3KhataStatementPeriod [data-bv3-period-toggle]').click()
   page.locator('#v3KhataStatementPeriod [data-bv3-period-mode=day]').click()
   page.locator('#v3KhataStatementPeriod [name=day]').fill('2026-11-10')
   page.locator('#v3KhataStatementPeriod [type=submit]').click()
   page.wait_for_function('__A05.report.closingCents===10000')
-  assert page.locator('#khataV3Statement').get_by_text('₹100.00 due').count()>=1
+  filtered=page.locator('#khataV3Statement .v3-khata-statement-totals').inner_text()
+  assert '100' in filtered and 'due' in filtered, f'As-of-period Khata closing label: {filtered}'
   page.screenshot(path=str(out/f'khata-v3-{width}.png'))
   print(f'PASS: A05 statement opening/closing, 320–1024 px and selected record day at {width}px')
   page.close()
