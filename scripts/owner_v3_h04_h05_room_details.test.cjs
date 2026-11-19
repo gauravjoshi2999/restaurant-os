@@ -12,7 +12,7 @@ assert.equal(source.split(marker).length-1,1,'Owner Hospitality export insertion
 const script=source.replace(marker,
  " root.__roomDetailTest={roomDetailMarkup,roomState,setData:next=>{data=next;workspaceReady=true},setCtx:next=>{ctx=next}};\n"+marker);
 
-function fixture({role='owner',capabilities=['hotel_rooms','folios','charge_to_room'],restaurantId='rest-1'}={}){
+function fixture({role='owner',capabilities=['hotel_rooms','guest_register','folios','charge_to_room'],restaurantId='rest-1'}={}){
  const property={id:'property-1',role,capabilities,business_type:'hybrid'};
  const root={BiteCapabilities:{has:(p,c)=>!!p?.capabilities?.includes(c)},BiteOwner:{day:()=> '2026-11-19'}};
  root.window=root;
