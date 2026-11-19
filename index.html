@@ -2332,7 +2332,7 @@ async function reviewHRLeave(id,status){
  const explanation=prompt('Leave '+status+' reason (required):','')?.trim();
  if(!explanation||explanation.length<5)return;
  const userId=currentUser.id,reviewed=new Date().toISOString();
- const payload={status,approved_by:userId,approved_at:reviewed,
+ const payload={status,approved_by:status==='Approved'?userId:null,approved_at:status==='Approved'?reviewed:null,
   reason:[String(row.reason||'').trim(),'[Review '+status+' · '+reviewed+' · '+userId+': '+explanation.slice(0,300)+']'].filter(Boolean).join('\n')};
  try{
   const {data,error}=await sb.from('restaurant_employee_leaves').update(payload)
