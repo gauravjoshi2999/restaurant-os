@@ -1,6 +1,6 @@
-/* Bite Customer Notification Center — verified order changes during this tab session.
- * Never presents an in-memory event as a server-saved, push or historical notification.
- * Account switching destroys the old user's entries; no persistent/browser storage.
+/* Bite Customer Notification Center: in-session unread alerts plus separately
+ * labeled, read-only server history of customer-owned order status changes.
+ * History is not push and does not imply permanently synchronized read receipts.
  */
 (function(root,factory){
  'use strict';
@@ -33,6 +33,25 @@
   function snapshot(){return {userId,items:items.map(x=>({...x})),unread:items.filter(x=>!x.seen).length};}
   return {setUser,record,markSeen,markAllSeen,snapshot};
  }
+ async function fetchVerifiedOrderHistory(client,userId){
+  if(!client||typeof userId!=='string'||!userId.trim())return [];
+  // Customer-specific query plus server-side orders and history RLS.
+  const own=await client.from('orders').select('id,order_code')
+   .eq('customer_id',userId).order('created_at',{ascending:false}).limit(30);
+  if(own.error)throw own.error;
+  const orderCodes=new Map((own.data||[])
+   .filter(row=>typeof row.id==='string'&&/^[0-9a-f-]{36}$/i.test(row.id))
+   .map(row=>[row.id,String(row.order_code||'Order').slice(0,40)]));
+  if(!orderCodes.size)return [];
+  const history=await client.from('order_status_history')
+   .select('id,order_id,to_status,changed_at')
+   .in('order_id',[...orderCodes.keys()]).order('changed_at',{ascending:false}).limit(60);
+  if(history.error)throw history.error;
+  return (history.data||[]).filter(row=>orderCodes.has(row.order_id)).map(row=>({
+   id:row.id,orderId:row.order_id,orderCode:orderCodes.get(row.order_id),
+   status:String(row.to_status||'Updated').slice(0,60),changedAt:row.changed_at||null
+  }));
+ }
  function attachBrowser(win){
   const doc=win?.document;
   if(!doc)return null;
@@ -47,6 +66,49 @@
   const all=doc.getElementById('biteNotificationAll');
   const unread=doc.getElementById('biteNotificationUnread');
   if(!wrap||!count||!mark||!list||!all||!unread||!bell||!badge)return null;
+  // Use the already durable order_status_history table; do not claim push,
+  // notifications stored on the server, or synchronized read/unread receipts.
+  const historyPanel=doc.createElement('details');
+  historyPanel.id='biteVerifiedOrderHistory';
+  historyPanel.className='bite-verified-order-history';
+  const historyHeading=doc.createElement('summary');
+  historyHeading.textContent='Past verified order activity';
+  const historyHelp=doc.createElement('p');
+  historyHelp.textContent='Read-only order status history saved by Bite. The unread badge above counts updates from this browser visit only.';
+  const historyList=doc.createElement('ol');
+  historyList.className='bite-order-history-entries';
+  const historyStatus=doc.createElement('p');
+  historyStatus.className='bite-order-history-status';
+  historyStatus.setAttribute('role','status');
+  historyPanel.append(historyHeading,historyHelp,historyStatus,historyList);
+  wrap.append(historyPanel);
+  let historyRequest=0;
+  async function refreshHistory(){
+   const userId=store.snapshot().userId,request=++historyRequest;
+   historyList.replaceChildren();
+   if(!userId){historyStatus.textContent='Sign in to view your previous order status history.';return;}
+   historyStatus.textContent='Loading verified order activity…';
+   try{
+    const entries=await fetchVerifiedOrderHistory(sb,userId);
+    if(request!==historyRequest||store.snapshot().userId!==userId)return;
+    historyStatus.textContent=entries.length?'':'No previous order status updates found.';
+    for(const entry of entries){
+     const item=doc.createElement('li');
+     const label=doc.createElement('strong');
+     label.textContent=entry.orderCode+' · '+entry.status;
+     const date=doc.createElement('small');
+     const timestamp=entry.changedAt?new Date(entry.changedAt):null;
+     date.textContent=timestamp&&!Number.isNaN(timestamp.getTime())
+      ?timestamp.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      :'Previous status update';
+     item.append(label,date);historyList.append(item);
+    }
+   }catch{
+    if(request!==historyRequest||store.snapshot().userId!==userId)return;
+    historyStatus.textContent='Past order activity could not be loaded. Close and reopen to retry.';
+   }
+  }
+  historyPanel.addEventListener('toggle',()=>{if(historyPanel.open)void refreshHistory();});
   let filter='all';
   const store=createStore(render);
   function render(){
@@ -87,12 +149,19 @@
   mark.addEventListener('click',()=>store.markAllSeen());
   all.addEventListener('click',()=>{filter='all';render();});
   unread.addEventListener('click',()=>{filter='unread';render();});
-  doc.addEventListener('bite:verified-order-update',event=>{store.record(event.detail);});
+  doc.addEventListener('bite:verified-order-update',event=>{
+   if(store.record(event.detail)&&historyPanel.open)void refreshHistory();
+  });
   let revision=0;
   function useSession(session){
    const next=session?.user?.id||null;
-   if(store.snapshot().userId!==next)filter='all';
-   store.setUser(next);
+   if(store.snapshot().userId!==next){
+    filter='all';
+    ++historyRequest;historyList.replaceChildren();
+    historyStatus.textContent=next?'Open to load your saved order activity.':'Sign in to view previous order activity.';
+    store.setUser(next);
+    if(historyPanel.open)void refreshHistory();
+   }
   }
   sb.auth.onAuthStateChange((_event,session)=>{revision++;useSession(session);});
   const startRevision=revision;
@@ -102,5 +171,5 @@
   render();
   return {syncUser:id=>store.setUser(id),record:store.record,markAllSeen:store.markAllSeen,snapshot:store.snapshot,render};
  }
- return {createStore,attachBrowser};
+ return {createStore,fetchVerifiedOrderHistory,attachBrowser};
 });
