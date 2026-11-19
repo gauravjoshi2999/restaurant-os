@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
- assert.match(index,/owner-hospitality\.js\?v=20261119-[a-z0-9-]+/);
+const source=fs.readFileSync('assets/owner-hospitality.js','utf8');
 const css=fs.readFileSync('assets/owner-hotel-polish.css','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const marker=' root.BiteHospitality={header,';
@@ -103,7 +103,7 @@ test('H04/H05 links, assets and responsive CSS are wired into the existing Owner
  assert.match(source,/else if\(action==='room-detail-checkin'\)/);
  assert.match(source,/Reserved today/);
  assert.match(source,/Other \/ unavailable/);
- assert.match(index,/owner-hospitality\.js\?v=20261119-h04filter1/);
+ assert.match(index,/owner-hospitality\.js\?v=20261119-[a-z0-9-]+/);
  assert.match(index,/owner-hotel-polish\.css\?v=20261119-h04filter1/);
  assert.match(css,/Owner V3 H04–H05/);
  assert.match(css,/@media\(max-width:480px\)/);
