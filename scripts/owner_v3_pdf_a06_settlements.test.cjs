@@ -99,7 +99,7 @@ test('A06: owner-only authenticated reader scopes EVERY financial source to tena
 });
 test('A06: explicit loading failure does not quietly show zero/paid or corrupt state',async()=>{
  const bad={from(){return {select(){return this},eq(){return this},order(){return this},range(){return Promise.resolve({data:null,error:{message:'RLS denied'}})}}}};
- await assert.rejects(api.load(bad,rid,()=>true),/RLS denied/);
+ await assert.rejects(api.load(bad,rid,()=>true),e=>e?.message==='RLS denied');
  await assert.rejects(api.load(bad,rid,()=>false),/unavailable/);
 });
 test('A06: existing Owner V3 shell, More, responsive layout and Super Admin separation',()=>{
@@ -119,5 +119,5 @@ test('A06: HTML-escape untrusted provider text and order titles',()=>{
  const nasty=summarize({...fixture,financials:[{...f,payment_status:'<img src=x onerror=alert(1)>'}]});
  const host={innerHTML:''};api.render(host,nasty,'payments');
  assert.doesNotMatch(host.innerHTML,/<img src=x/);
- assert.match(host.innerHTML,/&lt;img/);
+ assert.match(host.innerHTML,/&lt;img/i);
 });
