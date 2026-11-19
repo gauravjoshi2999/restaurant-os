@@ -425,7 +425,34 @@ try:
         page.locator('#floatingViewCart').click()
         page.locator('#closeCartModal').click()
         page.locator('#backBtn').click()
-        check(not page.locator('#cartFloating').is_visible(), 'Floating cart is hidden outside the restaurant menu')
+        check(page.locator('#cartFloating').is_visible()
+              and page.locator('#floatingCartCount').inner_text() == '1 item',
+              'Saved cart remains visible on the Home dashboard')
+        check(page.locator('#floatingCartRestaurant').inner_text().strip(),
+              'Home mini-cart identifies the restaurant')
+        page.locator('#floatingViewCart').click()
+        check(page.locator('#cartModal.show').is_visible(),
+              'Home mini-cart opens existing editable cart, not checkout')
+        page.locator('#cartModalLines [data-cart-remove="' + item_id + '"]').click()
+        check(page.locator('#cartCount').inner_text() == '(0)'
+              and page.locator('#undoClearCartBtn').is_visible(),
+              'Explicit Remove deletes the whole selected dish line with Undo')
+        page.locator('#undoClearCartBtn').click()
+        check(page.locator('#cartCount').inner_text() == '(1)',
+              'Dish-level Remove Undo restores the quantity on Home')
+        page.locator('#closeCartModal').click()
+        page.locator('#floatingCartRemove').click()
+        check(page.locator('#floatingCartRemovePanel').is_visible(),
+              'X offers an explicit Keep or Remove cart choice')
+        page.locator('#floatingCartKeep').click()
+        check(page.locator('#cartFloating').is_visible()
+              and page.locator('#floatingCartRemovePanel').is_hidden(),
+              'Keep items leaves the Home cart unchanged')
+        page.locator('#floatingCartRemove').click()
+        page.locator('#floatingCartConfirmRemove').click()
+        check(not page.locator('#cartFloating').is_visible()
+              and page.evaluate("localStorage.getItem('restaurantos_customer_cart_v1')") is None,
+              'Remove cart hides dock and clears only the unplaced saved cart')
 
         # Payment stays locked until the signed-in checkout checks server readiness.
         button = page.locator("#placeOrderBtn")
