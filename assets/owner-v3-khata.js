@@ -43,9 +43,11 @@
  function filterCustomers(customers,balances,query='',status='all'){
   const q=String(query||'').trim().toLocaleLowerCase('en-IN');
   return (customers||[]).filter(c=>{
-   const b=(balances||[]).find(x=>x.customer_id===c.id),balance=Number(b?.balance||0);
+   const b=(balances||[]).find(x=>x.customer_id===c.id);
+   const verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
+   const balance=verified?Number(b.balance):null;
    const match=!q||[c.full_name,c.phone,c.address].some(x=>String(x||'').toLocaleLowerCase('en-IN').includes(q));
-   const state=status==='due'?balance>0:status==='advance'?balance<0:status==='clear'?balance===0:true;
+   const state=status==='due'?verified&&balance>0:status==='advance'?verified&&balance<0:status==='clear'?verified&&balance===0:true;
    return match&&state;
   });
  }
