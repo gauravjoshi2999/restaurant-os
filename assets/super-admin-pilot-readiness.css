@@ -1,0 +1,18 @@
+/* Super Admin pilot acceptance: verified records, never a payment-approval button. */
+body[data-role="super_admin"] .sa-pilot{margin-top:18px;min-width:0}
+body[data-role="super_admin"] .sa-pilot-head h2{font-size:18px;margin:0 0 5px;color:#30261e}
+body[data-role="super_admin"] .sa-pilot-head p{font-size:12px;color:#6d665c;line-height:1.5;margin:0 0 12px}
+body[data-role="super_admin"] .sa-pilot-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+body[data-role="super_admin"] .sa-pilot-stat{display:grid;gap:6px;border:1px solid #e8e4df;border-radius:12px;background:#fffaf5;padding:12px;min-width:0}
+body[data-role="super_admin"] .sa-pilot-stat small{font-size:11px;color:#6d6559}
+body[data-role="super_admin"] .sa-pilot-stat strong{font-size:25px;color:#34302d;overflow-wrap:anywhere}
+body[data-role="super_admin"] .sa-pilot-stat span{font-size:11px;line-height:1.5;color:#736c65;overflow-wrap:anywhere}
+body[data-role="super_admin"] .sa-pilot-note{font-size:12px;line-height:1.6;margin:14px 0 12px;padding:12px;border:1px solid #f1d9c5;border-radius:10px;background:#fff8f1;color:#70503b}
+body[data-role="super_admin"] .sa-pilot-link{display:inline-block;font-size:12px;font-weight:800;color:#a74914;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+body[data-role="super_admin"] .sa-pilot-link:focus-visible{outline:3px solid #ed8a40;outline-offset:3px}
+@media(max-width:650px){body[data-role="super_admin"] .sa-pilot-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:390px){body[data-role="super_admin"] .sa-pilot{padding:11px}
+body[data-role="super_admin"] .sa-pilot-stats{grid-template-columns:minmax(0,1fr)}
+body[data-role="super_admin"] .sa-pilot-stat{grid-template-columns:1fr auto;align-items:center}
+body[data-role="super_admin"] .sa-pilot-stat span{grid-column:1/-1}
+body[data-role="super_admin"] .sa-pilot-stat strong{font-size:21px}}
