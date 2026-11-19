@@ -57,6 +57,7 @@ jobs:
           python scripts/owner_v3_a08_attendance_browser.py
           python scripts/owner_v3_a09_staff_payments_browser.py
           python scripts/owner_v3_a10_salary_closing_browser.py
+          python scripts/owner_v3_a13_salary_status_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
 
