@@ -120,7 +120,7 @@
        (x.entry_type==='credit'?'Received ':'Due ')+cash(x.amount)+' · balance '+signed(x.balanceAfterCents)),
        'Closing: '+signed(report.closingCents),
        'Includes linked POS bills, POS receipts, refunds and manual Khata entries. Not a tax invoice.'].join('\n');
-     try{await root.navigator?.clipboard?.writeText(contents);result.textContent='Statement copied.'}
+     try{if(!root.navigator?.clipboard?.writeText)throw Error('Clipboard unavailable');await root.navigator.clipboard.writeText(contents);result.textContent='Statement copied.'}
      catch{result.textContent='Could not copy statement. Use Print statement.'}
     }
    };
