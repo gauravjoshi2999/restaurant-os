@@ -13,7 +13,7 @@ declare
  day2 date:=(now() at time zone 'Asia/Kolkata')::date-1;
  token uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  token2 uuid:='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
- row_id uuid;again uuid; n integer; amount numeric;
+ row_id uuid;again uuid; n integer; remaining_due numeric;
 begin
  -- The original seven-source view stays present; here the fixture has 2 sources.
  if not exists(select 1 from pg_class where oid='public.restaurant_cashbook_entries'::regclass
@@ -45,10 +45,10 @@ begin
  if (select count(*) from public.restaurant_cashbook_entries
      where restaurant_id=rid and source_type='supplier_payment')<>2 then
    raise exception 'Partial supplier payments not separately tracked'; end if;
- select (p.total_amount-p.paid_amount-coalesce(sum(sp.amount),0)) into amount
+ select (p.total_amount-p.paid_amount-coalesce(sum(sp.amount),0)) into remaining_due
  from public.restaurant_purchases p left join public.restaurant_supplier_payments sp on sp.purchase_id=p.id
  where p.id=credit group by p.total_amount,p.paid_amount;
- if amount<>500 then raise exception 'Incorrect supplier due after 2 partial payments: %',amount;end if;
+ if remaining_due<>500 then raise exception 'Incorrect supplier due after 2 partial payments: %',remaining_due;end if;
 
  -- Payment cannot be posted by a different restaurant or without owner role.
  begin
