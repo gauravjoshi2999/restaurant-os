@@ -96,8 +96,10 @@ check("if(!confirm(" in handover_action and "shareDeliveryHandoff(id,true)" in h
       "Owner handover confirmation and customer OTP completion are connected end-to-end")
 check("await refreshCheckoutPaymentReadiness()" in customer and "data?.ready!==true" in customer and "checkoutPaymentReady=false" in customer,
       "Customer checkout checks server readiness and fails closed before payment preparation")
-check("const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings']" in owner
-      and "'refunds'" not in owner[owner.find("const ownerPages="):owner.find("const ownerPages=")+240]
+owner_page_lists = re.findall(r"const ownerPages=\[([^\]]+)\]", owner)
+check(len(owner_page_lists) == 2
+      and all("'pos'" in pages and "'owner-settlements'" in pages and "'refunds'" not in pages
+              for pages in owner_page_lists)
       and 'data-page="pos"' in owner and 'id="posNewSaleBtn"' in owner
       and "pos:loadPOSWorkspace" in owner and "onclick=\"openOrder()\"" in owner
       and "if(access.role!=='owner'||!access.restaurantId)" in owner
