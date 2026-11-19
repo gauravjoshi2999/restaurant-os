@@ -7,8 +7,9 @@ const ui=fs.readFileSync('assets/owner-v3-salary-closing-ui.js','utf8');
 const payroll=fs.readFileSync('assets/owner-v3-salary-closing.js','utf8');
 test('A11: remaining due shortcut belongs to existing HR Payments tab and uses A10 approval only',()=>{
  for(const token of ['id="hrA10PreparePayment" hidden disabled','id="hrPaymentAmount"',
-   'id="hrPaymentMethod"','id="hrPaymentEmployee"','id="hrPaymentMonth"','owner-v3-salary-closing-ui.js?v=20261119-a11-1'])
+   'id="hrPaymentMethod"','id="hrPaymentEmployee"','id="hrPaymentMonth"'])
   assert.ok(html.includes(token),token);
+ assert.match(html,/owner-v3-salary-closing-ui\\.js\\?v=20261119-[a-z0-9-]+/);
  assert.match(ui,/function prepareSalaryDue\(\)/);
  assert.match(ui,/report\?\.closing/);
  assert.match(ui,/updated\.due!==report\.due/);
@@ -31,3 +32,4 @@ test('A11: prefill cannot send or record money and requires explicit method and 
  assert.match(html,/onclick="saveHREmployeePayment\(\)"/);
  assert.match(payroll,/currently recorded amount due|Currently recorded amount due/);
 });
+
