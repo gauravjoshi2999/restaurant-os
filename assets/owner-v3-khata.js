@@ -52,12 +52,13 @@
  function customerCards(host,{customers=[],balances=[],selectedId='',onSelect,onCollect}){
   if(!host)return;
   host.innerHTML=customers.length?customers.map(c=>{
-   const b=balances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0);
+   const b=balances.find(x=>x.customer_id===c.id),verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
+   const bal=verified?Number(b.balance):0;
    return '<article class="v3-khata-person'+(c.id===selectedId?' selected':'')+'">'+
     '<div class="v3-khata-person-top"><div><strong>'+esc(c.full_name)+'</strong><small>'+esc(c.phone||'No phone')+'</small></div>'+
-    '<span class="'+(bal>0?'due':bal<0?'advance':'clear')+'">'+esc(signed(Math.round(bal*100)))+'</span></div>'+
+    '<span class="'+(bal>0?'due':bal<0?'advance':'clear')+'">'+esc(verified?signed(Math.round(bal*100)):'Balance unavailable')+'</span></div>'+
     '<div class="v3-khata-person-actions"><button type="button" data-v3-khata-select="'+esc(c.id)+'">View statement</button>'+
-    (bal>0&&c.status==='Active'?'<button type="button" data-v3-khata-collect="'+esc(c.id)+'">Collect due</button>':'')+'</div></article>';
+    (verified&&bal>0&&c.status==='Active'?'<button type="button" data-v3-khata-collect="'+esc(c.id)+'">Collect due</button>':'')+'</div></article>';
   }).join(''):'<p class="v3-khata-empty">No matching customers. Try another name, mobile or filter.</p>';
   host.onclick=e=>{
    const open=e.target.closest?.('[data-v3-khata-select]');
@@ -87,13 +88,14 @@
    onApply:next=>{if(scope!==key)throw Error('Restaurant changed. Reload Customer Khata.');selectedPeriod=next;onChange?.();}
   });
  }
- function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange}){
+ function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange,onCollect,onOpening}){
   if(!host)return {verified:false};
-  const p=periodFor(key,today),report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
+  const p=periodFor(key,today),verifiedBalance=balance!==null&&balance!==undefined&&Number.isFinite(Number(balance));
+  const report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
   host.innerHTML=customer?
    '<div class="v3-khata-statement-head"><div><small>CUSTOMER STATEMENT</small><h2>'+esc(customer.full_name)+'</h2>'+
    '<p>'+esc(customer.phone||'Mobile not saved')+'</p></div>'+
-   '<div class="v3-khata-current"><span>Current balance</span><strong>'+esc(signed(Math.round(Number(balance)*100)))+'</strong></div></div>'+
+   '<div class="v3-khata-current"><span>Current balance · all time</span><strong>'+esc(verifiedBalance?signed(Math.round(Number(balance)*100)):'Unverified')+'</strong></div></div>'+
    '<div id="v3KhataStatementPeriod"></div>'+
    (report.verified?
     '<div class="v3-khata-statement-totals"><div><span>Opening before period</span><strong>'+esc(signed(report.openingCents))+'</strong></div>'+
@@ -101,7 +103,10 @@
     '<div><span>Receipts</span><strong>'+cash(report.receiptCents/100)+'</strong></div>'+
     '<div><span>Balance at period end</span><strong>'+esc(signed(report.closingCents))+'</strong></div></div>':
     '<p role="alert" class="v3-khata-warning">'+esc(report.reason||'Statement not available.')+'</p>')+
-   '<div class="v3-khata-statement-actions"><button type="button" data-v3-khata-copy>Copy statement</button>'+
+   '<div class="v3-khata-statement-actions">'+
+   (verifiedBalance&&Number(balance)>0&&customer.status==='Active'?'<button type="button" class="primary" data-v3-khata-collect-due>Collect due</button>':'')+
+   (customer.status==='Active'?'<button type="button" data-v3-khata-opening>Add opening balance</button>':'')+
+   '<button type="button" data-v3-khata-copy>Copy statement</button>'+
    '<button type="button" data-v3-khata-print>Print statement</button></div>'+
    '<p class="v3-khata-guidance">Opening due is an old receivable, not new sales. If the same old bill is also entered into POS, review its source before adding opening dues.</p>'+
    '<p id="v3KhataShareStatus" role="status"></p>':
@@ -109,9 +114,16 @@
   if(customer){
    mountPeriod(host.querySelector('#v3KhataStatementPeriod'),{key,today,onChange});
    host.onclick=async e=>{
+    const collect=e.target.closest?.('[data-v3-khata-collect-due]');
+    const opening=e.target.closest?.('[data-v3-khata-opening]');
     const copy=e.target.closest?.('[data-v3-khata-copy]');
     const print=e.target.closest?.('[data-v3-khata-print]');
-    if(print){root.print?.();return}
+    if(collect){onCollect?.(customer.id);return}
+    if(opening){onOpening?.(customer.id);return}
+    if(print){
+     if(!report.verified){host.querySelector('#v3KhataShareStatus').textContent='Statement history is incomplete. Refresh before printing.';return}
+     root.print?.();return;
+    }
     if(copy){
      const result=host.querySelector('#v3KhataShareStatus');
      if(!report.verified){result.textContent='Full verified statement not available. Please refresh Khata.';return}
