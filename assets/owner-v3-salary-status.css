@@ -1,0 +1,40 @@
+/* Bite Owner V3 A13 — verified salary state overview; no financial mutation. */
+body[data-role="owner"] #hr .a13-board{margin:16px 0;padding:15px;border:1px solid #e7e3dd;border-radius:16px;background:#fff;min-width:0}
+body[data-role="owner"] #hr .a13-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-bottom:12px;align-items:start}
+body[data-role="owner"] #hr .a13-head h2{margin:0;color:#253141;font-size:19px;line-height:1.4}
+body[data-role="owner"] #hr .a13-head p{margin:4px 0;font-size:12px;line-height:1.5;color:#667486}
+body[data-role="owner"] #hr .a13-select{display:flex;flex-wrap:wrap;gap:9px;align-items:end}
+body[data-role="owner"] #hr .a13-select label{display:grid;gap:4px;font-size:12px;font-weight:750;min-width:140px}
+body[data-role="owner"] #hr .a13-select input{box-sizing:border-box;width:100%;padding:9px;border-radius:10px;border:1px solid #cbd2dd;min-height:44px;font:inherit}
+body[data-role="owner"] #hr .a13-select button{padding:10px 16px;border:0;border-radius:10px;background:#ec6925;color:#fff;font-weight:800;min-height:44px;cursor:pointer}
+body[data-role="owner"] #hr .a13-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}
+body[data-role="owner"] #hr .a13-metric{min-width:0;background:#fcfbfa;border:1px solid #ebeaeb;border-radius:12px;padding:11px;display:grid;gap:5px}
+body[data-role="owner"] #hr .a13-metric span{font-size:11px;color:#667589;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .a13-metric strong{font-size:22px;color:#283140}
+body[data-role="owner"] #hr .a13-accounted{padding:11px 12px;border:1px solid #f3dfcd;border-radius:11px;background:#fff8f2;color:#5b4736;font-size:13px;line-height:1.5}
+body[data-role="owner"] #hr .a13-accounted strong{font-size:16px}
+body[data-role="owner"] #hr .a13-help{font-size:12px;line-height:1.65;color:#607083}
+body[data-role="owner"] #hr .a13-alert,body[data-role="owner"] #hr .a13-error{padding:11px;border:1px solid #f2c6ba;border-radius:10px;background:#fff4f0;color:#923d26;font-size:12px;line-height:1.55}
+body[data-role="owner"] #hr .a13-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+body[data-role="owner"] #hr .a13-person{border:1px solid #e8e7e5;border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0;background:white}
+body[data-role="owner"] #hr .a13-person-head{display:flex;align-items:start;justify-content:space-between;gap:7px;min-width:0}
+body[data-role="owner"] #hr .a13-person-head>div{display:grid;gap:4px;min-width:0}
+body[data-role="owner"] #hr .a13-person-head strong{font-size:14px;color:#283444;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .a13-person-head small{font-size:11px;color:#7a8290}
+body[data-role="owner"] #hr .a13-state{border-radius:12px;font-size:11px;font-weight:800;padding:5px 8px;white-space:nowrap;background:#f3f4f6;color:#596579}
+body[data-role="owner"] #hr .a13-paid,body[data-role="owner"] #hr .a13-adjusted{background:#e8f6ed;color:#237143}
+body[data-role="owner"] #hr .a13-partial{background:#fff1dd;color:#916019}
+body[data-role="owner"] #hr .a13-unpaid,body[data-role="owner"] #hr .a13-review{background:#fff0ef;color:#a43e32}
+body[data-role="owner"] #hr .a13-detail{font-size:12px;color:#58677a;line-height:1.5}
+body[data-role="owner"] #hr .a13-person-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;color:#626f7d;font-size:12px;line-height:1.4}
+body[data-role="owner"] #hr .a13-person-footer strong{color:#212e40}
+body[data-role="owner"] #hr .a13-empty{font-size:12px;color:#7b8390}
+body[data-role="owner"] #hr .a13-select :is(input,button):focus-visible{outline:3px solid #f69b5a;outline-offset:2px}
+@media(max-width:720px){body[data-role="owner"] #hr .a13-list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:430px){body[data-role="owner"] #hr .a13-board{padding:11px;border-radius:12px}
+body[data-role="owner"] #hr .a13-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-role="owner"] #hr .a13-metric strong{font-size:19px}
+body[data-role="owner"] #hr .a13-select{width:100%}
+body[data-role="owner"] #hr .a13-select label{flex:1 1 100%}
+body[data-role="owner"] #hr .a13-select button{width:100%}
+body[data-role="owner"] #hr .a13-state{white-space:normal;text-align:center;max-width:115px}}
