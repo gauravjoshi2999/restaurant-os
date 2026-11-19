@@ -50,7 +50,8 @@ with sync_playwright() as pw:
   rendered=panel.inner_text()
   assert '160' in rendered, f'Old POS visible text: {rendered!r} · HTML: {panel.inner_html()[:800]!r}'
   assert 'NOT a newly collected' in panel.inner_text()
-  assert '₹50.00' in panel.inner_text(), 'Existing posted POS receipts remain separately labelled'
+  posted=panel.locator('.v3-history-posted').inner_text()
+  assert '50' in posted and 'not matched' in posted, f'Posted receipts must remain separately labelled: {posted!r}'
   assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),f'Overflow at {width}px'
   page.get_by_role('button',name='View date in POS').click()
   assert page.evaluate('window.__opened[0].day')=='2026-10-01'
