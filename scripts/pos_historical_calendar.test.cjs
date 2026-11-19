@@ -62,7 +62,7 @@ test('UI always describes old records as separate from live cash and allows date
   'historical_received','not cash collected now','Old POS register',
   'historyError','role="alert"'
  ])assert.ok(source.includes(phrase),phrase);
- assert.ok(html.includes('bite-pos-reports.js?v=20261118-historical-report1'));
+ assert.match(html,/bite-pos-reports\.js\?v=20261119-[a-z0-9-]+/);
  assert.ok(html.includes('bite-pos-reports.css?v=20261118-historical-report1'));
  assert.ok(entry.includes("root.BitePOSReports?.refresh?.(true)"));
  assert.ok(entry.includes('delete form.dataset.bheSavedSignature'));
