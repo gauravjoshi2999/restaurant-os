@@ -731,6 +731,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
 <script src="assets/owner-v3-salary-closing.js?v=20261119-a10-1" defer></script>
 <script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a11-1" defer></script>
+<script src="assets/owner-v3-staff-payment-safe-save.js?v=20261119-a12-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-salary-closing.css?v=20261119-a10-1">
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
@@ -2406,17 +2407,49 @@ async function reviewHRLeave(id,status){
  }catch(e){alert('Leave status update nahi hua: '+e.message)}
 }
 async function saveHREmployeePayment(){
- if(access.role!=='owner')return;
- const rid=hrRestaurantId(),eid=document.getElementById('hrPaymentEmployee').value,amount=Number(document.getElementById('hrPaymentAmount').value),date=document.getElementById('hrPaymentDate').value,month=document.getElementById('hrPaymentMonth').value;
- if(!rid||!eid||!date||!Number.isFinite(amount)||amount<=0){document.getElementById('hrPaymentMessage').textContent='Employee, date aur valid amount bharein.';return}
- const paymentMethod=document.getElementById('hrPaymentMethod').value;
- if(!paymentMethod){document.getElementById('hrPaymentMessage').textContent='Payment save karne se pehle actual payment mode chunein.';return;}
- const periodMonth=month?month+'-01':null;
- try{const {error}=await sb.from('restaurant_employee_payments').insert({restaurant_id:rid,employee_id:eid,payment_date:date,period_month:periodMonth,payment_type:document.getElementById('hrPaymentType').value,amount,payment_method:document.getElementById('hrPaymentMethod').value,reference:document.getElementById('hrPaymentReference').value.trim()||null,notes:document.getElementById('hrPaymentNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;document.getElementById('hrPaymentAmount').value='';document.getElementById('hrPaymentReference').value='';document.getElementById('hrPaymentNotes').value='';document.getElementById('hrPaymentMessage').textContent='Payment saved';await loadHRData()}
- catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}
+ const status=document.getElementById('hrPaymentMessage');
+ if(access.role!=='owner'||!window.BiteOwnerSafeStaffPayment){
+  status.textContent='Only the restaurant Owner can record employee payments.';return;
+ }
+ const rid=hrRestaurantId(),userId=currentUser?.id||'';
+ const current=()=>access.role==='owner'&&hrRestaurantId()===rid&&currentUser?.id===userId;
+ if(!rid||!userId||!access.memberships?.some(m=>m.restaurant_id===rid&&m.role==='owner')){
+  status.textContent='Owner restaurant or session is unavailable. No payment was posted.';return;
+ }
+ const record={
+  restaurant_id:rid,employee_id:document.getElementById('hrPaymentEmployee').value,
+  payment_date:document.getElementById('hrPaymentDate').value,
+  period_month:document.getElementById('hrPaymentMonth').value?
+   document.getElementById('hrPaymentMonth').value+'-01':null,
+  payment_type:document.getElementById('hrPaymentType').value,
+  amount:document.getElementById('hrPaymentAmount').value,
+  payment_method:document.getElementById('hrPaymentMethod').value,
+  reference:document.getElementById('hrPaymentReference').value,
+  notes:document.getElementById('hrPaymentNotes').value,created_by:userId
+ };
+ const button=document.getElementById('hrPaymentSaveBtn');
+ if(button.disabled||window.BiteOwnerSafeStaffPayment.isBusy()){
+  status.textContent='Payment save is already in progress.';return;
+ }
+ button.disabled=true;
+ status.textContent='Recording verified HR payment…';
+ try{
+  const result=await window.BiteOwnerSafeStaffPayment.save({client:sb,data:record,stillCurrent:current});
+  if(!current())return;
+  status.textContent=result.message;
+  if(!result.ok)return;
+  document.getElementById('hrPaymentAmount').value='';
+  document.getElementById('hrPaymentReference').value='';
+  document.getElementById('hrPaymentNotes').value='';
+  await loadHRData();
+  if(current())status.textContent=result.message;
+ }catch(error){
+  if(current())status.textContent='Payment status could not be verified. Review HR records before retrying: '+(error.message||'Error');
+ }finally{if(current())button.disabled=false}
 }
 document.getElementById('hrRestaurant').addEventListener('change',()=>{
  // Never carry an employee ID or pending form values into a different restaurant.
+ window.BiteOwnerSafeStaffPayment?.reset?.();
  resetHREmployeeForm();
  for(const id of ['hrAttendanceEmployee','hrLeaveEmployee','hrPaymentEmployee'])document.getElementById(id).value='';
  for(const id of ['hrAttendanceNotes','hrLeaveReason','hrPaymentReference','hrPaymentNotes'])document.getElementById(id).value='';
