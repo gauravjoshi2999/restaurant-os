@@ -2250,11 +2250,11 @@ async function deleteHREmployee(id){
 }
 async function saveHRAttendance(){
  const rid=hrRestaurantId(),eid=document.getElementById('hrAttendanceEmployee').value,date=document.getElementById('hrAttendanceDate').value,status=document.getElementById('hrAttendanceStatus').value,checkIn=document.getElementById('hrCheckIn').value,checkOut=document.getElementById('hrCheckOut').value,notes=document.getElementById('hrAttendanceNotes').value.trim();
- if(!rid||!eid||!date){document.getElementById('hrAttendanceMessage').textContent='Employee aur date select karein.';return}
+ if(!rid||!eid||!date||!hrEmployees.some(x=>x.id===eid&&x.restaurant_id===rid&&x.status==='Active')){document.getElementById('hrAttendanceMessage').textContent='Active employee aur date select karein.';return}
  if(checkIn&&checkOut&&checkOut<checkIn){document.getElementById('hrAttendanceMessage').textContent='Check-out, check-in se pehle nahi ho sakta.';return}
  try{
-  const lookup=await sb.from('restaurant_employee_attendance').select('id').eq('employee_id',eid).eq('attendance_date',date).maybeSingle();if(lookup.error)throw lookup.error;
-  let result;if(lookup.data)result=await sb.from('restaurant_employee_attendance').update({status,check_in:checkIn||null,check_out:checkOut||null,notes:notes||null}).eq('id',lookup.data.id);
+  const lookup=await sb.from('restaurant_employee_attendance').select('id').eq('restaurant_id',rid).eq('employee_id',eid).eq('attendance_date',date).maybeSingle();if(lookup.error)throw lookup.error;
+  let result;if(lookup.data)result=await sb.from('restaurant_employee_attendance').update({status,check_in:checkIn||null,check_out:checkOut||null,notes:notes||null}).eq('id',lookup.data.id).eq('restaurant_id',rid).eq('employee_id',eid);
   else result=await sb.from('restaurant_employee_attendance').insert({restaurant_id:rid,employee_id:eid,attendance_date:date,status,check_in:checkIn||null,check_out:checkOut||null,notes:notes||null,recorded_by:currentUser.id});
   if(result.error)throw result.error;document.getElementById('hrAttendanceMessage').textContent='Attendance saved';document.getElementById('hrAttendanceNotes').value='';await loadHRData();
  }catch(e){document.getElementById('hrAttendanceMessage').textContent='Attendance save nahi hua: '+e.message;console.error(e)}
