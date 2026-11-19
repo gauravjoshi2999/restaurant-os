@@ -1,0 +1,58 @@
+/* Bite Owner A08, scoped under the existing Staff workspace; no second HR module. */
+body[data-role="owner"] #hr.v3-a08-ready .a08-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-head strong{font-weight:850;color:#291d3b;font-size:17px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-add,
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-actions button,
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item button{
+ min-height:44px;border:1px solid #d7c9ee;border-radius:11px;padding:10px 12px;
+ background:#f8f4ff;color:#45226c;font-size:12px;font-weight:800;cursor:pointer
+}
+body[data-role="owner"] #hr.v3-a08-ready .a08-add{background:#3e196e;color:#fff;border-color:#3e196e}
+body[data-role="owner"] #hr.v3-a08-ready .a08-add:focus-visible,
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-actions button:focus-visible,
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item button:focus-visible{outline:3px solid #e29d60;outline-offset:2px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-search-row{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-search-row label{min-width:190px;flex:1 1 220px;display:grid;gap:5px;font-size:12px;color:#6e6083}
+body[data-role="owner"] #hr.v3-a08-ready .a08-search-row input,
+body[data-role="owner"] #hr.v3-a08-ready .a08-search-row select{
+ border:1px solid #dacee8;border-radius:10px;background:#fff;min-height:44px;padding:9px 10px;
+ max-width:100%;min-width:0;font:inherit;color:#302742
+}
+body[data-role="owner"] #hr.v3-a08-ready .a08-search-row select{flex:0 1 155px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-count{font-size:12px;color:#665b78;margin:3px 0 9px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(290px,100%),1fr));gap:10px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-card{display:grid;grid-template-columns:46px minmax(0,1fr);gap:11px;padding:13px;border:1px solid #e7ddea;border-radius:14px;background:#fff}
+body[data-role="owner"] #hr.v3-a08-ready .a08-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#efe7f8;color:#542c82;font-size:21px;font-weight:850}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info{display:flex;min-width:0;flex-direction:column;gap:4px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info strong{font-size:15px;overflow-wrap:anywhere;color:#262034}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info span,body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info small{font-size:11px;color:#716a7c;line-height:1.5;overflow-wrap:anywhere}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info .a08-attendance{color:#9a631a;font-weight:750}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-info .a08-marked{color:#17704b}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-actions button{flex:1 1 auto}
+body[data-role="owner"] #hr.v3-a08-ready .a08-employee-actions .a08-danger{background:#fff5f0;border-color:#efd3c7;color:#a64425}
+body[data-role="owner"] #hr.v3-a08-ready .a08-empty{padding:18px 12px;border:1px dashed #d8d1df;border-radius:13px;color:#72647d;font-size:13px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-head strong{font-size:14px;color:#312047}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-head span{font-size:12px;color:#625776}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-list{display:grid;gap:8px;margin-bottom:13px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;background:#faf8fe;border:1px solid #e8e0f0;border-radius:11px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item>span:first-child{display:grid;flex:1 1 120px;min-width:0;gap:3px}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item strong{font-size:13px;overflow-wrap:anywhere}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-item small{font-size:11px;color:#766e7e}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-status{font-size:11px;font-weight:800;color:#a16d29}
+body[data-role="owner"] #hr.v3-a08-ready .a08-day-status.a08-marked{color:#247b54}
+body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .form-row,
+body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .field,
+body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .actions{display:none!important}
+body[data-role="owner"] #hr.v3-a08-ready [data-a08-history]{display:none!important}
+body[data-role="owner"] #hr.v3-a08-ready[data-v3-hr-task="attendance"] [data-a08-history="attendance"],
+body[data-role="owner"] #hr.v3-a08-ready[data-v3-hr-task="leave"] [data-a08-history="leave"],
+body[data-role="owner"] #hr.v3-a08-ready[data-v3-hr-task="payment"] [data-a08-history="payment"]{display:block!important}
+@media(max-width:430px){
+ body[data-role="owner"] #hr.v3-a08-ready .a08-search-row{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ body[data-role="owner"] #hr.v3-a08-ready .a08-search-row input,
+ body[data-role="owner"] #hr.v3-a08-ready .a08-search-row select{width:100%}
+ body[data-role="owner"] #hr.v3-a08-ready .a08-day-item button{width:100%}
+ body[data-role="owner"] #hr.v3-a08-ready .a08-employee-grid{grid-template-columns:minmax(0,1fr)}
+}
