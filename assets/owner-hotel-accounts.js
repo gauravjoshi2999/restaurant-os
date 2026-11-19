@@ -375,14 +375,49 @@
    '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
    '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
    '<section class="bh-panel" id="haCollections" aria-label="Source-linked Collections"></section>'+
+   '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section>'+
    '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
    (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
    '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
    '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
   root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',onOpen:openCollectionSource});
+  renderOldPosReconciliation(body,{from,to,key,version});
  }
 
+ function linkedRegisterRestaurant(){
+  const outlets=Array.isArray(p()?.outlets)?p().outlets.filter(x=>/^[0-9a-f-]{36}$/i.test(String(x))):[];
+  const active=ctx.getAccess?.()?.restaurantId;
+  // Never guess across multiple restaurants; use only a linked selected outlet.
+  return active&&outlets.includes(active)?active:outlets.length===1?outlets[0]:'';
+ }
+ // Keep the imported old-register snapshot separate from posted account movements.
+ async function openOldPosDay(day,recordId,reportKey,version,restaurantId){
+  if(reportKey!==scope()||version!==reportVersion||!p()?.id||!ctx?.getUser?.()?.id||
+     linkedRegisterRestaurant()!==restaurantId)return;
+  const access=ctx.getAccess?.();
+  if(access?.role!=='owner'||access?.restaurantId!==restaurantId||
+     !H()?.routeList?.(access)?.includes('pos')){
+   root.alert?.('This property has an old POS register, but the restaurant POS workspace is not available for this login.');
+   return;
+  }
+  await ctx.navigate('pos');
+  if(reportKey!==scope()||version!==reportVersion||access.restaurantId!==ctx.getAccess?.()?.restaurantId)return;
+  if(typeof root.BitePOSV2?.openReportDate==='function')root.BitePOSV2.openReportDate(day);
+  else root.alert?.('POS calendar is unavailable. Open POS → Reports and select '+day+'.');
+ }
+ function renderOldPosReconciliation(body,{from,to,key,version}){
+  const target=body?.querySelector('#haHistoricalPOS'),restaurantId=linkedRegisterRestaurant()||'';
+  if(!target||!root.BiteV3HistoricalReconcile)return;
+  const userId=ctx?.getUser?.()?.id;
+  const current=()=>!!userId&&ctx?.getUser?.()?.id===userId&&key===scope()&&
+   version===reportVersion&&linkedRegisterRestaurant()===restaurantId;
+  void root.BiteV3HistoricalReconcile.mount(target,{
+   client:ctx.sb,restaurantId,from,to,today:today(),scope:key,
+   journal:report?.journal||[],isCurrent:current,
+   onOpen:(day,id,selectedScope)=>openOldPosDay(day,id,selectedScope,version,restaurantId)
+  });
+ }
  function settings(target){
   target?.querySelector('#haBillingSettings')?.remove();if(!target||!enabled()||!p()?.can_configure)return;
   const tax=p().tax_profile||{},s=db().invoice_series||{},box=document.createElement('section');box.id='haBillingSettings';box.className='bh-panel';

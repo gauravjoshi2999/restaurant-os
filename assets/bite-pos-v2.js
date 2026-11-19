@@ -140,5 +140,10 @@
   current={restaurantId:input.restaurantId,userId:input.userId,client:input.client,orders:Array.isArray(input.orders)?input.orders.map(o=>({...o})):[]};
   paint();
  }
- root.BitePOSV2={render,dateKey,numbers,activeView:()=>view};
+ function openReportDate(day){
+  if(!current?.restaurantId||!current?.userId)return false;
+  view='reports';paint();
+  return root.BitePOSReports?.focusDate?.(day)===true;
+ }
+ root.BitePOSV2={render,dateKey,numbers,openReportDate,activeView:()=>view};
 })(window);
