@@ -1,5 +1,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');
-const Billing=require('../assets/owner-hotel-billing.js');
+require('../assets/owner-hotel-billing.js');
+const Billing=globalThis.BiteHotelBilling;
 test('H12: linked family room balance never treats unknown as settled zero',()=>{
  const label=Billing.linkedBalanceLabel;
  for(const missing of [null,undefined,{}, {totals:null},{totals:{}},{totals:{balance:null}},{totals:{balance:''}},{totals:{balance:'bad'}}])
