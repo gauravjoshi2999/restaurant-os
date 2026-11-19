@@ -1,0 +1,74 @@
+/* Owner V3 A04: polished expense register without introducing a second financial source. */
+body[data-role=owner] #expenses #expenseV3Period{margin:12px 0}
+body[data-role=owner] .bv3-expense-hint{display:flex;align-items:center;gap:11px;border:1px solid #d6e8db;background:#f4fbf6;border-radius:14px;padding:12px 14px;margin:0 0 10px}
+body[data-role=owner] .bv3-expense-hint strong{font-size:12px;color:#137648;white-space:nowrap}
+body[data-role=owner] .bv3-expense-hint span{font-size:12px;color:#425c50;line-height:1.5}
+body[data-role=owner] .bv3-expense-due{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:10px 0 18px;padding:10px 12px;border:1px solid #f0e0cd;background:#fffaf1;border-radius:12px}
+body[data-role=owner] .bv3-expense-due>button{min-height:44px;flex:0 0 auto;background:#fff;border:1px solid #dca976;border-radius:10px;padding:9px 12px;color:#8e4d24;font-size:12px;font-weight:750;cursor:pointer}
+body[data-role=owner] .bv3-expense-due>small{flex:1 1 220px;color:#806d59;line-height:1.5;font-size:11px}
+body[data-role=owner] #expenseV3Cards{display:none}
+body[data-role=owner] .bv3-expense-card{min-width:0;background:#fff;border:1px solid #e6e2de;border-radius:13px;padding:13px 14px;box-shadow:0 3px 13px #2930460a}
+body[data-role=owner] .bv3-expense-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+body[data-role=owner] .bv3-expense-card-head>div{min-width:0;display:grid;gap:4px}
+body[data-role=owner] .bv3-expense-card-head strong{color:#292f38;font-weight:800;font-size:15px;overflow-wrap:anywhere}
+body[data-role=owner] .bv3-expense-card-head b{font-size:17px;white-space:nowrap;color:#a6501b}
+body[data-role=owner] .bv3-expense-category{font-size:10px;font-weight:800;color:#ba632e;letter-spacing:.035em}
+body[data-role=owner] .bv3-expense-card-head small,body[data-role=owner] .bv3-expense-card p{color:#737b86;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+body[data-role=owner] .bv3-expense-card-foot{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px;padding-top:9px;border-top:1px solid #f1eeeb}
+body[data-role=owner] .bv3-expense-card-foot span{font-size:10px;color:#65746d;overflow-wrap:anywhere}
+body[data-role=owner] .bv3-expense-card-foot>div{display:flex;gap:7px}
+body[data-role=owner] .bv3-expense-card-foot button{border:1px solid #ead6c6;background:#fff6ee;border-radius:9px;min-height:40px;padding:6px 10px;color:#8d512b;font-size:12px;font-weight:750;cursor:pointer}
+body[data-role=owner] .bv3-expense-empty{padding:18px 12px;color:#64717c;font-size:13px;line-height:1.5;border:1px dashed #ddd3cd;border-radius:12px;background:#fcfaf8}
+body[data-role=owner] .bv3-hotel-expense-head{margin:10px 0 14px}
+body[data-role=owner] .bv3-hotel-expense-head small{color:#b35e25;font-size:11px;font-weight:850}
+body[data-role=owner] .bv3-hotel-expense-head h1{font-size:clamp(24px,4vw,32px);margin:5px 0;color:#362b2d}
+body[data-role=owner] .bv3-hotel-expense-head p{font-size:12px;color:#687382;margin:0}
+body[data-role=owner] .bv3-expense-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:15px}
+body[data-role=owner] .bv3-expense-metrics article{display:grid;gap:7px;border:1px solid #e9e4df;background:#fff;border-radius:14px;padding:16px;min-width:0}
+body[data-role=owner] .bv3-expense-metrics span{font-size:12px;color:#627180}
+body[data-role=owner] .bv3-expense-metrics strong{font-size:24px;color:#2c3441;overflow-wrap:anywhere}
+body[data-role=owner] .bv3-hotel-expense-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+body[data-role=owner] .bv3-hotel-expense-list{display:grid;gap:9px;min-width:0}
+body[data-role=owner] .bv3-hotel-expense-list h2{margin:0 0 5px;font-size:18px}
+body[data-role=owner] .bv3-expense-form{display:grid;gap:12px;min-width:0}
+body[data-role=owner] .bv3-expense-form h2{font-size:19px;margin:0}
+body[data-role=owner] .bv3-expense-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body[data-role=owner] .bv3-expense-fields label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#47515f;min-width:0}
+body[data-role=owner] .bv3-expense-fields input,body[data-role=owner] .bv3-expense-fields select{font:inherit;width:100%;box-sizing:border-box;min-width:0;min-height:44px;padding:9px;border:1px solid #d4dce5;border-radius:10px;background:#fff;color:#29303d}
+body[data-role=owner] .bv3-expense-muted{color:#7b7480;line-height:1.5;font-size:11px;margin:0}
+body[data-role=owner] :is(#expenseV3Cards,.bv3-hotel-expense-list) :is(button,input,select):focus-visible{outline:3px solid #e78231;outline-offset:2px}
+@media(max-width:900px){body[data-role=owner] .bv3-hotel-expense-grid{grid-template-columns:1fr}}
+@media(max-width:760px){
+ body[data-role=owner] #expenses #expenseV3Cards{display:grid;gap:9px;margin:12px 0 20px}
+ body[data-role=owner] #expenses .bv3-expense-history-table{display:none}
+ body[data-role=owner] .bv3-expense-fields{grid-template-columns:1fr 1fr}
+}
+@media(max-width:430px){
+ body[data-role=owner] .bv3-expense-hint{align-items:flex-start;flex-direction:column}
+ body[data-role=owner] .bv3-expense-card-head b{font-size:15px}
+ body[data-role=owner] .bv3-expense-metrics strong{font-size:19px}
+ body[data-role=owner] .bv3-expense-fields{grid-template-columns:1fr}
+ body[data-role=owner] .bv3-expense-due>button{width:100%}
+}
+
+/* Restaurant paid-expense entry: same design vocabulary on phone and desktop. */
+body[data-role=owner] #expenses .bv3-expense-entry{padding:clamp(15px,2vw,23px);border:1px solid #e7d9ca;border-radius:17px;background:#fff;box-shadow:0 7px 28px #1d26330a}
+body[data-role=owner] #expenses .bv3-expense-entry-title{margin-bottom:16px}
+body[data-role=owner] #expenses .bv3-expense-entry-title small{font-weight:850;font-size:10px;color:#ae5821;letter-spacing:.07em}
+body[data-role=owner] #expenses .bv3-expense-entry-title h2{font-size:clamp(20px,3vw,25px);margin:5px 0;color:#2b3440}
+body[data-role=owner] #expenses .bv3-expense-entry-title p{font-size:12px;line-height:1.5;color:#68798a;margin:3px 0}
+body[data-role=owner] #expenses .bv3-expense-entry .form-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+body[data-role=owner] #expenses .bv3-expense-entry .field{min-width:0}
+body[data-role=owner] #expenses .bv3-expense-entry .field[hidden]{display:none!important}
+body[data-role=owner] #expenses .bv3-expense-entry .field label{font-weight:730;font-size:12px;line-height:1.5;color:#526070}
+body[data-role=owner] #expenses .bv3-expense-entry .field :is(input,select){box-sizing:border-box;min-width:0;width:100%;max-width:100%;min-height:44px;border-radius:10px;border:1px solid #d9dee5;background:#fff;color:#273142;padding:10px;font-size:14px}
+body[data-role=owner] #expenses .bv3-expense-entry .field :is(input,select):focus-visible{outline:3px solid #e9893a;outline-offset:1px}
+body[data-role=owner] #expenses .bv3-expense-entry #expenseSaveBtn{min-height:46px;border-radius:11px;background:#e66d1e;color:white;font-weight:800}
+@media(max-width:760px){
+ body[data-role=owner] #expenses .bv3-expense-entry .form-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:430px){
+ body[data-role=owner] #expenses .bv3-expense-entry .form-row{grid-template-columns:1fr}
+ body[data-role=owner] #expenses .bv3-expense-entry .actions{display:flex;flex-wrap:wrap;gap:8px}
+ body[data-role=owner] #expenses .bv3-expense-entry #expenseSaveBtn{width:100%}
+}

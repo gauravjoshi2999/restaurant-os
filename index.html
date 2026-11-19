@@ -745,6 +745,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-pdf-v3-home.css?v=20261118-h02-finance1">
 <link rel="stylesheet" href="assets/owner-v3-collections.css?v=20261118-a03-collections1">
 <link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
+<link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
 </head>
 <body data-bite-app="workspace" class="bite-session-check">
 <div id="biteSessionSplash" role="status" aria-live="polite">
@@ -896,21 +897,25 @@ body.bite-session-check #biteSessionSplash{
 <section class="page" id="moderation"><div class="welcome"><div><h1>Review Reports</h1><div class="muted">Customer-reported reviews ko verify karein; abusive/fake review hide karein.</div></div><button class="btn secondary" type="button" onclick="loadReviewReportsWorkspace()">Refresh</button></div><div id="reviewReportAdminStatus" class="small" role="status">Review reports load ho rahi hain…</div><div class="card table-wrap"><table><thead><tr><th>Restaurant / Review</th><th>Rating</th><th>Report reason</th><th>Customer detail</th><th>Status</th><th>Action</th></tr></thead><tbody id="reviewReportAdminRows"></tbody></table><div class="empty" id="reviewReportAdminEmpty">Abhi koi review report nahi hai.</div></div></section>
 <section class="page" id="expenses">
  <div class="welcome"><div><h1>Expense ledger</h1><div class="muted">Restaurant ke roz ke kharche record karein aur date-wise hisaab dekhein.</div></div><button class="btn secondary" type="button" onclick="loadExpenses()">Refresh</button></div>
- <div class="notice">Sirf Restaurant Owner expense add, edit aur delete kar sakta hai. Manager sirf dekh sakta hai. Ye entry ledger hai; bank payment apne aap nahi hota.</div>
- <div class="card">
+ <div class="notice">Paid expenses use the original restaurant expense ledger. Report dates and new entry dates stay separate. No bank transfer is initiated by this form.</div>
+ <div id="expenseV3Status"></div>
+ <div class="card bv3-expense-entry">
+  <div class="bv3-expense-entry-title"><small>OWNER V3 · A04</small><h2>Record paid expense</h2><p>Use this form for money actually paid. Old records can be viewed below without changing this entry date.</p></div>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Restaurant</label><select id="expenseRestaurant"></select></div>
-   <div class="field"><label>Date *</label><input id="expenseDate" type="date" required></div>
+   <div class="field"><label>Expense & payment date *</label><input id="expenseDate" type="date" required></div>
    <div class="field"><label>Category *</label><select id="expenseCategory"><option>Rent</option><option>Salary</option><option>Raw Material</option><option>Electricity</option><option>Gas</option><option>Delivery</option><option>Repair & Maintenance</option><option>Marketing</option><option>Other</option></select></div>
    <div class="field"><label>Expense name *</label><input id="expenseTitle" maxlength="120" placeholder="e.g. Vegetable purchase"></div>
    <div class="field"><label>Amount (₹) *</label><input id="expenseAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></div>
    <div class="field"><label>Payment mode</label><select id="expensePayment"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div>
-   <div class="field" style="grid-column:1/-1"><label>Note (optional)</label><input id="expenseDescription" maxlength="500" placeholder="Bill number, supplier or extra details"></div>
+   <div class="field" style="grid-column:1/-1"><label>Supplier / receipt reference (optional)</label><input id="expenseDescription" maxlength="500" placeholder="Supplier, bill number or transaction reference"></div>
   </div>
-  <div class="actions" style="margin-top:14px"><button class="btn" id="expenseSaveBtn" type="button" onclick="saveExpense()">Save expense</button><button class="btn secondary" id="expenseCancelEdit" type="button" onclick="resetExpenseForm()" style="display:none">Cancel edit</button><span class="small" id="expenseMessage" role="status"></span></div>
+  <div class="actions" style="margin-top:14px"><button class="btn" id="expenseSaveBtn" type="button" onclick="saveExpense()">Save paid expense</button><button class="btn secondary" id="expenseCancelEdit" type="button" onclick="resetExpenseForm()" style="display:none">Cancel edit</button><span class="small" id="expenseMessage" role="status"></span></div>
  </div>
+ <div id="expenseV3Period" aria-label="Expenses period"></div>
  <div class="grid section"><div class="card"><div class="metric-label">Total expenses shown</div><div class="metric" id="expenseTotal">₹0</div></div><div class="card"><div class="metric-label">Entries</div><div class="metric" id="expenseCount">0</div></div></div>
- <div class="section"><div class="section-head"><h2>Expense history</h2><span class="small" id="expenseRangeLabel">All dates</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Expense</th><th>Payment</th><th>Amount</th><th>Note</th><th>Action</th></tr></thead><tbody id="expenseRows"></tbody></table><div class="empty" id="expenseEmpty">Abhi koi expense record nahi hai.</div></div></div>
+ <div id="expenseV3Cards" aria-label="Mobile expense history"></div>
+ <div class="section"><div class="section-head"><h2>Expense history</h2><span class="small" id="expenseRangeLabel">All dates</span></div><div class="card table-wrap bv3-expense-history-table"><table><thead><tr><th>Date</th><th>Category</th><th>Expense</th><th>Payment</th><th>Amount</th><th>Note</th><th>Action</th></tr></thead><tbody id="expenseRows"></tbody></table><div class="empty" id="expenseEmpty">Abhi koi expense record nahi hai.</div></div></div>
 
 </section>
 <section class="page" id="purchases">
@@ -1403,7 +1408,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -1536,7 +1541,7 @@ async function loadCloudData(options={}){try{if(access.role==='owner'&&!access.r
  return;
  }const tenantId=access.isPlatformAdmin?null:access.restaurantId;if(!access.isPlatformAdmin&&!tenantId)throw new Error('Restaurant assignment missing; owner data load blocked.');const tenantScope=(query,column='restaurant_id')=>tenantId?query.eq(column,tenantId):query;const [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex]=await Promise.all([tenantScope(sb.from('restaurants').select('*').order('created_at',{ascending:false}),'id'),tenantScope(sb.from('orders').select('*').order('order_date',{ascending:false})),sb.from('order_status_history').select('*').order('changed_at',{ascending:false}),sb.from('order_items').select('*').order('created_at',{ascending:true}),tenantScope(sb.from('order_financials').select('*').order('created_at',{ascending:false})),tenantScope(sb.from('restaurant_settlements').select('*').order('period_start',{ascending:false})),tenantScope(sb.from('restaurant_order_payment_summaries').select('*')),tenantScope(sb.from('restaurant_order_payments').select('*').order('payment_date',{ascending:false})),tenantScope(sb.from('restaurant_tables').select('*').order('sort_order').order('table_name')),tenantScope(sb.from('restaurant_order_refunds').select('*').order('refund_date',{ascending:false})),tenantScope(sb.from('menu_items').select('restaurant_id,name,image_url')),tenantScope(sb.from('restaurant_expenses').select('*'))]);for(const x of [r,o,h,it,f,st,ps,pp,tb,rf,mi,ex])if(x.error)throw x.error;const memberRestaurantIds=new Set(access.memberships.map(m=>m.restaurant_id));access.restaurantOptions=(r.data||[]).filter(x=>memberRestaurantIds.has(x.id)).map(x=>({id:x.id,name:x.name}));const rawOrders=o.data||[];const scopedOrders=tenantId?rawOrders.filter(x=>x.restaurant_id===tenantId):rawOrders;const visibleOrderIds=new Set(scopedOrders.map(x=>x.id));state.restaurantTables=(tb.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderRefunds=(rf.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderPayments=(pp.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.paymentSummaries=(ps.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.orderMenuItems=(mi.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.restaurants=(r.data||[]).filter(x=>!tenantId||x.id===tenantId).map(x=>({...x,id:x.id,name:x.name,phone:x.phone,city:x.city,status:x.status,onboardingStatus:x.onboarding_status,onboardingRejectionReason:x.onboarding_rejection_reason,contact_person:x.contact_person,email:x.email,address:x.address,latitude:x.latitude,longitude:x.longitude,notes:x.notes,is_published:!!x.is_published}));state.orders=scopedOrders.map(x=>({id:x.id,code:x.order_code,restaurant:x.restaurant_id,channel:x.channel,isDemo:!!x.is_demo,amount:Number(x.amount),waivedOffAmount:Number(x.waived_off_amount||0),status:x.status,customerName:x.customer_name||'',customerPhone:x.customer_phone||'',customerNote:x.customer_note||'',scheduledFor:x.scheduled_for||null,deliveryType:x.delivery_type||'delivery',deliveryAddressSnapshot:x.delivery_address_snapshot||null,tableId:x.table_id||null,payout:x.bank_payout==null?null:Number(x.bank_payout),reported:x.platform_reported,createdAt:x.order_date}));state.history=(h.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.orderItems=(it.data||[]).filter(x=>visibleOrderIds.has(x.order_id));state.financials=(f.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.settlements=(st.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);state.expenses=(ex.data||[]).filter(x=>!tenantId||x.restaurant_id===tenantId);renderTenantSwitcher();if(access.property&&(window.BiteHospitality.has("folios")||window.BiteHospitality.has("charge_to_room")))await window.BiteHospitality.reload();render();if(access.property)window.BiteHospitality.applyShell();const notice=document.getElementById('workspaceRuntimeNotice');if(notice)notice.style.display='none'}catch(err){if(!options.silent)alert('Cloud data load nahi hua: '+err.message+'\\nSupabase SQL/RLS setup check karein.');console.error(err);if(options.throwOnError)throw err}}
 
-let expenseRecords=[], editingExpenseId=null;
+let expenseRecords=[], editingExpenseId=null, expenseRequestVersion=0, expenseLoadedKey='';
 function localDateInput(){return BiteOwner.day()}
 function expenseRestaurantId(){return document.getElementById('expenseRestaurant').value||''}
 async function loadExpenseWorkspace(){
@@ -1546,29 +1551,51 @@ async function loadExpenseWorkspace(){
  select.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){document.getElementById('expenseRows').innerHTML='';document.getElementById('expenseEmpty').textContent='Is login ke saath Owner restaurant linked nahi hai.';document.getElementById('expenseEmpty').style.display='block';document.getElementById('expenseSaveBtn').disabled=true;return}
  select.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
+ select.closest('.field').hidden=eligible.length===1;
+ document.getElementById('expenseDate').max=localDateInput();
  document.getElementById('expenseSaveBtn').disabled=access.role!=='owner';
  document.getElementById('expenseDate').value=localDateInput();
  await loadExpenses();
 }
 async function loadExpenses(){
- const rid=expenseRestaurantId();if(!rid)return;
+ const rid=expenseRestaurantId(),userId=currentUser?.id||'';if(!rid||!userId)return;
+ const key=userId+':'+rid,version=++expenseRequestVersion;
  const empty=document.getElementById('expenseEmpty');empty.textContent='Expenses load ho rahe hain...';empty.style.display='block';
- try{const {data,error}=await sb.from('restaurant_expenses').select('*').eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});if(error)throw error;expenseRecords=data||[];state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses()}
- catch(e){empty.textContent='Expenses load nahi hue: '+e.message;console.error(e)}
+ if(expenseLoadedKey!==key){
+  expenseLoadedKey=key;expenseRecords=[];editingExpenseId=null;
+  document.getElementById('expenseRows').innerHTML='';
+  document.getElementById('expenseTotal').textContent='—';
+  document.getElementById('expenseCount').textContent='—';
+  document.getElementById('expenseV3Cards')?.replaceChildren();
+ }
+ try{
+  const {data,error}=await sb.from('restaurant_expenses').select('*').eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});
+  if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
+  if(error)throw error;
+  expenseRecords=data||[];state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses();
+ }catch(e){
+  if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
+  empty.textContent='Expenses load nahi hue: '+e.message;console.error(e);
+ }
 }
 function renderExpenses(){
- const total=expenseRecords.reduce((s,x)=>s+Number(x.amount||0),0);
- document.getElementById('expenseTotal').textContent=money(total);document.getElementById('expenseCount').textContent=String(expenseRecords.length);
- document.getElementById('expenseRows').innerHTML=expenseRecords.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.category)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(x.description||'—')+'</td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editExpense(\''+esc(x.id)+'\')">Edit</button><button class="btn danger" onclick="deleteExpense(\''+esc(x.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>').join('');
- document.getElementById('expenseEmpty').style.display=expenseRecords.length?'none':'block';
- document.getElementById('expenseEmpty').textContent='Is restaurant ke liye abhi koi expense nahi hai.';
+ const rid=expenseRestaurantId(),key=(currentUser?.id||'')+':'+rid;
+ const visible=window.BiteV3ExpenseView?.filter(expenseRecords,key,localDateInput())||expenseRecords;
+ const total=visible.reduce((s,x)=>s+Number(x.amount||0),0);
+ document.getElementById('expenseTotal').textContent=money(total);document.getElementById('expenseCount').textContent=String(visible.length);
+ document.getElementById('expenseRows').innerHTML=visible.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.category)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(x.description||'—')+'</td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editExpense(\''+esc(x.id)+'\')">Edit</button><button class="btn danger" onclick="deleteExpense(\''+esc(x.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>').join('');
+ document.getElementById('expenseEmpty').style.display=visible.length?'none':'block';
+ document.getElementById('expenseEmpty').textContent='Selected period me koi paid expense nahi mila.';
+ window.BiteV3ExpenseView?.renderRestaurant?.({records:visible,allRecords:expenseRecords,key,today:localDateInput(),
+  onChange:renderExpenses,onEdit:editExpense,onDelete:deleteExpense,
+  onDue:()=>showPage('purchases'),canEdit:access.role==='owner'});
 }
-function resetExpenseForm(){editingExpenseId=null;document.getElementById('expenseDate').value=localDateInput();document.getElementById('expenseCategory').value='Rent';document.getElementById('expenseTitle').value='';document.getElementById('expenseAmount').value='';document.getElementById('expensePayment').value='Cash';document.getElementById('expenseDescription').value='';document.getElementById('expenseSaveBtn').textContent='Save expense';document.getElementById('expenseCancelEdit').style.display='none';document.getElementById('expenseMessage').textContent=''}
+function resetExpenseForm(){editingExpenseId=null;document.getElementById('expenseDate').value=localDateInput();document.getElementById('expenseCategory').value='Rent';document.getElementById('expenseTitle').value='';document.getElementById('expenseAmount').value='';document.getElementById('expensePayment').value='Cash';document.getElementById('expenseDescription').value='';document.getElementById('expenseSaveBtn').textContent='Save paid expense';document.getElementById('expenseCancelEdit').style.display='none';document.getElementById('expenseMessage').textContent=''}
 function editExpense(id){if(access.role!=='owner')return;const x=expenseRecords.find(v=>v.id===id);if(!x)return;editingExpenseId=id;document.getElementById('expenseDate').value=x.expense_date;const categorySelect=document.getElementById('expenseCategory');if(![...categorySelect.options].some(o=>o.value===x.category))categorySelect.add(new Option(x.category,x.category));categorySelect.value=x.category;document.getElementById('expenseTitle').value=x.title;document.getElementById('expenseAmount').value=x.amount;document.getElementById('expensePayment').value=x.payment_method;document.getElementById('expenseDescription').value=x.description||'';document.getElementById('expenseSaveBtn').textContent='Update expense';document.getElementById('expenseCancelEdit').style.display='inline-flex';document.getElementById('expenseMessage').textContent='Editing selected expense'}
 async function saveExpense(){
  if(access.role!=='owner'){alert('Expense sirf Restaurant Owner save kar sakta hai.');return}
  const rid=expenseRestaurantId(),date=document.getElementById('expenseDate').value,category=document.getElementById('expenseCategory').value,title=document.getElementById('expenseTitle').value.trim(),amount=Number(document.getElementById('expenseAmount').value),payment_method=document.getElementById('expensePayment').value,description=document.getElementById('expenseDescription').value.trim();
- if(!rid||!date||!category||!title||!Number.isFinite(amount)||amount<=0){document.getElementById('expenseMessage').textContent='Date, category, name aur valid amount bharna zaroori hai.';return}
+ if(!rid||!date||!window.BiteV3Period?.validDay(date)||date>localDateInput()||!category||!title||!Number.isFinite(amount)||amount<=0){document.getElementById('expenseMessage').textContent='Date, category, name aur valid amount bharna zaroori hai.';return}
  const btn=document.getElementById('expenseSaveBtn');btn.disabled=true;
  try{const payload={restaurant_id:rid,expense_date:date,category,title,amount,payment_method,description:description||null};
  let result;if(editingExpenseId)result=await sb.from('restaurant_expenses').update(payload).eq('id',editingExpenseId).eq('restaurant_id',rid);else result=await sb.from('restaurant_expenses').insert({...payload,created_by:currentUser.id});
