@@ -78,3 +78,8 @@ test('A04 SQL protects cashbook dates, RLS, idempotency and closed shifts',()=>{
  assert.match(sql,/original purchase date|purchase day|purchase_date/i);
  assert.match(css,/@media\(max-width:430px\)/);
 });
+
+test('A04 canonical migration file exactly matches the SQL verified in PG17 and applied to live Supabase',()=>{
+ const applied=fs.readFileSync('supabase/migrations/20261119041054_owner_a04_supplier_payment_date_ledger.sql','utf8');
+ assert.equal(applied,sql);
+});
