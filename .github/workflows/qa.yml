@@ -385,3 +385,5 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/owner_a10_salary_closing_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261119173000_owner_a10_salary_closing.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_a10_salary_closing_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261119184500_owner_a12_salary_payment_cap.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_v3_a12_salary_payment_cap_pg_test.sql
