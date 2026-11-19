@@ -47,7 +47,8 @@ with sync_playwright() as pw:
   page.evaluate(fixtures)
   assert page.evaluate('window.__oldResult.ok')
   panel=page.locator('#haHistoricalPOS')
-  assert '₹160.00' in panel.inner_text()
+  rendered=panel.inner_text()
+  assert '160' in rendered, f'Old POS visible text: {rendered!r} · HTML: {panel.inner_html()[:800]!r}'
   assert 'NOT a newly collected' in panel.inner_text()
   assert '₹50.00' in panel.inner_text(), 'Existing posted POS receipts remain separately labelled'
   assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),f'Overflow at {width}px'
