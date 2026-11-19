@@ -323,6 +323,7 @@
    if(section.dataset.section!=='profile')renderProfile();
  });
  root.BiteAccountHub={
+   navigate(next){if(state.userId&&known.has(next))show(next);},
    vegOnly(){return getPrefs().veg_only;},
    recommendationsEnabled(){return getPrefs().show_cart_suggestions;},
    open({user}){

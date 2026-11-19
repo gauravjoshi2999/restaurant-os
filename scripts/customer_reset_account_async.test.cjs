@@ -13,7 +13,7 @@ const authRender=segment('function renderAuthMode(){','function setCustomerSessi
 const resetHandler=segment('async function sendCustomerPasswordResetLink(){','async function submitCustomerAuth(){');
 const accountLoad=segment('let accountAddressRows=[];','function resetAddrForm(){');
 const accountSupport=segment('async function loadCustomerSupportTickets(', "$('customerSupportForm')?.addEventListener");
-const accountOpen=segment('async function openAccountView(){', "$('customerAddressForm').addEventListener");
+const accountOpen=segment('async function openAccountView(targetSubpage){', "$('customerAddressForm').addEventListener");
 const extractScript=()=>[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(x=>x.trim());
 
 function dom(){

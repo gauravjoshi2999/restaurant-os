@@ -525,6 +525,33 @@ try:
   customer.locator('#checkoutOutcomeBrowse').click()
   check(not customer.locator('#checkoutModal').is_visible() and customer.locator('#menuView').is_visible(), 'Checkout close returns to menu instead of reopening payment')
   customer.locator('#homeBottomNav [data-nav="account"]').click();customer.locator('#biteAccountHub').wait_for(state='visible')
+  # Customer NOT-01: real Account Notifications UI, with synthetic owned event transport only.
+  customer.locator('#biteAccountHub [data-bite-account-go="notifications"]').first.click()
+  customer.locator('#biteAccountNotifications').wait_for(state='visible')
+  check(customer.locator('#biteNotificationCount').inner_text()=='0 unread'
+    and customer.locator('#biteNotificationMarkRead').is_disabled(),
+    'Notification Center opens with truthful empty unread state')
+  customer.evaluate("""() => {
+    const feed=window.BiteCustomerNotifications;
+    if(!feed)throw Error('Bite verified notification center was not mounted');
+    feed.syncUser('qa-notification-customer');
+    document.dispatchEvent(new CustomEvent('bite:verified-order-update',{
+      detail:{userId:'qa-notification-customer',orderId:'qa-order',status:'Preparing',label:'Your food is being prepared'}
+    }));
+  }""")
+  check(customer.locator('#biteNotificationCount').inner_text()=='1 unread'
+    and customer.locator('#biteNotificationEntries .bite-notification-entry').count()==1,
+    'Owned verified order change appears once with unread count')
+  customer.screenshot(path=str(OUT/'ui-customer-notification-center.png'),full_page=False)
+  customer.locator('#biteNotificationMarkRead').click()
+  check(customer.locator('#biteNotificationCount').inner_text()=='0 unread'
+    and customer.locator('#biteNotificationEntries .is-unread').count()==0,
+    'Mark all seen updates only the notification presentation')
+  customer.evaluate("""() => window.BiteCustomerNotifications.syncUser('another-qa-customer')""")
+  check(customer.locator('#biteNotificationEntries .bite-notification-entry').count()==0,
+    'Switching customer accounts destroys previous notification activity')
+  customer.locator('#accountBackBtn').click()
+  customer.locator('#biteAccountHub').wait_for(state='visible')
   customer.locator('#biteAccountHub [data-bite-account-go="profile"]').first.click()
   customer.locator('#biteProfileEditor').wait_for(state='visible')
   customer.locator('#biteProfileName').fill('QA updated name');customer.locator('#biteProfilePhone').fill('9999999999')
