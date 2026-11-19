@@ -1,0 +1,48 @@
+/* A04 Supplier Payments — inside existing Purchases, not a second financial dashboard */
+body[data-role=owner] .bsp-summary{border:1px solid #e8decf;background:#fff;border-radius:16px;padding:17px;margin:17px 0;min-width:0}
+body[data-role=owner] .bsp-summary-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+body[data-role=owner] .bsp-summary-head small{font-size:10px;font-weight:800;color:#ba662d}
+body[data-role=owner] .bsp-summary-head h2{margin:4px 0 0;font-size:20px;color:#2d3540}
+body[data-role=owner] .bsp-summary-head>span{font-size:11px;color:#647487}
+body[data-role=owner] .bsp-summary-total{display:grid;gap:5px;margin:14px 0;font-size:30px;font-weight:900;color:#b15a24}
+body[data-role=owner] .bsp-summary-total small{font-size:11px;font-weight:550;color:#647284}
+body[data-role=owner] .bsp-due-list{display:grid;gap:8px}
+body[data-role=owner] .bsp-due-item{display:flex;gap:10px;align-items:center;border:1px solid #ece4dc;border-radius:12px;background:#fffbf6;padding:11px;min-width:0}
+body[data-role=owner] .bsp-due-item>div{display:grid;gap:3px;flex:1 1 120px;min-width:0}
+body[data-role=owner] .bsp-due-item strong{font-size:12px;color:#374050;overflow-wrap:anywhere}
+body[data-role=owner] .bsp-due-item small{font-size:11px;color:#7a7b80}
+body[data-role=owner] .bsp-due-item b{font-size:14px;color:#a75122;white-space:nowrap}
+body[data-role=owner] .bsp-due-item button{border:1px solid #d99d72;background:#fff1e6;color:#9c4b19;border-radius:10px;padding:8px 12px;min-height:44px;font-weight:800;font-size:12px;cursor:pointer}
+body[data-role=owner] .bsp-foot{color:#7d7981;font-size:11px;line-height:1.5;margin:11px 0 0}
+body[data-role=owner] .bsp-unavailable{border:1px solid #e9d9c9;border-radius:11px;padding:12px;margin:10px 0;color:#806954;background:#fff9f2;font-size:12px}
+body[data-role=owner] .bsp-unavailable p{margin:4px 0}
+body[data-role=owner] .bsp-empty{padding:12px;font-size:12px;color:#5b7962;background:#f4faf5;border-radius:10px}
+body[data-role=owner] .bsp-modal-backdrop{position:fixed;inset:0;z-index:100000;background:#1f2937a3;display:flex;align-items:center;justify-content:center;padding:12px;overflow-y:auto}
+body[data-role=owner] .bsp-dialog{width:100%;max-width:520px;max-height:min(92dvh,900px);overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 22px 66px #0004;color:#2f3745;padding:18px}
+body[data-role=owner] .bsp-dialog header{display:flex;justify-content:space-between;gap:12px}
+body[data-role=owner] .bsp-dialog header small{font-size:10px;font-weight:800;color:#b65f29}
+body[data-role=owner] .bsp-dialog h2{font-size:23px;margin:6px 0}
+body[data-role=owner] .bsp-dialog header p{font-size:12px;color:#667688;line-height:1.5}
+body[data-role=owner] .bsp-dialog button{min-height:44px;border-radius:10px;border:1px solid #d7dce2;background:#fff;color:#425065;padding:9px 12px;cursor:pointer;font-weight:750}
+body[data-role=owner] .bsp-dialog [data-bsp-close]{flex:0 0 auto}
+body[data-role=owner] .bsp-due{display:grid;gap:5px;border:1px solid #f0d8c5;border-radius:12px;background:#fff7ed;padding:13px;margin:10px 0 14px}
+body[data-role=owner] .bsp-due>span{font-size:12px;color:#806c60}
+body[data-role=owner] .bsp-due>strong{font-size:27px;color:#a54e1b}
+body[data-role=owner] .bsp-due small{font-size:11px;color:#817979}
+body[data-role=owner] .bsp-form{display:grid;gap:11px}
+body[data-role=owner] .bsp-form>label{font-size:12px;font-weight:700;display:grid;gap:5px;min-width:0}
+body[data-role=owner] .bsp-form input:not([type=checkbox]),body[data-role=owner] .bsp-form select{width:100%;max-width:100%;box-sizing:border-box;min-height:44px;border:1px solid #d5dce3;border-radius:10px;padding:9px;background:white;color:#242c36;font-size:14px}
+body[data-role=owner] .bsp-form .bsp-confirm{display:flex;align-items:flex-start;gap:10px;padding:11px 8px;background:#f5f9f6;border-radius:10px;line-height:1.5}
+body[data-role=owner] .bsp-form .bsp-confirm input{width:19px;height:19px;flex:0 0 auto;margin:1px}
+body[data-role=owner] .bsp-error{font-size:12px;color:#b42318;line-height:1.5}
+body[data-role=owner] .bsp-actions{display:flex;justify-content:flex-end;gap:8px}
+body[data-role=owner] .bsp-dialog .bsp-actions .primary{background:#e87225;color:#fff;border-color:#df671c}
+body[data-role=owner] .bsp-dialog :is(button,input,select):focus-visible{outline:3px solid #e68a3d;outline-offset:2px}
+@media(max-width:430px){
+ body[data-role=owner] .bsp-due-item{flex-wrap:wrap}
+ body[data-role=owner] .bsp-due-item button{flex:1 1 100%}
+ body[data-role=owner] .bsp-summary{padding:11px}
+ body[data-role=owner] .bsp-summary-head{flex-wrap:wrap}
+ body[data-role=owner] .bsp-dialog{max-height:94dvh;padding:13px}
+ body[data-role=owner] .bsp-actions button{flex:1}
+}
