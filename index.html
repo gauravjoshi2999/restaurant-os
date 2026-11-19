@@ -2124,7 +2124,7 @@ document.getElementById('cashbookRestaurant').addEventListener('change',loadCash
 document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
-let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null,hrV3Query='',hrV3Filter='active',hrReadVersion=0;
+let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],hrDayAttendance=[],hrDayScope='',editingHREmployeeId=null,hrV3Query='',hrV3Filter='active',hrReadVersion=0;
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2132,7 +2132,7 @@ async function loadHRWorkspace(){
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){hrReadVersion++;hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];document.getElementById('hrV3EmployeeCards').replaceChildren();document.getElementById('hrV3AttendanceDay').replaceChildren();document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
+ if(!eligible.length){hrReadVersion++;hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayAttendance=[];hrDayScope='';document.getElementById('hrV3EmployeeCards').replaceChildren();document.getElementById('hrV3AttendanceDay').replaceChildren();document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput();document.getElementById('hrAttendanceDate').value=today;document.getElementById('hrEmployeeJoining').value=today;
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
@@ -2142,20 +2142,25 @@ async function loadHRWorkspace(){
 }
 async function loadHRData(){
  const rid=hrRestaurantId(),userId=currentUser?.id,version=++hrReadVersion;if(!rid||!userId)return;
- document.getElementById('hrStatus').textContent='Loading staff records…';
+ const day=document.getElementById('hrAttendanceDate').value;
+ if(!window.BiteOwnerA08?.dayOK?.(day)||day>localDateInput()){document.getElementById('hrStatus').textContent='Select a valid past or current attendance date.';return;}
+ hrDayAttendance=[];hrDayScope='';document.getElementById('hrStatus').textContent='Loading staff records…';
  try{
-  const [e,a,l,p]=await Promise.all([
+  const [e,a,l,p,selectedDay]=await Promise.all([
    sb.from('restaurant_employees').select('*').eq('restaurant_id',rid).order('full_name'),
    sb.from('restaurant_employee_attendance').select('*').eq('restaurant_id',rid).order('attendance_date',{ascending:false}).limit(500),
    sb.from('restaurant_employee_leaves').select('*').eq('restaurant_id',rid).order('start_date',{ascending:false}).limit(300),
-   sb.from('restaurant_employee_payments').select('*').eq('restaurant_id',rid).order('payment_date',{ascending:false}).limit(300)
+   sb.from('restaurant_employee_payments').select('*').eq('restaurant_id',rid).order('payment_date',{ascending:false}).limit(300),
+   sb.from('restaurant_employee_attendance').select('*').eq('restaurant_id',rid).eq('attendance_date',day).order('created_at',{ascending:false}).limit(1000)
   ]);
-  if(version!==hrReadVersion||hrRestaurantId()!==rid||currentUser?.id!==userId)return;
-  for(const x of [e,a,l,p])if(x.error)throw x.error;
+  if(version!==hrReadVersion||hrRestaurantId()!==rid||currentUser?.id!==userId||document.getElementById('hrAttendanceDate').value!==day)return;
+  for(const x of [e,a,l,p,selectedDay])if(x.error)throw x.error;
+  if(selectedDay.data?.length===1000)throw Error('Attendance day has at least 1000 entries; verify the full day before showing totals.');
   hrEmployees=e.data||[];hrAttendance=a.data||[];hrLeaves=l.data||[];hrPayments=p.data||[];
+  hrDayAttendance=selectedDay.data||[];hrDayScope=userId+':'+rid+':'+day;
   renderHR();
  }catch(err){if(version!==hrReadVersion||hrRestaurantId()!==rid||currentUser?.id!==userId)return;
-  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];renderHR();document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
+  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayAttendance=[];hrDayScope='';renderHR();document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
 }
 function renderHREmployeeSelects(){
  const optionRows=list=>'<option value="">Select employee</option>'+list.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.full_name)+(e.employee_code?' · '+esc(e.employee_code):'')+'</option>').join('');
@@ -2163,7 +2168,8 @@ function renderHREmployeeSelects(){
 }
 function renderHR(){
  const active=hrEmployees.filter(e=>e.status==='Active').length,today=document.getElementById('hrAttendanceDate').value;
- const present=hrAttendance.filter(a=>a.attendance_date===today&&['Present','Half Day'].includes(a.status)).length;
+ const matchingDay=hrDayScope===currentUser?.id+':'+hrRestaurantId()+':'+today?hrDayAttendance:[];
+ const present=matchingDay.filter(a=>['Present','Half Day'].includes(a.status)).length;
  const pending=hrLeaves.filter(l=>l.status==='Pending').length,month=(document.getElementById('hrPaymentMonth').value||localDateInput().slice(0,7))+'-01';
  const paid=hrPayments.filter(p=>p.period_month===month&&['Salary','Advance','Bonus'].includes(p.payment_type)).reduce((n,p)=>n+Number(p.amount),0);
  document.getElementById('hrActiveCount').textContent=String(active);document.getElementById('hrPresentCount').textContent=String(present);
@@ -2189,7 +2195,7 @@ function renderHRV3(){
  if(!page.dataset.v3HrTask)page.dataset.v3HrTask='employee';
  window.BiteOwnerA08.render({
   cards:document.getElementById('hrV3EmployeeCards'),dayHost:document.getElementById('hrV3AttendanceDay'),
-  employees:hrEmployees,attendance:hrAttendance,restaurantId:rid,
+  employees:hrEmployees,attendance:hrDayScope===currentUser.id+':'+rid+':'+document.getElementById('hrAttendanceDate').value?hrDayAttendance:[],restaurantId:rid,
   date:document.getElementById('hrAttendanceDate').value,
   query:hrV3Query,filter:hrV3Filter,role:access.role,onAction:handleHRV3Action
  });
@@ -2208,7 +2214,7 @@ function handleHRV3Action(action,id){
  if(action==='deactivate'&&e.status==='Active')void deleteHREmployee(id);
  if(action==='mark'&&e.status==='Active'){
   const date=document.getElementById('hrAttendanceDate').value;
-  const current=hrAttendance.find(a=>a.employee_id===id&&a.restaurant_id===rid&&a.attendance_date===date);
+  const current=hrDayAttendance.find(a=>a.employee_id===id&&a.restaurant_id===rid&&a.attendance_date===date);
   document.getElementById('hrAttendanceEmployee').value=id;
   document.getElementById('hrAttendanceStatus').value=current?.status||'Present';
   document.getElementById('hrCheckIn').value=String(current?.check_in||'').slice(0,5);
@@ -2349,7 +2355,7 @@ document.getElementById('hrV3Search').addEventListener('input',event=>{hrV3Query
 document.getElementById('hrV3Filter').addEventListener('change',event=>{hrV3Filter=event.target.value;renderHRV3()});
 document.getElementById('hrV3AddEmployee').addEventListener('click',()=>{resetHREmployeeForm();hrV3OpenEditor()});
 document.getElementById('hrRestaurant').addEventListener('change',loadHRData);
-document.getElementById('hrAttendanceDate').addEventListener('change',renderHR);
+document.getElementById('hrAttendanceDate').addEventListener('change',loadHRData);
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
 
 let khataCustomers=[],khataBalances=[],khataEntries=[],selectedKhataCustomerId=null;
