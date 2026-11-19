@@ -17,6 +17,7 @@
  data.restaurant_settlements=[{id:uuid(700),restaurant_id:rid,period_start:'2026-11-02',period_end:'2026-11-08',gross_order_value:1000,commission_total:100,provider_fees_actual:20,refunds_actual:0,net_payable:880,amount_paid:0,status:'draft'}];
  data.bite_refund_jobs.push({...data.bite_refund_jobs[0],id:uuid(601),status:'refunded',created_at:'2026-01-01T10:00:00Z'});
  data.restaurant_settlements.push({...data.restaurant_settlements[0],id:uuid(701),status:'paid',period_start:'2026-10-01',period_end:'2026-10-07'});
+ data.platform_audit_logs.push({id:uuid(998),actor_id:uid,entity_type:'customer_support_ticket',entity_id:uuid(999),action:'customer_support_ticket_created',details:{status:'Open'},created_at:new Date().toISOString()});
  const calls=[];const qa=window.__BITE_SUPER_ADMIN_QA={data,calls,failNext:false,providerFailure:false};
  function value(row,key){return key.split('.').reduce((v,k)=>v?.[k],row);}
  function query(table){let filters=[],single=false,start=0,end=Infinity,payload=null,mode='read',withOrder=false,sort=[];const q={
