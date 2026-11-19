@@ -1,6 +1,7 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');
 require('../assets/owner-hospitality.js');
 const rows=globalThis.BiteHospitality.reservationRows;
+const fs=require('node:fs');const html=fs.readFileSync('index.html','utf8');
 const stays=[
  {id:'old',status:'checked_out',arrival:'2026-10-01',departure:'2026-10-02'},
  {id:'late',status:'reserved',arrival:'2026-11-17',departure:'2026-11-18'},
@@ -19,3 +20,5 @@ test('H11 reservation tabs include only intended status/date groups without data
  assert.equal(JSON.stringify(stays),original);
 });
 test('H11 empty status views are safe',()=>{assert.deepEqual(rows([], 'upcoming','2026-11-19'),[]);assert.deepEqual(rows(null,'all','2026-11-19'),[])});
+
+test('H11 serves updated hotel code rather than a stale cache URL',()=>assert.match(html,/owner-hospitality\.js\?v=20261119-h11-reservation-filter1/));
