@@ -1,0 +1,61 @@
+/* Persistent Bite customer cart — visible across the home and menu views. */
+body[data-bite-app="customer"] #cartFloating.bite-persistent-cart{
+ position:fixed;z-index:55;display:none;align-items:center;gap:11px;
+ width:min(540px,calc(100% - 32px));min-width:0;max-width:540px;
+ left:auto;right:20px;bottom:20px;padding:10px 11px;
+ border:1px solid #d6e7dc;border-radius:20px;
+ background:#fff;color:#183629;box-shadow:0 12px 32px #0b312a2b;
+}
+body[data-bite-app="customer"] #cartFloating.bite-persistent-cart.show{display:flex}
+#cartFloating .bite-cart-dock-summary{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+#cartFloating .bite-cart-dock-icon{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;border-radius:13px;background:#edf8f0;color:#087b4d;font-size:22px}
+#cartFloating .bite-cart-dock-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+#cartFloating #floatingCartRestaurant{max-width:100%;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0}
+#cartFloating #floatingCartCount{font-size:12px;font-weight:650;color:#637a6e}
+body[data-bite-app="customer"] #cartFloating #floatingViewCart{
+ min-height:46px;display:flex;flex-direction:column;justify-content:center;align-items:center;
+ gap:1px;flex-shrink:0;background:#087b4d;border:0;border-radius:15px;
+ color:#fff;font-size:14px;font-weight:850;padding:8px 19px;
+}
+body[data-bite-app="customer"] #cartFloating #floatingViewCart:hover{background:#06683f}
+#cartFloating #floatingCartTotal{font-size:11px;font-weight:650;color:#def7e6}
+body[data-bite-app="customer"] #cartFloating #floatingCartRemove{
+ display:grid;place-items:center;flex:0 0 42px;width:42px;height:46px;min-width:42px;
+ padding:0;background:#f3f5f4;border:0;border-radius:50%;color:#53635a;font-size:24px;
+}
+#cartFloating .bite-floating-cart-remove-panel{
+ position:absolute;right:7px;bottom:calc(100% + 9px);width:min(330px,calc(100vw - 32px));
+ padding:15px;background:#fff;border:1px solid #e2e8e2;border-radius:17px;
+ box-shadow:0 12px 28px #112d1c30;z-index:2;color:#213c2a;
+}
+#cartFloating .bite-floating-cart-remove-panel[hidden]{display:none!important}
+#cartFloating .bite-floating-cart-remove-panel strong{font-size:15px}
+#cartFloating .bite-floating-cart-remove-panel p{font-size:12px;line-height:1.4;color:#536d5b;margin:6px 0 13px}
+#cartFloating .bite-cart-remove-actions{display:flex;justify-content:flex-end;gap:8px}
+body[data-bite-app="customer"] #cartFloating .bite-cart-remove-actions button{
+ min-height:44px;padding:9px 12px;font-size:13px;font-weight:800;
+ color:#165237;background:#e8f5eb;border:1px solid #c8dfcf;border-radius:11px
+}
+body[data-bite-app="customer"] #cartFloating .bite-cart-remove-actions #floatingCartConfirmRemove{
+ background:#a52d36;color:white;border-color:#a52d36
+}
+#cartFloating button:focus-visible{outline:3px solid #e1a52a;outline-offset:2px}
+body[data-bite-app="customer"] #cartModal .bite-cart-line-remove{
+ display:block;margin:6px 0 0 auto;border:0;background:transparent;color:#b02b37;
+ text-decoration:underline;text-underline-offset:3px;min-height:38px;padding:6px;font-size:12px;font-weight:750
+}
+@media(max-width:760px){
+ body[data-bite-app="customer"] #cartFloating.bite-persistent-cart{
+  left:12px;right:12px;width:calc(100% - 24px);max-width:none;
+  bottom:calc(84px + env(safe-area-inset-bottom));padding:9px 9px;gap:7px;border-radius:19px;
+ }
+ #cartFloating .bite-cart-dock-icon{flex-basis:34px;width:34px;height:34px}
+ #cartFloating #floatingCartRestaurant{font-size:12px}
+ body[data-bite-app="customer"] #cartFloating #floatingViewCart{min-height:46px;padding:7px 12px}
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] #cartFloating #floatingViewCart{font-size:12px;padding:7px 9px}
+ #cartFloating .bite-cart-dock-icon{display:none}
+ #cartFloating #floatingCartRestaurant{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){#cartFloating *{transition:none!important}}
