@@ -728,6 +728,8 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/owner-hr-mobile-tabs.js?v=20261114-onecol1" defer></script>
 <script src="assets/owner-v3-attendance.js?v=20261119-a08-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
+<link rel="stylesheet" href="assets/owner-v3-employee-profiles.css?v=20261119-a08p-1">
+<script src="assets/owner-v3-employee-profiles.js?v=20261119-a08p-1" defer></script>
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
@@ -1064,6 +1066,10 @@ body.bite-session-check #biteSessionSplash{
 <div class="grid section bite-hr-editor-grid">
   <div class="card" id="hrEmployeePanel" data-hr-panel="employee" data-hr-selected="true">
    <div class="section-head"><h2>Employee profile</h2><span class="small">Owner / Manager</span></div>
+   <div class="a08p-toolbar">
+   <label for="hrProfileSearch">Find employee<input id="hrProfileSearch" type="search" placeholder="Name, code, phone or role" autocomplete="off"></label>
+   <label for="hrProfileFilter">Staff status<select id="hrProfileFilter"><option value="active">Active</option><option value="all">All employees</option><option value="inactive">Inactive</option></select></label></div>
+   <div id="hrProfileCards" aria-live="polite"></div>
    <input type="hidden" id="hrEmployeeId">
    <div class="form-row">
     <div class="field"><label>Employee code</label><input id="hrEmployeeCode" maxlength="40" placeholder="EMP-001"></div>
@@ -2121,7 +2127,7 @@ document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
 let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
-let hrLoadVersion=0,hrDayVersion=0,hrDayReport=null,hrDayKey="";
+let hrLoadVersion=0,hrDayVersion=0,hrDayReport=null,hrDayKey="",hrProfileQuery="",hrProfileVisibility="active";
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2156,10 +2162,12 @@ async function loadHRAttendanceDay(){
   hrDayReport=summary;hrDayKey=key;
   target.innerHTML=window.BiteV3Attendance.html(summary);
   document.getElementById('hrPresentCount').textContent=String(summary.present+summary.half);
+  renderHREmployeeCards();
  }catch(error){
   if(!active())return;
   hrDayReport=null;hrDayKey='';
   target.innerHTML='<p role="alert">Attendance for '+esc(day)+' could not be verified: '+esc(error?.message||'Network error')+'. Retry Refresh. No unmarked staff was counted absent.</p>';
+  renderHREmployeeCards();
  }
 }
 async function loadHRData(){
@@ -2220,6 +2228,29 @@ function renderHR(){
  document.getElementById('hrPaymentEmpty').style.display=hrPayments.length?'none':'block';
  document.getElementById('hrStatus').textContent=active+' active · '+hrAttendance.length+' attendance records · '+hrLeaves.length+' leave records';
  renderHREmployeeSelects();
+ renderHREmployeeCards();
+}
+function renderHREmployeeCards(){
+ const host=document.getElementById('hrProfileCards'),rid=hrRestaurantId(),uid=currentUser?.id;
+ if(!host)return;
+ if(access.role!=='owner'||!uid||!rid||!access.memberships.some(m=>m.restaurant_id===rid&&m.role==='owner')){host.replaceChildren();return}
+ const day=document.getElementById('hrAttendanceDate').value;
+ const report=hrDayKey===uid+':'+rid+':'+day?hrDayReport:null;
+ if(!window.BiteOwnerA08Profiles){host.textContent='Employee cards unavailable; use the existing employee register.';return}
+ host.innerHTML=window.BiteOwnerA08Profiles.html(hrEmployees,{restaurantId:rid,query:hrProfileQuery,visibility:hrProfileVisibility,day,verifiedDay:report});
+}
+function hrProfileAction(action,id){
+ if(access.role!=='owner'||!currentUser?.id||!window.BiteOwnerA08Profiles?.uuid(id))return;
+ const rid=hrRestaurantId(),employee=hrEmployees.find(x=>x.id===id&&x.restaurant_id===rid);
+ if(!employee)return;
+ if(action==='edit'){
+  editHREmployee(id);document.getElementById('hrEmployeeName').scrollIntoView?.({block:'center',behavior:'smooth'});
+  document.getElementById('hrEmployeeName').focus({preventScroll:true});
+ }else if(action==='deactivate'&&employee.status==='Active')void deleteHREmployee(id);
+ else if(action==='attendance'&&employee.status==='Active'&&hrDayReport){
+  const button=document.querySelector('#hrAttendanceRegister [data-v3-attendance-employee="'+id+'"]');
+  if(button)button.click();
+ }
 }
 function resetHREmployeeForm(){
  editingHREmployeeId=null;['hrEmployeeId','hrEmployeeCode','hrEmployeeName','hrEmployeePhone','hrEmployeePosition','hrEmployeeNotes'].forEach(id=>document.getElementById(id).value='');
@@ -2280,6 +2311,12 @@ async function saveHREmployeePayment(){
  try{const {error}=await sb.from('restaurant_employee_payments').insert({restaurant_id:rid,employee_id:eid,payment_date:date,period_month:periodMonth,payment_type:document.getElementById('hrPaymentType').value,amount,payment_method:document.getElementById('hrPaymentMethod').value,reference:document.getElementById('hrPaymentReference').value.trim()||null,notes:document.getElementById('hrPaymentNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;document.getElementById('hrPaymentAmount').value='';document.getElementById('hrPaymentReference').value='';document.getElementById('hrPaymentNotes').value='';document.getElementById('hrPaymentMessage').textContent='Payment saved';await loadHRData()}
  catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}
 }
+document.getElementById('hrProfileSearch').addEventListener('input',event=>{hrProfileQuery=event.target.value;renderHREmployeeCards()});
+document.getElementById('hrProfileFilter').addEventListener('change',event=>{hrProfileVisibility=event.target.value;renderHREmployeeCards()});
+document.getElementById('hrProfileCards').addEventListener('click',event=>{
+ const b=event.target.closest?.('[data-a08p-action][data-id]');
+ if(b&&document.getElementById('hrProfileCards').contains(b))hrProfileAction(b.dataset.a08pAction,b.dataset.id);
+});
 document.getElementById('hrRestaurant').addEventListener('change',()=>{
  // Never carry an employee ID or pending form values into a different restaurant.
  resetHREmployeeForm();
