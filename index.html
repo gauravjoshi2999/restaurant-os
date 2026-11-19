@@ -2239,25 +2239,79 @@ function editHREmployee(id){
 async function saveHREmployee(){
  const rid=hrRestaurantId(),name=document.getElementById('hrEmployeeName').value.trim(),code=document.getElementById('hrEmployeeCode').value.trim(),salary=Number(document.getElementById('hrEmployeeSalary').value);
  if(!rid||name.length<2||!Number.isFinite(salary)||salary<0){document.getElementById('hrEmployeeMessage').textContent='Name aur valid salary amount bharein.';return}
- const payload={restaurant_id:rid,employee_code:code||null,full_name:name,phone:document.getElementById('hrEmployeePhone').value.trim()||null,position:document.getElementById('hrEmployeePosition').value.trim()||null,joining_date:document.getElementById('hrEmployeeJoining').value||localDateInput(),salary_amount:salary,salary_period:document.getElementById('hrEmployeeSalaryPeriod').value,status:document.getElementById('hrEmployeeStatus').value,notes:document.getElementById('hrEmployeeNotes').value.trim()||null};
+ const employeePhone=document.getElementById('hrEmployeePhone').value.trim();
+ const duplicates=window.BiteOwnerA08?.duplicates?.(hrEmployees,{full_name:name,employee_code:code,phone:employeePhone},editingHREmployeeId)||[];
+ if(duplicates.length&&!confirm('Possible duplicate employee: '+duplicates.slice(0,2).map(x=>x.full_name).join(', ')+'. Existing profile review kiya? Phir bhi save karna hai?')){
+  document.getElementById('hrEmployeeMessage').textContent='Possible duplicate: existing profile review karein.';return;
+ }
+ const payload={restaurant_id:rid,employee_code:code||null,full_name:name,phone:employeePhone||null,position:document.getElementById('hrEmployeePosition').value.trim()||null,joining_date:document.getElementById('hrEmployeeJoining').value||localDateInput(),salary_amount:salary,salary_period:document.getElementById('hrEmployeeSalaryPeriod').value,status:document.getElementById('hrEmployeeStatus').value,notes:document.getElementById('hrEmployeeNotes').value.trim()||null};
  try{let result;if(editingHREmployeeId)result=await sb.from('restaurant_employees').update(payload).eq('id',editingHREmployeeId).eq('restaurant_id',rid);else result=await sb.from('restaurant_employees').insert({...payload,created_by:currentUser.id});if(result.error)throw result.error;document.getElementById('hrEmployeeMessage').textContent='Employee saved';resetHREmployeeForm();await loadHRData()}
  catch(e){document.getElementById('hrEmployeeMessage').textContent='Save nahi hua: '+e.message;console.error(e)}
 }
 async function deleteHREmployee(id){
- if(access.role!=='owner'||!confirm('Employee profile delete karein? Attendance/payment records hone par database deletion rok dega.'))return;
- try{const {error}=await sb.from('restaurant_employees').delete().eq('id',id).eq('restaurant_id',hrRestaurantId());if(error)throw error;await loadHRData()}
- catch(e){alert('Employee delete nahi hua: '+e.message)}
+ if(access.role!=='owner'||!currentUser?.id)return;
+ const rid=hrRestaurantId(),employee=hrEmployees.find(e=>e.id===id&&e.restaurant_id===rid&&e.status==='Active');
+ if(!employee)return;
+ if(!confirm(employee.full_name+' ko Inactive karna hai? Attendance, leave aur salary history safe rahegi.'))return;
+ try{
+  const {data,error}=await sb.from('restaurant_employees').update({status:'Inactive'})
+   .eq('id',id).eq('restaurant_id',rid).eq('status','Active').select('id');
+  if(error)throw error;
+  if(data?.length!==1)throw Error('Employee status changed. Refresh and review.');
+  await loadHRData();
+ }catch(e){alert('Deactivate nahi hua: '+e.message)}
 }
 async function saveHRAttendance(){
- const rid=hrRestaurantId(),eid=document.getElementById('hrAttendanceEmployee').value,date=document.getElementById('hrAttendanceDate').value,status=document.getElementById('hrAttendanceStatus').value,checkIn=document.getElementById('hrCheckIn').value,checkOut=document.getElementById('hrCheckOut').value,notes=document.getElementById('hrAttendanceNotes').value.trim();
- if(!rid||!eid||!date){document.getElementById('hrAttendanceMessage').textContent='Employee aur date select karein.';return}
- if(checkIn&&checkOut&&checkOut<checkIn){document.getElementById('hrAttendanceMessage').textContent='Check-out, check-in se pehle nahi ho sakta.';return}
+ const rid=hrRestaurantId(),eid=document.getElementById('hrAttendanceEmployee').value,
+  date=document.getElementById('hrAttendanceDate').value,status=document.getElementById('hrAttendanceStatus').value,
+  checkIn=document.getElementById('hrCheckIn').value,checkOut=document.getElementById('hrCheckOut').value,
+  notes=document.getElementById('hrAttendanceNotes').value.trim(),userId=currentUser?.id;
+ const message=document.getElementById('hrAttendanceMessage');
+ if(!rid||!userId||!['owner','manager'].includes(access.role)||
+    !hrEmployees.some(x=>x.id===eid&&x.restaurant_id===rid&&x.status==='Active')||
+    !window.BiteOwnerA08?.dayOK?.(date)||date>localDateInput()||
+    !['Present','Absent','Half Day','Leave','Holiday'].includes(status)){
+  message.textContent='Active employee aur valid past/current attendance date select karein.';return;
+ }
+ if(checkIn&&checkOut&&checkOut<checkIn){message.textContent='Check-out, check-in se pehle nahi ho sakta.';return}
+ const key=userId+':'+rid+':'+eid+':'+date;
+ if(message.dataset.saving===key)return;
+ message.dataset.saving=key;
  try{
-  const lookup=await sb.from('restaurant_employee_attendance').select('id').eq('employee_id',eid).eq('attendance_date',date).maybeSingle();if(lookup.error)throw lookup.error;
-  let result;if(lookup.data)result=await sb.from('restaurant_employee_attendance').update({status,check_in:checkIn||null,check_out:checkOut||null,notes:notes||null}).eq('id',lookup.data.id);
-  else result=await sb.from('restaurant_employee_attendance').insert({restaurant_id:rid,employee_id:eid,attendance_date:date,status,check_in:checkIn||null,check_out:checkOut||null,notes:notes||null,recorded_by:currentUser.id});
-  if(result.error)throw result.error;document.getElementById('hrAttendanceMessage').textContent='Attendance saved';document.getElementById('hrAttendanceNotes').value='';await loadHRData();
- }catch(e){document.getElementById('hrAttendanceMessage').textContent='Attendance save nahi hua: '+e.message;console.error(e)}
+  const lookup=await sb.from('restaurant_employee_attendance')
+   .select('id,status,check_in,check_out,notes,updated_at').eq('restaurant_id',rid)
+   .eq('employee_id',eid).eq('attendance_date',date).maybeSingle();
+  if(lookup.error)throw lookup.error;
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid)throw Error('Restaurant/login changed. Try again.');
+  let result,finalNotes=notes||null;
+  if(lookup.data){
+   const before=lookup.data;
+   const same=before.status===status&&String(before.check_in||'').slice(0,5)===(checkIn||'')&&
+    String(before.check_out||'').slice(0,5)===(checkOut||'')&&String(before.notes||'')===notes;
+   if(same){message.textContent='Attendance already saved. No duplicate update.';return;}
+   const reason=prompt('Existing attendance correction ka reason likhein (required):','')?.trim();
+   if(!reason||reason.length<5){message.textContent='Correction cancelled. Reason (minimum 5 characters) required.';return;}
+   const previous='Previously '+before.status+', '+(before.check_in||'—')+' to '+(before.check_out||'—')+
+    (before.notes?', note: '+before.notes:'');
+   finalNotes=(notes?notes+'\n':'')+'[Correction '+new Date().toISOString()+' by '+userId+
+    ': '+reason.slice(0,300)+'; '+previous.slice(0,650)+']';
+   result=await sb.from('restaurant_employee_attendance').update({
+    status,check_in:checkIn||null,check_out:checkOut||null,notes:finalNotes
+   }).eq('id',before.id).eq('restaurant_id',rid).eq('employee_id',eid)
+    .eq('attendance_date',date).eq('updated_at',before.updated_at).select('id');
+   if(!result.error&&result.data?.length!==1)throw Error('Attendance changed since opening. Refresh and review.');
+  }else{
+   result=await sb.from('restaurant_employee_attendance').insert({
+    restaurant_id:rid,employee_id:eid,attendance_date:date,status,check_in:checkIn||null,
+    check_out:checkOut||null,notes:finalNotes,recorded_by:userId
+   });
+  }
+  if(result.error)throw result.error;
+  message.textContent=lookup.data?'Attendance correction saved with reason.':'Attendance saved';
+  document.getElementById('hrAttendanceNotes').value='';
+  await loadHRData();
+ }catch(e){message.textContent='Attendance save nahi hua: '+e.message;console.error(e)}
+ finally{if(message.dataset.saving===key)delete message.dataset.saving;}
 }
 async function saveHRLeave(){
  const rid=hrRestaurantId(),eid=document.getElementById('hrLeaveEmployee').value,start=document.getElementById('hrLeaveStart').value,end=document.getElementById('hrLeaveEnd').value;
@@ -2266,11 +2320,22 @@ async function saveHRLeave(){
  catch(e){document.getElementById('hrLeaveMessage').textContent='Leave save nahi hua: '+e.message;console.error(e)}
 }
 async function reviewHRLeave(id,status){
- if(!['owner','manager'].includes(access.role))return;
- if(!['Approved','Rejected'].includes(status))return;
- const payload={status,approved_by:status==='Approved'?currentUser.id:null,approved_at:status==='Approved'?new Date().toISOString():null};
- try{const {error}=await sb.from('restaurant_employee_leaves').update(payload).eq('id',id).eq('restaurant_id',hrRestaurantId());if(error)throw error;await loadHRData()}
- catch(e){alert('Leave status update nahi hua: '+e.message)}
+ if(!['owner','manager'].includes(access.role)||!currentUser?.id||!['Approved','Rejected'].includes(status))return;
+ const rid=hrRestaurantId(),row=hrLeaves.find(x=>x.id===id&&x.restaurant_id===rid&&x.status==='Pending');
+ if(!row)return;
+ const explanation=prompt('Leave '+status+' reason (required):','')?.trim();
+ if(!explanation||explanation.length<5)return;
+ const userId=currentUser.id,reviewed=new Date().toISOString();
+ const payload={status,approved_by:userId,approved_at:reviewed,
+  reason:[String(row.reason||'').trim(),'[Review '+status+' · '+reviewed+' · '+userId+': '+explanation.slice(0,300)+']'].filter(Boolean).join('\n')};
+ try{
+  const {data,error}=await sb.from('restaurant_employee_leaves').update(payload)
+   .eq('id',id).eq('restaurant_id',rid).eq('status','Pending').select('id');
+  if(error)throw error;
+  if(data?.length!==1)throw Error('Leave already reviewed. Refresh and check.');
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid)return;
+  await loadHRData();
+ }catch(e){alert('Leave status update nahi hua: '+e.message)}
 }
 async function saveHREmployeePayment(){
  if(access.role!=='owner')return;
