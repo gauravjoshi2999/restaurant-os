@@ -59,6 +59,10 @@ test('A04 same canonical Purchases screen uses only verified append-only server 
 test('A04 SQL protects cashbook dates, RLS, idempotency and closed shifts',()=>{
  assert.match(sql,/create table if not exists public\.restaurant_supplier_payments/);
  assert.match(sql,/request_id uuid not null unique/);
+ assert.match(sql,/foreign key \(restaurant_id,purchase_id\)/);
+ assert.match(sql,/returns trigger language plpgsql security definer set search_path=''/);
+ assert.match(sql,/revoke all on function public\.bite_guard_supplier_paid_purchase\(\)/);
+ assert.match(index,/balance===null\?'Unverified':money\(balance\)/);
  assert.match(sql,/alter table public\.restaurant_supplier_payments enable row level security/);
  assert.match(sql,/revoke all on public\.restaurant_supplier_payments/);
  assert.match(sql,/security definer set search_path=''/);
