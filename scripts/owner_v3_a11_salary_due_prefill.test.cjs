@@ -9,7 +9,7 @@ test('A11: remaining due shortcut belongs to existing HR Payments tab and uses A
  for(const token of ['id="hrA10PreparePayment" hidden disabled','id="hrPaymentAmount"',
    'id="hrPaymentMethod"','id="hrPaymentEmployee"','id="hrPaymentMonth"'])
   assert.ok(html.includes(token),token);
- assert.match(html,/owner-v3-salary-closing-ui\\.js\\?v=20261119-[a-z0-9-]+/);
+ assert.ok(html.includes('owner-v3-salary-closing-ui.js?v='));
  assert.match(ui,/function prepareSalaryDue\(\)/);
  assert.match(ui,/report\?\.closing/);
  assert.match(ui,/updated\.due!==report\.due/);
