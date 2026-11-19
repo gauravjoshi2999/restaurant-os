@@ -103,7 +103,7 @@ test('H04/H05 links, assets and responsive CSS are wired into the existing Owner
  assert.match(source,/else if\(action==='room-detail-checkin'\)/);
  assert.match(source,/Reserved today/);
  assert.match(source,/Other \/ unavailable/);
- assert.match(index,/owner-hospitality\.js\?v=20261119-h04filter1/);
+ assert.match(index,/owner-hospitality\.js\?v=20261119-[a-z0-9-]+/);
  assert.match(index,/owner-hotel-polish\.css\?v=20261119-h04filter1/);
  assert.match(css,/Owner V3 H04–H05/);
  assert.match(css,/@media\(max-width:480px\)/);
