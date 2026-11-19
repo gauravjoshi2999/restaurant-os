@@ -101,7 +101,7 @@ with sync_playwright() as p:
             page.locator('[data-bite-page="more"]').click()
             assert page.locator("#biteOwnerMoreScreen").is_visible(), "More must open inside main content"
             assert page.locator(".side.sidebar-open").count()==0, "More must never slide in sidebar"
-            assert page.locator('#biteOwnerMoreScreen [data-owner-route]').count()==11, 'PDF H01 More has eleven unique canonical routes'
+            assert page.locator('#biteOwnerMoreScreen [data-owner-route]').count()==12, 'PDF H01 More includes eleven original routes plus the approved A06 Settlements route'
             assert page.locator('#overview').is_hidden(), "Underlying Home hidden while More open"
             assert page.locator('.bite-owner-back').is_visible(), "Back available on More"
             assert page.locator('[data-owner-route="expenses"]').is_visible()

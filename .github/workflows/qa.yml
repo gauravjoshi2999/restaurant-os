@@ -52,6 +52,7 @@ jobs:
           python scripts/owner_supplier_dues_browser.py
           python scripts/owner_v3_a05_khata_browser.py
           python scripts/owner_v3_historical_pos_browser.py
+          python scripts/owner_v3_a06_settlements_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
 
@@ -74,6 +75,7 @@ jobs:
             dist/launch-qa/hotel-accounts-browser-evidence.json
             dist/launch-qa/supplier-payments-*.png
             dist/launch-qa/khata-v3-*.png
+            dist/launch-qa/a06-settlements-*.png
             dist/launch-qa/checkin-25-scenarios-evidence.json
             dist/launch-qa/checkin-photo-review-evidence.json
             dist/launch-qa/guest-register-history-evidence.json

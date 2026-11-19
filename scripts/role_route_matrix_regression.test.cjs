@@ -10,10 +10,10 @@ function list(block,key){
   assert.ok(m,key+' list missing');
   return [...m[1].matchAll(/'([^']+)'/g)].map(x=>x[1]);
 }
-const owner=['overview','orders','pos','menu','tables','khata','cashbook','expenses','purchases','inventory','hr','reports','settings'];
+const owner=['overview','orders','pos','menu','tables','khata','cashbook','owner-settlements','expenses','purchases','inventory','hr','reports','settings'];
 const platform=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront','platform-commission','platform-reports'];
 
-test('Owner canonical navigation has precisely 13 non-admin destinations',()=>{
+test('Owner canonical navigation adds one A06 read-only route without admin destinations',()=>{
   assert.deepEqual(list(apply,'ownerPages'),owner);
   assert.deepEqual(list(show,'ownerPages'),owner);
   assert.ok(owner.every(p=>!['restaurants','reconciliation','financials','audit','support','moderation','customers','storefront'].includes(p)));
@@ -31,5 +31,8 @@ test('direct Partner and Admin app shells require correct roles',()=>{
 test('navigation and admin controls are hidden based on role rather than text labels',()=>{
   assert.match(apply,/b\.hidden=!ok/);
   assert.match(apply,/e\.style\.display=role==='super_admin'/);
-  assert.match(apply,/role==='owner'\?ownerPages\.includes\(p\):false/);
+  assert.match(apply,/role==='owner'/);
+  assert.match(apply,/ownerPages\.includes\(p\)/);
+  assert.match(apply,/p!=='owner-settlements'/);
+  assert.match(apply,/capabilities\?\.includes\('online_food_orders'\)/);
 });

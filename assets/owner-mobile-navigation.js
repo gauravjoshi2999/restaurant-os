@@ -24,6 +24,7 @@
       ['expenses','Expenses','Kharcha and payment history','₹'],
       ['khata','Customer Khata','Udhaar and collections','↔'],
       ['cashbook','Cashbook','Cash / UPI receipts and movements','▣'],
+      ['owner-settlements','Settlements & Refunds','Online payments, refund & bank status','↻'],
       ['purchases','Suppliers','Purchases and supplier dues','▥']
     ]},
     {heading:'Business tools',items:[
