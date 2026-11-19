@@ -1,0 +1,31 @@
+/* Bite Owner V3 A10 — salary closing inside existing HR Payments tab */
+body[data-role="owner"] #hr .a10-salary-close{margin:16px 0 0;padding:15px;border:1px solid #e8decf;border-radius:15px;background:#fffdf9;min-width:0}
+body[data-role="owner"] #hr .a10-salary-close h3{margin:0 0 5px;font-size:18px;color:#2d3744}
+body[data-role="owner"] #hr .a10-sub{color:#667487;font-size:12px;line-height:1.5;margin:0 0 12px}
+body[data-role="owner"] #hr .a10-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+body[data-role="owner"] #hr .a10-fields label{display:grid;gap:5px;color:#39465a;font-size:12px;font-weight:700;min-width:0}
+body[data-role="owner"] #hr .a10-fields input,body[data-role="owner"] #hr .a10-fields select,body[data-role="owner"] #hr .a10-fields textarea{box-sizing:border-box;min-height:44px;width:100%;padding:10px;border:1px solid #d9dfeb;border-radius:9px;background:#fff;color:#222;font:inherit;max-width:100%}
+body[data-role="owner"] #hr .a10-fields .a10-note{grid-column:1/-1}
+body[data-role="owner"] #hr .a10-fields textarea{min-height:65px;resize:vertical}
+body[data-role="owner"] #hr .a10-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:13px 0}
+body[data-role="owner"] #hr .a10-metric{display:grid;gap:5px;border-radius:10px;border:1px solid #ebe0d3;background:#fff;padding:10px;min-width:0}
+body[data-role="owner"] #hr .a10-metric small{font-size:11px;color:#657388}
+body[data-role="owner"] #hr .a10-metric strong{font-size:18px;color:#202c38;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .a10-help,body[data-role="owner"] #hr .a10-ready{font-size:12px;color:#5e6976;line-height:1.55}
+body[data-role="owner"] #hr .a10-warning{font-size:12px;color:#9f3a20;background:#fff1ed;border:1px solid #f3c7b7;padding:10px;border-radius:9px}
+body[data-role="owner"] #hr .a10-closed{padding:11px;border:1px solid #d4e5d5;background:#f8fbf7;border-radius:10px;font-size:12px;line-height:1.5}
+body[data-role="owner"] #hr .a10-closed p{margin:6px 0}
+body[data-role="owner"] #hr .a10-review{padding:12px;border:1px solid #b4c9e5;background:#f6f9fe;border-radius:10px;font-size:12px;line-height:1.6;margin:12px 0}
+body[data-role="owner"] #hr .a10-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;align-items:center}
+body[data-role="owner"] #hr .a10-actions button{border:0;border-radius:10px;min-height:44px;padding:10px 16px;font-weight:750;background:#ee6826;color:#fff;cursor:pointer}
+body[data-role="owner"] #hr .a10-actions button.secondary{background:#f5eee9;color:#9b4e26;border:1px solid #e4b68e}
+body[data-role="owner"] #hr .a10-actions button:disabled{opacity:.45;cursor:not-allowed}
+body[data-role="owner"] #hr .a10-approval{font-size:12px;color:#344252;display:flex;gap:8px;align-items:flex-start;margin-top:8px;line-height:1.5}
+body[data-role="owner"] #hr .a10-approval input{width:17px;height:17px;flex:none;accent-color:#ea6b25}
+body[data-role="owner"] #hr .a10-message{font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .a10-fields :is(input,select,textarea):focus-visible,body[data-role="owner"] #hr .a10-actions button:focus-visible{outline:3px solid #faad69;outline-offset:2px}
+@media(max-width:430px){
+body[data-role="owner"] #hr .a10-salary-close{padding:11px}
+body[data-role="owner"] #hr .a10-fields{grid-template-columns:minmax(0,1fr)}
+body[data-role="owner"] #hr .a10-metrics strong{font-size:15px}
+body[data-role="owner"] #hr .a10-actions button{width:100%}}
