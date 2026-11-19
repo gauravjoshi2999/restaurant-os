@@ -42,9 +42,6 @@ body[data-role="owner"] #hr.v3-a08-ready .a08-day-item strong{font-size:13px;ove
 body[data-role="owner"] #hr.v3-a08-ready .a08-day-item small{font-size:11px;color:#766e7e}
 body[data-role="owner"] #hr.v3-a08-ready .a08-day-status{font-size:11px;font-weight:800;color:#a16d29}
 body[data-role="owner"] #hr.v3-a08-ready .a08-day-status.a08-marked{color:#247b54}
-body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .form-row,
-body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .field,
-body[data-role="owner"] #hr.v3-a08-ready #hrEmployeePanel:not(.v3-a08-editing)> .actions{display:none!important}
 body[data-role="owner"] #hr.v3-a08-ready [data-a08-history]{display:none!important}
 body[data-role="owner"] #hr.v3-a08-ready[data-v3-hr-task="attendance"] [data-a08-history="attendance"],
 body[data-role="owner"] #hr.v3-a08-ready[data-v3-hr-task="leave"] [data-a08-history="leave"],
