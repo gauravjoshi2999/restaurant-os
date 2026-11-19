@@ -14,6 +14,7 @@
       if(current)found=true;
     }
     if(!found)return false;
+    page.dataset.v3HrTask=name;
     for(const panel of page.querySelectorAll('.bite-hr-editor-grid [data-hr-panel]')){
       if(panel.dataset.hrPanel===name)panel.dataset.hrSelected='true';
       else delete panel.dataset.hrSelected;
