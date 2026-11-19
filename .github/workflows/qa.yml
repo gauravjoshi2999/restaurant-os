@@ -54,6 +54,7 @@ jobs:
           python scripts/owner_v3_historical_pos_browser.py
           python scripts/owner_v3_a06_settlements_browser.py
           python scripts/owner_v3_a07_inventory_browser.py
+          python scripts/owner_v3_a08_attendance_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
 
