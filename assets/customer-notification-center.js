@@ -38,18 +38,23 @@
   if(!doc)return null;
   const section=doc.getElementById('biteAccountNotifications');
   if(!section||typeof sb==='undefined')return null;
+  const bell=doc.getElementById('biteNotificationBell');
+  const badge=doc.getElementById('biteNotificationBadge');
   const wrap=doc.getElementById('biteNotificationFeed');
   const count=doc.getElementById('biteNotificationCount');
   const mark=doc.getElementById('biteNotificationMarkRead');
   const list=doc.getElementById('biteNotificationEntries');
   const all=doc.getElementById('biteNotificationAll');
   const unread=doc.getElementById('biteNotificationUnread');
-  if(!wrap||!count||!mark||!list||!all||!unread)return null;
+  if(!wrap||!count||!mark||!list||!all||!unread||!bell||!badge)return null;
   let filter='all';
   const store=createStore(render);
   function render(){
    const state=store.snapshot();
    count.textContent=state.unread+' unread';
+   badge.textContent=String(state.unread);
+   badge.hidden=!state.userId||state.unread===0;
+   bell.setAttribute('aria-label',state.userId&&state.unread?'Notifications, '+state.unread+' unread':'Notifications');
    mark.disabled=state.unread===0;
    all.setAttribute('aria-pressed',String(filter==='all'));
    unread.setAttribute('aria-pressed',String(filter==='unread'));
