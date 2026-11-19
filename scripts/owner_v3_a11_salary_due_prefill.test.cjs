@@ -24,7 +24,9 @@ test('A11: prefill cannot send or record money and requires explicit method and 
  assert.match(fn,/hrPaymentMethod/);
  assert.match(fn,/mode\.value=''/);
  assert.match(fn,/No payment or Cashbook entry will be created/);
- assert.match(html,/if\(!paymentMethod\)/);
+ const safeSave=fs.readFileSync('assets/owner-v3-staff-payment-safe-save.js','utf8');
+ assert.match(safeSave,/methods\.includes\(data\.payment_method\)/);
+ assert.match(html,/BiteOwnerSafeStaffPayment\.save/);
  assert.doesNotMatch(fn,/\.insert\s*\(|\.update\s*\(|\.upsert\s*\(|\.rpc\s*\(/);
  assert.match(html,/onclick="saveHREmployeePayment\(\)"/);
  assert.match(payroll,/currently recorded amount due|Currently recorded amount due/);
