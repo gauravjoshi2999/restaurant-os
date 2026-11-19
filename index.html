@@ -909,7 +909,7 @@ body.bite-session-check #biteSessionSplash{
 </div>
 <div class="section"><div class="section-head"><h2>Order financial snapshots</h2><span class="small" id="finSnapshotCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Order / Restaurant</th><th>Channel</th><th>Food value</th><th>Commission</th><th>Actual gateway fee</th><th>Payment</th><th>Settlement</th></tr></thead><tbody id="financialRows"></tbody></table><div class="empty" id="financialEmpty">Abhi koi financial snapshot nahi mila. Automatic snapshot SQL test ke baad naye order yahan dikhne chahiye.</div></div></div><div class="section"><div class="section-head"><h2>Weekly settlement drafts</h2><span class="small" id="settlementCount">0 records</span></div><div class="card table-wrap"><table><thead><tr><th>Restaurant</th><th>Week</th><th>Gross</th><th>Commission</th><th>Gateway fee</th><th>Refund</th><th>Net payable</th><th>Status</th></tr></thead><tbody id="settlementRows"></tbody></table><div class="empty" id="settlementEmpty">Abhi koi settlement draft nahi bana hai.</div></div></div></section>
 <section class="page" id="audit"><div class="welcome"><div><h1>Platform Audit Log</h1><div class="muted">Sensitive Platform Admin actions aur mapping changes ka history.</div></div><button class="btn secondary" type="button" onclick="loadAuditLogWorkspace()">Refresh</button></div><div id="auditLogStatus" class="small" role="status">Audit history load ho rahi hai…</div><div class="card table-wrap"><table><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead><tbody id="auditLogRows"></tbody></table><div class="empty" id="auditLogEmpty">Abhi audit events nahi hain.</div></div></section>
-<section class="page" id="support"><div class="welcome"><div><h1>Customer Support</h1><div class="muted">Customer ke support requests, replies aur status manage karein.</div></div><button class="btn secondary" type="button" onclick="loadSupportWorkspace()">Refresh</button></div><div id="supportAdminStatus" class="small" role="status">Support requests load ho rahi hain…</div><div class="card table-wrap"><table><thead><tr><th>Customer</th><th>Category / Subject</th><th>Message</th><th>Order</th><th>Status</th><th>BITE response</th><th>Action</th></tr></thead><tbody id="supportAdminRows"></tbody></table><div class="empty" id="supportAdminEmpty">Abhi koi support request nahi hai.</div></div></section>
+<section class="page" id="support"><div class="welcome"><div><h1>Customer Support</h1><div class="muted">Customer ke support requests, replies aur status manage karein.</div></div><button class="btn secondary" type="button" onclick="loadSupportWorkspace()">Refresh</button></div><form id="supportAdminFilters" class="sa-filters" aria-label="Filter customer support tickets"><label>Status<select name="status"><option value="all">All statuses</option><option value="Open">Open</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option><option value="Closed">Closed</option></select></label><label>Search subject<input type="search" name="subject" maxlength="120" placeholder="Type subject"></label><button class="btn secondary" type="submit">Apply filters</button><button class="btn secondary" type="button" id="supportAdminClearFilters">Clear filters</button></form><div id="supportAdminStatus" class="small" role="status">Support requests load ho rahi hain…</div><div class="card table-wrap"><table><thead><tr><th>Customer</th><th>Category / Subject</th><th>Message</th><th>Order</th><th>Status</th><th>BITE response</th><th>History</th><th>Action</th></tr></thead><tbody id="supportAdminRows"></tbody></table><div class="empty" id="supportAdminEmpty">Abhi koi support request nahi hai.</div></div></section>
 <section class="page" id="moderation"><div class="welcome"><div><h1>Review Reports</h1><div class="muted">Customer-reported reviews ko verify karein; abusive/fake review hide karein.</div></div><button class="btn secondary" type="button" onclick="loadReviewReportsWorkspace()">Refresh</button></div><div id="reviewReportAdminStatus" class="small" role="status">Review reports load ho rahi hain…</div><div class="card table-wrap"><table><thead><tr><th>Restaurant / Review</th><th>Rating</th><th>Report reason</th><th>Customer detail</th><th>Status</th><th>Action</th></tr></thead><tbody id="reviewReportAdminRows"></tbody></table><div class="empty" id="reviewReportAdminEmpty">Abhi koi review report nahi hai.</div></div></section>
 <section class="page" id="expenses">
  <div class="welcome"><div><h1>Expense ledger</h1><div class="muted">Restaurant ke roz ke kharche record karein aur date-wise hisaab dekhein.</div></div><button class="btn secondary" type="button" onclick="loadExpenses()">Refresh</button></div>
@@ -1483,7 +1483,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-guest-register.js?v=20261119-h07-unsaved1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
-<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-reconcile1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261119-reconcile1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-reconcile1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261119-reconcile1"></script><script src="assets/owner-family-checkin.js?v=20261119-h08-guest-count1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -3140,39 +3140,68 @@ async function reviewReviewReport(reportId,decision){
   await loadReviewReportsWorkspace();
  }catch(error){status.textContent='Moderation nahi ho paayi: '+(error.message||String(error));}
 }
+let supportAdminLoadSequence=0;
 async function loadSupportWorkspace(){
  const body=document.getElementById('supportAdminRows'),status=document.getElementById('supportAdminStatus'),empty=document.getElementById('supportAdminEmpty');
  if(!body||access.role!=='super_admin')return;
+ const request=++supportAdminLoadSequence,controls=document.getElementById('supportAdminFilters')?.elements;
+ const selectedStatus=controls?.status?.value||'all',subject=String(controls?.subject?.value||'').trim().slice(0,120);
  status.textContent='Support requests load ho rahi hain…';body.innerHTML='';
  try{
-  const {data,error}=await sb.from('customer_support_tickets').select('id,customer_id,order_id,category,subject,message,status,admin_response,created_at').order('created_at',{ascending:false}).limit(200);
+  let query=sb.from('customer_support_tickets').select('id,customer_id,order_id,category,subject,message,status,admin_response,created_at,updated_at',{count:'exact'}).order('created_at',{ascending:false});
+  if(selectedStatus!=='all')query=query.eq('status',selectedStatus);
+  if(subject)query=query.ilike('subject','%'+subject.replace(/[%_\\]/g,'\\$&')+'%');
+  const {data,error,count}=await query.limit(200);
+  if(request!==supportAdminLoadSequence||access.role!=='super_admin')return;
   if(error)throw error;
   const rows=data||[],ids=[...new Set(rows.map(r=>r.customer_id).filter(Boolean))];
   let profileMap={};
-  if(ids.length){const p=await sb.from('profiles').select('id,full_name').in('id',ids);if(!p.error)profileMap=Object.fromEntries((p.data||[]).map(x=>[x.id,x.full_name]));}
+  if(ids.length){const p=await sb.from('profiles').select('id,full_name').in('id',ids);if(request!==supportAdminLoadSequence||access.role!=='super_admin')return;if(!p.error)profileMap=Object.fromEntries((p.data||[]).map(x=>[x.id,x.full_name]));}
+  const ticketIds=rows.map(r=>r.id).filter(Boolean),auditMap={},historyCap=1000;
+  let auditUnavailable=false;
+  if(ticketIds.length){
+   const events=await sb.from('platform_audit_logs').select('entity_id,action,details,created_at').eq('entity_type','customer_support_ticket').in('entity_id',ticketIds).order('created_at',{ascending:false}).limit(historyCap);
+   if(request!==supportAdminLoadSequence||access.role!=='super_admin')return;
+   if(events.error)auditUnavailable=true;
+   else for(const event of events.data||[])(auditMap[event.entity_id]??=[]).push(event);
+  }
   body.innerHTML=rows.map(r=>{
    const customer=profileMap[r.customer_id]||String(r.customer_id||'').slice(0,8);
    const statuses=['Open','In Progress','Resolved','Closed'].map(s=>'<option value="'+s+'" '+(r.status===s?'selected':'')+'>'+s+'</option>').join('');
-   return '<tr data-support-row="'+esc(r.id)+'"><td>'+esc(customer)+'</td><td><strong>'+esc(r.category)+'</strong><br>'+esc(r.subject)+'<br><small>'+esc(new Date(r.created_at).toLocaleString('en-IN'))+'</small></td><td style="min-width:220px;white-space:normal">'+esc(r.message)+'</td><td>'+esc(String(r.order_id||'General').slice(0,8))+'</td><td><select data-support-status>'+statuses+'</select></td><td style="min-width:220px"><textarea data-support-response rows="3" maxlength="2000" placeholder="Customer ko response…">'+esc(r.admin_response||'')+'</textarea></td><td><button class="btn secondary" type="button" data-support-save="'+esc(r.id)+'">Save</button></td></tr>';
+   const events=auditMap[r.id]||[];
+   const history=events.map(event=>{
+    const details=event.details||{},created=event.action==='customer_support_ticket_created';
+    const title=created?'Ticket opened':'Status / reply updated';
+    const movement=created?'Initial status: '+String(details.status||'Open'):(details.old_status||'Unknown')+' → '+(details.new_status||'Unknown')+(details.response_changed?' · Reply edited':'');
+    return '<li><strong>'+esc(title)+'</strong><small>'+esc(movement)+' · '+esc(new Date(event.created_at).toLocaleString('en-IN'))+'</small></li>';
+   }).join('');
+   const historyCell='<td><details class="sa-support-history"><summary>History ('+events.length+')</summary>'+(auditUnavailable?'<p>History unavailable — refresh.</p>':events.length?'<ol>'+history+'</ol>':'<p>No recent audit events.</p>')+'</details></td>';
+   return '<tr data-support-row="'+esc(r.id)+'" data-support-updated-at="'+esc(r.updated_at||'')+'"><td>'+esc(customer)+'</td><td><strong>'+esc(r.category)+'</strong><br>'+esc(r.subject)+'<br><small>'+esc(new Date(r.created_at).toLocaleString('en-IN'))+'</small></td><td style="min-width:220px;white-space:normal">'+esc(r.message)+'</td><td>'+esc(String(r.order_id||'General').slice(0,8))+'</td><td><select data-support-status>'+statuses+'</select></td><td style="min-width:220px"><textarea data-support-response rows="3" maxlength="2000" placeholder="Customer ko response…">'+esc(r.admin_response||'')+'</textarea></td>'+historyCell+'<td><button class="btn secondary" type="button" data-support-save="'+esc(r.id)+'">Save</button></td></tr>';
   }).join('');
   if(empty)empty.style.display=rows.length?'none':'block';
-  status.textContent=rows.length+' support requests loaded (latest 200).';
+  status.textContent='Showing '+rows.length+' of '+(count??rows.length)+' matching support requests (latest 200 per filter).'+(auditUnavailable?' Audit history could not be loaded; ticket replies remain available.':'');
   body.onclick=async event=>{const button=event.target.closest('[data-support-save]');if(!button)return;await saveSupportTicket(button.dataset.supportSave,button);};
- }catch(error){status.textContent='Support requests load nahi hui: '+(error.message||String(error));console.error(error);}
+ }catch(error){if(request===supportAdminLoadSequence&&access.role==='super_admin'){status.textContent='Support requests load nahi hui: '+(error.message||String(error));console.error(error);}}
 }
 async function saveSupportTicket(ticketId,button){
+ if(access.role!=='super_admin')return;
  const row=button.closest('[data-support-row]');if(!row)return;
- const status=row.querySelector('[data-support-status]').value,response=row.querySelector('[data-support-response]').value.trim();
- if(['Resolved','Closed'].includes(status)&&response.length<3){document.getElementById('supportAdminStatus').textContent='Resolved/Closed karne se pehle customer ke liye response likhein.';return;}
+ const status=row.querySelector('[data-support-status]').value,response=row.querySelector('[data-support-response]').value.trim(),updatedAt=row.dataset.supportUpdatedAt;
+ const message=document.getElementById('supportAdminStatus');
+ if(['Resolved','Closed'].includes(status)&&response.length<3){message.textContent='Resolved/Closed karne se pehle customer ke liye response likhein.';return;}
+ if(!updatedAt){message.textContent='Ticket revision missing. Refresh before saving.';return;}
  button.disabled=true;button.textContent='Saving…';
  try{
-  const {error}=await sb.from('customer_support_tickets').update({status,admin_response:response||null}).eq('id',ticketId).select('id').single();
+  const {data,error}=await sb.from('customer_support_tickets').update({status,admin_response:response||null}).eq('id',ticketId).eq('updated_at',updatedAt).select('id').maybeSingle();
   if(error)throw error;
-  document.getElementById('supportAdminStatus').textContent='Support ticket updated and audit logged.';
+  if(!data)throw Error('Ticket was changed by another operator. Refresh before saving.');
+  message.textContent='Support ticket updated and audit logged.';
   await loadSupportWorkspace();
- }catch(error){document.getElementById('supportAdminStatus').textContent='Ticket update nahi hui: '+(error.message||String(error));}
+ }catch(error){message.textContent='Ticket update nahi hui: '+(error.message||String(error));}
  finally{button.disabled=false;button.textContent='Save';}
 }
+document.getElementById('supportAdminFilters')?.addEventListener('submit',event=>{event.preventDefault();void loadSupportWorkspace();});
+document.getElementById('supportAdminClearFilters')?.addEventListener('click',()=>{document.getElementById('supportAdminFilters')?.reset();void loadSupportWorkspace();});
 async function loadAuditLogWorkspace(){
  const body=document.getElementById('auditLogRows'),status=document.getElementById('auditLogStatus'),empty=document.getElementById('auditLogEmpty');
  if(!body||access.role!=='super_admin')return;

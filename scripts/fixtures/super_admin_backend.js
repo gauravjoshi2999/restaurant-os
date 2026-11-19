@@ -3,7 +3,7 @@
  const original=window.supabase.createClient;
  const uid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',rid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',oid='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
  const uuid=n=>'11111111-1111-4111-8111-'+String(n).padStart(12,'0');
- const data={restaurants:[],orders:[],order_financials:[],order_items:[],order_status_history:[],restaurant_settlements:[],bite_refund_jobs:[],menu_items:[],restaurant_delivery_zones:[],platform_settings:[{id:1,default_commission_rate:10}],platform_audit_logs:[],customer_support_tickets:[{id:uuid(999),customer_id:uid,category:'Payment',subject:'Synthetic support question',message:'Please check the payment reference.',status:'Open',created_at:new Date().toISOString()}]};
+ const data={restaurants:[],orders:[],order_financials:[],order_items:[],order_status_history:[],restaurant_settlements:[],bite_refund_jobs:[],menu_items:[],restaurant_delivery_zones:[],platform_settings:[{id:1,default_commission_rate:10}],platform_audit_logs:[],customer_support_tickets:[{id:uuid(999),customer_id:uid,category:'Payment',subject:'Synthetic support question',message:'Please check the payment reference.',status:'Open',updated_at:new Date().toISOString(),created_at:new Date().toISOString()}]};
  for(let i=0;i<29;i++)data.restaurants.push({id:i===0?rid:uuid(i),name:i===0?'QA Rajsamand Kitchen':'Synthetic Restaurant '+String(i).padStart(2,'0'),city:'Rajsamand',address:'QA market road',phone:'9999999999',status:i===0?'Pending':'Active',onboarding_status:i===0?'pending':'approved',is_published:i!==0&&i!==2,created_at:new Date(Date.now()-i*60000).toISOString(),updated_at:'2026-11-17T10:00:00.000Z',accepts_delivery:true,accepts_pickup:true,platform_commission_rate:null});
  for(let i=0;i<32;i++){
   const o={id:i===0?oid:uuid(100+i),restaurant_id:rid,order_code:'QA-LIVE-'+String(i).padStart(2,'0'),channel:'Own Platform',is_demo:false,status:i===0?'Received':'Completed',order_date:new Date(Date.now()-i*60000-3600000).toISOString(),customer_name:'Synthetic Customer',customer_phone:'9999999999',amount:170,delivery_type:'pickup'};data.orders.push(o);
@@ -17,6 +17,7 @@
  data.restaurant_settlements=[{id:uuid(700),restaurant_id:rid,period_start:'2026-11-02',period_end:'2026-11-08',gross_order_value:1000,commission_total:100,provider_fees_actual:20,refunds_actual:0,net_payable:880,amount_paid:0,status:'draft'}];
  data.bite_refund_jobs.push({...data.bite_refund_jobs[0],id:uuid(601),status:'refunded',created_at:'2026-01-01T10:00:00Z'});
  data.restaurant_settlements.push({...data.restaurant_settlements[0],id:uuid(701),status:'paid',period_start:'2026-10-01',period_end:'2026-10-07'});
+ data.platform_audit_logs.push({id:uuid(998),actor_id:uid,entity_type:'customer_support_ticket',entity_id:uuid(999),action:'customer_support_ticket_created',details:{status:'Open'},created_at:new Date().toISOString()});
  const calls=[];const qa=window.__BITE_SUPER_ADMIN_QA={data,calls,failNext:false,providerFailure:false};
  function value(row,key){return key.split('.').reduce((v,k)=>v?.[k],row);}
  function query(table){let filters=[],single=false,start=0,end=Infinity,payload=null,mode='read',withOrder=false,sort=[];const q={
