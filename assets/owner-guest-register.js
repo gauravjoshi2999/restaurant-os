@@ -83,7 +83,20 @@
   try{const file=await root.BiteGuestDocuments.readCopy(r.guest_id,id);if(key!==scope()||version!==epoch||dialog!==box)return;copies.set(id,file);const url=root.URL.createObjectURL(file);urls.add(url);if(tile)tile.querySelector('[data-gr-picture]').innerHTML=file.type==='application/pdf'?'<span class="gr-photo-placeholder">PDF copy · View photo</span>':'<img src="'+url+'" alt="Private '+esc(side)+' ID photo">';if(enlarge)root.BiteCheckinFlow.viewPhoto(file,person.name+' · '+side,trigger||tile?.querySelector('button'))}catch(e){if(key===scope()&&version===epoch&&dialog===box&&tile)tile.querySelector('[data-gr-picture]').textContent=e.message||'Could not open the photo. Retry View photo.'}finally{loading.delete(request);active--;if(dialog===box&&tile?.isConnected)tile.querySelector('button').disabled=false;}
  }
  function printSheet(rows){const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the register.');win.opener=null;const data=[['S.No.','Entry date','Guest','Mobile','Permanent address','Arrival / time','Checkout','Room','M / F / C','Arriving from','Next destination','Transport / vehicle','Rent / night','Status'],...rows.map(r=>[r.serial,r.entry_date,r.name,r.phone,r.address,r.arrival+' '+r.arrival_time,r.checkout_at?stamp(r.checkout_at):'Expected '+day(r.departure),r.room,[r.male,r.female,r.children].map(v=>v==null?'—':v).join('/'),r.arrived_from,r.next_destination,[r.transport,r.vehicle_number].filter(Boolean).join(' / '),money(r.nightly_rate),status(r.status)])];win.document.write('<!doctype html><html><head><meta name="viewport" content="width=device-width"><title>Guest register</title><style>body{font:10px system-ui;margin:20px;color:#2e2428}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;text-align:left;vertical-align:top}th{background:#f6ede5}nav{display:flex;gap:12px;margin-bottom:18px}a,button{padding:10px}@media print{nav{display:none}thead{display:table-header-group}tr{break-inside:avoid}}@page{size:A3 landscape;margin:12mm}</style></head><body><nav><a href="'+esc(new URL('./index.html',root.location.href).href)+'" onclick="window.close();return true">Back to Partner</a><button onclick="window.print()">Print / Save PDF</button></nav><h1>'+esc(H().prop().name)+'</h1><h2>Guest register · '+esc(period&&root.BiteV3Period?.label(period)||'All dates')+'</h2><p>'+rows.length+' entries · ID photos are available privately in Partner.</p><table><thead><tr>'+data[0].map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+data.slice(1).map(row=>'<tr>'+row.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></body></html>');win.document.close()}
- function closeCheckin(){const f=document.getElementById('bhCheckinForm');if(!f)return;const dirty=f.elements.full_name.value.trim()||f.elements.phone.value.trim()||f.elements.nightly_rate?.value||[...f.querySelectorAll('input[type=file]')].some(input=>input.files.length);
+ function hasUnsavedCheckinChanges(form){
+  if(!form)return false;
+  return [...form.elements].some(input=>{
+   if(!input.name||input.disabled||['hidden','button','submit','reset'].includes(input.type))return false;
+   if(input.type==='file')return !!input.files?.length;
+   if(input.type==='checkbox'||input.type==='radio')return input.checked!==input.defaultChecked;
+   if(input.tagName==='SELECT'){
+    const selected=[...input.options].findIndex(option=>option.defaultSelected);
+    return input.selectedIndex!==(selected<0?0:selected);
+   }
+   return String(input.value??'')!==String(input.defaultValue??'');
+  });
+ }
+ function closeCheckin(){const f=document.getElementById('bhCheckinForm');if(!f)return;const dirty=hasUnsavedCheckinChanges(f)||!!H().registrationPending();
   if(!dirty){void H().navigate('rooms');return}close();dialog=document.createElement('dialog');dialog.className='gr-record-dialog gr-close-checkin';dialog.setAttribute('aria-label','Close check-in');dialog.innerHTML='<h2>Close this check-in?</h2><p>Keep the typed details as a draft, or discard this unfinished form. Photos not yet saved must be selected again when resuming.</p><p class="gr-record-message" role="status"></p><div class="bh-actions">'+button('keep-editing','Keep editing')+button('draft-close','Keep draft & close')+(!H().registrationPending()?button('discard-close','Discard & close'):'')+'</div>';document.body.append(dialog);dialog.addEventListener('cancel',e=>{e.preventDefault();close()});dialog.showModal();
  }
  async function click(e){const b=e.target.closest('[data-gr-action]');if(!b)return;e.preventDefault();const action=b.dataset.grAction,id=b.dataset.id;
@@ -105,5 +118,5 @@
    if(action==='print')printSheet(filtered(records(H().getWorkspace())));
   }catch(error){if(dialog)dialog.querySelector('.gr-record-message')?.replaceChildren(document.createTextNode(error.message||String(error)));else root.alert(error.message||String(error))}
  }
- const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -27,3 +27,16 @@ test('H06 original entry date supports Day, Month and Range without changing sav
  assert.deepEqual(select({mode:'day',from:'2026-09-10',to:'2026-09-10'}),[]);
  assert.equal(rows.length,4,'Only the read-only filtered presentation changes');
 });
+
+test('H07 close guard protects changed fields beyond guest name, including date, room and ID files',()=>{
+ const input=(name,value,initial='',type='text')=>({name,value,defaultValue:initial,type,disabled:false});
+ const unchanged=[input('full_name',''),input('arrival','2026-11-19','2026-11-19','date'),input('male','1','1','number')];
+ assert.equal(R.hasUnsavedCheckinChanges({elements:unchanged}),false);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,input('female','2','0','number')]}),true);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,input('departure','2026-11-22','2026-11-20','date')]}),true);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,{name:'room_id',type:'select-one',tagName:'SELECT',selectedIndex:1,options:[{defaultSelected:false},{defaultSelected:false}]}]}),true);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,{name:'id_front',type:'file',files:[{name:'private.jpg'}]}]}),true);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,{name:'id_checked',type:'checkbox',checked:true,defaultChecked:false}]}),true);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,input('id_front_id','sensitive-hidden','','hidden')]}),false);
+ assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,{name:'guest_id',type:'select-one',tagName:'SELECT',selectedIndex:0,options:[{defaultSelected:false},{defaultSelected:false}]}]}),false);
+});
