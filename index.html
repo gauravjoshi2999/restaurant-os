@@ -2192,8 +2192,16 @@ async function loadKhataWorkspace(){
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
  if(!eligible.length){
-  khataCustomers=[];khataBalances=[];khataEntries=[];selectedKhataCustomerId=null;
+  khataLoadVersion++;khataLoadedScope='';
+  khataCustomers=[];khataBalances=[];khataEntries=[];selectedKhataCustomerId=null;khataHistoryComplete=false;
   document.getElementById('khataStatus').textContent='No restaurant access';
+  document.getElementById('khataTotalDue').textContent='—';
+  document.getElementById('khataTotalAdvance').textContent='—';
+  document.getElementById('khataCustomerRows').replaceChildren();
+  document.getElementById('khataV3Cards').replaceChildren();
+  document.getElementById('khataLedgerRows').replaceChildren();
+  document.getElementById('khataV3Statement').textContent='No restaurant account available.';
+  window.BiteV3Khata?.reset?.();
   return;
  }
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
@@ -2255,7 +2263,10 @@ async function loadKhataData(){
  }
 }
 function renderKhata(){
- const completeBalances=khataBalances.every(b=>b.balance!==null&&Number.isFinite(Number(b.balance)));
+ const completeBalances=khataCustomers.every(c=>{
+  const b=khataBalances.find(x=>x.customer_id===c.id);
+  return b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
+ });
  const due=khataBalances.filter(b=>Number(b.balance)>0).reduce((n,b)=>n+Number(b.balance),0);
  const advance=khataBalances.filter(b=>Number(b.balance)<0).reduce((n,b)=>n+Math.abs(Number(b.balance)),0);
  document.getElementById('khataCustomerCount').textContent=String(khataCustomers.length);
@@ -2275,11 +2286,12 @@ function renderKhata(){
   '<option value="'+esc(c.id)+'">'+esc(c.full_name)+(c.phone?' · '+esc(c.phone):'')+'</option>').join('');
  if(active.some(c=>c.id===old))document.getElementById('khataEntryCustomer').value=old;
  document.getElementById('khataCustomerRows').innerHTML=filtered.map(c=>{
-  const b=khataBalances.find(x=>x.customer_id===c.id),balance=Number(b?.balance||0);
-  const label=balance>0?'Udhar':balance<0?'Advance':'Clear';
+  const b=khataBalances.find(x=>x.customer_id===c.id),verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
+  const balance=verified?Number(b.balance):0;
+  const label=!verified?'Unverified':balance>0?'Udhar':balance<0?'Advance':'Clear';
   return '<tr data-khata-customer-id="'+esc(c.id)+'"'+(selectedKhataCustomerId===c.id?' class="is-selected"':'')+'>'+
    '<td><strong>'+esc(c.full_name)+'</strong></td><td>'+esc(c.phone||'—')+'</td>'+
-   '<td>'+esc(c.status)+'</td><td><strong>'+money(Math.abs(balance))+' '+label+'</strong></td>'+
+   '<td>'+esc(c.status)+'</td><td><strong>'+(verified?money(Math.abs(balance))+' ':'')+label+'</strong></td>'+
    '<td><button class="btn secondary" onclick="selectKhataCustomer(\''+esc(c.id)+'\')">Open</button></td></tr>';
  }).join('');
  document.getElementById('khataCustomerEmpty').style.display=filtered.length?'none':'block';
@@ -2436,6 +2448,10 @@ async function saveKhataEntry(){
  if(!window.BiteV3Period?.validDay(date)||date>today||amountRaw===''||!Number.isFinite(amount)||
   amount<=0||Math.abs(amount*100-Math.round(amount*100))>1e-6||!['debit','credit'].includes(type)){
   message.textContent='Choose a valid date no later than today and a positive amount with two decimals.';return;
+ }
+ const actualBalance=khataBalances.find(b=>b.customer_id===customer)?.balance;
+ if(type==='credit'&&(actualBalance===null||actualBalance===undefined||!Number.isFinite(Number(actualBalance)))){
+  message.textContent='Current customer balance is unverified. Refresh Khata before recording a receipt.';return;
  }
  if(type==='credit'&&!document.getElementById('khataReceiptConfirm').checked){
   message.textContent='Confirm that money was actually received. Never duplicate an existing POS payment.';return;
