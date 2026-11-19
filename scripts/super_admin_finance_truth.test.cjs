@@ -25,7 +25,10 @@ test('exported Super Admin CSV keeps source values and labels evidence limits ex
    verified_collections:174,
    provider_confirmed_refunds:3,
    commission_booked:12.5,
-   payment_error:'=HYPERLINK("test")'
+   payment_error:'=HYPERLINK("test")',
+   tab_prefixed:'\t=1+1',
+   space_prefixed:'  +SUM(2,3)',
+   newline_prefixed:'\n@cmd'
   }},
   Blob,
   document:{createElement(tag){assert.equal(tag,'a');return{click(){clicked=true;}};}},
@@ -43,6 +46,9 @@ test('exported Super Admin CSV keeps source values and labels evidence limits ex
  assert.match(csv,/"3"/);
  assert.match(csv,/"commission_booked","12.5"/);
  assert.match(csv,/"'=HYPERLINK/,'spreadsheet formula values must stay escaped');
+ assert.ok(csv.includes('"tab_prefixed","\'\t=1+1"'),'tab-prefixed formula must have a leading apostrophe');
+ assert.ok(csv.includes('"space_prefixed","\'  +SUM(2,3)"'),'space-prefixed formula must have a leading apostrophe');
+ assert.ok(csv.includes('"newline_prefixed","\'\n@cmd"'),'newline-prefixed formula must have a leading apostrophe');
 });
 
 test('Super Admin remains scoped to authenticated Super Admin and retains read-only provider inspection',()=>{
