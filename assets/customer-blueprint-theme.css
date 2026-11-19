@@ -167,3 +167,29 @@ body[data-bite-app="customer"] #cartFloating #floatingCartTotal{color:#FFF}
 @media(prefers-reduced-motion:reduce){
  body[data-bite-app="customer"] .restaurant{transition:none!important}
 }
+
+
+/* Keep default discovery neutral. Detailed dietary/sort choices are available in the existing filter sheet. */
+body[data-bite-app="customer"] .discovery-tools .bite-filter-label,
+body[data-bite-app="customer"] .discovery-tools #sortFastBtn{display:none}
+body[data-bite-app="customer"] .bite-filter-trigger{
+ background:#FFF0E5;color:#A63C08;border-color:#EFC5A9;
+}
+body[data-bite-app="customer"] .bite-filter-trigger-count,
+body[data-bite-app="customer"] #biteFilterApply{
+ background:#B7420B;color:#FFF;border-color:#B7420B;
+}
+body[data-bite-app="customer"] .bite-filter-rail>button.is-selected{
+ background:#FFF0E5;border-left-color:#B7420B;color:#A63C08;
+}
+body[data-bite-app="customer"] .bite-filter-option:has(input:checked){
+ background:#FFF0E5;border-color:#E8B78F;color:#A63C08;
+ box-shadow:inset 0 0 0 1px #E8B78F;
+}
+body[data-bite-app="customer"] .bite-filter-option input,
+body[data-bite-app="customer"] .bite-filter-switch input{accent-color:#B7420B}
+body[data-bite-app="customer"] #biteFilterClear{color:#A63C08}
+body[data-bite-app="customer"] .bite-filter-sheet button:focus-visible,
+body[data-bite-app="customer"] .bite-filter-sheet input:focus-visible{
+ outline:3px solid #B7420B;outline-offset:2px;
+}
