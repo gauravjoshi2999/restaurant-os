@@ -730,7 +730,9 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/owner-v3-staff-payments.js?v=20261119-a09-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
 <script src="assets/owner-v3-salary-closing.js?v=20261119-a10-1" defer></script>
-<script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a11-1" defer></script>
+<script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a13-1" defer></script>
+<script src="assets/owner-v3-salary-status.js?v=20261119-a13-1" defer></script>
+<link rel="stylesheet" href="assets/owner-v3-salary-status.css?v=20261119-a13-1">
 <script src="assets/owner-v3-staff-payment-safe-save.js?v=20261119-a12-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-salary-closing.css?v=20261119-a10-1">
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
@@ -1158,6 +1160,12 @@ body.bite-session-check #biteSessionSplash{
    <button id="hrV3PaymentRefresh" type="button">View statement</button>
   </div>
   <div id="hrV3PaymentStatement" role="status" aria-live="polite">Choose a month to see saved staff payments.</div>
+ </section>
+ <section class="a13-board" id="hrV3SalaryStatusSection" aria-label="Owner monthly salary paid and pending status">
+  <div class="a13-head"><div><h2>Salary Status · Paid / Pending</h2><p>Approved salary month ka verified record, har staff ke liye.</p></div>
+   <div class="a13-select"><label>Salary month<input type="month" id="hrV3SalaryStatusMonth"></label>
+    <button type="button" id="hrV3SalaryStatusRefresh">View status</button></div></div>
+  <div id="hrV3SalaryStatusResult" role="status" aria-live="polite">Choose a month to see the salary status.</div>
  </section>
  <div class="section"><div class="section-head"><h2>Salary / payment history</h2><span class="small">Latest 100 records</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Month</th><th>Mode</th><th>Amount</th><th>Reference</th></tr></thead><tbody id="hrPaymentRows"></tbody></table><div class="empty" id="hrPaymentEmpty">No employee payments.</div></div>
@@ -2157,7 +2165,7 @@ document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
 let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
 let hrLoadVersion=0,hrDayVersion=0,hrDayReport=null,hrDayKey="";
-let hrPaymentStatementVersion=0;
+let hrPaymentStatementVersion=0,hrSalaryStatusVersion=0;
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2171,8 +2179,11 @@ async function loadHRWorkspace(){
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
  document.getElementById('hrPaymentDate').value=today;document.getElementById('hrPaymentMonth').value=today.slice(0,7);
  document.getElementById('hrV3PaymentMonth').value=today.slice(0,7);
+ document.getElementById('hrV3SalaryStatusMonth').value=window.BiteV3SalaryClosing?.lastMonth?.(today)||today.slice(0,7);
+ document.getElementById('hrV3SalaryStatusMonth').max=today.slice(0,7);
  document.getElementById('hrPaymentCard').style.display=access.role==='owner'?'block':'none';
  document.getElementById('hrV3PaymentStatementSection').style.display=access.role==='owner'?'block':'none';
+ document.getElementById('hrV3SalaryStatusSection').style.display=access.role==='owner'?'block':'none';
  await loadHRData();
 }
 async function loadHRAttendanceDay(){
@@ -2205,7 +2216,8 @@ async function loadHRData(){
  if(!rid||!userId)return;
  const isCurrent=()=>version===hrLoadVersion&&hrRestaurantId()===rid&&currentUser?.id===userId;
  // Clear all previous tenant rows before the four requests settle.
- hrPaymentStatementVersion++;
+ hrPaymentStatementVersion++;hrSalaryStatusVersion++;
+ document.getElementById('hrV3SalaryStatusResult').replaceChildren();
  window.BiteV3SalaryClosingUI?.clear?.();
  document.getElementById('hrV3PaymentStatement').replaceChildren();
  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayReport=null;hrDayKey='';hrDayVersion++;
@@ -2232,16 +2244,48 @@ async function loadHRData(){
   if(isCurrent())window.BiteV3SalaryClosingUI?.mount?.({
    client:sb,getRestaurantId:hrRestaurantId,getUserId:()=>currentUser?.id||'',
    getRole:()=>access?.role,getMemberships:()=>access?.memberships||[],
-   getEmployees:()=>hrEmployees,getToday:localDateInput
+   getEmployees:()=>hrEmployees,getToday:localDateInput,
+   refreshSalaryStatus:()=>void loadHRSalaryStatus()
   });
   await loadHRAttendanceDay();
   if(isCurrent())void loadHRPaymentStatement();
+  if(isCurrent())void loadHRSalaryStatus();
  }catch(err){
   if(!isCurrent())return;
   document.getElementById('hrAttendanceRegister').textContent='HR data unavailable for this restaurant. Retry Refresh.';
   document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;
   document.getElementById('hrPresentCount').textContent='—';
   console.error(err);
+ }
+}
+async function loadHRSalaryStatus(){
+ const target=document.getElementById('hrV3SalaryStatusResult'),rid=hrRestaurantId();
+ const userId=currentUser?.id||'',month=document.getElementById('hrV3SalaryStatusMonth').value;
+ const version=++hrSalaryStatusVersion;
+ target.replaceChildren();
+ const owner=access.role==='owner'&&access.memberships?.some(m=>m.restaurant_id===rid&&m.role==='owner');
+ if(!owner||!rid||!userId||!window.BiteV3SalaryStatus?.monthOK?.(month)||
+    month>localDateInput().slice(0,7)){
+  target.textContent='Owner login, selected restaurant and a valid salary month are required.';return;
+ }
+ const active=()=>version===hrSalaryStatusVersion&&currentUser?.id===userId&&
+  hrRestaurantId()===rid&&access.role==='owner'&&
+  access.memberships?.some(m=>m.restaurant_id===rid&&m.role==='owner')&&
+  document.getElementById('hrV3SalaryStatusMonth').value===month;
+ target.textContent='Verifying approved closings and linked salary payments…';
+ try{
+  const report=await window.BiteV3SalaryStatus.load({client:sb,restaurantId:rid,
+   month,today:localDateInput(),isCurrent:active});
+  if(!active())return;
+  target.innerHTML=window.BiteV3SalaryStatus.render(report);
+ }catch(error){
+  if(!active())return;
+  target.replaceChildren();
+  const message=document.createElement('p');
+  message.className='a13-error';message.setAttribute('role','alert');
+  message.textContent='Salary status could not be verified: '+(error?.message||'Network error')+
+    '. No outstanding salary has been estimated. Refresh to retry.';
+  target.append(message);
  }
 }
 async function loadHRPaymentStatement(){
@@ -2463,6 +2507,8 @@ document.getElementById('hrAttendanceDate').addEventListener('change',()=>{void 
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
 for(const id of ['hrV3PaymentMonth','hrV3PaymentMode'])document.getElementById(id).addEventListener('change',()=>void loadHRPaymentStatement());
 document.getElementById('hrV3PaymentRefresh').addEventListener('click',()=>void loadHRPaymentStatement());
+document.getElementById('hrV3SalaryStatusMonth').addEventListener('change',()=>void loadHRSalaryStatus());
+document.getElementById('hrV3SalaryStatusRefresh').addEventListener('click',()=>void loadHRSalaryStatus());
 document.getElementById('hrAttendanceRegister').addEventListener('click',event=>{
  const button=event.target.closest?.('[data-v3-attendance-employee]');
  if(!button||!hrDayReport)return;
