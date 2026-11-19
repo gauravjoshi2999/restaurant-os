@@ -2285,16 +2285,18 @@ function selectKhataCustomer(id){
 function renderKhataLedger(){
  const c=khataCustomers.find(x=>x.id===selectedKhataCustomerId),
   balanceRow=khataBalances.find(x=>x.customer_id===selectedKhataCustomerId),
-  bal=Number(balanceRow?.balance||0),
-  verified=khataComplete&&!!balanceRow;
+  balanceValid=balanceRow?.balance!==null&&balanceRow?.balance!==undefined&&Number.isFinite(Number(balanceRow.balance)),
+  bal=balanceValid?Number(balanceRow.balance):NaN,
+  verified=khataComplete&&balanceValid;
  document.getElementById('khataLedgerTitle').textContent=c?'Khata · '+c.full_name:'Customer ledger';
  document.getElementById('khataLedgerBalance').textContent=c?
-  (!balanceRow?'Balance unverified':bal>0?'Current due '+money(bal):
+  (!balanceValid?'Balance unverified':bal>0?'Current due '+money(bal):
     bal<0?'Current advance '+money(Math.abs(bal)):'Current balance clear'):'Select a customer';
  const key=(currentUser?.id||'')+':'+khataRestaurantId(),today=localDateInput();
  const report=window.BiteV3Khata?.renderStatement({
   host:document.getElementById('khataV3Statement'),customer:c,
-  entries:khataEntries,balance:bal,complete:verified,key,today,onChange:renderKhataLedger
+  entries:khataEntries,balance:bal,complete:verified,key,today,onChange:renderKhataLedger,
+  onCollect:collectKhataDue,onOpening:prepareKhataOpening
  });
  const rows=report?.verified?report.rows:[];
  document.getElementById('khataLedgerRows').innerHTML=rows.map(x=>{
@@ -2342,6 +2344,22 @@ function collectKhataDue(customerId){
  form?.scrollIntoView?.({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth',block:'center'});
  document.getElementById('khataEntryAmount').focus({preventScroll:true});
 }
+function prepareKhataOpening(customerId){
+ const customer=khataCustomers.find(x=>x.id===customerId&&x.status==='Active');
+ if(!customer||!khataComplete)return;
+ selectedKhataCustomerId=customerId;khataCollectDueCustomerId=null;
+ document.getElementById('khataEntryCustomer').value=customerId;
+ document.getElementById('khataEntryType').value='debit';
+ document.getElementById('khataEntryAmount').value='';
+ document.getElementById('khataEntryDate').value='';
+ document.getElementById('khataEntryReference').value='';
+ document.getElementById('khataEntryDescription').value='Opening balance — historical due (not a sale)';
+ toggleKhataPaymentMode();
+ document.getElementById('khataEntryMessage').textContent='Choose the actual old date and verify no POS bill or old Khata entry already includes this due.';
+ renderKhataLedger();
+ document.getElementById('khataSaveEntryBtn').closest('.card')?.scrollIntoView?.({behavior:'auto',block:'start'});
+ document.getElementById('khataEntryAmount').focus({preventScroll:true});
+}
 function toggleKhataPaymentMode(){const credit=document.getElementById('khataEntryType').value==='credit';document.getElementById('khataPaymentModeField').style.display=credit?'block':'none'}
 async function saveKhataCustomer(){
  const rid=khataRestaurantId(),name=document.getElementById('khataCustomerName').value.trim(),phone=document.getElementById('khataCustomerPhone').value.trim();
@@ -2382,6 +2400,7 @@ async function saveKhataEntry(){
  const allowAdvance=type==='credit'&&!collectDue&&amount>Math.max(0,currentDue);
  if(allowAdvance&&!window.confirm('This receipt exceeds current due and will create a customer advance. Confirm the money was actually received?'))return;
  if(type==='debit'&&/opening|पुराना|बकाया/i.test(description)){
+  if(date>=localDateInput()){msg.textContent='Historical opening due needs the actual earlier date, not today.';return}
   if(!window.confirm('Opening due adds a receivable, not sales. Check this bill is not already linked through POS. Continue?'))return;
  }
  if(type==='credit'){
