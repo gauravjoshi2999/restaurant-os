@@ -69,6 +69,7 @@ test('H14: missing invoice totals cannot become a false zero on print or share',
   const broken={...good,totals:{...good.totals,[field]:missing}};
   assert.equal(A.billTotalsReady(broken),false,field+' unavailable');
   assert.throws(()=>A.billHTML(broken),/totals unavailable/);
+  assert.throws(()=>A.printStatement(broken),/totals unavailable/);
   assert.throws(()=>A.combinedBillHTML([good,broken]),/totals unavailable/);
  }
  assert.throws(()=>A.combinedBillHTML([]),/totals unavailable/);
