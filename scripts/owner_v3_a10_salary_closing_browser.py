@@ -12,7 +12,15 @@ OUT.mkdir(parents=True,exist_ok=True)
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/assets/owner-v3-salary-closing.css"></head>
 <body data-role="owner" style="font:14px system-ui;margin:0">
-<section id="hr" style="max-width:930px;margin:auto;padding:8px"><div id="hrA10Section" class="a10-salary-close" hidden>
+<section id="hr" style="max-width:930px;margin:auto;padding:8px">
+<div id="hrPaymentCard">
+ <select id="hrPaymentEmployee"><option value="22222222-2222-4222-8222-222222222222">Synthetic employee</option></select>
+ <select id="hrPaymentType"><option>Salary</option><option>Advance</option></select>
+ <input id="hrPaymentAmount" type="number">
+ <select id="hrPaymentMethod"><option>Cash</option><option>UPI</option><option>Bank Transfer</option></select>
+ <input id="hrPaymentDate" type="date"><input id="hrPaymentMonth" type="month">
+ <input id="hrPaymentReference"><input id="hrPaymentNotes"><p id="hrPaymentMessage"></p>
+</div><div id="hrA10Section" class="a10-salary-close" hidden>
  <h3>Salary Closing & Advance Adjustment</h3><div class="a10-fields">
  <label>Staff<select id="hrA10Employee"></select></label>
  <label>Month<input type="month" id="hrA10Month"></label>
@@ -22,6 +30,7 @@ OUT.mkdir(parents=True,exist_ok=True)
  <label>Advance applied<input type="number" id="hrA10Advance" value="0"></label>
  <label class="a10-note">Note<textarea id="hrA10Note"></textarea></label></div>
  <p id="hrA10Rate"></p><div id="hrA10Result"></div>
+ <div class="a10-actions"><button id="hrA10PreparePayment" hidden disabled>Prepare remaining salary payment</button></div>
  <div class="a10-actions"><button id="hrA10Refresh" class="secondary">Refresh</button><button id="hrA10Preview">Preview closing</button></div>
  <div id="hrA10Review" class="a10-review" hidden></div>
  <label class="a10-approval"><input id="hrA10Approval" type="checkbox">I approve monthly salary figures. No cash payment.</label>
@@ -81,6 +90,15 @@ with sync_playwright() as pw:
   assert args['p_advance_applied']==600
   assert args['p_expected_available']==900
   assert args['p_expected_paid']==3250
+  assert page.get_by_role('button',name='Prepare remaining salary payment').is_visible()
+  page.get_by_role('button',name='Prepare remaining salary payment').click()
+  page.wait_for_function("document.getElementById('hrPaymentMessage').textContent.includes('Only the payment form was filled')")
+  assert page.locator('#hrPaymentAmount').input_value()=='6550.00'
+  assert page.locator('#hrPaymentMonth').input_value()=='2026-10'
+  assert page.locator('#hrPaymentDate').input_value()=='2026-11-19'
+  assert page.locator('#hrPaymentType').input_value()=='Salary'
+  assert page.locator('#hrPaymentMethod').input_value()==''
+  assert page.evaluate('window.__rpcCount')==1,'A11 prefill must never create another approval'
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'A10 overflows {width}px'
   page.screenshot(path=str(OUT/f'a10-salary-closing-{width}.png'))
   print(f'PASS A10: preview/consent/RPC, no duplicate approval, responsive {width}px')

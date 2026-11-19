@@ -730,7 +730,7 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/owner-v3-staff-payments.js?v=20261119-a09-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
 <script src="assets/owner-v3-salary-closing.js?v=20261119-a10-1" defer></script>
-<script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a10-1" defer></script>
+<script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a11-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-salary-closing.css?v=20261119-a10-1">
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
@@ -1132,6 +1132,7 @@ body.bite-session-check #biteSessionSplash{
     </div>
     <p class="a10-sub" id="hrA10Rate"></p>
     <div id="hrA10Result" aria-live="polite"></div>
+    <div class="a10-actions"><button type="button" class="secondary" id="hrA10PreparePayment" hidden disabled>Prepare remaining salary payment</button></div>
     <div class="a10-actions"><button type="button" class="secondary" id="hrA10Refresh">Refresh sources</button><button type="button" id="hrA10Preview">Preview closing</button></div>
     <div id="hrA10Review" class="a10-review" hidden></div>
     <label class="a10-approval"><input type="checkbox" id="hrA10Approval">I checked the gross, deductions, advance and prior payments. I approve this monthly closing. No payment will be sent.</label>
@@ -2408,6 +2409,8 @@ async function saveHREmployeePayment(){
  if(access.role!=='owner')return;
  const rid=hrRestaurantId(),eid=document.getElementById('hrPaymentEmployee').value,amount=Number(document.getElementById('hrPaymentAmount').value),date=document.getElementById('hrPaymentDate').value,month=document.getElementById('hrPaymentMonth').value;
  if(!rid||!eid||!date||!Number.isFinite(amount)||amount<=0){document.getElementById('hrPaymentMessage').textContent='Employee, date aur valid amount bharein.';return}
+ const paymentMethod=document.getElementById('hrPaymentMethod').value;
+ if(!paymentMethod){document.getElementById('hrPaymentMessage').textContent='Payment save karne se pehle actual payment mode chunein.';return;}
  const periodMonth=month?month+'-01':null;
  try{const {error}=await sb.from('restaurant_employee_payments').insert({restaurant_id:rid,employee_id:eid,payment_date:date,period_month:periodMonth,payment_type:document.getElementById('hrPaymentType').value,amount,payment_method:document.getElementById('hrPaymentMethod').value,reference:document.getElementById('hrPaymentReference').value.trim()||null,notes:document.getElementById('hrPaymentNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;document.getElementById('hrPaymentAmount').value='';document.getElementById('hrPaymentReference').value='';document.getElementById('hrPaymentNotes').value='';document.getElementById('hrPaymentMessage').textContent='Payment saved';await loadHRData()}
  catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}

@@ -35,11 +35,13 @@
   E('hrA10Refresh').addEventListener('click',()=>void load());
   E('hrA10Preview').addEventListener('click',()=>preview());
   E('hrA10Save').addEventListener('click',()=>void approve());
+  E('hrA10PreparePayment').addEventListener('click',()=>void prepareSalaryDue());
  }
  function mount(nextCtx){
   ctx=nextCtx;
   bind();
   version++;loading=false;submitting=false;report=null;resetReview();
+  E('hrA10PreparePayment').hidden=true;E('hrA10PreparePayment').disabled=true;
   const el=E('hrA10Section');
   if(!el)return;
   el.hidden=!scope();
@@ -62,12 +64,13 @@
  }
  function clear(){
   version++;report=null;proposal=null;requestId='';loading=false;submitting=false;
-  if(E('hrA10Section')){E('hrA10Section').hidden=true;E('hrA10Result').replaceChildren();resetReview();display('hrA10Message','')}
+  if(E('hrA10Section')){E('hrA10PreparePayment').hidden=true;E('hrA10PreparePayment').disabled=true;E('hrA10Section').hidden=true;E('hrA10Result').replaceChildren();resetReview();display('hrA10Message','')}
  }
  async function load(){
   const n=++version,{employeeId,month}=dates(),restaurant=ctx?.getRestaurantId?.(),user=ctx?.getUserId?.();
   resetReview();report=null;loading=true;
   const t=E('hrA10Result');t.replaceChildren();
+  E('hrA10PreparePayment').hidden=true;E('hrA10PreparePayment').disabled=true;
   E('hrA10Preview').disabled=true;
   if(!scope()||!employeeId||!engine().validCompleted(month,ctx.getToday())){
    display('hrA10Message','Select an employee and an already completed salary month.');
@@ -84,6 +87,8 @@
    if(!active(n,restaurant,user,employeeId,month))return;
    report=result;t.innerHTML=engine().summaryHtml(result);
    const closed=!!result.closing;
+   E('hrA10PreparePayment').hidden=!(closed&&result.due>0&&!result.overpaid);
+   E('hrA10PreparePayment').disabled=!(closed&&result.due>0&&!result.overpaid);
    for(const id of ['hrA10Gross','hrA10Bonus','hrA10Deduction','hrA10Advance','hrA10Note'])
     E(id).disabled=closed;
    E('hrA10Preview').disabled=closed||result.unassigned>0;
@@ -113,6 +118,53 @@
     ' = salary still due '+engine().money(proposal.dueCents)+'. Approval does NOT transfer money or create a Cashbook entry.');
    display('hrA10Message','Check the figures, tick the approval checkbox and confirm. No payment will be made.');
   }catch(e){proposal=null;display('hrA10Message','Preview blocked: '+e.message)}
+ }
+ async function prepareSalaryDue(){
+  if(!scope()||loading||submitting||!report?.closing||!(report.due>0)||report.overpaid)return;
+  const {employeeId,month}=dates(),restaurant=ctx.getRestaurantId(),user=ctx.getUserId(),n=version;
+  const btn=E('hrA10PreparePayment');btn.disabled=true;
+  try{
+   const employee=ctx.getEmployees().find(e=>e.id===employeeId&&e.restaurant_id===restaurant);
+   if(!employee)throw Error('Selected employee does not belong to this restaurant');
+   // Re-read canonical payment/closing sources; never fill a stale amount.
+   const updated=await engine().load({client:ctx.client,restaurantId:restaurant,employeeId,month,
+     today:ctx.getToday(),employee,isCurrent:()=>active(n,restaurant,user,employeeId,month)});
+   if(!active(n,restaurant,user,employeeId,month))return;
+   if(!updated.closing||updated.overpaid||updated.due!==report.due||updated.due<=0){
+    display('hrA10Message','Recorded salary balance changed. Review the refreshed closing before preparing a payment.');
+    await load();return;
+   }
+   const select=E('hrPaymentEmployee');
+   if(!select||!Array.from(select.options).some(o=>o.value===employeeId))
+    throw Error('Employee is unavailable in the existing payment form');
+   const confirmed=typeof root.confirm!=='function'||root.confirm(
+    'Prepare '+engine().money(updated.due)+' as the remaining salary for '+month+
+    '? This only fills the existing payment form. No payment or Cashbook entry will be created.'
+   );
+   if(!confirmed)return;
+   E('hrPaymentEmployee').value=employeeId;
+   E('hrPaymentType').value='Salary';
+   E('hrPaymentMonth').value=month;
+   E('hrPaymentAmount').value=(updated.due/100).toFixed(2);
+   E('hrPaymentDate').value=ctx.getToday();
+   E('hrPaymentReference').value='';
+   E('hrPaymentNotes').value=('Salary due after approved '+month+' closing').slice(0,250);
+   const mode=E('hrPaymentMethod');
+   if(!Array.from(mode.options).some(o=>o.value===''))
+    mode.add(new Option('Choose actual payment mode',''),0);
+   mode.value='';
+   display('hrPaymentMessage','Only the payment form was filled. Choose the actual method and verify the amount before saving an already-made payment. No money was sent.');
+   display('hrA10Message','Remaining salary details prepared in the existing payment form; nothing has been saved.');
+   root.BiteOwnerHRTabs?.activate?.(root.document,'payment');
+   E('hrPaymentAmount').scrollIntoView?.({block:'center',behavior:'smooth'});
+   mode.focus?.();
+  }catch(error){
+   if(active(n,restaurant,user,employeeId,month))
+    display('hrA10Message','Cannot prepare salary payment: '+(error?.message||'Source refresh failed')+'. No payment was recorded.');
+  }finally{
+   if(active(n,restaurant,user,employeeId,month))
+    btn.disabled=!(report?.closing&&report.due>0&&!report.overpaid);
+  }
  }
  async function approve(){
   if(!scope()||!report||report.closing||!proposal||!E('hrA10Approval').checked||submitting)return;
@@ -145,5 +197,5 @@
     display('hrA10Message','Closing not confirmed: '+(e?.message||'Retry failed')+'. Retry with unchanged details or refresh. Do not record a duplicate payment.');
   }finally{submitting=false;if(active(n,restaurant,user,employeeId,month))toggle()}
  }
- root.BiteV3SalaryClosingUI={mount,clear,load,preview,approve};
+ root.BiteV3SalaryClosingUI={mount,clear,load,preview,approve,prepareSalaryDue};
 })(typeof window!=='undefined'?window:globalThis);
