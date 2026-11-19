@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
-const source=fs.readFileSync('assets/owner-hospitality.js','utf8');
+ assert.match(index,/owner-hospitality\.js\?v=20261119-[a-z0-9-]+/);
 const css=fs.readFileSync('assets/owner-hotel-polish.css','utf8');
 const index=fs.readFileSync('index.html','utf8');
 const marker=' root.BiteHospitality={header,';
