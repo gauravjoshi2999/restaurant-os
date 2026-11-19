@@ -265,6 +265,52 @@
   if(data.stays.some(s=>s.room_id===room.id&&s.status==='reserved'&&s.arrival<=today()&&s.departure>today()))return 'reserved';
   return 'ready';
  }
+
+ // PDF H04–H05: one read-only room detail from the canonical property workspace.
+ // Room actions reuse the existing stay, guest bill and check-in workflows.
+ function roomDetailMarkup(room){
+  if(!workspaceReady||!room||!data.rooms.some(r=>r.id===room.id)||!has('hotel_rooms'))
+   throw Error('Room information is unavailable. Refresh the Rooms board.');
+  const state=roomState(room),hk=housekeepingVisible(),now=today();
+  const label={occupied:'Occupied',ready:'Available today',reserved:'Reserved',dirty:'Needs cleaning',cleaning:'Cleaning',blocked:'Blocked',inactive:'Inactive'}[state]||state;
+  const inHouse=data.stays.find(s=>s.room_id===room.id&&s.status==='in_house');
+  const nextBooking=[...data.stays].filter(s=>s.room_id===room.id&&s.status==='reserved'&&s.departure>now)
+   .sort((a,b)=>String(a.arrival).localeCompare(String(b.arrival)))[0];
+  const stay=inHouse||nextBooking||null;
+  const guest=data.guests.find(g=>g.id===stay?.guest_id);
+  const folio=data.folios.find(f=>f.stay_id===stay?.id);
+  const group=data.groups.find(g=>g.id===stay?.group_id);
+  const groupRooms=group?data.stays.filter(s=>s.group_id===group.id&&['in_house','reserved'].includes(s.status))
+   .map(s=>data.rooms.find(r=>r.id===s.room_id)?.number).filter(Boolean):[];
+  const canEdit=['owner','manager'].includes(prop().role);
+  const canCharge=!!(inHouse&&folio?.status==='open'&&['owner','manager','receptionist'].includes(prop().role)&&has('folios'));
+  const canFood=canCharge&&has('charge_to_room')&&restaurantAccess()&&['owner','manager'].includes(prop().role);
+  const balance=Number(folio?.totals?.balance),verified=folio?.totals&&Number.isFinite(balance);
+  const due=verified?(balance>0?'Due':balance<0?'Credit to review':'No balance due'):'Balance unavailable';
+  const dates=stay?esc(shortDate(stay.arrival))+' – '+esc(shortDate(stay.departure)):'';
+  const note=String(room.status_note||'').trim(),showNote=note&&(hk||!/clean|housekeep|dnd|do not disturb/i.test(note));
+  return '<section class="bh-room-detail" aria-label="Room '+esc(room.number)+' detail">'+
+   '<div class="bh-room-detail-hero"><div><span class="bh-room-eyebrow">ROOM DETAIL · '+esc(label)+'</span><h2>Room '+esc(room.number)+'</h2><p>'+esc(room.room_type)+(room.floor?' · Floor '+esc(room.floor):'')+'</p></div><span class="bh-chip '+esc(state)+'">'+esc(label)+'</span></div>'+
+   (showNote?'<p class="bh-room-detail-note">'+esc(note)+'</p>':'')+
+   (stay?'<div class="bh-room-detail-stay"><div><small>'+esc(inHouse?'CURRENT STAY':'UPCOMING RESERVATION')+'</small><strong>'+esc(guest?.full_name||'Guest details unavailable')+'</strong><span>'+dates+'</span></div>'+
+    (group?'<div><small>FAMILY / GROUP</small><strong>'+esc(group.name)+'</strong><span>Linked rooms: '+esc(groupRooms.join(', ')||'Unavailable')+'</span></div>':'')+
+    (folio&&has('folios')?'<div><small>GUEST BILL</small><strong>'+(verified?money(Math.abs(balance)):'—')+'</strong><span>'+esc(due)+' · '+esc(folio.status||'Status unavailable')+'</span></div>':'')+'</div>':
+    '<p class="bh-room-detail-empty">'+esc(state==='ready'?'No active stay in this room. Confirm the dates and availability before check-in.':state==='occupied'?'Room is occupied, but its linked stay is not available. Refresh before making changes.':'No current stay is linked to this room.')+'</p>')+
+   (nextBooking&&inHouse?'<p class="bh-note">Next reservation: '+esc(shortDate(nextBooking.arrival))+' – '+esc(shortDate(nextBooking.departure))+'. Check date availability before extending the current stay.</p>':'')+
+   '<div class="bh-room-detail-actions">'+
+   (state==='ready'?btn('room-detail-checkin','＋ New check-in',room.id):'')+
+   (folio&&has('folios')?btn('folio','Open guest bill',folio.id):'')+
+   (canFood?btn('room-detail-food','＋ Add food',folio.id):'')+
+   (canCharge?btn('room-detail-extra','＋ Hotel extra',folio.id):'')+
+   (inHouse?btn('stay-options','Extend / move stay',inHouse.id):'')+
+   (inHouse&&folio&&has('folios')?btn('folio','Review checkout',folio.id):'')+
+   (nextBooking?btn('route','Reservations','reservations'):'')+
+   (hk&&room.active&&['owner','manager','receptionist'].includes(prop().role)?btn('room-status','Update room readiness',room.id):'')+
+   (canEdit?btn('edit-room','Edit room setup',room.id):'')+
+   btn('close-editor','Close')+'</div>'+
+   '<p class="bh-note">Room status is current, not a guarantee of availability for future dates. Saved guest bills and payment history remain attached to their original stays.</p></section>';
+ }
+
  function renderHome(){
   const home=$('biteHotelHome');if(!home)return;
   if(prop()?.role==='cashier'){home.hidden=false;home.innerHTML=header('Cashier billing','Create a food bill or charge an occupied room.',btn('route','New POS bill','pos'));return}
@@ -305,7 +351,7 @@
   if(id==='housekeeping'&&!housekeepingVisible()){void ctx.navigate('rooms');return;}
   if(id==='rooms'||id==='housekeeping'){
    const hk=housekeepingVisible(),canEdit=['owner','manager'].includes(prop().role);
-   const active=data.rooms.filter(r=>r.active),occupied=active.filter(r=>roomState(r)==='occupied').length,available=active.filter(r=>roomState(r)==='ready').length;
+   const active=data.rooms.filter(r=>r.active),occupied=active.filter(r=>roomState(r)==='occupied').length,available=active.filter(r=>roomState(r)==='ready').length,reserved=active.filter(r=>roomState(r)==='reserved').length,other=Math.max(0,active.length-occupied-available-reserved);
    const statusLabel=status=>({occupied:'Occupied',ready:hk?'Ready':'Available',reserved:'Reserved',dirty:hk?'Needs cleaning':'Not ready',cleaning:hk?'Cleaning':'Not ready',blocked:'Unavailable',inactive:'Inactive'}[status]||String(status).replaceAll('_',' '));
    const cards=data.rooms.map(r=>{
     const status=roomState(r),stay=data.stays.find(st=>st.room_id===r.id&&(st.status==='in_house'||st.status==='reserved'&&st.arrival<=today()&&st.departure>today())),guest=data.guests.find(g=>g.id===stay?.guest_id),note=String(r.status_note||'').trim();
@@ -314,13 +360,13 @@
      (note&&(hk||!/clean|housekeep|dnd|do not disturb/i.test(note))?'<p class="bh-room-note">'+esc(note)+'</p>':'')+
      (hk&&r.do_not_disturb?'<p class="bh-room-note">Do Not Disturb active</p>':'')+
      (hk&&r.cleaning_requested?'<p class="bh-room-note">Stayover cleaning requested</p>':'')+
-     '<div class="bh-actions bh-room-actions">'+(hk&&r.active?btn('room-privacy','Guest privacy / cleaning',r.id)+btn('room-status','Room status',r.id):'')+
+     '<div class="bh-actions bh-room-actions">'+btn('room-details','View details',r.id)+(hk&&r.active?btn('room-privacy','Guest privacy / cleaning',r.id)+btn('room-status','Room status',r.id):'')+
      (canEdit?btn('edit-room','Edit room',r.id):'')+'</div></article>';
    }).join('');
    target.innerHTML=header(id==='rooms'?'Rooms':'Housekeeping',
     hk?'Room availability and cleaning status.':'Manage rooms here. Enter rent and guest count at check-in.',
     canEdit?btn('new-room','+ Add room'):'')+notice()+
-    '<div class="bh-room-overview" aria-label="Rooms overview"><span><strong>'+occupied+'</strong> Occupied</span><span><strong>'+available+'</strong> '+(hk?'Ready':'Available')+'</span><span><strong>'+active.length+'</strong> Total rooms</span></div>'+
+    '<div class="bh-room-overview" aria-label="Rooms overview"><span><strong>'+occupied+'</strong> Occupied</span><span><strong>'+available+'</strong> '+(hk?'Ready':'Available')+'</span><span><strong>'+reserved+'</strong> Reserved today</span><span><strong>'+other+'</strong> Other / unavailable</span><span><strong>'+active.length+'</strong> Total rooms</span></div>'+
     '<div class="bh-room-grid">'+cards+'</div>'+(!data.rooms.length?stateCard('No rooms yet. Add a room number and type to begin.'):'' );
    if(hk)root.BiteOwnerOperations?.decorateRooms(target);
    return;
@@ -667,6 +713,31 @@
    else if(action==='split-preview')printStatement(selectedFolio,Number(id));
    else if(action==='group-booking'){
     editor(`<form class="bh-form" data-hotel-form="group"><h2>Group reservation</h2>${field('name','Group name *','text','','required maxlength="120"')}${select('guest_id','Shared payer / lead guest',option('','New lead guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone)).join(''))}<div class="bh-form-grid">${field('full_name','New lead guest name','text','','maxlength="120"')}${field('phone','New lead guest phone','tel','','maxlength="20"')}${field('arrival','Arrival *','date',today(),'required')}${field('departure','Departure *','date',datePlus(1),'required')}</div><h3>Rooms & occupancy</h3>${data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>`<div class="bh-panel"><label class="bh-check"><input type="checkbox" name="room_ids" value="${esc(r.id)}"> Room ${esc(r.number)}</label><div class="bh-form-grid">${field('adults_'+r.id,'Adults in this room','number',1,'min="1" max="20"')}${field('children_'+r.id,'Children in this room','number',0,'min="0" max="20"')}${field('rate_'+r.id,'Agreed room rent / night (₹)','number','','min="0" step="0.01"')}</div></div>`).join('')}<p class="bh-note">All rooms reserve together, or none do. Each room keeps its own folio and invoice linked to this shared payer. Check rooms in individually after readiness inspection.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button type="submit" class="btn">Reserve selected rooms</button></div></form>`);
+   }
+   else if(action==='room-details'){
+    const room=data.rooms.find(r=>r.id===id);if(!room||!has('hotel_rooms')||!workspaceReady)throw Error('Room data is not available. Reload the Rooms board.');
+    editor(roomDetailMarkup(room));
+   }
+   else if(action==='room-detail-checkin'){
+    const room=data.rooms.find(r=>r.id===id);
+    if(!room||roomState(room)!=='ready')throw Error('This room is not available now. Refresh Rooms and choose another.');
+    const hasPending=pendingRegistration().length>0;
+    await ctx.navigate('hotel-register');
+    const form=$('bhCheckinForm');
+    if(form&&!hasPending&&!form.dataset.stayId&&form.elements.room_id&&
+       [...form.elements.room_id.options].some(option=>option.value===id)){
+     form.elements.room_id.value=id;
+     form.elements.room_id.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+   }
+   else if(action==='room-detail-food'||action==='room-detail-extra'){
+    const folio=data.folios.find(f=>f.id===id),stay=data.stays.find(s=>s.id===folio?.stay_id);
+    if(!folio||folio.status!=='open'||stay?.status!=='in_house'||!has('folios'))throw Error('This active guest bill is no longer available. Reopen Rooms.');
+    if(!['owner','manager','receptionist'].includes(prop().role))throw Error('You cannot add charges to this bill.');
+    selectedFolio=id;
+    await ctx.navigate('folios');
+    if(action==='room-detail-food')await openFoodPicker();
+    else entryForm('charge');
    }
    else if(action==='room-guest'){const st=data.stays.find(st=>st.id===id),bf=data.folios.find(bf=>bf.stay_id===st?.id);if(bf){selectedFolio=bf.id;await ctx.navigate('folios')}}
    else if(action==='add-guest-room'){const st=data.stays.find(st=>st.id===id);if(!st)return;await ctx.navigate('hotel-register');renderRegister(st.guest_id);const form=$('bhCheckinForm');root.BiteHotelBilling?.linkRoom(form,st);}
