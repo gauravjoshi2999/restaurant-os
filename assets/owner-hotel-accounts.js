@@ -215,7 +215,7 @@
    (registered&&groups.length?'<table><thead><tr><th>Service / SAC</th><th>Taxable</th><th>GST breakdown</th></tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(({room:'Room rent',food:'Food',incidental:'Extras'})[g.category]||g.category)+'<br><small>'+esc(g.sac)+'</small></td><td>'+money(g.taxable)+'</td><td>CGST '+Number(g.rate)/2+'% · '+money(g.cgst)+'<br>SGST '+Number(g.rate)/2+'% · '+money(g.sgst)+'</td></tr>').join('')+'</tbody></table><small>Place of supply: '+esc(s.place_of_supply||String(s.tax_profile.gstin).slice(0,2))+' · Reverse charge: No</small>':'')+
    '<p class="sign">For '+esc(s.property?.name)+'<br><br>Authorized signatory</p></body></html>';
  }
- function printStatement(s){const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(billHTML(s));win.document.close();return true}
+ function printStatement(s){const html=billHTML(s);const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(html);win.document.close();return true}
 
  function reportRows(v){
   const heading=['Date','POS sales','Room + food bills','Other income','Total billed sales','Output GST','Net sales','Expenses / salary cost','Staff advance paid','Cash received','Cash paid','Cash closing','Online received','Online paid','Online closing','Recorded profit / loss'];
