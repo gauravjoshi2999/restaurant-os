@@ -11,11 +11,11 @@ const end=html.indexOf('\nfunction renderRestaurantReviews(',start);
 assert.ok(start>=0&&end>start,'real restaurant-opening source must be present');
 const source=html.slice(start,end);
 
-function setup({menuError=false,confirmSwitch=true,matchingMenu=true,renderMenuError=false}={}){
+function setup({menuError=false,confirmSwitch=true,matchingMenu=true,renderMenuError=false,nextItemAvailable=true}={}){
  const previousRestaurant={id:'restaurant-old',name:'Old Restaurant',cuisine_tags:['Indian'],city:'Jaipur',accepts_delivery:true};
  const nextRestaurant={id:'restaurant-next',name:'Next Restaurant',cuisine_tags:['Indian'],city:'Jaipur',accepts_delivery:true};
  const oldItems=[{id:'old-dish',price:100,name:'Old meal'}];
- const newItems=[{id:'new-dish',price:140,name:'New meal'}];
+ const newItems=[{id:'new-dish',price:140,name:'New meal',is_available:nextItemAvailable}];
  const fields={};
  const field=id=>fields[id]??=( {value:'',checked:false,textContent:'',innerHTML:'',style:{removeProperty(){}},
    classList:{add(){},remove(){},toggle(){},contains(){return false}}});
@@ -111,6 +111,27 @@ test('reorder preflight mismatch cannot wipe an existing cart',async()=>{
  assert.equal(x.ctx.activeRestaurant.id,'restaurant-old');
  assert.deepEqual({...x.ctx.cart},{'old-dish':2});
  assert.deepEqual(x.persistent.items,{'old-dish':2});
+ assert.equal(x.calls.renderCart,0);
+});
+
+test('reorder refuses partially missing menu items rather than silently dropping a dish',async()=>{
+ const x=setup();
+ assert.equal(await x.ctx.openRestaurantTest('restaurant-next',{
+  cartSwitchConfirmed:true,requiredMenuIds:['new-dish','missing-dish']
+ }),false);
+ assert.equal(x.ctx.activeRestaurant.id,'restaurant-old');
+ assert.deepEqual({...x.ctx.cart},{'old-dish':2});
+ assert.deepEqual(x.persistent.items,{'old-dish':2});
+ assert.equal(x.calls.renderCart,0);
+});
+
+test('reorder refuses menu items switched unavailable between review and cart',async()=>{
+ const x=setup({nextItemAvailable:false});
+ assert.equal(await x.ctx.openRestaurantTest('restaurant-next',{
+  cartSwitchConfirmed:true,requiredMenuIds:['new-dish']
+ }),false);
+ assert.equal(x.ctx.activeRestaurant.id,'restaurant-old');
+ assert.deepEqual({...x.ctx.cart},{'old-dish':2});
  assert.equal(x.calls.renderCart,0);
 });
 
