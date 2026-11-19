@@ -42,22 +42,32 @@
   const count=doc.getElementById('biteNotificationCount');
   const mark=doc.getElementById('biteNotificationMarkRead');
   const list=doc.getElementById('biteNotificationEntries');
-  if(!wrap||!count||!mark||!list)return null;
+  const all=doc.getElementById('biteNotificationAll');
+  const unread=doc.getElementById('biteNotificationUnread');
+  if(!wrap||!count||!mark||!list||!all||!unread)return null;
+  let filter='all';
   const store=createStore(render);
   function render(){
    const state=store.snapshot();
    count.textContent=state.unread+' unread';
    mark.disabled=state.unread===0;
+   all.setAttribute('aria-pressed',String(filter==='all'));
+   unread.setAttribute('aria-pressed',String(filter==='unread'));
    list.replaceChildren();
    if(!state.userId){
-    const msg=doc.createElement('p');msg.className='bite-notification-empty';
+    const msg=doc.createElement('li');msg.className='bite-notification-empty';
     msg.textContent='Sign in to view order updates from this visit.';list.append(msg);return;
    }
    if(!state.items.length){
-    const msg=doc.createElement('p');msg.className='bite-notification-empty';
+    const msg=doc.createElement('li');msg.className='bite-notification-empty';
     msg.textContent='No new order changes this visit. My Orders shows the current verified status.';list.append(msg);return;
    }
-   for(const entry of state.items){
+   const shown=filter==='unread'?state.items.filter(item=>!item.seen):state.items;
+   if(!shown.length){
+    const msg=doc.createElement('li');msg.className='bite-notification-empty';
+    msg.textContent='No unread order updates this visit.';list.append(msg);return;
+   }
+   for(const entry of shown){
     const row=doc.createElement('li');row.className='bite-notification-entry'+(entry.seen?'':' is-unread');
     const info=doc.createElement('div');info.className='bite-notification-copy';
     const title=doc.createElement('strong');title.textContent=entry.label;
@@ -70,9 +80,15 @@
    }
   }
   mark.addEventListener('click',()=>store.markAllSeen());
+  all.addEventListener('click',()=>{filter='all';render();});
+  unread.addEventListener('click',()=>{filter='unread';render();});
   doc.addEventListener('bite:verified-order-update',event=>{store.record(event.detail);});
   let revision=0;
-  function useSession(session){store.setUser(session?.user?.id||null);}
+  function useSession(session){
+   const next=session?.user?.id||null;
+   if(store.snapshot().userId!==next)filter='all';
+   store.setUser(next);
+  }
   sb.auth.onAuthStateChange((_event,session)=>{revision++;useSession(session);});
   const startRevision=revision;
   sb.auth.getSession().then(({data})=>{
