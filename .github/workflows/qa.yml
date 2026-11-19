@@ -65,6 +65,7 @@ jobs:
           python scripts/super_admin_browser.py
           python scripts/super_admin_pilot_readiness_browser.py
           python scripts/owner_home_compact_browser.py
+          python scripts/owner_v3_h04_h05_room_details_browser.py
           python scripts/family_booking_browser.py
           python scripts/owner_guest_controls_browser.py
           python scripts/guest_register_history_browser.py
@@ -110,6 +111,8 @@ jobs:
             dist/launch-qa/guest-controls-*.png
             dist/launch-qa/universal-owner-browser-evidence.json
             dist/launch-qa/owner-remaining-browser-evidence.json
+            dist/launch-qa/owner-h04-h05-evidence.json
+            dist/launch-qa/owner-h04-h05-*.png
             dist/launch-qa/guest-documents-browser-evidence.json
             dist/launch-qa/hotel-accounts-browser-evidence.json
             dist/launch-qa/supplier-payments-*.png
