@@ -8,17 +8,18 @@
  const statuses=Object.freeze(['Present','Half Day','Absent','Leave','Holiday']);
  function summarize({employees,records,date,restaurantId}){
   if(!iso(date)||!restaurantId||!Array.isArray(employees)||!Array.isArray(records))throw Error('Invalid attendance register scope.');
-  const people=new Map();
+  const people=new Map(),allPeople=new Set();
   for(const e of employees){
-   if(!e?.id||e.restaurant_id!==restaurantId||people.has(e.id))throw Error('Invalid or duplicated employee scope.');
+   if(!e?.id||e.restaurant_id!==restaurantId||allPeople.has(e.id))throw Error('Invalid or duplicated employee scope.');
+   allPeople.add(e.id);
    if(e.status==='Active')people.set(e.id,e);
   }
   const byPerson=new Map();
   for(const a of records){
-   if(!a?.id||a.restaurant_id!==restaurantId||a.attendance_date!==date||!people.has(a.employee_id)||
+   if(!a?.id||a.restaurant_id!==restaurantId||a.attendance_date!==date||!allPeople.has(a.employee_id)||
       !statuses.includes(a.status)||byPerson.has(a.employee_id))
     throw Error('Incomplete or inconsistent attendance day: do not guess missing staff status.');
-   byPerson.set(a.employee_id,a);
+   if(people.has(a.employee_id))byPerson.set(a.employee_id,a);
   }
   let present=0,half=0,absent=0,leave=0,holiday=0;
   const rows=[...people.values()].sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||''))).map(e=>{
