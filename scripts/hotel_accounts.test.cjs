@@ -59,3 +59,20 @@ test('draft bill returns to Partner and hides internal POS references',()=>{
  const html=A.billHTML({number:'DRAFT',property:{name:'Test hotel'},guest:{name:'Test guest'},room:{number:'104'},stay:{},tax_profile:{gstin:'08ABCDE1234F1Z5',reviewed:true},entries:[{kind:'charge',category:'room',status:'confirmed',amount:1400,tax_rate:5,tax_amount:70},{kind:'charge',category:'food',status:'confirmed',description:'POS-ROOM-INTERNAL',amount:650,tax_rate:5,tax_amount:32.5,source_items:[{name:'Meal',quantity:1,unit_price:650}]}],totals:{charges:2152.5,paid:0,balance:2152.5}});
  assert.match(html,/Back to Partner/);assert.match(html,/2,152.50/);assert.match(html,/CGST 2.5%/);assert.match(html,/SGST 2.5%/);assert(!html.includes('POS-ROOM-INTERNAL'));
 });
+
+test('H14: missing invoice totals cannot become a false zero on print or share',()=>{
+ const good={...invoice,room:{number:'101'}};
+ assert.equal(A.billTotalsReady(good),true);
+ assert.equal(A.billTotalsReady({totals:{charges:0,paid:0,balance:0}}),true);
+ assert.equal(A.billTotalsReady({}),false);
+ for(const field of ['charges','paid','balance'])for(const missing of [null,undefined,'','  ','bad',Infinity,-Infinity]){
+  const broken={...good,totals:{...good.totals,[field]:missing}};
+  assert.equal(A.billTotalsReady(broken),false,field+' unavailable');
+  assert.throws(()=>A.billHTML(broken),/totals unavailable/);
+  assert.throws(()=>A.combinedBillHTML([good,broken]),/totals unavailable/);
+ }
+ assert.throws(()=>A.combinedBillHTML([]),/totals unavailable/);
+ const combined=A.combinedBillHTML([good,{...good,room:{number:'102'}}]);
+ assert.match(combined,/Booking statement/);
+ assert.match(combined,/Combined total/);
+});
