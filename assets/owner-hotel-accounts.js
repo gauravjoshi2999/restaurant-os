@@ -276,7 +276,7 @@
   const payment=(state?.orderPayments||[]).find(x=>x.id===paymentId&&x.order_id===orderId&&
    x.restaurant_id===restaurantId&&Number(x.amount)>0);
   const day=String(payment?.payment_date||'');
-  if(!order||!payment||!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))return null;
+  if(!order||!payment||!/^\d{4}-\d{2}-\d{2}$/.test(day))return null;
   const parsed=new Date(day+'T00:00:00Z');
   if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==day)return null;
   return {order,payment,day};
