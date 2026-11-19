@@ -725,7 +725,9 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-home-finance.css">
 <link rel="stylesheet" href="assets/owner-mobile-polish.css?v=20261114-inpage-more2">
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
-<script src="assets/owner-hr-mobile-tabs.js?v=20261114-onecol1" defer></script>
+<link rel="stylesheet" href="assets/owner-v3-staff.css?v=20261119-a08-hr1">
+<script src="assets/owner-hr-mobile-tabs.js?v=20261119-a08-hr1" defer></script>
+<script src="assets/owner-v3-staff.js?v=20261119-a08-hr1" defer></script>
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
@@ -1061,6 +1063,10 @@ body.bite-session-check #biteSessionSplash{
 <div class="grid section bite-hr-editor-grid">
   <div class="card" id="hrEmployeePanel" data-hr-panel="employee" data-hr-selected="true">
    <div class="section-head"><h2>Employee profile</h2><span class="small">Owner / Manager</span></div>
+   <div class="a08-head"><strong>Team members</strong><button type="button" class="a08-add" id="hrV3AddEmployee">+ Add employee</button></div>
+   <div class="a08-search-row"><label for="hrV3Search">Search employee<input id="hrV3Search" type="search" autocomplete="off" placeholder="Name, mobile, role or employee code"></label>
+    <select id="hrV3Filter" aria-label="Employee status"><option value="active">Active</option><option value="all">All staff</option><option value="inactive">Inactive</option></select></div>
+   <div id="hrV3EmployeeCards" aria-live="polite"></div>
    <input type="hidden" id="hrEmployeeId">
    <div class="form-row">
     <div class="field"><label>Employee code</label><input id="hrEmployeeCode" maxlength="40" placeholder="EMP-001"></div>
@@ -1077,6 +1083,7 @@ body.bite-session-check #biteSessionSplash{
   </div>
   <div class="card" id="hrAttendancePanel" data-hr-panel="attendance">
    <div class="section-head"><h2>Mark attendance</h2><span class="small">Owner / Manager</span></div>
+   <div id="hrV3AttendanceDay"></div>
    <div class="form-row">
     <div class="field"><label>Employee *</label><select id="hrAttendanceEmployee"></select></div>
     <div class="field"><label>Status *</label><select id="hrAttendanceStatus"><option>Present</option><option>Absent</option><option>Half Day</option><option>Leave</option><option>Holiday</option></select></div>
@@ -1112,16 +1119,16 @@ body.bite-session-check #biteSessionSplash{
    <div class="actions"><button class="btn" id="hrPaymentSaveBtn" type="button" onclick="saveHREmployeePayment()">Save payment</button><span class="small" id="hrPaymentMessage" role="status"></span></div>
   </div>
  </div>
- <div class="section"><div class="section-head"><h2>Employees</h2><span class="small" id="hrEmployeeCount">0 employees</span></div>
+ <div class="section" data-a08-history="employee"><div class="section-head"><h2>Employees</h2><span class="small" id="hrEmployeeCount">0 employees</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Position</th><th>Phone</th><th>Salary</th><th>Status</th><th>Action</th></tr></thead><tbody id="hrEmployeeRows"></tbody></table><div class="empty" id="hrEmployeeEmpty">No employees added.</div></div>
  </div>
- <div class="section"><div class="section-head"><h2>Attendance history</h2><span class="small">Latest 50 records</span></div>
+ <div class="section" data-a08-history="attendance"><div class="section-head"><h2>Attendance history</h2><span class="small">Latest 50 records</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Status</th><th>In</th><th>Out</th><th>Note</th></tr></thead><tbody id="hrAttendanceRows"></tbody></table><div class="empty" id="hrAttendanceEmpty">No attendance records.</div></div>
  </div>
- <div class="section"><div class="section-head"><h2>Leave requests</h2><span class="small">Pending approval</span></div>
+ <div class="section" data-a08-history="leave"><div class="section-head"><h2>Leave requests</h2><span class="small">Pending approval</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead><tbody id="hrLeaveRows"></tbody></table><div class="empty" id="hrLeaveEmpty">No leave records.</div></div>
  </div>
- <div class="section"><div class="section-head"><h2>Salary / payment history</h2><span class="small">Latest 100 records</span></div>
+ <div class="section" data-a08-history="payment"><div class="section-head"><h2>Salary / payment history</h2><span class="small">Latest 100 records</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Month</th><th>Mode</th><th>Amount</th><th>Reference</th></tr></thead><tbody id="hrPaymentRows"></tbody></table><div class="empty" id="hrPaymentEmpty">No employee payments.</div></div>
  </div>
 </section>
@@ -2117,7 +2124,7 @@ document.getElementById('cashbookRestaurant').addEventListener('change',loadCash
 document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
-let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
+let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null,hrV3Query='',hrV3Filter='active',hrReadVersion=0;
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2125,7 +2132,7 @@ async function loadHRWorkspace(){
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
+ if(!eligible.length){hrReadVersion++;hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];document.getElementById('hrV3EmployeeCards').replaceChildren();document.getElementById('hrV3AttendanceDay').replaceChildren();document.getElementById('hrStatus').textContent='No Owner/Manager restaurant access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput();document.getElementById('hrAttendanceDate').value=today;document.getElementById('hrEmployeeJoining').value=today;
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
@@ -2134,7 +2141,8 @@ async function loadHRWorkspace(){
  await loadHRData();
 }
 async function loadHRData(){
- const rid=hrRestaurantId();if(!rid)return;
+ const rid=hrRestaurantId(),userId=currentUser?.id,version=++hrReadVersion;if(!rid||!userId)return;
+ document.getElementById('hrStatus').textContent='Loading staff records…';
  try{
   const [e,a,l,p]=await Promise.all([
    sb.from('restaurant_employees').select('*').eq('restaurant_id',rid).order('full_name'),
@@ -2142,10 +2150,12 @@ async function loadHRData(){
    sb.from('restaurant_employee_leaves').select('*').eq('restaurant_id',rid).order('start_date',{ascending:false}).limit(300),
    sb.from('restaurant_employee_payments').select('*').eq('restaurant_id',rid).order('payment_date',{ascending:false}).limit(300)
   ]);
+  if(version!==hrReadVersion||hrRestaurantId()!==rid||currentUser?.id!==userId)return;
   for(const x of [e,a,l,p])if(x.error)throw x.error;
   hrEmployees=e.data||[];hrAttendance=a.data||[];hrLeaves=l.data||[];hrPayments=p.data||[];
   renderHR();
- }catch(err){document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
+ }catch(err){if(version!==hrReadVersion||hrRestaurantId()!==rid||currentUser?.id!==userId)return;
+  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];renderHR();document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;console.error(err)}
 }
 function renderHREmployeeSelects(){
  const optionRows=list=>'<option value="">Select employee</option>'+list.map(e=>'<option value="'+esc(e.id)+'">'+esc(e.full_name)+(e.employee_code?' · '+esc(e.employee_code):'')+'</option>').join('');
@@ -2169,15 +2179,56 @@ function renderHR(){
  document.getElementById('hrPaymentEmpty').style.display=hrPayments.length?'none':'block';
  document.getElementById('hrStatus').textContent=active+' active · '+hrAttendance.length+' attendance records · '+hrLeaves.length+' leave records';
  renderHREmployeeSelects();
+ renderHRV3();
+}
+function renderHRV3(){
+ const page=document.getElementById('hr'),rid=hrRestaurantId();
+ if(!page||access.role!=='owner'||!currentUser?.id||!rid||!window.BiteOwnerA08)return;
+ if(!access.memberships.some(x=>x.role==='owner'&&x.restaurant_id===rid))return;
+ page.classList.add('v3-a08-ready');
+ if(!page.dataset.v3HrTask)page.dataset.v3HrTask='employee';
+ window.BiteOwnerA08.render({
+  cards:document.getElementById('hrV3EmployeeCards'),dayHost:document.getElementById('hrV3AttendanceDay'),
+  employees:hrEmployees,attendance:hrAttendance,restaurantId:rid,
+  date:document.getElementById('hrAttendanceDate').value,
+  query:hrV3Query,filter:hrV3Filter,role:access.role,onAction:handleHRV3Action
+ });
+}
+function hrV3OpenEditor(){
+ document.getElementById('hrEmployeePanel').classList.add('v3-a08-editing');
+ window.BiteOwnerHRTabs?.activate?.(document,'employee');
+ document.getElementById('hrEmployeeName').focus({preventScroll:true});
+ document.getElementById('hrEmployeePanel').scrollIntoView({block:'start',behavior:'smooth'});
+}
+function handleHRV3Action(action,id){
+ if(access.role!=='owner'||!currentUser?.id||!window.BiteOwnerA08?.uuid(id))return;
+ const rid=hrRestaurantId(),e=hrEmployees.find(x=>x.id===id&&x.restaurant_id===rid);
+ if(!e)return;
+ if(action==='edit'){editHREmployee(id);hrV3OpenEditor();}
+ if(action==='deactivate'&&e.status==='Active')void deleteHREmployee(id);
+ if(action==='mark'&&e.status==='Active'){
+  const date=document.getElementById('hrAttendanceDate').value;
+  const current=hrAttendance.find(a=>a.employee_id===id&&a.restaurant_id===rid&&a.attendance_date===date);
+  document.getElementById('hrAttendanceEmployee').value=id;
+  document.getElementById('hrAttendanceStatus').value=current?.status||'Present';
+  document.getElementById('hrCheckIn').value=String(current?.check_in||'').slice(0,5);
+  document.getElementById('hrCheckOut').value=String(current?.check_out||'').slice(0,5);
+  document.getElementById('hrAttendanceNotes').value=current?.notes||'';
+  window.BiteOwnerHRTabs?.activate?.(document,'attendance');
+  document.getElementById('hrAttendanceEmployee').focus({preventScroll:true});
+  document.getElementById('hrAttendancePanel').scrollIntoView({block:'start',behavior:'smooth'});
+ }
 }
 function resetHREmployeeForm(){
+ document.getElementById('hrEmployeePanel').classList.remove('v3-a08-editing');
  editingHREmployeeId=null;['hrEmployeeId','hrEmployeeCode','hrEmployeeName','hrEmployeePhone','hrEmployeePosition','hrEmployeeNotes'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('hrEmployeeJoining').value=localDateInput();document.getElementById('hrEmployeeSalary').value='0';
  document.getElementById('hrEmployeeSalaryPeriod').value='Monthly';document.getElementById('hrEmployeeStatus').value='Active';
  document.getElementById('hrEmployeeSaveBtn').textContent='Save employee';
 }
 function editHREmployee(id){
- const e=hrEmployees.find(x=>x.id===id);if(!e)return;editingHREmployeeId=id;
+ const e=hrEmployees.find(x=>x.id===id&&x.restaurant_id===hrRestaurantId());if(!e)return;editingHREmployeeId=id;
+ document.getElementById('hrEmployeePanel').classList.add('v3-a08-editing');
  document.getElementById('hrEmployeeId').value=id;document.getElementById('hrEmployeeCode').value=e.employee_code||'';
  document.getElementById('hrEmployeeName').value=e.full_name;document.getElementById('hrEmployeePhone').value=e.phone||'';
  document.getElementById('hrEmployeePosition').value=e.position||'';document.getElementById('hrEmployeeJoining').value=e.joining_date;
@@ -2229,6 +2280,9 @@ async function saveHREmployeePayment(){
  try{const {error}=await sb.from('restaurant_employee_payments').insert({restaurant_id:rid,employee_id:eid,payment_date:date,period_month:periodMonth,payment_type:document.getElementById('hrPaymentType').value,amount,payment_method:document.getElementById('hrPaymentMethod').value,reference:document.getElementById('hrPaymentReference').value.trim()||null,notes:document.getElementById('hrPaymentNotes').value.trim()||null,created_by:currentUser.id});if(error)throw error;document.getElementById('hrPaymentAmount').value='';document.getElementById('hrPaymentReference').value='';document.getElementById('hrPaymentNotes').value='';document.getElementById('hrPaymentMessage').textContent='Payment saved';await loadHRData()}
  catch(e){document.getElementById('hrPaymentMessage').textContent='Payment save nahi hua: '+e.message;console.error(e)}
 }
+document.getElementById('hrV3Search').addEventListener('input',event=>{hrV3Query=event.target.value;renderHRV3()});
+document.getElementById('hrV3Filter').addEventListener('change',event=>{hrV3Filter=event.target.value;renderHRV3()});
+document.getElementById('hrV3AddEmployee').addEventListener('click',()=>{resetHREmployeeForm();hrV3OpenEditor()});
 document.getElementById('hrRestaurant').addEventListener('change',loadHRData);
 document.getElementById('hrAttendanceDate').addEventListener('change',renderHR);
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
