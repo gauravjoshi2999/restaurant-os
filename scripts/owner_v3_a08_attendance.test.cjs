@@ -60,7 +60,7 @@ test('Existing employee/leave/payroll functions remain available, but selected d
  for(const word of ["id=\"hrAttendanceRegister\"",'BiteV3Attendance.load','loadHRAttendanceDay','hrLoadVersion',
   'restaurant_employee_payments',"data-v3-attendance-employee","owner-v3-attendance.js?v="])
   assert.ok(html.includes(word),word);
- assert.match(html,/\.eq\('restaurant_id',rid\)\.eq\('employee_id',eid\)\.eq\('attendance_date',date\)/);
+ assert.match(html,/\.eq\('restaurant_id',rid\)\s*\.eq\('employee_id',eid\)\s*\.eq\('attendance_date',date\)/);
  assert.match(css,/@media\(max-width:430px\)/);
  const source=fs.readFileSync('assets/owner-v3-attendance.js','utf8');
  assert.doesNotMatch(source,/\.(?:insert|update|upsert|delete|rpc)\s*\(/);
