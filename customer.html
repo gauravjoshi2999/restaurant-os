@@ -894,6 +894,25 @@ async function loadCustomerSupportTickets(sequence=customerAccountViewSequence,u
  }catch(error){if(!biteAccountRequestActive(sequence,userId))return;box.textContent='Support requests load nahi hui: '+(error.message||String(error));}
 }
 let biteSupportSubmitPending=false;
+// One secure UUID per exact customer draft. The existing ticket primary key makes
+// retries idempotent server-side even if the first HTTP response was lost.
+// Never persist the support message or a customer identifier in browser storage.
+let biteSupportRetryTicket=null;
+function biteSupportTicketId(customerId,category,orderId,subject,message){
+ const signature=JSON.stringify([category,orderId,subject,message]);
+ if(biteSupportRetryTicket?.customerId===customerId&&biteSupportRetryTicket.signature===signature)
+  return biteSupportRetryTicket.id;
+ const randomId=typeof crypto!=='undefined'&&typeof crypto.randomUUID==='function'?crypto.randomUUID():null;
+ if(!randomId)throw new Error('Secure request ID unavailable');
+ biteSupportRetryTicket={customerId,signature,id:randomId};
+ return randomId;
+}
+async function biteSupportFindExisting(requestId,customerId){
+ // Existing customer SELECT RLS prevents treating another account's ID as success.
+ const result=await sb.from('customer_support_tickets')
+  .select('id').eq('id',requestId).eq('customer_id',customerId).maybeSingle();
+ return !result.error&&result.data?.id===requestId;
+}
 $('customerSupportForm')?.addEventListener('submit',async e=>{
  e.preventDefault();
  // Lock synchronously, before the asynchronous auth check, against double-tap submits.
@@ -913,9 +932,28 @@ $('customerSupportForm')?.addEventListener('submit',async e=>{
   if(!requestedUserId){showAuth('login');return;}
   if(ownerAtSubmit&&ownerAtSubmit!==requestedUserId)return;
   if(activeCustomerId&&activeCustomerId!==requestedUserId)return;
-  const {error}=await sb.from('customer_support_tickets').insert({customer_id:requestedUserId,order_id:orderId,category,subject,message});
-  if(error)throw error;
+  const requestId=biteSupportTicketId(requestedUserId,category,orderId,subject,message);
+  let saved=false;
+  try{
+   const {error}=await sb.from('customer_support_tickets').insert({
+    id:requestId,customer_id:requestedUserId,order_id:orderId,category,subject,message
+   });
+   if(error){
+    if(error.code!=='23505')throw error;
+    // A duplicate key alone is not proof of ownership or successful submission.
+    saved=await biteSupportFindExisting(requestId,requestedUserId);
+    if(!saved)throw error;
+   }else saved=true;
+  }catch(insertError){
+   // A timeout can occur AFTER a committed insert. Verify the exact owned ticket
+   // before reporting success; if still uncertain, retain the same key for retry.
+   if(!saved){
+    try{saved=await biteSupportFindExisting(requestId,requestedUserId);}catch{}
+   }
+   if(!saved)throw insertError;
+  }
   if(activeCustomerId!==requestedUserId)return;
+  biteSupportRetryTicket=null;
   $('customerSupportForm').reset();
   errorBox.textContent='Support request bhej di gayi.';
   await loadCustomerSupportTickets();

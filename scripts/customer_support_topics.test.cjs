@@ -50,7 +50,7 @@ test('all seven support topic buttons are accessible and preserve existing form 
  assert.match(html,/id="biteSupportTopicHelp" role="status" hidden/);
  assert.match(html,/id="customerSupportForm"/);
  assert.match(html,/id="customerSupportCategory"/);
- assert.match(html,/sb\.from\('customer_support_tickets'\)\.insert\(\{customer_id:/);
+ assert.match(html,/sb\.from\('customer_support_tickets'\)\.insert\(\{\s*id:requestId,customer_id:/);
  assert.match(html,/assets\/customer-support-topics\.js\?v=20261119-help1/);
  assert.match(html,/assets\/customer-support-topics\.css\?v=20261119-help1/);
  assert.match(css,/body\[data-bite-app="customer"\]/);
