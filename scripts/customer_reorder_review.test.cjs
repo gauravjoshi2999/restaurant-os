@@ -65,6 +65,13 @@ test('native review is customer-only, accessible, mobile responsive and cannot c
  assert.match(css,/safe-area-inset-bottom/);
  assert.doesNotMatch(css,/Cashfree|payment_session|refun[d]|supabase|sb\.|fetch\(/i);
 });
+test('review shows confirmed previous food subtotal and allows discarding an unavailable preview line',()=>{
+ const js=fs.readFileSync('assets/customer-reorder-review.js','utf8');
+ assert.match(js,/Previous food items subtotal:/);
+ assert.match(js,/Remove unavailable/);
+ assert.match(js,/remove\.addEventListener\('click',\(\)=>li\.remove\(\)\)/);
+ assert.doesNotMatch(js,/sb\.|Cashfree\(|fetch\(/);
+});
 test('historical price RPC keeps customer ownership and existing authenticated scope',()=>{
  assert.match(sql,/create or replace function public\.bite_reorder_items\(p_order_id uuid\)/i);
  assert.match(sql,/where id=p_order_id and customer_id=auth\.uid\(\)/i);
