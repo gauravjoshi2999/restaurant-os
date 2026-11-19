@@ -37,8 +37,9 @@ test('choosing a topic preserves a customer custom subject and otherwise fills o
 });
 test('unknown input cannot invent a backend category, payment state or extra support ticket',()=>{
  assert.equal(topics.selection('fraudulent-unknown-topic',''),null);
- for(const s of ['sb.rpc','fetch(','cashfree','payment_intent','customer_support_tickets'].map(x=>new RegExp(x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))))
-  assert.doesNotMatch(fs.readFileSync('assets/customer-support-topics.js','utf8'),s);
+ const source=fs.readFileSync('assets/customer-support-topics.js','utf8').replace(/^\s*\/\*[\s\S]*?\*\//,'');
+ for(const needle of ['sb.rpc','fetch(','cashfree','payment_intent','customer_support_tickets'])
+  assert.ok(!source.toLowerCase().includes(needle.toLowerCase()),'Unexpected side-effect reference: '+needle);
 });
 test('all seven support topic buttons are accessible and preserve existing form and backend write',()=>{
  const keys=Object.keys(topics.options);
