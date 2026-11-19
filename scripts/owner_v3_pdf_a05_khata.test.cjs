@@ -94,3 +94,26 @@ test('A05 period picker is shared with Daily Book but never changes new receipt 
  assert.equal(selected.to,today);
  assert.match(html,/document\.getElementById\('khataEntryDate'\)\.value=localDateInput\(\)/);
 });
+
+test('A05 receipt RPC is request-idempotent, tenant/role guarded and original-ledger only',()=>{
+ const sql=fs.readFileSync('docs/sql/owner_a05_customer_receipts_staging.sql','utf8');
+ assert.match(sql,/alter table public\.restaurant_customer_ledger_entries/);
+ assert.match(sql,/add column if not exists receipt_request_id uuid/);
+ assert.match(sql,/create unique index if not exists restaurant_customer_receipt_request_unique/);
+ assert.match(sql,/security definer set search_path=''/);
+ assert.match(sql,/public\.has_restaurant_role\(p_restaurant_id,array\['owner','manager','staff'\]\)/);
+ assert.match(sql,/private\.bite_restaurant_staff_can\(p_restaurant_id,'payment_entry'\)/);
+ assert.match(sql,/from public\.restaurant_customers\s+where id=p_customer_id and restaurant_id=p_restaurant_id for update/);
+ assert.match(sql,/return prior\.id/);
+ assert.match(sql,/restaurant_cashbook_closings/);
+ assert.match(sql,/bite_property_shift_closings/);
+ assert.match(sql,/receipt exceeds current customer due|Receipt exceeds current customer due/);
+ assert.match(sql,/revoke all on function public\.record_restaurant_khata_receipt/);
+ assert.match(html,/sb\.rpc\('record_restaurant_khata_receipt'/);
+ assert.match(html,/p_request_id:khataReceiptRequestId/);
+ assert.match(html,/khataReceiptSignature!==signature/);
+ assert.match(html,/p_allow_advance:allowAdvance/);
+ assert.match(html,/recorded\. Cashbook reflects receipt only/);
+ assert.match(html,/function collectKhataDue\(customerId\)/);
+ assert.doesNotMatch(sql,/create table.*customer.*khata.*ledger/i);
+});
