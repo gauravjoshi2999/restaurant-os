@@ -1810,7 +1810,7 @@ async function deletePurchase(id){
 }
 document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases()});
 
-let inventoryItems=[],stockMovements=[],inventoryBalances={};
+let inventoryItems=[],stockMovements=[],inventoryBalances={},inventoryLoadSeq=0;
 function inventoryRestaurantId(){return document.getElementById('inventoryRestaurant').value||''}
 async function loadInventoryWorkspace(){
  const select=document.getElementById('inventoryRestaurant'),previous=select.value;
@@ -1824,16 +1824,20 @@ async function loadInventoryWorkspace(){
  document.getElementById('stockDate').value=localDateInput();await loadInventory();
 }
 async function loadInventory(){
- const rid=inventoryRestaurantId();if(!rid)return;
+ const rid=inventoryRestaurantId(),userId=currentUser?.id,seq=++inventoryLoadSeq;if(!rid||!userId)return;
  try{
   const [items,balances,moves]=await Promise.all([
    sb.from('restaurant_inventory_items').select('*').eq('restaurant_id',rid).eq('is_active',true).order('name'),
    sb.from('restaurant_inventory_balances').select('inventory_item_id,current_stock').eq('restaurant_id',rid),
    sb.from('restaurant_stock_movements').select('*').eq('restaurant_id',rid).order('movement_date',{ascending:false}).order('created_at',{ascending:false}).limit(100)
   ]);
+  if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id||!['owner','manager'].includes(access.role))return;
   if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
   inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,Number(b.current_stock)]));stockMovements=moves.data||[];renderInventory();
- }catch(e){document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id)return;
+  document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;
+  document.getElementById('inventoryV3Cards').textContent='Stock load nahi hua. Refresh karein.';
+  console.error(e)}
 }
 function stockBalance(itemId){return Number(inventoryBalances[itemId]||0)}
 function renderInventory(){
@@ -1845,6 +1849,16 @@ function renderInventory(){
   return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+qty.toFixed(3)+' '+esc(i.unit)+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(isLow?'amber':'green')+'">'+(isLow?'Low stock':'In stock')+'</span></td></tr>';
  }).join('');
  document.getElementById('inventoryEmpty').style.display=active?'none':'block';
+ window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
+  items:inventoryItems,balances:inventoryBalances,
+  query:document.getElementById('inventoryV3Search')?.value||'',
+  onAdjust:id=>{
+   const select=document.getElementById('stockItem');
+   select.value=id;document.getElementById('stockType').value='adjustment_out';
+   document.getElementById('stockQuantity').focus();
+   document.getElementById('stockQuantity').scrollIntoView?.({block:'center',behavior:'smooth'});
+  }
+ });
  const sel=document.getElementById('stockItem'),old=sel.value;
  sel.innerHTML=inventoryItems.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.name)+' ('+esc(i.unit)+')</option>').join('');
  if(inventoryItems.some(i=>i.id===old))sel.value=old;
@@ -1867,13 +1881,40 @@ async function saveInventoryItem(){
 async function saveStockMovement(){
  if(!['owner','manager'].includes(access.role))return;
  const rid=inventoryRestaurantId(),itemId=document.getElementById('stockItem').value,type=document.getElementById('stockType').value,quantity=Number(document.getElementById('stockQuantity').value),cost=document.getElementById('stockUnitCost').value,date=document.getElementById('stockDate').value,expiry=document.getElementById('stockExpiry').value,reference=document.getElementById('stockReference').value.trim(),notes=document.getElementById('stockNotes').value.trim();
- if(!rid||!itemId||!date||!Number.isFinite(quantity)||quantity<=0){document.getElementById('stockMessage').textContent='Item, date aur valid quantity bharna zaroori hai.';return}
- const btn=document.getElementById('stockSaveBtn');btn.disabled=true;
+ const note=document.getElementById('stockMessage');
+ const reviewed=window.BiteV3Inventory?.reviewMovement?.({
+  type,quantity,cost,date,today:localDateInput(),
+  item:inventoryItems.find(i=>i.id===itemId&&i.restaurant_id===rid),
+  stock:stockBalance(itemId),reason:notes,reference,
+  movements:stockMovements
+ });
+ if(!rid||!itemId||!reviewed?.ok){
+  note.textContent=reviewed?.message||'Stock movement review unavailable. Refresh and try again.';return;
+ }
+ const btn=document.getElementById('stockSaveBtn');if(btn.disabled)return;btn.disabled=true;
  try{const payload={restaurant_id:rid,inventory_item_id:itemId,movement_type:type,quantity,movement_date:date,unit_cost:cost===''?null:Number(cost),expiry_date:expiry||null,reference:reference||null,notes:notes||null,created_by:currentUser.id};const {error}=await sb.from('restaurant_stock_movements').insert(payload);if(error)throw error;
   document.getElementById('stockQuantity').value='';document.getElementById('stockUnitCost').value='';document.getElementById('stockExpiry').value='';document.getElementById('stockReference').value='';document.getElementById('stockNotes').value='';document.getElementById('stockMessage').textContent='Stock movement saved';await loadInventory();
  }catch(e){document.getElementById('stockMessage').textContent='Stock save nahi hua: '+e.message;console.error(e)}finally{btn.disabled=false}
 }
-document.getElementById('inventoryRestaurant').addEventListener('change',loadInventory);
+document.getElementById('inventoryRestaurant').addEventListener('change',()=>{
+ inventoryLoadSeq++;inventoryItems=[];inventoryBalances={};stockMovements=[];
+ document.getElementById('inventoryV3Search').value='';
+ document.getElementById('inventoryV3Cards').textContent='Loading selected restaurant stock…';
+ void loadInventory();
+});
+document.getElementById('inventoryV3Search').addEventListener('input',()=>{
+ if(!inventoryRestaurantId()||!['owner','manager'].includes(access.role))return;
+ window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
+  items:inventoryItems,balances:inventoryBalances,
+  query:document.getElementById('inventoryV3Search').value,
+  onAdjust:id=>{
+   document.getElementById('stockItem').value=id;
+   document.getElementById('stockType').value='adjustment_out';
+   document.getElementById('stockQuantity').focus();
+   document.getElementById('stockQuantity').scrollIntoView?.({block:'center',behavior:'smooth'});
+  }
+ });
+});
 
 let cashbookEntries=[],cashbookClosing=null,cashbookLastLoadedKey=null;
 let cashbookDataReadyKey=null,cashbookLoadSequence=0,cashbookClosingBusy=false,cashbookEntryBusy=false,cashbookReview=null;
