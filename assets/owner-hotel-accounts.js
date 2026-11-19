@@ -265,6 +265,62 @@
   month=day.slice(0,7);collectionFocusDay=day;viewPeriod={mode:'day',day};
   return true;
  }
+ // POS -> canonical Daily Book link. Payment date comes from the original
+ // tenant-scoped payment, never from the bill creation/service date.
+ function findPosReceipt(state,restaurantId,orderId,paymentId){
+  const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if(!restaurantId||!uuid.test(String(orderId||''))||!uuid.test(String(paymentId||'')))return null;
+  const order=(state?.orders||[]).find(o=>o.id===orderId&&o.restaurant===restaurantId&&
+   String(o.channel||'').startsWith('POS - ')&&!String(o.code||'').startsWith('POS-ROOM-')&&
+   !o.isDemo&&!['Cancelled','Rejected'].includes(o.status));
+  const payment=(state?.orderPayments||[]).find(x=>x.id===paymentId&&x.order_id===orderId&&
+   x.restaurant_id===restaurantId&&Number(x.amount)>0);
+  const day=String(payment?.payment_date||'');
+  if(!order||!payment||!/^\\d{4}-\\d{2}-\\d{2}$/.test(day))return null;
+  const parsed=new Date(day+'T00:00:00Z');
+  if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==day)return null;
+  return {order,payment,day};
+ }
+ async function focusPosReceipt(orderId,paymentId){
+  const userId=ctx?.getUser?.()?.id,access=ctx?.getAccess?.(),key=scope(),rid=access?.restaurantId;
+  if(!userId||!enabled()||!p()?.id||access?.role!=='owner'||!rid||
+     !H()?.routeList?.(access)?.includes('daily-book'))return {ok:false,reason:'Daily Book is unavailable for this Owner account.'};
+  const found=findPosReceipt(ctx.getState?.()||{},rid,orderId,paymentId);
+  if(!found||found.day>today())return {ok:false,reason:'Confirmed POS payment not found in this restaurant.'};
+  if(typeof ctx.navigate!=='function')return {ok:false,reason:'Daily Book navigation unavailable.'};
+  viewPeriod={mode:'day',day:found.day};month=found.day.slice(0,7);collectionFocusDay=found.day;
+  try{
+   await ctx.navigate('daily-book');
+   if(key!==scope()||ctx.getUser?.()?.id!==userId||ctx.getAccess?.()?.restaurantId!==rid)
+    return {ok:false,reason:'Account changed while opening receipt.'};
+   // Ensures the canonical period request settles before attempting to highlight a receipt.
+   const target=document.getElementById('daily-book');
+   if(!target?.isConnected)return {ok:false,reason:'Daily Book is not currently visible.'};
+   await renderDailyBook(target);
+   if(key!==scope()||ctx.getUser?.()?.id!==userId||ctx.getAccess?.()?.restaurantId!==rid)
+    return {ok:false,reason:'Account changed while loading receipt.'};
+   const source=reportScope===key&&report?.from===found.day&&report?.to===found.day&&
+    report.journal?.find(x=>x.source_type==='order_payment'&&
+     x.id===paymentId&&x.day===found.day&&x.direction==='in');
+   const collection=target.querySelector('#haCollections');
+   if(!source){
+    if(collection){
+     const notice=document.createElement('p');notice.className='v3-money-empty';notice.setAttribute('role','status');
+     notice.textContent='This POS payment is not verified in Daily Book on '+found.day+'. No entry was created. Refresh or review the payment source.';
+     collection.prepend(notice);
+    }
+    return {ok:false,reason:'Payment source is not verified in the selected Daily Book date.'};
+   }
+   const button=[...(collection?.querySelectorAll('[data-v3-money-id]')||[])].find(b=>
+    b.dataset.v3MoneySource==='order_payment'&&b.dataset.v3MoneyId===paymentId);
+   const row=button?.closest('details');
+   if(row){row.open=true;row.classList.add('v3-money-highlight');row.scrollIntoView?.({block:'center'});}
+   button?.focus?.({preventScroll:true});
+   return {ok:true,day:found.day};
+  }catch(error){
+   return {ok:false,reason:error?.message||'Daily Book receipt could not be opened.'};
+  }
+ }
  // Open the matching source already present in the signed-in property report.
  // Never create a second receipt or infer a bill from a payment amount.
  async function openCollectionSource(entry){
@@ -412,6 +468,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
