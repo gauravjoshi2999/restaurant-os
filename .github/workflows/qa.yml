@@ -56,6 +56,7 @@ jobs:
           python scripts/owner_v3_a07_inventory_browser.py
           python scripts/owner_v3_a08_attendance_browser.py
           python scripts/owner_v3_a09_staff_payments_browser.py
+          python scripts/owner_v3_a10_salary_closing_browser.py
           python scripts/owner_remaining_browser.py
           python scripts/guest_documents_browser.py
 
@@ -353,3 +354,34 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/super_admin_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118045931_super_admin_workspace.sql
           psql -v ON_ERROR_STOP=1 -f scripts/super_admin_db_test.sql
+
+  owner-a10-salary-closing-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_salary_a10
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_salary_a10"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_salary_a10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify salary closing, owner RLS, source payment parity and advance safety
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_a10_salary_closing_pg_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261119173000_owner_a10_salary_closing.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_a10_salary_closing_pg_test.sql

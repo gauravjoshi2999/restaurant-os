@@ -729,6 +729,9 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/owner-v3-attendance.js?v=20261119-a08-1" defer></script>
 <script src="assets/owner-v3-staff-payments.js?v=20261119-a09-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
+<script src="assets/owner-v3-salary-closing.js?v=20261119-a10-1" defer></script>
+<script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a10-1" defer></script>
+<link rel="stylesheet" href="assets/owner-v3-salary-closing.css?v=20261119-a10-1">
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
@@ -1044,7 +1047,7 @@ body.bite-session-check #biteSessionSplash{
 
 <section class="page" id="hr">
  <div class="welcome"><div><h1>Staff & HR</h1><div class="muted">Employee profile, daily attendance, leave records aur salary payments.</div></div><button class="btn secondary" type="button" onclick="loadHRData()">Refresh</button></div>
- <div class="notice">Salary amount employee profile me store hota hai. Attendance aur leave records manual hain. Salary/advance/bonus ki actual payment Owner record karega aur Cashbook me outflow dikhega. Automatic salary calculation, payslip aur overtime calculation abhi enabled nahi hain.</div>
+ <div class="notice">Salary amount employee profile me store hota hai. Attendance aur leave records manual hain. Owner salary, advance aur bonus payments alag record karega. Completed month ke liye Owner manually salary closing approve kar sakta hai; closing khud payment ya Cashbook entry nahi hai. Automatic salary, payslip, deductions ya overtime calculation enabled nahi hain.</div>
  <div class="card"><div class="form-row" style="align-items:end">
   <div class="field"><label>Restaurant</label><select id="hrRestaurant"></select></div>
   <div class="field"><label>Attendance date</label><input id="hrAttendanceDate" type="date"></div>
@@ -1115,6 +1118,26 @@ body.bite-session-check #biteSessionSplash{
    </div>
    <div class="field"><label>Payment note</label><input id="hrPaymentNotes" maxlength="250" placeholder="Optional"></div>
    <div class="actions"><button class="btn" id="hrPaymentSaveBtn" type="button" onclick="saveHREmployeePayment()">Save payment</button><span class="small" id="hrPaymentMessage" role="status"></span></div>
+   <section class="a10-salary-close" id="hrA10Section" hidden aria-label="Owner-approved completed salary month closing">
+    <h3>Salary Closing & Advance Adjustment</h3>
+    <p class="a10-sub">Close a completed month after reviewing agreed earnings and actual recorded payments. Closing is permanent approval, not a transfer or a new Cashbook expense.</p>
+    <div class="a10-fields">
+     <label>Staff member<select id="hrA10Employee"><option value="">Select employee</option></select></label>
+     <label>Completed salary month<input type="month" id="hrA10Month"></label>
+     <label>Approved gross salary (₹)<input id="hrA10Gross" type="number" min="0" step="0.01" placeholder="Enter agreed amount"></label>
+     <label>Bonus earned (₹)<input id="hrA10Bonus" type="number" min="0" step="0.01" value="0"></label>
+     <label>Approved deduction (₹)<input id="hrA10Deduction" type="number" min="0" step="0.01" value="0"></label>
+     <label>Advance to adjust (₹)<input id="hrA10Advance" type="number" min="0" step="0.01" value="0"></label>
+     <label class="a10-note">Approval note / deduction reason<textarea id="hrA10Note" maxlength="500" placeholder="What was agreed and why? Required for deductions."></textarea></label>
+    </div>
+    <p class="a10-sub" id="hrA10Rate"></p>
+    <div id="hrA10Result" aria-live="polite"></div>
+    <div class="a10-actions"><button type="button" class="secondary" id="hrA10Refresh">Refresh sources</button><button type="button" id="hrA10Preview">Preview closing</button></div>
+    <div id="hrA10Review" class="a10-review" hidden></div>
+    <label class="a10-approval"><input type="checkbox" id="hrA10Approval">I checked the gross, deductions, advance and prior payments. I approve this monthly closing. No payment will be sent.</label>
+    <div class="a10-actions"><button type="button" id="hrA10Save" disabled>Approve monthly closing</button></div>
+    <p class="a10-message" id="hrA10Message" role="status" aria-live="polite"></p>
+   </section>
   </div>
  </div>
  <div class="section"><div class="section-head"><h2>Employees</h2><span class="small" id="hrEmployeeCount">0 employees</span></div>
@@ -2181,6 +2204,7 @@ async function loadHRData(){
  const isCurrent=()=>version===hrLoadVersion&&hrRestaurantId()===rid&&currentUser?.id===userId;
  // Clear all previous tenant rows before the four requests settle.
  hrPaymentStatementVersion++;
+ window.BiteV3SalaryClosingUI?.clear?.();
  document.getElementById('hrV3PaymentStatement').replaceChildren();
  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayReport=null;hrDayKey='';hrDayVersion++;
  document.getElementById('hrEmployeeRows').replaceChildren();
@@ -2203,6 +2227,11 @@ async function loadHRData(){
    if(!Array.isArray(rows)||rows.some(item=>item.restaurant_id!==rid))throw Error('Incomplete '+key+' restaurant scope.');
   hrEmployees=e.data;hrAttendance=a.data;hrLeaves=l.data;hrPayments=p.data;
   renderHR();
+  if(isCurrent())window.BiteV3SalaryClosingUI?.mount?.({
+   client:sb,getRestaurantId:hrRestaurantId,getUserId:()=>currentUser?.id||'',
+   getRole:()=>access?.role,getMemberships:()=>access?.memberships||[],
+   getEmployees:()=>hrEmployees,getToday:localDateInput
+  });
   await loadHRAttendanceDay();
   if(isCurrent())void loadHRPaymentStatement();
  }catch(err){
