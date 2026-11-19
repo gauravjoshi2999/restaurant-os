@@ -13,7 +13,7 @@ test('Selected founder-approved logo images exist and use real binary formats',(
  assert.ok(word.length>10000&&icon.length>8000);
 });
 
-test('Owner, Admin and QR retain founder-approved Bite branding; customer storefront uses the new requested green treatment',()=>{
+test('Owner, Admin and QR retain founder-approved Bite branding; customer storefront uses isolated orange treatment',()=>{
  for(const page of ['index.html','owner-feedback.html','menu-qr.html','menu-qr-card.html',
                    'delivery.html','contact.html','delivery-test.html','cashfree-sandbox-test.html']){
    const html=fs.readFileSync(page,'utf8');
@@ -26,7 +26,8 @@ test('Owner, Admin and QR retain founder-approved Bite branding; customer storef
  assert.match(owner,/assets\/bite-selected-wordmark\.webp/);
  const customer=fs.readFileSync('customer.html','utf8');
  assert.match(customer,/class="customer-brand bite-brand-refined"/);
- assert.match(customer,/assets\/bite-premium-mark\.svg/);
+ assert.ok(customer.includes('assets/bite-customer-orange-mark.svg'));
+ assert.ok(!fs.readFileSync('assets/bite-customer-orange-mark.svg','utf8').includes('#087B4D'));
  assert.match(customer,/<strong>Bite<\/strong><small>Eat\. Repeat\.<\/small>/);
  assert.doesNotMatch(customer,/<img[^>]+class="bite-logo"/);
  const premium=fs.readFileSync('assets/bite-premium-mark.svg','utf8');

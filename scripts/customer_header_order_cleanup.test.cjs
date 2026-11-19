@@ -24,11 +24,11 @@ test('only the header location selector is shown; legacy validated form remains 
   assert.match(html,/id="biteSheetPinForm"/);
 });
 
-test('customer header and footer show original theme-matched Bite wordmark',()=>{
+test('customer header and footer show approved orange Bite mark and wordmark',()=>{
   assert.match(html,/<a[^>]*class="customer-brand bite-brand-refined"/);
   assert.match(html,/<span class="bite-brand-copy"><strong>Bite<\/strong><small>Eat\. Repeat\.<\/small><\/span>/);
   assert.match(html,/class="bite-footer-brand"/);
-  assert.match(html,/assets\/bite-premium-mark\.svg/);
+  assert.ok(html.includes('assets/bite-customer-orange-mark.svg'));
   assert.match(mark,/<svg[\s\S]*viewBox="0 0 72 72"/);
   assert.match(mark,/fill="#087B4D"/);
   assert.doesNotMatch(html,/<a[^>]+class="customer-brand"[^>]*><img src="assets\/bite-selected-wordmark\.webp"/);

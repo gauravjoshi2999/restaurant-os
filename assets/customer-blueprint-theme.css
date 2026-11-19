@@ -1,0 +1,195 @@
+/* Bite 2026 customer-only design foundation.
+ * Source: BITE Final Customer Master Blueprint, 19 Nov 2026, p. 5-6.
+ * Warm orange is a brand accent; darker orange provides AA-readable white CTA text.
+ * Existing checkout, cart, account and payment behavior remains unchanged.
+ */
+body[data-bite-app="customer"]{
+ --bite-brand-orange:#F36C22;
+ --bite-primary:#B7420B;
+ --bite-primary-hover:#973307;
+ --bite-focus:#B7420B;
+ --bite-canvas:#F8F6F2;
+ --bite-surface:#FFFEFC;
+ --bite-field:#FFF9F5;
+ --bite-border:#EADFD6;
+ --bite-ink:#1F293D;
+ --bite-muted:#5C6473;
+ --bite-tint:#FFF0E6;
+ --bite-tint-border:#F5C9AA;
+ --brand:#B7420B;
+ --primary:#B7420B;
+ --bg:#F8F6F2;
+ --ink:#1F293D;
+ --muted:#5C6473;
+ --line:#EADFD6;
+ background:#F8F6F2;color:#1F293D;
+}
+body[data-bite-app="customer"] .header{
+ background:rgba(255,255,255,.96);border-bottom-color:#EEE1D6;
+ box-shadow:0 4px 22px rgba(57,40,25,.08);
+}
+body[data-bite-app="customer"] .customer-brand,
+body[data-bite-app="customer"] .bite-brand-copy strong,
+body[data-bite-app="customer"] .bite-location-opener,
+body[data-bite-app="customer"] .food-section-heading h2,
+body[data-bite-app="customer"] .restauranthead h1,
+body[data-bite-app="customer"] .rname,
+body[data-bite-app="customer"] #menuItems .itemname{
+ color:#1F293D;
+}
+body[data-bite-app="customer"] .location-pin,
+body[data-bite-app="customer"] .bite-location-opener svg,
+body[data-bite-app="customer"] .food-eyebrow,
+body[data-bite-app="customer"] .food-hero .food-eyebrow,
+body[data-bite-app="customer"] .food-hero h1 em,
+body[data-bite-app="customer"] .home-category.active,
+body[data-bite-app="customer"] .dish-match{color:#B7420B}
+body[data-bite-app="customer"] .food-hero{
+ border-color:#F0CEB4;border-radius:26px;
+ background:linear-gradient(120deg,#FFF0E3 0%,#FFF7F0 56%,#F8F3EB 100%);
+ box-shadow:0 16px 44px rgba(111,52,14,.12);
+}
+body[data-bite-app="customer"] .food-hero h1{color:#1F293D}
+body[data-bite-app="customer"] .food-hero p,
+body[data-bite-app="customer"] .food-hero-notes,
+body[data-bite-app="customer"] .desc,
+body[data-bite-app="customer"] .location-sub,
+body[data-bite-app="customer"] #menuItems .itemdesc{color:#5C6473}
+body[data-bite-app="customer"] .food-hero-art:after{
+ background:linear-gradient(90deg,#FFF0E3 0%,rgba(255,240,227,.3) 48%,transparent 100%);
+}
+body[data-bite-app="customer"] .food-hero-stamp{
+ border-color:#F0C4A6;background:#FFF6ED;color:#A63C08;
+}
+body[data-bite-app="customer"] .search.home-searchrow,
+body[data-bite-app="customer"] .menu-search,
+body[data-bite-app="customer"] .bite-history-search{
+ border-color:#E8D6C8;background:#FFF;
+}
+body[data-bite-app="customer"] .search.home-searchrow svg{color:#B7420B}
+body[data-bite-app="customer"] .search.home-searchrow>button,
+body[data-bite-app="customer"] .primary,
+body[data-bite-app="customer"] .bite-location-form button,
+body[data-bite-app="customer"] .categorybar .chip.active{
+ background:#B7420B;border-color:#B7420B;color:#FFF;
+}
+body[data-bite-app="customer"] .search.home-searchrow>button:hover,
+body[data-bite-app="customer"] .primary:hover,
+body[data-bite-app="customer"] .bite-location-form button:hover{background:#973307;border-color:#973307;color:#FFF}
+body[data-bite-app="customer"] button:focus-visible,
+body[data-bite-app="customer"] a:focus-visible,
+body[data-bite-app="customer"] input:focus-visible,
+body[data-bite-app="customer"] select:focus-visible,
+body[data-bite-app="customer"] textarea:focus-visible{
+ outline:3px solid #B7420B;outline-offset:3px;
+}
+body[data-bite-app="customer"] .home-category .category-photo{
+ background:#FFF1E5;border-color:#F1DACB;
+}
+body[data-bite-app="customer"] .home-category.active .category-photo{
+ background:#FFEADB;border-color:#E8B78F;box-shadow:0 7px 18px rgba(141,63,22,.13);
+}
+body[data-bite-app="customer"] .tool-chip,
+body[data-bite-app="customer"] .restaurant,
+body[data-bite-app="customer"] .menu-browse-tools,
+body[data-bite-app="customer"] .cart,
+body[data-bite-app="customer"] #ordersView .ordercard{
+ border-color:#EBE1D8;background:#FFF;
+}
+body[data-bite-app="customer"] .tool-chip{color:#45495A}
+body[data-bite-app="customer"] .tool-chip.active,
+body[data-bite-app="customer"] .home-bottom-nav button.active,
+body[data-bite-app="customer"] .header .login,
+body[data-bite-app="customer"] .home-account{
+ color:#A63C08;background:#FFF0E5;border-color:#EBC1A6;
+}
+body[data-bite-app="customer"] .restaurant{
+ box-shadow:0 9px 28px rgba(74,44,23,.09);border-radius:21px;
+}
+body[data-bite-app="customer"] .restaurant:hover{
+ border-color:#E8C3A8;box-shadow:0 16px 38px rgba(74,44,23,.15);
+}
+body[data-bite-app="customer"] .categorybar .chip{border-color:#E6D9CD;color:#45495A}
+body[data-bite-app="customer"] #menuItems .menuitem{border-bottom-color:#ECE5DF}
+body[data-bite-app="customer"] #menuItems .price{color:#1F293D}
+body[data-bite-app="customer"] #menuItems .menu-add-control .add,
+body[data-bite-app="customer"] #menuItems .item-quantity,
+body[data-bite-app="customer"] .bite-geo-button{
+ border-color:#F0C29F;background:#FFF0E5;color:#A63C08;
+}
+body[data-bite-app="customer"] #menuItems .item-quantity button{color:#A63C08}
+body[data-bite-app="customer"] .bite-search-suggestions,
+body[data-bite-app="customer"] .bite-location-sheet,
+body[data-bite-app="customer"] .cart-modal-box,
+body[data-bite-app="customer"] .checkoutbox{
+ border-color:#EADFD6;background:#FFF;
+}
+body[data-bite-app="customer"] .bite-search-suggestions button:hover,
+body[data-bite-app="customer"] .bite-search-suggestions button:focus-visible{
+ background:#FFF0E6;
+}
+body[data-bite-app="customer"] .bite-search-kind,
+body[data-bite-app="customer"] #ordersView .bite-history-chips button[aria-pressed="true"]{
+ background:#B7420B;color:#FFF;border-color:#B7420B;
+}
+body[data-bite-app="customer"] .home-bottom-nav{
+ background:rgba(255,255,255,.97);border-top-color:#E7D8CD;
+}
+body[data-bite-app="customer"] .footer{background:#F5EEE7;border-color:#E8D9CD}
+/* The persistent cart must remain legible above the mobile bottom navigation. */
+body[data-bite-app="customer"] #cartFloating.bite-persistent-cart{
+ border-color:#E7D6C8;background:#FFF;color:#1F293D;
+ box-shadow:0 14px 35px rgba(77,45,23,.18);
+}
+body[data-bite-app="customer"] #cartFloating .bite-cart-dock-icon{
+ background:#FFF0E6;color:#A63C08;
+}
+body[data-bite-app="customer"] #cartFloating #floatingCartRestaurant{color:#1F293D}
+body[data-bite-app="customer"] #cartFloating #floatingCartCount{color:#5C6473}
+body[data-bite-app="customer"] #cartFloating #floatingViewCart{
+ background:#B7420B;color:#FFF;
+}
+body[data-bite-app="customer"] #cartFloating #floatingViewCart:hover{background:#973307}
+body[data-bite-app="customer"] #cartFloating #floatingCartTotal{color:#FFF}
+/* Do not recolor statuses: backend-verified success, pending and error remain distinct. */
+@media(max-width:760px){
+ body[data-bite-app="customer"] .food-hero{border-radius:20px}
+ body[data-bite-app="customer"] .restaurant{border-radius:18px}
+ body[data-bite-app="customer"] #cartFloating.bite-persistent-cart{
+  bottom:calc(84px + env(safe-area-inset-bottom));
+  max-width:calc(100% - 24px);
+ }
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] #cartFloating.bite-persistent-cart{gap:6px}
+ body[data-bite-app="customer"] #cartFloating #floatingViewCart{min-height:44px}
+}
+@media(prefers-reduced-motion:reduce){
+ body[data-bite-app="customer"] .restaurant{transition:none!important}
+}
+
+
+/* Keep default discovery neutral. Detailed dietary/sort choices are available in the existing filter sheet. */
+body[data-bite-app="customer"] .discovery-tools .bite-filter-label,
+body[data-bite-app="customer"] .discovery-tools #sortFastBtn{display:none}
+body[data-bite-app="customer"] .bite-filter-trigger{
+ background:#FFF0E5;color:#A63C08;border-color:#EFC5A9;
+}
+body[data-bite-app="customer"] .bite-filter-trigger-count,
+body[data-bite-app="customer"] #biteFilterApply{
+ background:#B7420B;color:#FFF;border-color:#B7420B;
+}
+body[data-bite-app="customer"] .bite-filter-rail>button.is-selected{
+ background:#FFF0E5;border-left-color:#B7420B;color:#A63C08;
+}
+body[data-bite-app="customer"] .bite-filter-option:has(input:checked){
+ background:#FFF0E5;border-color:#E8B78F;color:#A63C08;
+ box-shadow:inset 0 0 0 1px #E8B78F;
+}
+body[data-bite-app="customer"] .bite-filter-option input,
+body[data-bite-app="customer"] .bite-filter-switch input{accent-color:#B7420B}
+body[data-bite-app="customer"] #biteFilterClear{color:#A63C08}
+body[data-bite-app="customer"] .bite-filter-sheet button:focus-visible,
+body[data-bite-app="customer"] .bite-filter-sheet input:focus-visible{
+ outline:3px solid #B7420B;outline-offset:2px;
+}

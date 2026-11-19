@@ -285,6 +285,12 @@ try:
         cards = page.locator("#restaurantGrid .restaurant")
         cards.first.wait_for(state="visible", timeout=20000)
         check(cards.count() > 0, "Public approved restaurants are discoverable from live Supabase data")
+        # Capture the current real customer homepage for design review without changing orders.
+        shot_dir = ROOT / "dist" / "launch-qa"
+        shot_dir.mkdir(parents=True, exist_ok=True)
+        check(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") <= 1,
+              "Customer homepage has no horizontal overflow at 1365px")
+        page.screenshot(path=str(shot_dir / "ui-customer-home-1365.png"), animations="disabled")
         availability_fields = page.evaluate("""() => restaurants.length > 0 && restaurants.every(r =>
             ['is_temporarily_closed','temporary_closure_until','delivery_paused','opening_time','closing_time'].every(k => Object.prototype.hasOwnProperty.call(r,k)))""")
         check(availability_fields, "Public restaurant listing returns the new availability fields from Supabase")
@@ -504,6 +510,15 @@ try:
             "() => !/loading|finding/i.test(document.querySelector('#resultCount').textContent)",
             timeout=30000,
         )
+        # Inspect all blueprint target widths on the same customer HTML and CSS.
+        for width in (320, 360, 390, 430):
+            mobile.set_viewport_size({"width": width, "height": 844})
+            mobile.wait_for_timeout(110)
+            overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            check(overflow <= 1,
+                  f"Customer homepage fits {width}px without horizontal overflow (overflow={overflow}px)")
+            mobile.screenshot(path=str(shot_dir / f"ui-customer-home-{width}.png"), animations="disabled")
+        mobile.set_viewport_size({"width": 390, "height": 844})
         overflow = mobile.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 1, f"Customer page has no horizontal overflow at 390px (overflow={overflow}px)")
         check(mobile.locator("#restaurantGrid").is_visible(), "Customer restaurant discovery is visible on mobile")
