@@ -744,6 +744,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-access-controls.css?v=20261118-guest-controls1">
 <link rel="stylesheet" href="assets/owner-pdf-v3-home.css?v=20261118-h02-finance1">
 <link rel="stylesheet" href="assets/owner-v3-collections.css?v=20261118-a03-collections1">
+<link rel="stylesheet" href="assets/owner-v3-inventory.css?v=20261119-a07-1">
 <link rel="stylesheet" href="assets/owner-v3-historical-reconcile.css?v=20261119-reconcile1">
 <link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
 <link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
@@ -959,6 +960,8 @@ body.bite-session-check #biteSessionSplash{
 </section>
 
 <section class="page" id="inventory">
+ <div class="biv3-toolbar"><div class="biv3-quick-nav" aria-label="Inventory and supplier navigation"><button type="button" aria-current="page">Stock</button><button type="button" onclick="navigate('purchases')">Purchases</button><button type="button" onclick="navigate('purchases')">Suppliers</button></div><input type="search" id="inventoryV3Search" placeholder="Search rice, oil, flour..." aria-label="Search stock items"></div>
+ <div id="inventoryV3Cards" aria-label="Stock item cards"></div>
  <div class="welcome"><div><h1>Inventory & stock</h1><div class="muted">Raw material ka stock, inward/outward aur low-stock alert.</div></div><button class="btn secondary" type="button" onclick="loadInventory()">Refresh</button></div>
  <div class="notice">Purchase item ko Inventory item se map karte hi stock automatically add hoga. Unmapped items purchase ledger me rahenge, stock me nahi. Stock movement history audit ke liye locked rahegi.</div>
  <div class="card">
@@ -976,18 +979,18 @@ body.bite-session-check #biteSessionSplash{
   <div class="section-head"><h2>Record stock movement</h2><span class="small">Inward / outward</span></div>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Item *</label><select id="stockItem"></select></div>
-   <div class="field"><label>Movement *</label><select id="stockType"><option value="opening">Opening stock</option><option value="purchase">Purchase / Stock In</option><option value="adjustment_in">Adjustment In</option><option value="adjustment_out">Adjustment Out</option><option value="wastage">Wastage</option></select></div>
+   <div class="field"><label>Movement *</label><select id="stockType"><option value="opening">Opening stock</option><option value="adjustment_in">Adjustment In</option><option value="adjustment_out">Adjustment Out</option><option value="wastage">Wastage</option></select></div>
    <div class="field"><label>Quantity *</label><input id="stockQuantity" type="number" min="0.001" step="0.001" placeholder="0.000"></div>
    <div class="field"><label>Unit cost (₹)</label><input id="stockUnitCost" type="number" min="0" step="0.01" placeholder="Optional"></div>
    <div class="field"><label>Date *</label><input id="stockDate" type="date"></div>
    <div class="field"><label>Expiry date (optional)</label><input id="stockExpiry" type="date"></div>
    <div class="field"><label>Bill / reference</label><input id="stockReference" maxlength="100" placeholder="Bill no. / reason"></div>
-   <div class="field"><label>Note</label><input id="stockNotes" maxlength="300" placeholder="Optional details"></div>
+   <div class="field"><label>Reason / note</label><input id="stockNotes" maxlength="300" placeholder="Required for adjustment or wastage"></div>
   </div>
   <div class="actions"><button class="btn" id="stockSaveBtn" type="button" onclick="saveStockMovement()">Save stock movement</button><span class="small" id="stockMessage" role="status"></span></div>
  </div>
  <div class="grid section"><div class="card"><div class="metric-label">Active inventory items</div><div class="metric" id="inventoryItemCount">0</div></div><div class="card"><div class="metric-label">Low / zero stock items</div><div class="metric" id="inventoryLowCount">0</div></div></div>
- <div class="section"><div class="section-head"><h2>Current stock</h2><span class="small" id="inventorySummary">All items</span></div><div class="card table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Current stock</th><th>Low-stock level</th><th>Status</th></tr></thead><tbody id="inventoryRows"></tbody></table><div class="empty" id="inventoryEmpty">No inventory items added.</div></div></div>
+ <div class="section" id="inventoryStockTable"><div class="section-head"><h2>Current stock</h2><span class="small" id="inventorySummary">All items</span></div><div class="card table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Current stock</th><th>Low-stock level</th><th>Status</th></tr></thead><tbody id="inventoryRows"></tbody></table><div class="empty" id="inventoryEmpty">No inventory items added.</div></div></div>
  <div class="section"><div class="section-head"><h2>Stock movement history</h2><span class="small">Latest 100 entries</span></div><div class="card table-wrap"><table><thead><tr><th>Date</th><th>Item</th><th>Movement</th><th>Quantity</th><th>Expiry</th><th>Reference / note</th></tr></thead><tbody id="stockMovementRows"></tbody></table><div class="empty" id="stockMovementEmpty">No stock movement recorded.</div></div></div>
 </section>
 
@@ -1434,7 +1437,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-guest-register.js?v=20261118-family1"></script><script src="assets/owner-hotel-billing.js?v=20261118-family1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
-<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-reconcile1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261119-reconcile1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261119-reconcile1"></script><script src="assets/owner-v3-collections.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261119-reconcile1"></script><script src="assets/owner-family-checkin.js?v=20261118-guest-controls1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-a02-shared1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261118-historical-refresh1"></script>
 <script>
@@ -1807,7 +1810,7 @@ async function deletePurchase(id){
 }
 document.getElementById('purchaseRestaurant').addEventListener('change',async()=>{resetPurchaseForm();await loadPurchaseInventoryItems();await loadSuppliers();await loadPurchases()});
 
-let inventoryItems=[],stockMovements=[],inventoryBalances={};
+let inventoryItems=[],stockMovements=[],inventoryBalances={},inventoryLoadSeq=0;
 function inventoryRestaurantId(){return document.getElementById('inventoryRestaurant').value||''}
 async function loadInventoryWorkspace(){
  const select=document.getElementById('inventoryRestaurant'),previous=select.value;
@@ -1821,16 +1824,20 @@ async function loadInventoryWorkspace(){
  document.getElementById('stockDate').value=localDateInput();await loadInventory();
 }
 async function loadInventory(){
- const rid=inventoryRestaurantId();if(!rid)return;
+ const rid=inventoryRestaurantId(),userId=currentUser?.id,seq=++inventoryLoadSeq;if(!rid||!userId)return;
  try{
   const [items,balances,moves]=await Promise.all([
    sb.from('restaurant_inventory_items').select('*').eq('restaurant_id',rid).eq('is_active',true).order('name'),
    sb.from('restaurant_inventory_balances').select('inventory_item_id,current_stock').eq('restaurant_id',rid),
    sb.from('restaurant_stock_movements').select('*').eq('restaurant_id',rid).order('movement_date',{ascending:false}).order('created_at',{ascending:false}).limit(100)
   ]);
+  if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id||!['owner','manager'].includes(access.role))return;
   if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
   inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,Number(b.current_stock)]));stockMovements=moves.data||[];renderInventory();
- }catch(e){document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id)return;
+  document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;
+  document.getElementById('inventoryV3Cards').textContent='Stock load nahi hua. Refresh karein.';
+  console.error(e)}
 }
 function stockBalance(itemId){return Number(inventoryBalances[itemId]||0)}
 function renderInventory(){
@@ -1842,6 +1849,16 @@ function renderInventory(){
   return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+qty.toFixed(3)+' '+esc(i.unit)+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(isLow?'amber':'green')+'">'+(isLow?'Low stock':'In stock')+'</span></td></tr>';
  }).join('');
  document.getElementById('inventoryEmpty').style.display=active?'none':'block';
+ window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
+  items:inventoryItems,balances:inventoryBalances,
+  query:document.getElementById('inventoryV3Search')?.value||'',
+  onAdjust:id=>{
+   const select=document.getElementById('stockItem');
+   select.value=id;document.getElementById('stockType').value='adjustment_out';
+   document.getElementById('stockQuantity').focus();
+   document.getElementById('stockQuantity').scrollIntoView?.({block:'center',behavior:'smooth'});
+  }
+ });
  const sel=document.getElementById('stockItem'),old=sel.value;
  sel.innerHTML=inventoryItems.map(i=>'<option value="'+esc(i.id)+'">'+esc(i.name)+' ('+esc(i.unit)+')</option>').join('');
  if(inventoryItems.some(i=>i.id===old))sel.value=old;
@@ -1864,13 +1881,40 @@ async function saveInventoryItem(){
 async function saveStockMovement(){
  if(!['owner','manager'].includes(access.role))return;
  const rid=inventoryRestaurantId(),itemId=document.getElementById('stockItem').value,type=document.getElementById('stockType').value,quantity=Number(document.getElementById('stockQuantity').value),cost=document.getElementById('stockUnitCost').value,date=document.getElementById('stockDate').value,expiry=document.getElementById('stockExpiry').value,reference=document.getElementById('stockReference').value.trim(),notes=document.getElementById('stockNotes').value.trim();
- if(!rid||!itemId||!date||!Number.isFinite(quantity)||quantity<=0){document.getElementById('stockMessage').textContent='Item, date aur valid quantity bharna zaroori hai.';return}
- const btn=document.getElementById('stockSaveBtn');btn.disabled=true;
+ const note=document.getElementById('stockMessage');
+ const reviewed=window.BiteV3Inventory?.reviewMovement?.({
+  type,quantity,cost,date,today:localDateInput(),
+  item:inventoryItems.find(i=>i.id===itemId&&i.restaurant_id===rid),
+  stock:stockBalance(itemId),reason:notes,reference,
+  movements:stockMovements
+ });
+ if(!rid||!itemId||!reviewed?.ok){
+  note.textContent=reviewed?.message||'Stock movement review unavailable. Refresh and try again.';return;
+ }
+ const btn=document.getElementById('stockSaveBtn');if(btn.disabled)return;btn.disabled=true;
  try{const payload={restaurant_id:rid,inventory_item_id:itemId,movement_type:type,quantity,movement_date:date,unit_cost:cost===''?null:Number(cost),expiry_date:expiry||null,reference:reference||null,notes:notes||null,created_by:currentUser.id};const {error}=await sb.from('restaurant_stock_movements').insert(payload);if(error)throw error;
   document.getElementById('stockQuantity').value='';document.getElementById('stockUnitCost').value='';document.getElementById('stockExpiry').value='';document.getElementById('stockReference').value='';document.getElementById('stockNotes').value='';document.getElementById('stockMessage').textContent='Stock movement saved';await loadInventory();
  }catch(e){document.getElementById('stockMessage').textContent='Stock save nahi hua: '+e.message;console.error(e)}finally{btn.disabled=false}
 }
-document.getElementById('inventoryRestaurant').addEventListener('change',loadInventory);
+document.getElementById('inventoryRestaurant').addEventListener('change',()=>{
+ inventoryLoadSeq++;inventoryItems=[];inventoryBalances={};stockMovements=[];
+ document.getElementById('inventoryV3Search').value='';
+ document.getElementById('inventoryV3Cards').textContent='Loading selected restaurant stock…';
+ void loadInventory();
+});
+document.getElementById('inventoryV3Search').addEventListener('input',()=>{
+ if(!inventoryRestaurantId()||!['owner','manager'].includes(access.role))return;
+ window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
+  items:inventoryItems,balances:inventoryBalances,
+  query:document.getElementById('inventoryV3Search').value,
+  onAdjust:id=>{
+   document.getElementById('stockItem').value=id;
+   document.getElementById('stockType').value='adjustment_out';
+   document.getElementById('stockQuantity').focus();
+   document.getElementById('stockQuantity').scrollIntoView?.({block:'center',behavior:'smooth'});
+  }
+ });
+});
 
 let cashbookEntries=[],cashbookClosing=null,cashbookLastLoadedKey=null;
 let cashbookDataReadyKey=null,cashbookLoadSequence=0,cashbookClosingBusy=false,cashbookEntryBusy=false,cashbookReview=null;
