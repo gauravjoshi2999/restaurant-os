@@ -52,12 +52,13 @@
  function customerCards(host,{customers=[],balances=[],selectedId='',onSelect,onCollect}){
   if(!host)return;
   host.innerHTML=customers.length?customers.map(c=>{
-   const b=balances.find(x=>x.customer_id===c.id),bal=Number(b?.balance||0);
+   const b=balances.find(x=>x.customer_id===c.id),verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
+   const bal=verified?Number(b.balance):0;
    return '<article class="v3-khata-person'+(c.id===selectedId?' selected':'')+'">'+
     '<div class="v3-khata-person-top"><div><strong>'+esc(c.full_name)+'</strong><small>'+esc(c.phone||'No phone')+'</small></div>'+
-    '<span class="'+(bal>0?'due':bal<0?'advance':'clear')+'">'+esc(signed(Math.round(bal*100)))+'</span></div>'+
+    '<span class="'+(bal>0?'due':bal<0?'advance':'clear')+'">'+esc(verified?signed(Math.round(bal*100)):'Balance unavailable')+'</span></div>'+
     '<div class="v3-khata-person-actions"><button type="button" data-v3-khata-select="'+esc(c.id)+'">View statement</button>'+
-    (bal>0&&c.status==='Active'?'<button type="button" data-v3-khata-collect="'+esc(c.id)+'">Collect due</button>':'')+'</div></article>';
+    (verified&&bal>0&&c.status==='Active'?'<button type="button" data-v3-khata-collect="'+esc(c.id)+'">Collect due</button>':'')+'</div></article>';
   }).join(''):'<p class="v3-khata-empty">No matching customers. Try another name, mobile or filter.</p>';
   host.onclick=e=>{
    const open=e.target.closest?.('[data-v3-khata-select]');
@@ -89,11 +90,12 @@
  }
  function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange,onCollect,onOpening}){
   if(!host)return {verified:false};
-  const p=periodFor(key,today),report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
+  const p=periodFor(key,today),verifiedBalance=balance!==null&&balance!==undefined&&Number.isFinite(Number(balance));
+  const report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
   host.innerHTML=customer?
    '<div class="v3-khata-statement-head"><div><small>CUSTOMER STATEMENT</small><h2>'+esc(customer.full_name)+'</h2>'+
    '<p>'+esc(customer.phone||'Mobile not saved')+'</p></div>'+
-   '<div class="v3-khata-current"><span>Current balance</span><strong>'+esc(signed(Math.round(Number(balance)*100)))+'</strong></div></div>'+
+   '<div class="v3-khata-current"><span>Current balance · all time</span><strong>'+esc(verifiedBalance?signed(Math.round(Number(balance)*100)):'Unverified')+'</strong></div></div>'+
    '<div id="v3KhataStatementPeriod"></div>'+
    (report.verified?
     '<div class="v3-khata-statement-totals"><div><span>Opening before period</span><strong>'+esc(signed(report.openingCents))+'</strong></div>'+
