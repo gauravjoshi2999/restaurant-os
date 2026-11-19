@@ -1,0 +1,28 @@
+/* Owner V3 A09 — staff payment history, intentionally read-only. */
+body[data-role="owner"] #hr .v3-pay-report{background:#fff;border:1px solid #e9e2d9;border-radius:17px;padding:17px;margin:18px 0;min-width:0}
+body[data-role="owner"] #hr .v3-pay-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:0 0 13px}
+body[data-role="owner"] #hr .v3-pay-toolbar label{display:grid;gap:5px;font-size:12px;font-weight:750;min-width:130px;flex:1}
+body[data-role="owner"] #hr .v3-pay-toolbar select,body[data-role="owner"] #hr .v3-pay-toolbar input{width:100%;min-height:44px;border:1px solid #d9dde3;background:#fff;color:#252e39;border-radius:10px;padding:8px;font:inherit}
+body[data-role="owner"] #hr .v3-pay-toolbar button{min-height:44px;padding:10px 15px;background:#e96621;border:0;color:white;border-radius:10px;font-weight:750;cursor:pointer}
+body[data-role="owner"] #hr .v3-pay-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center}
+body[data-role="owner"] #hr .v3-pay-head h3{font-size:19px;line-height:1.3;margin:0}
+body[data-role="owner"] #hr .v3-pay-head small{font-size:12px;color:#6c6f73}
+body[data-role="owner"] #hr .v3-pay-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}
+body[data-role="owner"] #hr .v3-pay-metrics>div{border:1px solid #ece4dc;border-radius:11px;padding:12px;display:grid;gap:5px;min-width:0;background:#fffcfa}
+body[data-role="owner"] #hr .v3-pay-metrics small{color:#777;font-size:11px}
+body[data-role="owner"] #hr .v3-pay-metrics strong{font-size:19px;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .v3-pay-help{font-size:12px;line-height:1.65;color:#586373}
+body[data-role="owner"] #hr .v3-pay-list{display:grid;gap:7px;margin:13px 0}
+body[data-role="owner"] #hr .v3-pay-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,auto) minmax(85px,auto);gap:12px;align-items:center;border:1px solid #eee;border-radius:12px;padding:12px;min-width:0}
+body[data-role="owner"] #hr .v3-pay-row>div{display:grid;gap:4px}
+body[data-role="owner"] #hr .v3-pay-row strong{font-size:14px;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .v3-pay-row small,body[data-role="owner"] #hr .v3-pay-row span{font-size:11px;color:#657180;overflow-wrap:anywhere}
+body[data-role="owner"] #hr .v3-pay-count,body[data-role="owner"] #hr .v3-pay-empty{font-size:12px;color:#647180}
+body[data-role="owner"] #hr .v3-pay-error{padding:12px;background:#fff2f1;border:1px solid #f0c6c1;color:#922f2b;border-radius:10px;font-size:12px}
+body[data-role="owner"] #hr .v3-pay-toolbar button:focus-visible{outline:3px solid #ff9c5a;outline-offset:2px}
+@media(max-width:650px){body[data-role="owner"] #hr .v3-pay-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+body[data-role="owner"] #hr .v3-pay-row{grid-template-columns:minmax(0,1fr);gap:8px}}
+@media(max-width:430px){body[data-role="owner"] #hr .v3-pay-report{padding:12px}
+body[data-role="owner"] #hr .v3-pay-metrics strong{font-size:17px}
+body[data-role="owner"] #hr .v3-pay-toolbar label{flex:1 1 100%}
+body[data-role="owner"] #hr .v3-pay-toolbar button{width:100%}}
