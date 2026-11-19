@@ -727,6 +727,8 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-more-mobile.css?v=20261114-onecol1">
 <script src="assets/owner-hr-mobile-tabs.js?v=20261114-onecol1" defer></script>
 <script src="assets/owner-v3-attendance.js?v=20261119-a08-1" defer></script>
+<script src="assets/owner-v3-staff-payments.js?v=20261119-a09-1" defer></script>
+<link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
 <link rel="stylesheet" href="assets/owner-v3-attendance.css?v=20261119-a08-1">
 <link rel="stylesheet" href="assets/owner-orders-calendar.css?v=20261114-calendar-openfix1">
 <link rel="stylesheet" href="assets/owner-menu-qr.css?v=20261114-viewonly1">
@@ -1124,6 +1126,14 @@ body.bite-session-check #biteSessionSplash{
  <div class="section"><div class="section-head"><h2>Leave requests</h2><span class="small">Pending approval</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead><tbody id="hrLeaveRows"></tbody></table><div class="empty" id="hrLeaveEmpty">No leave records.</div></div>
  </div>
+ <section class="v3-pay-report" id="hrV3PaymentStatementSection" aria-label="Verified monthly staff payment records">
+  <div class="v3-pay-toolbar">
+   <label>Statement month<input id="hrV3PaymentMonth" type="month"></label>
+   <label>Show records by<select id="hrV3PaymentMode"><option value="paid">Actual payment date</option><option value="salary">Salary month assigned</option></select></label>
+   <button id="hrV3PaymentRefresh" type="button">View statement</button>
+  </div>
+  <div id="hrV3PaymentStatement" role="status" aria-live="polite">Choose a month to see saved staff payments.</div>
+ </section>
  <div class="section"><div class="section-head"><h2>Salary / payment history</h2><span class="small">Latest 100 records</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Month</th><th>Mode</th><th>Amount</th><th>Reference</th></tr></thead><tbody id="hrPaymentRows"></tbody></table><div class="empty" id="hrPaymentEmpty">No employee payments.</div></div>
  </div>
@@ -2122,6 +2132,7 @@ document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
  document.getElementById(id).addEventListener('input',invalidateCashbookReview));
 let hrEmployees=[],hrAttendance=[],hrLeaves=[],hrPayments=[],editingHREmployeeId=null;
 let hrLoadVersion=0,hrDayVersion=0,hrDayReport=null,hrDayKey="";
+let hrPaymentStatementVersion=0;
 function hrRestaurantId(){return document.getElementById('hrRestaurant').value||''}
 function employeeName(id){return hrEmployees.find(e=>e.id===id)?.full_name||'Unknown employee'}
 async function loadHRWorkspace(){
@@ -2134,7 +2145,9 @@ async function loadHRWorkspace(){
  const today=localDateInput();document.getElementById('hrAttendanceDate').value=today;document.getElementById('hrEmployeeJoining').value=today;
  document.getElementById('hrLeaveStart').value=today;document.getElementById('hrLeaveEnd').value=today;
  document.getElementById('hrPaymentDate').value=today;document.getElementById('hrPaymentMonth').value=today.slice(0,7);
+ document.getElementById('hrV3PaymentMonth').value=today.slice(0,7);
  document.getElementById('hrPaymentCard').style.display=access.role==='owner'?'block':'none';
+ document.getElementById('hrV3PaymentStatementSection').style.display=access.role==='owner'?'block':'none';
  await loadHRData();
 }
 async function loadHRAttendanceDay(){
@@ -2167,6 +2180,8 @@ async function loadHRData(){
  if(!rid||!userId)return;
  const isCurrent=()=>version===hrLoadVersion&&hrRestaurantId()===rid&&currentUser?.id===userId;
  // Clear all previous tenant rows before the four requests settle.
+ hrPaymentStatementVersion++;
+ document.getElementById('hrV3PaymentStatement').replaceChildren();
  hrEmployees=[];hrAttendance=[];hrLeaves=[];hrPayments=[];hrDayReport=null;hrDayKey='';hrDayVersion++;
  document.getElementById('hrEmployeeRows').replaceChildren();
  document.getElementById('hrAttendanceRows').replaceChildren();
@@ -2189,12 +2204,39 @@ async function loadHRData(){
   hrEmployees=e.data;hrAttendance=a.data;hrLeaves=l.data;hrPayments=p.data;
   renderHR();
   await loadHRAttendanceDay();
+  if(isCurrent())void loadHRPaymentStatement();
  }catch(err){
   if(!isCurrent())return;
   document.getElementById('hrAttendanceRegister').textContent='HR data unavailable for this restaurant. Retry Refresh.';
   document.getElementById('hrStatus').textContent='HR data load nahi hua: '+err.message;
   document.getElementById('hrPresentCount').textContent='—';
   console.error(err);
+ }
+}
+async function loadHRPaymentStatement(){
+ const target=document.getElementById('hrV3PaymentStatement'),rid=hrRestaurantId(),userId=currentUser?.id||'';
+ const month=document.getElementById('hrV3PaymentMonth').value,mode=document.getElementById('hrV3PaymentMode').value;
+ const version=++hrPaymentStatementVersion;
+ document.getElementById('hrPaidMonth').textContent='—';
+ target.replaceChildren();
+ if(access.role!=='owner'||!rid||!userId||!window.BiteV3StaffPayments?.validMonth?.(month)){
+  target.textContent='Owner login, restaurant and valid statement month are required.';return;
+ }
+ const active=()=>version===hrPaymentStatementVersion&&currentUser?.id===userId&&
+  hrRestaurantId()===rid&&access.role==='owner'&&document.getElementById('hrV3PaymentMonth').value===month&&
+  document.getElementById('hrV3PaymentMode').value===mode;
+ target.textContent='Loading verified staff payment records…';
+ try{
+  const report=await window.BiteV3StaffPayments.load({client:sb,restaurantId:rid,month,mode,isCurrent:active});
+  if(!active())return;
+  target.innerHTML=window.BiteV3StaffPayments.html(report,hrEmployees.filter(x=>x.restaurant_id===rid));
+  if(mode==='paid'&&month===localDateInput().slice(0,7)){
+   const t=report.totals;
+   document.getElementById('hrPaidMonth').textContent=money((t.Salary+t.Advance+t.Bonus)/100);
+  }
+ }catch(error){
+  if(!active())return;
+  target.innerHTML='<p class="v3-pay-error" role="alert">Cannot verify full staff payment statement: '+esc(error?.message||'Network error')+'. No salary/payment totals were estimated.</p>';
  }
 }
 function renderHREmployeeSelects(){
@@ -2206,9 +2248,9 @@ function renderHR(){
  const key=(currentUser?.id||'')+':'+hrRestaurantId()+':'+today;
  const present=hrDayReport&&hrDayKey===key?String(hrDayReport.present+hrDayReport.half):'—';
  const pending=hrLeaves.filter(l=>l.status==='Pending').length,month=(document.getElementById('hrPaymentMonth').value||localDateInput().slice(0,7))+'-01';
- const paid=hrPayments.filter(p=>p.period_month===month&&['Salary','Advance','Bonus'].includes(p.payment_type)).reduce((n,p)=>n+Number(p.amount),0);
+ // Never calculate the payment KPI from the latest-300 truncated history; A09 uses a full source query.
  document.getElementById('hrActiveCount').textContent=String(active);document.getElementById('hrPresentCount').textContent=String(present);
- document.getElementById('hrPendingLeaves').textContent=String(pending);document.getElementById('hrPaidMonth').textContent=money(paid);
+ document.getElementById('hrPendingLeaves').textContent=String(pending);document.getElementById('hrPaidMonth').textContent='—';
  document.getElementById('hrEmployeeCount').textContent=hrEmployees.length+' employees';
  document.getElementById('hrEmployeeRows').innerHTML=hrEmployees.map(e=>'<tr><td>'+esc(e.employee_code||'—')+'</td><td><strong>'+esc(e.full_name)+'</strong></td><td>'+esc(e.position||'—')+'</td><td>'+esc(e.phone||'—')+'</td><td>'+money(e.salary_amount)+' / '+esc(e.salary_period)+'</td><td><span class="pill '+(e.status==='Active'?'green':'')+'">'+esc(e.status)+'</span></td><td><button class="btn secondary" onclick="editHREmployee(\''+esc(e.id)+'\')">Edit</button> '+(access.role==='owner'?'<button class="btn danger" onclick="deleteHREmployee(\''+esc(e.id)+'\')">Deactivate</button>':'')+'</td></tr>').join('');
  document.getElementById('hrEmployeeEmpty').style.display=hrEmployees.length?'none':'block';
@@ -2354,6 +2396,8 @@ document.getElementById('hrRestaurant').addEventListener('change',()=>{
 });
 document.getElementById('hrAttendanceDate').addEventListener('change',()=>{void loadHRAttendanceDay()});
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
+for(const id of ['hrV3PaymentMonth','hrV3PaymentMode'])document.getElementById(id).addEventListener('change',()=>void loadHRPaymentStatement());
+document.getElementById('hrV3PaymentRefresh').addEventListener('click',()=>void loadHRPaymentStatement());
 document.getElementById('hrAttendanceRegister').addEventListener('click',event=>{
  const button=event.target.closest?.('[data-v3-attendance-employee]');
  if(!button||!hrDayReport)return;
