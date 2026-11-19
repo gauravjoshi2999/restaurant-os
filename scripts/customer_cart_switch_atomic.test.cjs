@@ -105,6 +105,30 @@ test('reorder preflight mismatch cannot wipe an existing cart',async()=>{
  assert.equal(x.calls.renderCart,0);
 });
 
+test('a stored cart not yet restored after refresh still requires restaurant-switch confirmation',async()=>{
+ const x=setup({confirmSwitch:false});
+ x.ctx.activeRestaurant=null;
+ x.ctx.cart={};
+ assert.equal(await x.ctx.openRestaurantTest('restaurant-next'),false);
+ assert.equal(x.calls.confirm,1);
+ assert.equal(x.calls.requests,0);
+ assert.deepEqual(x.persistent.items,{'old-dish':2});
+});
+
+test('network failure preserves an un-restored stored cart from a different restaurant',async()=>{
+ const x=setup({menuError:true});
+ x.ctx.activeRestaurant=null;
+ x.ctx.cart={};
+ assert.equal(await x.ctx.openRestaurantTest('restaurant-next'),false);
+ assert.deepEqual(x.persistent.items,{'old-dish':2});
+ assert.equal(x.calls.renderCart,0);
+});
+
+test('Reorder confirmation includes cart saved on device even before restoration',()=>{
+ assert.match(completion,/const savedForReorder=readSavedCustomerCart\(\)/);
+ assert.match(completion,/cartEntries\(\)\.length\|\|storedCartExists/);
+});
+
 test('reorder never clears the original cart before awaiting the restaurant menu',()=>{
  assert.doesNotMatch(completion,/clearCustomerCart\(\);await openRestaurant\(data\.restaurant_id\)/);
  assert.match(completion,/await openRestaurant\(data\.restaurant_id,\{cartSwitchConfirmed:true,requiredMenuIds:/);
