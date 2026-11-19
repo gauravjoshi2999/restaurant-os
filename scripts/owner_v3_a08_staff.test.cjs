@@ -60,7 +60,7 @@ test('A08: original Owner HR backend retained, hard-delete removed, attendance u
  assert.match(att,/Correction/);assert.match(att,/prompt\('Existing attendance correction/);
  const leave=html.slice(html.indexOf('async function reviewHRLeave(id,status){'),html.indexOf('async function saveHREmployeePayment(){'));
  assert.match(leave,/\.eq\('status','Pending'\)/);
- assert.match(leave,/approved_by:userId/);
+ assert.ok(leave.includes("approved_by:status==='Approved'?userId:null"));
  assert.match(leave,/prompt\('Leave '/);
 });
 test('A08: existing history and payroll kept; selected date query reads real server rows',()=>{
