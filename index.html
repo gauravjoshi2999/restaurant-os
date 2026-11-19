@@ -2183,29 +2183,68 @@ document.getElementById('hrAttendanceDate').addEventListener('change',renderHR);
 document.getElementById('hrPaymentMonth').addEventListener('change',renderHR);
 
 let khataCustomers=[],khataBalances=[],khataEntries=[],selectedKhataCustomerId=null;
+let khataLoadVersion=0,khataLoadedScope='',khataHistoryComplete=true,khataSearchText='',khataFilter='all',khataOpeningMode=false,khataEntrySaving=false;
 function khataRestaurantId(){return document.getElementById('khataRestaurant').value||''}
+function khataKey(){return (currentUser?.id||'')+':'+khataRestaurantId()}
 async function loadKhataWorkspace(){
  const sel=document.getElementById('khataRestaurant'),previous=sel.value;
  const ids=access.memberships.filter(m=>['owner','manager','staff'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('khataStatus').textContent='No restaurant access';return}
+ if(!eligible.length){
+  khataCustomers=[];khataBalances=[];khataEntries=[];selectedKhataCustomerId=null;
+  document.getElementById('khataStatus').textContent='No restaurant access';
+  return;
+ }
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
- document.getElementById('khataEntryDate').value=localDateInput();toggleKhataPaymentMode();await loadKhataData();
+ sel.closest('.field').hidden=eligible.length===1;
+ const today=localDateInput(),dateInput=document.getElementById('khataEntryDate');
+ dateInput.max=today;if(!dateInput.value)dateInput.value=today;
+ toggleKhataPaymentMode();
+ await loadKhataData();
 }
 async function loadKhataData(){
- const rid=khataRestaurantId();if(!rid)return;
+ const rid=khataRestaurantId(),uid=currentUser?.id||'';if(!rid||!uid)return;
+ const key=uid+':'+rid,request=++khataLoadVersion;
+ const status=document.getElementById('khataStatus');
+ status.textContent='Khata records load ho rahe hain…';
+ if(key!==khataLoadedScope){
+  khataLoadedScope=key;khataCustomers=[];khataBalances=[];khataEntries=[];khataHistoryComplete=false;
+  selectedKhataCustomerId=null;khataSearchText='';khataFilter='all';khataOpeningMode=false;
+  document.getElementById('khataV3Search').value='';
+  document.getElementById('khataCustomerRows').replaceChildren();
+  document.getElementById('khataV3Cards').replaceChildren();
+  document.getElementById('khataLedgerRows').replaceChildren();
+  document.getElementById('khataV3Statement').replaceChildren();
+  for(const name of ['khataTotalDue','khataTotalAdvance'])document.getElementById(name).textContent='—';
+  window.BiteV3Khata?.reset?.();
+ }
  try{
   const [customers,balances,entries]=await Promise.all([
    sb.from('restaurant_customers').select('*').eq('restaurant_id',rid).order('full_name'),
    sb.from('restaurant_customer_balances').select('*').eq('restaurant_id',rid).order('full_name'),
-   sb.from('restaurant_customer_ledger').select('*').eq('restaurant_id',rid).order('entry_date',{ascending:false}).limit(1000)
+   sb.from('restaurant_customer_ledger').select('*').eq('restaurant_id',rid)
+    .order('entry_date',{ascending:false}).order('created_at',{ascending:false}).order('entry_id',{ascending:false}).limit(1001)
   ]);
+  if(request!==khataLoadVersion||khataRestaurantId()!==rid||currentUser?.id!==uid)return;
   for(const x of [customers,balances,entries])if(x.error)throw x.error;
-  khataCustomers=customers.data||[];khataBalances=balances.data||[];khataEntries=entries.data||[];
-  if(!khataCustomers.some(c=>c.id===selectedKhataCustomerId))selectedKhataCustomerId=khataCustomers[0]?.id||null;
+  khataCustomers=(customers.data||[]).filter(x=>x.restaurant_id===rid);
+  khataBalances=(balances.data||[]).filter(x=>x.restaurant_id===rid);
+  khataHistoryComplete=(entries.data||[]).length<=1000;
+  khataEntries=(entries.data||[]).slice(0,1000).filter(x=>x.restaurant_id===rid);
+  if(!khataCustomers.some(c=>c.id===selectedKhataCustomerId))
+   selectedKhataCustomerId=khataCustomers[0]?.id||null;
   renderKhata();
- }catch(e){document.getElementById('khataStatus').textContent='Khata load nahi hua: '+e.message;console.error(e)}
+ }catch(e){
+  if(request!==khataLoadVersion||khataRestaurantId()!==rid||currentUser?.id!==uid)return;
+  khataCustomers=[];khataBalances=[];khataEntries=[];khataHistoryComplete=false;
+  status.textContent='Khata load nahi hua: '+e.message;console.error(e);
+  document.getElementById('khataCustomerRows').replaceChildren();
+  document.getElementById('khataV3Cards').replaceChildren();
+  document.getElementById('khataLedgerRows').replaceChildren();
+  document.getElementById('khataV3Statement').textContent='Unable to verify customer balances. Please refresh.';
+  for(const name of ['khataTotalDue','khataTotalAdvance'])document.getElementById(name).textContent='—';
+ }
 }
 function renderKhata(){
  const due=khataBalances.filter(b=>Number(b.balance)>0).reduce((n,b)=>n+Number(b.balance),0);
