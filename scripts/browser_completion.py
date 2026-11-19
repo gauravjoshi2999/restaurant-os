@@ -845,7 +845,7 @@ try:
     const cid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     khataCustomers=[{id:cid,restaurant_id:rid,full_name:'QA Sample Customer',phone:'9999999999',status:'Active'}];
     khataBalances=[{customer_id:cid,restaurant_id:rid,balance:0}];
-    khataEntries=[];selectedKhataCustomerId=cid;renderKhata();
+    khataEntries=[];khataComplete=true;selectedKhataCustomerId=cid;renderKhata();
   }""")
   owner.locator('#khataCustomerRows button').first.click()
   check(owner.evaluate("document.activeElement?.id==='khataLedgerSection'")

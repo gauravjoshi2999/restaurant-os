@@ -1,0 +1,57 @@
+/* Bite Owner V3 A05 — one linked Customer Khata, responsive 320–430px. */
+body[data-role=owner] #khata .v3-khata-toolbar{border:1px solid #e9ddce;background:#fff9f2;border-radius:16px;padding:14px;margin:12px 0 16px}
+body[data-role=owner] .v3-khata-find{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+body[data-role=owner] .v3-khata-find label{display:grid;gap:5px;font-size:12px;font-weight:750;color:#655344;min-width:0}
+body[data-role=owner] .v3-khata-find input{width:100%;box-sizing:border-box;min-width:0;min-height:44px;font-size:14px;border:1px solid #d3c7bb;border-radius:10px;padding:10px;color:#293440;background:white}
+body[data-role=owner] .v3-khata-filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+body[data-role=owner] .v3-khata-filters button{min-height:44px;padding:9px 14px;border:1px solid #ddc8b4;border-radius:10px;color:#81512c;background:#fff;cursor:pointer;font-weight:800;font-size:12px}
+body[data-role=owner] .v3-khata-filters button[aria-pressed=true]{color:white;background:#d76d27;border-color:#c95b15}
+body[data-role=owner] #khataV3Cards{display:none}
+body[data-role=owner] .v3-khata-person{background:white;border:1px solid #e8e5e3;border-radius:13px;padding:13px;min-width:0}
+body[data-role=owner] .v3-khata-person.selected{border-color:#e6a16a;background:#fffaf3}
+body[data-role=owner] .v3-khata-person-top{display:flex;justify-content:space-between;gap:9px;align-items:start}
+body[data-role=owner] .v3-khata-person-top>div{display:grid;gap:4px;min-width:0}
+body[data-role=owner] .v3-khata-person strong{font-size:15px;color:#333941;overflow-wrap:anywhere}
+body[data-role=owner] .v3-khata-person small{font-size:11px;color:#7a7c7f}
+body[data-role=owner] .v3-khata-person-top>span{font-weight:850;font-size:12px;white-space:nowrap}
+body[data-role=owner] .v3-khata-person-top>span.due{color:#aa5121}
+body[data-role=owner] .v3-khata-person-top>span.advance{color:#277a52}
+body[data-role=owner] .v3-khata-person-top>span.clear{color:#628079}
+body[data-role=owner] .v3-khata-person-actions{display:flex;gap:7px;margin-top:12px}
+body[data-role=owner] .v3-khata-person-actions button{min-height:44px;padding:8px 12px;flex:1;border:1px solid #e2bd9a;border-radius:10px;color:#88461f;background:#fff6eb;font-size:12px;font-weight:800;cursor:pointer}
+body[data-role=owner] .v3-khata-person-actions button:last-child:not(:first-child){background:#e57025;color:white;border-color:#db6720}
+body[data-role=owner] .v3-khata-statement{background:#fff;border:1px solid #e9e0d8;border-radius:15px;padding:16px;margin-bottom:12px;min-width:0}
+body[data-role=owner] .v3-khata-statement-head{display:flex;justify-content:space-between;gap:12px;align-items:start;flex-wrap:wrap}
+body[data-role=owner] .v3-khata-statement-head small{font-size:10px;font-weight:900;color:#b3632e}
+body[data-role=owner] .v3-khata-statement-head h2{margin:5px 0;font-size:23px;color:#2e3542}
+body[data-role=owner] .v3-khata-statement-head p{margin:3px 0;color:#6e7b89;font-size:12px}
+body[data-role=owner] .v3-khata-current{display:grid;gap:4px;background:#fff6ec;border:1px solid #eed7c4;border-radius:11px;padding:11px 13px}
+body[data-role=owner] .v3-khata-current span{font-size:11px;color:#825f4b}
+body[data-role=owner] .v3-khata-current strong{font-size:17px;color:#9e4f20}
+body[data-role=owner] .v3-khata-statement-totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
+body[data-role=owner] .v3-khata-statement-totals>div{display:grid;gap:4px;border:1px solid #ece6df;border-radius:10px;padding:10px;min-width:0}
+body[data-role=owner] .v3-khata-statement-totals span{font-size:11px;color:#738091}
+body[data-role=owner] .v3-khata-statement-totals strong{font-size:15px;color:#313c47;overflow-wrap:anywhere}
+body[data-role=owner] .v3-khata-statement-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+body[data-role=owner] .v3-khata-statement-actions button{min-height:44px;border:1px solid #dabda2;border-radius:10px;color:#8e4f27;background:#fff9f0;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
+body[data-role=owner] .v3-khata-guidance{color:#7b6c60;font-size:11px;line-height:1.5;margin:8px 0 0}
+body[data-role=owner] .v3-khata-warning{background:#fff1e4;border:1px solid #e8c8a9;border-radius:10px;padding:12px;color:#8b431b;font-size:12px}
+body[data-role=owner] .v3-khata-empty{padding:14px;border:1px dashed #e3d6cd;border-radius:10px;color:#687683;font-size:12px}
+body[data-role=owner] .v3-khata-source{display:inline-block;font-size:10px;color:#82644f;border-radius:6px;background:#fcf4eb;padding:3px 6px}
+body[data-role=owner] .v3-khata-caution{font-size:11px;color:#865b40;line-height:1.5;margin:7px 0}
+body[data-role=owner] :is(.v3-khata-toolbar,.v3-khata-statement) :is(button,input):focus-visible{outline:3px solid #e68034;outline-offset:2px}
+@media(max-width:900px){body[data-role=owner] .v3-khata-statement-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){body[data-role=owner] #khataV3Cards{display:grid;gap:9px;margin:10px 0}
+ body[data-role=owner] #khata .v3-khata-desktop-table{display:none}}
+@media(max-width:430px){body[data-role=owner] .v3-khata-toolbar,body[data-role=owner] .v3-khata-statement{padding:11px}
+ body[data-role=owner] .v3-khata-find{grid-template-columns:1fr}
+ body[data-role=owner] .v3-khata-statement-totals{grid-template-columns:1fr 1fr}
+ body[data-role=owner] .v3-khata-statement-totals strong{font-size:13px}
+ body[data-role=owner] .v3-khata-statement-actions button{flex:1}}
+@media print{
+ body[data-role=owner] #mainApp .page:not(#khata){display:none!important}
+ body[data-role=owner] #khata>*:not(#khataLedgerSection){display:none!important}
+ body[data-role=owner] #khata #khataLedgerSection{display:block!important}
+ body[data-role=owner] #khata .v3-khata-statement-actions,body[data-role=owner] #khata .bv3-period-head button,body[data-role=owner] #khata #khataLedgerRows button{display:none!important}
+ body[data-role=owner] #khata .v3-khata-statement{box-shadow:none;border:0}
+}
