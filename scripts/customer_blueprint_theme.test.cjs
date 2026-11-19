@@ -50,6 +50,15 @@ test('Cart, hero, search, restaurant and mobile navigation remain visible and th
  assert.match(css,/@media\(max-width:360px\)/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
+test('Detailed food preference is available inside Filters, not as a prominent default-home selector',()=>{
+ const sheet=fs.readFileSync('assets/customer-filter-sheet.js','utf8');
+ assert.match(css,/\.discovery-tools \.bite-filter-label,[\s\S]*?#sortFastBtn\{display:none\}/);
+ assert.match(sheet,/selection\('Vegetarian options','veg'/);
+ assert.match(sheet,/selection\('Non-vegetarian options','nonveg'/);
+ assert.match(sheet,/select\('discoveryDiet',next\.diet\)/);
+ assert.match(css,/#biteFilterApply/);
+});
+
 test('Theme does not modify transactions, customer orders or other panels',()=>{
  assert.doesNotMatch(css,/fetch\(|sb\.|Cashfree|supabase|payment_session|window\.|localStorage|--green:/i);
  assert.doesNotMatch(css,/(?:^|[\s,{])(?:#owner|#admin|#superAdmin|body\[data-bite-app="owner"\])/i);
