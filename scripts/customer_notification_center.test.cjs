@@ -70,6 +70,11 @@ test('customer loads notification center and remains explicit about unsupported 
  assert.match(html,/id="biteNotificationFeed"/);
  assert.match(html,/id="biteNotificationEntries"/);
  assert.match(html,/id="biteNotificationMarkRead"/);
+ assert.match(html,/id="biteNotificationBell"/);
+ assert.match(html,/id="biteNotificationBadge" hidden/);
+ assert.match(html,/openAccountView\('notifications'\)/);
+ assert.match(html,/BiteAccountHub\?\.navigate\?\.\('notifications'\)/);
+ assert.match(styles,/#biteNotificationBadge\[hidden\]/);
  assert.match(html,/id="biteNotificationAll"/);
  assert.match(html,/id="biteNotificationUnread"/);
  assert.match(styles,/\.bite-notification-tabs button\[aria-pressed="true"\]/);
