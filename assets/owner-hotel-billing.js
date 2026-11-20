@@ -18,7 +18,23 @@
  function getFolio(id){return(db().folios||[]).find(f=>f.id===id)}
  function rowsFor(stay){return booking(stay).map(s=>({stay:s,folio:(db().folios||[]).find(f=>f.stay_id===s.id),room:(db().rooms||[]).find(r=>r.id===s.room_id)})).filter(r=>r.folio)}
  function linkedBalanceLabel(folio){const raw=folio?.totals?.balance;if(raw===null||raw===undefined||raw===''||!Number.isFinite(Number(raw)))return 'Balance unavailable';const amount=Number(raw);return amount>0?'Due '+money(amount):amount<0?'Credit to review '+money(Math.abs(amount)):'No balance due';}
- function checkoutTotalsReady(rows){return Array.isArray(rows)&&rows.length>0&&rows.every(r=>{const totals=r?.folio?.totals;return !!totals&&['charges','paid','balance'].every(k=>{const raw=totals[k];return raw!==null&&raw!==undefined&&!(typeof raw==='string'&&raw.trim()==='')&&Number.isFinite(Number(raw))})});}
+ function checkoutAmountCents(raw){
+  if(typeof raw!=='number'&&!(typeof raw==='string'&&/^-?\d+(?:\.\d{1,2})?$/.test(raw.trim())))return null;
+  const n=Number(raw),cents=Math.round(n*100);
+  return Number.isFinite(n)&&Number.isSafeInteger(cents)&&Math.abs(n*100-cents)<0.00001?cents:null;
+ }
+ function checkoutTotalsReady(rows){
+  if(!Array.isArray(rows)||!rows.length)return false;
+  for(const field of ['charges','paid','balance','deposit_held','pending']){
+   let sum=0;
+   for(const r of rows){
+    const cents=checkoutAmountCents(r?.folio?.totals?.[field]);
+    if(cents===null||(['deposit_held','pending'].includes(field)&&cents<0))return false;
+    sum+=cents;if(!Number.isSafeInteger(sum))return false;
+   }
+  }
+  return true;
+ }
  function needsTax(f){const current=p()?.tax_profile||{},saved=f.bill_tax_profile;if(!saved)return mode()==='gst'||(db().entries||[]).some(e=>e.folio_id===f.id&&e.status==='confirmed'&&Number(e.tax_amount));return(saved.billing_mode||'plain')!==mode()||mode()==='gst'&&(saved.gstin!==current.gstin||Number(saved.food_rate)!==Number(current.food_rate)||Number(saved.incidental_rate)!==Number(current.incidental_rate))}
  async function ensureTax(id){const f=getFolio(id);if(f?.status==='open'&&needsTax(f))await H().command('folio_tax',{folio_id:id,mode:mode()})}
  function decorateRegister(form,draft={}){
@@ -49,9 +65,10 @@
   for(const r of rows){await ensureTax(r.folio.id);assertScope(scope,version)}
   await H().reload();assertScope(scope,version);f=getFolio(id);if(!f)throw Error('This guest bill changed. Reopen the stay before checkout.');s=(db().stays||[]).find(s=>s.id===f.stay_id);if(!s)throw Error('This stay is no longer available. Reopen the Hotel Register.');rows=group?rowsFor(s).filter(r=>r.stay.status==='in_house'&&r.folio.status==='open'):[{folio:f,stay:s,room:(db().rooms||[]).find(r=>r.id===s.room_id)}];
   if(!checkoutTotalsReady(rows)){H().editor('<section class="bh-form"><h2>Checkout needs bill review</h2><p class="bh-note">One or more room bill totals are unavailable. Reopen the Guest Bill and review each linked room before checkout. No payment or checkout was recorded.</p><div class="bh-actions">'+button('close','Close')+'</div></section>');return;}
-  const ids=rows.map(r=>r.folio.id),entries=(db().entries||[]).filter(e=>ids.includes(e.folio_id)),pending=entries.filter(e=>e.status==='pending'),sum=k=>Math.round(rows.reduce((n,r)=>n+Number(r.folio.totals?.[k]||0),0)*100)/100,balance=sum('balance'),held=sum('deposit_held'),credit=rows.some(r=>Number(r.folio.totals?.balance)<0),blocked=pending.length||held||credit;
+  const ids=rows.map(r=>r.folio.id),entries=(db().entries||[]).filter(e=>ids.includes(e.folio_id)),pending=entries.filter(e=>e.status==='pending'),sum=k=>rows.reduce((n,r)=>n+checkoutAmountCents(r.folio.totals[k]),0)/100,balance=sum('balance'),held=sum('deposit_held'),pendingTotal=sum('pending'),credit=rows.some(r=>Number(r.folio.totals?.balance)<0),blocked=pending.length||pendingTotal>0||held||credit;
   H().editor('<form class="bh-form" data-bill-form="checkout" data-id="'+esc(id)+'" data-group="'+(group?'true':'false')+'"><h2>'+(group?'Checkout '+rows.length+' rooms':'Checkout')+'</h2><div class="ha-checkout-summary"><span>Total room + food bill <strong>'+money(sum('charges'))+'</strong></span><span>Received & verified <strong>'+money(sum('paid'))+'</strong></span><span>'+ (balance<0?'Credit / refund due':'To collect')+' <strong>'+money(Math.abs(balance))+'</strong></span></div>'+
    '<p class="bh-note">'+(mode()==='gst'?'GST is included in this total.':'Guest bill without GST.')+(p().can_configure?' '+button('tax-settings','Change billing / GST',id):'')+'</p>'+
+   (pendingTotal>0&&!pending.length?'<p class="bh-note">Pending receipt totals still need verification. Refresh the guest bill and review its receipts before checkout.</p>':'')+
    pending.map(e=>'<section class="bh-checkout-blocker"><strong>'+money(e.amount)+' '+esc(e.method)+' · Not yet verified</strong><p>Choose what actually happened to this receipt.</p>'+(manager()?'<div class="bh-actions">'+button('receipt-yes','Received',e.id,'data-return="'+esc(id)+'" data-group="'+group+'"')+button('receipt-no','Not received',e.id,'data-return="'+esc(id)+'" data-group="'+group+'"')+'</div>':'<p>Ask the owner or manager to verify it.</p>')+'</section>').join('')+
    rows.filter(r=>Number(r.folio.totals?.deposit_held)>0).map(r=>'<section class="bh-checkout-blocker"><strong>Room '+esc(r.room?.number)+' · Deposit held '+money(r.folio.totals.deposit_held)+'</strong><div class="bh-actions">'+(Number(r.folio.totals.balance)>0?button('deposit-apply','Use deposit for bill',r.folio.id,'data-return="'+esc(id)+'" data-group="'+group+'"'):'')+button('deposit-return','Record deposit returned',r.folio.id,'data-return="'+esc(id)+'" data-group="'+group+'"')+'</div></section>').join('')+
    (credit?'<p class="bh-note">A room has an overpayment. Record its actual refund under Bill adjustments before closing this booking.</p>':'')+
