@@ -97,3 +97,8 @@ test('H02 selected-day receipts reject duplicate source identities and malformed
  const missingIdentity=fixture();missingIdentity.setHandler(async()=>report([{...receipt,id:''}]));
  await assert.rejects(missingIdentity.run('2026-10-01'),/invalid receipt identity/);
 });
+
+test('H02 does not assume zero received when the selected-day receipt journal is missing',async()=>{
+ const f=fixture();f.setHandler(async()=>({data:{days:[{day:'2026-10-01',gross_sales:10,expenses:0}]}}));
+ await assert.rejects(f.run('2026-10-01'),/receipt journal is unavailable/);
+});

@@ -250,7 +250,8 @@
   const sales=Number(daily.gross_sales),expenses=Number(daily.expenses);
   if(daily.gross_sales==null||daily.expenses==null||!Number.isFinite(sales)||!Number.isFinite(expenses))
    throw Error('The selected day has incomplete accounting values.');
-  const eligible=(result.data.journal||[]).filter(entry=>{
+  if(!Array.isArray(result.data?.journal))throw Error('The selected day receipt journal is unavailable.');
+  const eligible=result.data.journal.filter(entry=>{
    if(entry.day!==day||entry.direction!=='in'||!['Cash','UPI','Card','Bank Transfer'].includes(entry.method))return false;
    if(['order_payment','customer_ledger_payment'].includes(entry.source_type))return true;
    if(entry.source_type==='folio')return ['payment','advance'].includes(entry.category);
