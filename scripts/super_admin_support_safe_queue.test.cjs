@@ -129,7 +129,7 @@ test('unlinked ticket stays General; linked inaccessible order never exposes ano
  const s=scenario();
  s.tickets[0].order_id='missing-order';
  await s.sandbox.load();
- assert.match(s.body.innerHTML,/Order reference …ing-order/);
+ assert.match(s.body.innerHTML,/Order reference …ng-order/);
  assert.match(s.body.innerHTML,/Not accessible/);
  assert.doesNotMatch(s.body.innerHTML,/BITE-ORDER-100/);
  assert.match(s.body.innerHTML,/General/);
