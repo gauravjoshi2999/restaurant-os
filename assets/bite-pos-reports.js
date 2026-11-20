@@ -44,7 +44,7 @@ async function historicalRowsForMonth(client,scope,period){
    .select('id,record_date,recorded_at,customer_name,amount,received_amount,guest_count,visit_type')
    .eq('restaurant_id',scope).eq('entry_kind','pos')
    .gte('record_date',period+'-01').lt('record_date',end)
-   .order('record_date',{ascending:false}).order('recorded_at',{ascending:false})
+   .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false})
    .range(start,start+size-1);
   if(error)throw error;
   if(!Array.isArray(data))throw Error('Incomplete historical register response');
@@ -53,13 +53,25 @@ async function historicalRowsForMonth(client,scope,period){
  }
  throw Error('Too many historical entries in this month; request a complete export');
 }
+function historicalMoney(value){
+ if(!(typeof value==='number'||typeof value==='string'&&value.trim()!=='')||!Number.isFinite(Number(value))||Number(value)<0)throw Error('Historical money is unavailable');
+ const cents=Math.round(Number(value)*100);
+ if(!Number.isSafeInteger(cents)||Math.abs(Number(value)*100-cents)>0.00001)throw Error('Historical money is invalid');
+ return cents/100;
+}
 function mergeHistorical(live,rows){
  const days=(live.days||[]).map(d=>({...d,historical_bills:0,historical_billed:0,historical_received:0}));
  const byDay=new Map(days.map(d=>[d.date,d]));
- const selectedHistory=[];
+ const selectedHistory=[],seen=new Set();
+ if(!Array.isArray(rows))throw Error('Incomplete historical register response');
  for(const h of rows){
-  const d=byDay.get(h.record_date);if(!d)continue;
-  const billed=Number(h.amount)||0,received=Number(h.received_amount)||0;
+  if(!h?.id||seen.has(h.id))throw Error('Duplicate or missing historical record identity');
+  seen.add(h.id);
+  const d=byDay.get(h.record_date);if(!d)throw Error('Historical record is outside the report dates');
+  const billed=historicalMoney(h.amount),received=historicalMoney(h.received_amount);
+  if(received>billed)throw Error('Historical received total exceeds bill');
+  if(!['dine_in','takeaway'].includes(h.visit_type))throw Error('Historical visit type unavailable');
+  if(h.visit_type==='dine_in'&&(!Number.isInteger(Number(h.guest_count))||Number(h.guest_count)<1||Number(h.guest_count)>200))throw Error('Historical guest count unavailable');
   d.bills=(Number(d.bills)||0)+1;d.billed=(Number(d.billed)||0)+billed;
   d.historical_bills+=1;d.historical_billed+=billed;d.historical_received+=received;
   if(h.visit_type==='dine_in'){
@@ -177,7 +189,8 @@ async function refresh(force=false){
   try{historical=await historicalRowsForMonth(sb,scope,period);}
   catch(e){historyError=e?.message||'Network error';}
   if(epoch!==request||scope!==restaurantId||authUser!==userId||container==null)return;
-  report=mergeHistorical(res.data,historical);
+  try{report=mergeHistorical(res.data,historical);}
+  catch(e){historyError=e?.message||'Historical register validation failed';report=mergeHistorical(res.data,[]);}
   report.historyError=historyError;
   showReport();
  }catch(error){
