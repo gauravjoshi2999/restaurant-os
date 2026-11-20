@@ -64,6 +64,19 @@
    if(!online&&form.elements[verifyName])form.elements[verifyName].checked=false;
   };method.addEventListener('change',update);update();
  }
+ // A verified advance applies only to the amount and payment mode the owner checked.
+ function wireAdvanceVerification(form){
+  const amount=form.elements.advance_amount,method=form.elements.advance_method,verified=form.elements.advance_verified;
+  if(!amount||!method||!verified)return;
+  let lastAmount=amount.value,lastMethod=method.value;
+  const invalidateAmount=()=>{if(amount.value!==lastAmount){lastAmount=amount.value;verified.checked=false;}};
+  amount.addEventListener('input',invalidateAmount);amount.addEventListener('change',invalidateAmount);
+  method.addEventListener('change',()=>{
+   if(method.value===lastMethod)return;
+   lastMethod=method.value;verified.checked=false;
+   for(const key of ['advance_reference','advance_account'])if(form.elements[key])form.elements[key].value='';
+  });
+ }
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
   const booking=form.querySelector('#biteRegistrationOperations');booking?.remove();
@@ -91,6 +104,7 @@
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
    form.querySelector('[data-ha-booking]').append(booking);
    wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
+   wireAdvanceVerification(form);
   }
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
@@ -522,6 +536,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
