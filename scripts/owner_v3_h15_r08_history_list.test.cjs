@@ -3,7 +3,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict'),fs=requir
 const source=fs.readFileSync('assets/owner-historical-entries.js','utf8');
 function setup(){
  let mode=false,user='owner-a',restaurant='restaurant-a';
- const requests=[],list={textContent:'',innerHTML:''},date={value:'2026-10-02'};
+ const requests=[],list={_text:'',_html:'',get textContent(){return this._text},set textContent(v){this._text=v;this._html=''},get innerHTML(){return this._html},set innerHTML(v){this._html=v;this._text=''}},date={value:'2026-10-02'};
  const toggle={getAttribute:()=>String(mode)};
  const form={isConnected:true,elements:{namedItem:n=>n==='history_date'?date:null},querySelector:s=>s==='[data-bhe-list]'?list:s==='[data-bhe-month]'?toggle:s==='[data-bhe-calendar]'?{}:null};
  const document={querySelector:()=>null,addEventListener(){},body:{}};
