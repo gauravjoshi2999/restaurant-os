@@ -71,18 +71,23 @@
   }
   return d.subject_key?'Additional guest ID':kinds[d.kind]||'Guest copy';
  }
+ function canRemove(role){return role==='owner'}
+ function rowActions(d,role){
+  return (d.status==='ready'?button('download','Download copy',d.id):d.can_finish?button('finish','Check saved upload',d.id):'')+
+   (canRemove(role)?button('remove','Remove',d.id):'');
+ }
  function panel(){return document.getElementById('biteGuestDocuments')}
  function setMessage(text){const m=panel()?.querySelector('[data-document-message]');if(m)m.textContent=text}
  async function refresh(guest,scope,version){
   const rows=await call('bite_guest_document_list',guest,{},scope,version),box=panel();if(!box||box.dataset.guest!==guest)return;
   box.__documents=rows;
   box.querySelector('[data-document-list]').innerHTML=rows.map(d=>'<article class="bh-record"><div><strong>'+esc(copyLabel(d))+'</strong><p>'+esc(d.status==='ready'?'Saved privately':'Upload unfinished')+' · '+Math.ceil(d.byte_size/1024)+' KB</p></div><div class="bh-actions">'+
-   (d.status==='ready'?button('download','Download copy',d.id):d.can_finish?button('finish','Check saved upload',d.id):'')+button('remove','Remove',d.id)+'</div></article>').join('')||'<p class="bh-empty">No copies retained for this guest.</p>';
+   rowActions(d,property()?.role)+'</div></article>').join('')||'<p class="bh-empty">No copies retained for this guest.</p>';
  }
  async function open(guest){
   clear();const scope=identity(),version=generation,g=H().getWorkspace().guests.find(g=>g.id===guest);
   if(!g||!H().has('guest_register'))return;
-  H().editor('<section id="biteGuestDocuments" data-guest="'+esc(guest)+'"><div class="bh-heading"><div><h2>Private guest copies</h2><p>'+esc(g.full_name)+'</p></div>'+button('close','Close')+'</div><p>Keep only necessary, masked copies. These are accessible to this property’s authorized front desk; they are separate from guest bill links.</p><p data-document-message class="bh-message" role="status" aria-live="polite">Loading retained copies…</p><div data-document-list></div><form class="bh-form" data-document-upload><h3>Add an optional copy</h3><label class="bh-field"><span>Copy purpose</span><select name="kind">'+Object.entries(kinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></label><label class="bh-field"><span>JPEG, PNG or PDF · up to 4 MB</span><input type="file" name="copy" accept="image/jpeg,image/png,application/pdf" required></label><label class="bh-check"><input type="checkbox" name="redacted_confirmed" required> I checked that this copy is necessary and redacted. Full Aadhaar, payment-card and bank details are excluded.</label><p>Up to five copies per person. Additional guest IDs are named in the check-in record. Remove copies when your property no longer needs to retain them.</p><div class="bh-form-actions"><button class="btn" type="submit">Save private copy</button></div></form></section>');
+  H().editor('<section id="biteGuestDocuments" data-guest="'+esc(guest)+'"><div class="bh-heading"><div><h2>Private guest copies</h2><p>'+esc(g.full_name)+'</p></div>'+button('close','Close')+'</div><p>Keep only necessary, masked copies. These are accessible to this property’s authorized front desk; they are separate from guest bill links. '+(canRemove(property()?.role)?'Remove copies when the property no longer needs them.':'Only the property owner can permanently remove retained copies. Ask the owner to remove an unnecessary copy.')+'</p><p data-document-message class="bh-message" role="status" aria-live="polite">Loading retained copies…</p><div data-document-list></div><form class="bh-form" data-document-upload><h3>Add an optional copy</h3><label class="bh-field"><span>Copy purpose</span><select name="kind">'+Object.entries(kinds).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('')+'</select></label><label class="bh-field"><span>JPEG, PNG or PDF · up to 4 MB</span><input type="file" name="copy" accept="image/jpeg,image/png,application/pdf" required></label><label class="bh-check"><input type="checkbox" name="redacted_confirmed" required> I checked that this copy is necessary and redacted. Full Aadhaar, payment-card and bank details are excluded.</label><p>Up to five copies per person. Additional guest IDs are named in the check-in record. Remove copies when your property no longer needs to retain them.</p><div class="bh-form-actions"><button class="btn" type="submit">Save private copy</button></div></form></section>');
   try{await refresh(guest,scope,version);guard(scope,version);setMessage('')}catch(e){if(scope===identity()&&version===generation)setMessage(e.message||String(e))}
  }
  async function submit(e){
@@ -136,6 +141,6 @@
   }catch(error){if(scope===identity()&&version===generation)setMessage(error.message||String(error));}
   finally{active--;b.disabled=false}
  }
- const api={init,clear,open,readCopy,busy:()=>active>0,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,prepare,MAX_BYTES};
+ const api={init,clear,open,readCopy,busy:()=>active>0,rowActions,canRemove,button:guest=>'<button type="button" class="btn secondary" data-doc-guest="'+esc(guest)+'">Private copies</button>',supported,matchesHeader,validate,prepare,MAX_BYTES};
  root.BiteGuestDocuments=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -26,6 +26,13 @@ Reference: user-approved `Bite Owner — Complete Editable Dashboard & Workflows
 - H02 [#251](https://github.com/gauravjoshi2999/restaurant-os/pull/251): previous head `10337946b0da7b93a56e0a7f38ea72a078406de8` QA 44762580946 passed. Refreshed against #249 with updated cache version; latest QA and release pending.
 - Next: verify #249 main QA and Pages, then refresh/review/merge #250 and #251 sequentially with exact-head QA and separate deployment checks. No change to verified-screen count; synthetic QA and public guest smoke do not establish full authenticated acceptance. No production financial mutation.
 
+### Release evidence update — 2026-11-21
+- #253 H09: merged `1e8b6d4702a56b6aee25ddd6083b5150af51cc1e`; main QA 44791841800 and Pages 44793101400 passed.
+- #254 H06: merged `7ba625b643b8e5d9788a2562e21c34109128b703`; main QA 44794050853 and Pages 44795313362 passed.
+- #255 H08: merged `e801671d5cf42462e1de4ed575b2d77dc145d805`; main QA 44804478853 and Pages 44805707016 passed.
+- Next gate: #256 H10 exact-head QA, main QA and Pages before #257 H13 and #258 H14. Preserve both accounting patches.
+- H01–H15 remain P: authenticated Owner session and applicable device/printer/share acceptance unavailable in this execution; individual remaining checks listed below. No verified-screen count change.
+
 ## Screen register
 
 | ID | Approved screen | Status | Existing code/test/PR evidence locator | Remaining acceptance |
