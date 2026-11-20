@@ -42,7 +42,7 @@ test('Historical POS is restaurant-tenant scoped and original business-date scop
  assert.ok(calls.some(c=>c[0]==='range'&&c[1]===0));
 });
 test('Old written receipts are never added to independent posted Daily Book receipts',()=>{
- const existing=[{source_type:'order_payment',direction:'in',day:'2026-10-01',method:'Cash',amount:100},
+ const existing=[{id:'receipt-1',source_type:'order_payment',direction:'in',day:'2026-10-01',method:'Cash',amount:100},
  {source_type:'order_payment',direction:'in',day:'2026-10-02',method:'Cashfree',amount:500},
  {source_type:'folio',direction:'in',day:'2026-10-01',method:'Cash',amount:300}];
  const posted=api.postedPosSummary(existing,'2026-10-01','2026-10-31');
@@ -91,4 +91,28 @@ test('Old date in canonical POS report remains historical and is not a normal pa
  assert.match(posReports,/Old POS register/);
  assert.match(posReports,/historyError/);
  assert.match(accounts,/Reference|renderOldPosReconciliation/);
+});
+
+test('A03/A12: missing, duplicate, malformed or zero POS receipts are not verified comparisons',()=>{
+ const from='2026-10-01',to='2026-10-31',receipt={id:'p1',source_type:'order_payment',direction:'in',day:from,method:'Cash',amount:10};
+ const summarize=rows=>api.postedPosSummary(rows,from,to);
+ assert.equal(summarize(undefined).verified,false);
+ assert.equal(summarize(null).verified,false);
+ assert.equal(summarize([]).verified,true);
+ assert.deepEqual(summarize([receipt]),{verified:true,count:1,totalCents:1000});
+ assert.equal(summarize([receipt,{...receipt}]).verified,false);
+ for(const amount of [null,undefined,'','  ',true,'bad',Infinity,-1,0,1.001])assert.equal(summarize([{...receipt,amount}]).verified,false);
+ assert.equal(summarize([{...receipt,id:''}]).verified,false);
+ assert.equal(summarize([{...receipt,day:'2026-10-32'}]).verified,false);
+ assert.equal(summarize([{...receipt,day:'2026-11-01'}]).totalCents,0);
+ assert.equal(summarize([receipt,{...receipt,id:'p2',method:'UPI',amount:20}]).totalCents,3000);
+ for(const v of [true,false,'  ',[],{},Number.MAX_SAFE_INTEGER])assert.equal(api.cents(v),null);
+ assert.equal(api.cents(0),0);
+});
+test('A12 missing journal does not render misleading verified zero comparison',async()=>{
+ const {client}=clientFor([row]),host={isConnected:true,innerHTML:'',onclick:null};
+ const result=await api.mount(host,{client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19'});
+ assert.equal(result.ok,true);
+ assert.match(host.innerHTML,/could not be verified/);
+ assert.doesNotMatch(host.innerHTML,/independent, not matched/);
 });
