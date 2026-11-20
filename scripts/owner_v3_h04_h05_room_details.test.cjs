@@ -127,3 +127,21 @@ test('H04 floor and room-type filtering remains read-only, reversible and correc
  const body=source.slice(source.indexOf('function applyRoomFilters(target)'),source.indexOf('function pendingRegistration()'));
  assert.doesNotMatch(body,/\.(?:insert|update|upsert|delete|rpc)\(/);
 });
+
+test('H05 never treats null, blank, boolean or malformed folio balance as zero',()=>{
+ const f=fixture(),room={id:'101',number:'101',room_type:'Deluxe',active:true,housekeeping:'ready'};
+ const stay={id:'stay-1',room_id:'101',guest_id:'guest-1',status:'in_house',arrival:'2026-11-19',departure:'2026-11-20'};
+ const invalid=[null,undefined,'','  ',true,false,{},[],'not-a-number',Infinity];
+ for(const value of invalid){
+  f.setData({rooms:[room],stays:[stay],guests:[{id:'guest-1',full_name:'Synthetic guest'}],
+   folios:[{id:'folio-1',stay_id:'stay-1',status:'open',totals:{balance:value}}]});
+  const html=f.api.roomDetailMarkup(room);
+  assert.match(html,/Balance unavailable/,String(value));
+  assert.doesNotMatch(html,/No balance due/,String(value));
+ }
+ for(const [value,label] of [[0,'No balance due'],['0','No balance due'],[2500,'Due'],[-2500,'Credit to review']]){
+  f.setData({rooms:[room],stays:[stay],guests:[{id:'guest-1',full_name:'Synthetic guest'}],
+   folios:[{id:'folio-1',stay_id:'stay-1',status:'open',totals:{balance:value}}]});
+  assert.match(f.api.roomDetailMarkup(room),new RegExp(label));
+ }
+});
