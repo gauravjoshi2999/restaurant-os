@@ -18,6 +18,14 @@ Reference: user-approved `Bite Owner — Complete Editable Dashboard & Workflows
 - Supabase project active; read-only column check confirmed historical entry amounts and dates are non-null. Security advisor warnings (SECURITY DEFINER executable grants and leaked-password protection) require targeted review, not blanket revoke. No production mutation performed for this checkpoint.
 - Authenticated Owner manual acceptance, physical Android notifications, real printer/WhatsApp file sharing remain unverified; no production financial transaction authorized for tests.
 
+### Release evidence update — 2026-11-20
+- R07 [#245](https://github.com/gauravjoshi2999/restaurant-os/pull/245): branch QA 44756035554 successful at `f0d8a946344e5863ba0582047afd078e53cc0f83`; merged SHA `c729d901dbd29b71b82be098b849037cb0c6713b`, main QA 44757859387 and Pages 44760200108 successful, including public guest-browser smoke. Authenticated Owner acceptance remains outstanding.
+- A03/A12 [#246](https://github.com/gauravjoshi2999/restaurant-os/pull/246): branch QA 44759200520 successful at `21bc183ddb02a731b5730159f67fc16de3471366`; merged SHA `b26cb365cb22ae593a71544d39d4b61cf59e40d1`, main QA 44761696686 and Pages 44763022435 successful. Real Owner reconciliation acceptance remains outstanding.
+- A03 [#249](https://github.com/gauravjoshi2999/restaurant-os/pull/249): branch QA 44761826005 successful at `875e655b58941430b6ee139ac053d7db603e813f`; merged SHA `74cb3d5113013dd2de2e056e90a4fb99507bd8a0`. Main QA 44764298823 pending at snapshot; Pages not yet verified.
+- H15/R08 [#250](https://github.com/gauravjoshi2999/restaurant-os/pull/250): previous head `e8bcd228c56a6551fb2ec64c8f33b5a6f21ac40e` QA 44762107791 passed after syntax/DOM-fixture fixes. Refreshed head `7ea3031e4a10af91829abe8187fc851ec9427975` QA 44764381258 pending; guard clears visible history when loader is called without owner/scope. Actual session-switch behavior still requires acceptance.
+- H02 [#251](https://github.com/gauravjoshi2999/restaurant-os/pull/251): previous head `10337946b0da7b93a56e0a7f38ea72a078406de8` QA 44762580946 passed. Refreshed against #249 with updated cache version; latest QA and release pending.
+- Next: verify #249 main QA and Pages, then refresh/review/merge #250 and #251 sequentially with exact-head QA and separate deployment checks. No change to verified-screen count; synthetic QA and public guest smoke do not establish full authenticated acceptance. No production financial mutation.
+
 ## Screen register
 
 | ID | Approved screen | Status | Existing code/test/PR evidence locator | Remaining acceptance |

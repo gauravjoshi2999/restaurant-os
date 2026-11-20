@@ -31,3 +31,17 @@ test('photo preparation rejects contradictory types, oversized PDFs and unsuppor
  await assert.rejects(D.prepare(new File(['HEIC synthetic'],'synthetic.heic',{type:'image/heic'})),/JPEG, PNG or PDF/);
  await assert.rejects(D.prepare(new File(['%PDF-',new Uint8Array(D.MAX_BYTES)],'synthetic.pdf',{type:'application/pdf'})),/PDF up to 4 MB/);
 });
+
+test('permanent private-copy removal is offered only to the property owner',()=>{
+ const ready={id:'doc-1',status:'ready',can_finish:false};
+ assert.match(D.rowActions(ready,'owner'),/data-doc-action="remove"/);
+ assert.match(D.rowActions(ready,'owner'),/data-doc-action="download"/);
+ for(const role of ['manager','receptionist','cashier','']) {
+  const html=D.rowActions(ready,role);
+  assert.doesNotMatch(html,/data-doc-action="remove"/,role);
+  assert.match(html,/data-doc-action="download"/,role);
+ }
+ const pending={id:'doc-2',status:'pending',can_finish:true};
+ assert.match(D.rowActions(pending,'manager'),/data-doc-action="finish"/);
+ assert.doesNotMatch(D.rowActions(pending,'manager'),/data-doc-action="remove"/);
+});
