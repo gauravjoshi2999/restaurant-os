@@ -14,13 +14,14 @@ function scenario(role='super_admin'){
   {id:'1',customer_id:null,order_id:null,category:'Payment',subject:'Payment declined',message:'Please check my transaction',status:'Open',admin_response:null,updated_at:'2026-11-19T10:00:00.000Z',created_at:'2026-11-19T09:00:00.000Z'},
   {id:'2',customer_id:null,order_id:null,category:'Account',subject:'Login assistance',message:'Please help me sign in',status:'Resolved',admin_response:'Resolved',updated_at:'2026-11-19T11:00:00.000Z',created_at:'2026-11-19T08:00:00.000Z'}
  ];
+ const orders=[{id:'order-100',order_code:'BITE-ORDER-100',status:'Completed',channel:'Own Platform',is_demo:false}];
  const history=[{entity_id:'1',entity_type:'customer_support_ticket',action:'customer_support_ticket_created',details:{status:'Open'},created_at:'2026-11-19T09:00:01.000Z'}];
  const filters={elements:{status:{value:'all'},subject:{value:''}},addEventListener(){},reset(){this.elements.status.value='all';this.elements.subject.value='';}};
  const body={innerHTML:'',onclick:null},message={textContent:''},empty={style:{display:''}};
  const elements={supportAdminRows:body,supportAdminStatus:message,supportAdminEmpty:empty,supportAdminFilters:filters,supportAdminClearFilters:{addEventListener(){}}};
  const document={getElementById:id=>elements[id]||null};
  const sb={from(table){
-   assert.ok(['customer_support_tickets','platform_audit_logs'].includes(table),'Only established support/audit tables used');
+   assert.ok(['customer_support_tickets','platform_audit_logs','orders'].includes(table),'Only established support/audit/linked-order tables used');
    const where=[],req={table,where,mode:'read',payload:null};
    calls.push(req);
    const query={
@@ -34,7 +35,7 @@ function scenario(role='super_admin'){
     maybeSingle(){return this;},
     then(resolve){
       const match=row=>where.every(([key,val])=>key.startsWith('ilike:')?String(row[key.slice(6)]).toLowerCase().includes(String(val).replace(/^%|%$/g,'').toLowerCase()):key.startsWith('in:')?val.includes(row[key.slice(3)]):row[key]===val);
-      const matching=(table==='platform_audit_logs'?history:tickets).filter(match);
+      const matching=(table==='platform_audit_logs'?history:table==='orders'?orders:tickets).filter(match);
       if(req.mode==='update'){
         for(const row of matching){Object.assign(row,req.payload);row.updated_at='2026-11-19T12:00:00.000Z';}
         return Promise.resolve({data:matching[0]||null,error:null}).then(resolve);
@@ -46,7 +47,7 @@ function scenario(role='super_admin'){
  const access={role};
  const sandbox={document,sb,access,esc:v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;'),console,Promise,Set,Object,Date,Error};
  vm.runInNewContext(html.slice(start,end)+'\nthis.load=loadSupportWorkspace;this.save=saveSupportTicket;',sandbox);
- return {sandbox,tickets,history,calls,filters,body,message,access};
+ return {sandbox,tickets,orders,history,calls,filters,body,message,access};
 }
 test('server-side status and subject filters identify matching support tickets before the 200 cap',async()=>{
  const s=scenario();
@@ -109,4 +110,27 @@ test('existing admin-only platform audit events are scoped to visible tickets an
  assert.match(s.body.innerHTML,/Ticket opened/);
  assert.match(s.body.innerHTML,/Initial status: Open/);
  assert.doesNotMatch(s.body.innerHTML,/internal note/);
+});
+
+test('linked support order shows real code and status from RLS-scoped website order read',async()=>{
+ const s=scenario();
+ s.tickets[0].order_id='order-100';
+ await s.sandbox.load();
+ assert.match(s.body.innerHTML,/BITE-ORDER-100/);
+ assert.match(s.body.innerHTML,/Completed/);
+ const query=s.calls.find(c=>c.table==='orders');
+ assert.ok(query);
+ assert.equal(query.mode,'read');
+ assert.ok(query.where.some(([key,v])=>key==='in:id'&&v.includes('order-100')));
+ assert.ok(query.where.some(([key,v])=>key==='channel'&&v==='Own Platform'));
+ assert.ok(query.where.some(([key,v])=>key==='is_demo'&&v===false));
+});
+test('unlinked ticket stays General; linked inaccessible order never exposes another order',async()=>{
+ const s=scenario();
+ s.tickets[0].order_id='missing-order';
+ await s.sandbox.load();
+ assert.match(s.body.innerHTML,/Order reference …ing-order/);
+ assert.match(s.body.innerHTML,/Not accessible/);
+ assert.doesNotMatch(s.body.innerHTML,/BITE-ORDER-100/);
+ assert.match(s.body.innerHTML,/General/);
 });
