@@ -257,8 +257,24 @@
    if(entry.source_type==='daybook')return entry.category==='income';
    return false;
   });
-  const received=eligible.reduce((sum,entry)=>sum+Number(entry.amount),0);
-  if(eligible.some(entry=>entry.amount==null)||!Number.isFinite(received))throw Error('The selected day has an invalid receipt.');
+  const receiptIds=new Set();let receivedCents=0;
+  for(const entry of eligible){
+   if(!entry||typeof entry.source_type!=='string'||!entry.source_type.trim()||
+      typeof entry.id!=='string'||!entry.id.trim())
+    throw Error('The selected day has an invalid receipt identity.');
+   const identity=JSON.stringify([entry.source_type,entry.id]);
+   if(receiptIds.has(identity))throw Error('The selected day contains a duplicate receipt. Refresh Daily Book.');
+   receiptIds.add(identity);
+   const value=entry.amount;
+   if(!((typeof value==='number'&&Number.isFinite(value))||(typeof value==='string'&&value.trim()!=='')))
+    throw Error('The selected day has an invalid receipt.');
+   const amount=Number(value),cents=Math.round(amount*100);
+   if(!Number.isFinite(amount)||amount<0||!Number.isSafeInteger(cents)||Math.abs(amount*100-cents)>0.00001)
+    throw Error('The selected day has an invalid receipt.');
+   receivedCents+=cents;
+   if(!Number.isSafeInteger(receivedCents))throw Error('The selected day receipt total is too large to verify.');
+  }
+  const received=receivedCents/100;
   return {propertyId:property.id,day,sales,expenses,received,receiptCount:eligible.length,
    source:'bite_daily_book',receivedBasis:'Confirmed POS/guest receipts and recorded other income. Excludes deposits, transfers and opening balances.'};
  }
