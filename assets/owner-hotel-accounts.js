@@ -416,7 +416,7 @@
    version===reportVersion&&linkedRegisterRestaurant()===restaurantId;
   void root.BiteV3HistoricalReconcile.mount(target,{
    client:ctx.sb,restaurantId,from,to,today:today(),scope:key,
-   journal:report?.journal||[],isCurrent:current,
+   journal:report?.journal,isCurrent:current,
    onOpen:(day,id,selectedScope)=>openOldPosDay(day,id,selectedScope,version,restaurantId)
   });
  }

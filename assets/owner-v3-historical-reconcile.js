@@ -8,7 +8,7 @@
   Number.isFinite(new Date(s+'T00:00:00Z').getTime())&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
  const cents=v=>{
   const n=Number(v);
-  if(v===null||v===undefined||v===''||!Number.isFinite(n)||n<0||Math.abs(n*100-Math.round(n*100))>1e-6)return null;
+  if(!(typeof v==='number'||typeof v==='string'&&v.trim()!=='')||!Number.isFinite(n)||n<0||!Number.isSafeInteger(Math.round(n*100))||Math.abs(n*100-Math.round(n*100))>1e-6)return null;
   return Math.round(n*100);
  };
  function validPeriod(from,to,today){
@@ -47,7 +47,7 @@
     .select('id,restaurant_id,record_date,recorded_at,customer_name,amount,received_amount,payment_method,guest_count,visit_type')
     .eq('restaurant_id',restaurantId).eq('entry_kind','pos')
     .gte('record_date',from).lte('record_date',to)
-    .order('record_date',{ascending:false}).order('recorded_at',{ascending:false})
+    .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false})
     .range(start,start+pageSize-1);
    if(isCurrent?.()===false)throw Error('Scope changed during historical register read.');
    if(error)throw error;
@@ -58,18 +58,20 @@
   throw Error('Old register exceeds the verified page limit; totals are hidden until a complete export is available.');
  }
  function postedPosSummary(journal,from,to){
-  if(!Array.isArray(journal))return {verified:false};
-  let count=0,totalCents=0;
+  if(!Array.isArray(journal)||!validPeriod(from,to,to))return {verified:false};
+  const seen=new Set();let count=0,totalCents=0;
   for(const x of journal){
-   if(x?.source_type!=='order_payment'||x.direction!=='in'||x.day<from||x.day>to||
-     !['Cash','UPI','Card','Bank Transfer'].includes(x.method))continue;
+   if(x?.source_type!=='order_payment'||x.direction!=='in')continue;
+   if(!dayValid(x.day))return {verified:false};
+   if(x.day<from||x.day>to||!['Cash','UPI','Card','Bank Transfer'].includes(x.method))continue;
    const value=cents(x.amount);
-   if(value===null)return {verified:false};
-   count++;totalCents+=value;
+   if(typeof x.id!=='string'||!x.id.trim()||seen.has(x.id)||value===null||value<=0)return {verified:false};
+   seen.add(x.id);count++;totalCents+=value;
+   if(!Number.isSafeInteger(totalCents))return {verified:false};
   }
-  return {verified:Number.isSafeInteger(totalCents),count,totalCents};
+  return {verified:true,count,totalCents};
  }
- async function mount(target,{client,restaurantId,from,to,today,scope,isCurrent,onOpen,journal=[]}={}){
+ async function mount(target,{client,restaurantId,from,to,today,scope,isCurrent,onOpen,journal}={}){
   if(!target)return {ok:false};
   const active=()=>!!target.isConnected&&isCurrent?.()!==false;
   if(!restaurantId){
@@ -93,7 +95,7 @@
        '<div><span>Old register remainder</span><strong>'+money(summary.remainingCents/100)+'</strong></div></div>':'<p class="v3-history-empty">No saved old POS entries in this selected period. Live POS records remain in Daily Book and POS.</p>')+
      '<p class="v3-history-note">Reference only: old written received is NOT a newly collected or bank-verified payment. These figures are NOT added to live billed sales, cash/UPI, profit, GST invoices or customer Khata. Check originals before adjusting accounts.</p>'+
      '<p class="v3-history-posted">'+(posted.verified?
-        'Existing Daily Book POS receipts (independent, not matched): '+money(posted.totalCents/100)+' · '+posted.count+' transaction(s). Do not add this to the old register amount.':
+        'Existing Daily Book POS receipts for this property (independent, not matched): '+money(posted.totalCents/100)+' · '+posted.count+' transaction(s). Do not add this to the old register amount.':
         'Existing POS receipts could not be verified for comparison. No difference is calculated.')+'</p>'+
      (summary.count?'<div class="v3-history-list">'+list.map(x=>
        '<article class="v3-history-row"><div><strong>'+esc(x.record_date)+' · '+esc(x.customer_name||'Walk-in')+'</strong>'+
