@@ -28,7 +28,7 @@
    '<label class="bh-field"><span>Booking / family name</span><input name="family_name" maxlength="120" value="'+esc(draft.family_name||'')+'" placeholder="e.g. Sharma family"></label>'+
    '<p class="bf-family-note">First choose the lead room above. Add other rooms below. Each room will keep a separate GST/guest bill; the combined statement summarizes them without doubling food or payments.</p>'+
    '<div data-family-choices>'+rooms.map(r=>{
-    const id=String(r.id),checked=previous.includes(id),capAdults=Math.min(20,Math.max(1,Number(r.adults)||20)),capChildren=Math.min(20,Math.max(0,Number(r.children)||20));
+    const id=String(r.id),checked=previous.includes(id),capAdults=Math.min(20,Math.max(1,Number(r.adults)||20)),capChildren=Math.min(20,Math.max(0,Number(r.children??20)));
     return '<div class="bf-room" data-family-room="'+esc(id)+'"><label class="bf-room-switch"><input type="checkbox" name="family_room_ids" value="'+esc(id)+'" '+(checked?'checked':'')+'><span><strong>Room '+esc(r.number)+'</strong><small>'+esc(r.room_type||'Room')+' · '+money(r.nightly_rate)+'/night</small></span></label>'+
      '<div class="bf-room-fields" '+(checked?'':'hidden')+'><label>Adults<input name="family_adults_'+esc(id)+'" type="number" min="1" max="'+capAdults+'" step="1" value="'+esc(draft['family_adults_'+id]||1)+'"></label>'+
      '<label>Women (included in adults)<input name="family_female_'+esc(id)+'" type="number" min="0" max="'+capAdults+'" step="1" value="'+esc(draft['family_female_'+id]||0)+'"></label>'+ 
@@ -93,11 +93,15 @@
   for(const id of selected){
    const room=roomById.get(id);
    if(!room||!room.active||room.housekeeping==='blocked')throw fail('family_room_ids','A selected room is unavailable. Refresh rooms.');
-   const adults=Number(form.elements['family_adults_'+id]?.value),children=Number(form.elements['family_children_'+id]?.value),rate=Number(form.elements['family_rate_'+id]?.value);
-   if(!Number.isInteger(adults)||adults<1||adults>Number(room.adults||20)||
-      !Number.isInteger(children)||children<0||children>Number(room.children??20))throw fail('family_adults_'+id,'Check the room occupancy limits.');
+   const guard=root.BiteCheckinGuard?.roomAvailability;
+   const reason=guard?.(room,workspace.stays||[],f.arrival,f.departure,f.mode,'',today(),{...prop(),housekeeping_enabled:root.BiteHospitality?.housekeepingVisible?.()});
+   if(reason)throw fail('family_room_ids','A selected room is unavailable: '+reason+'. Refresh rooms.');
+   const readNumber=key=>{const value=form.elements[key+'_'+id]?.value;return typeof value==='string'&&value.trim()!==''?Number(value):NaN;};
+   const adults=readNumber('family_adults'),children=readNumber('family_children'),rate=readNumber('family_rate');
+   if(!Number.isInteger(adults)||adults<1||adults>Number(room.adults??20))throw fail('family_adults_'+id,'Check the adult occupancy limit.');
+   if(!Number.isInteger(children)||children<0||children>Number(room.children??20))throw fail('family_children_'+id,'Check the child occupancy limit.');
    if(!Number.isFinite(rate)||rate<0||rate>9999999999.99||Math.abs(Math.round(rate*100)-rate*100)>0.000001)throw fail('family_rate_'+id,'Enter a valid room rate with two decimal places.');
-   const female=Number(form.elements['family_female_'+id]?.value||0);
+   const female=readNumber('family_female');
    if(!Number.isInteger(female)||female<0||female>adults)throw fail('family_female_'+id,'Women count cannot exceed adult guests.');
    rows.push({room_id:id,adults,children,female,nightly_rate:rate,note:String(form.elements['family_note_'+id]?.value||'').trim().slice(0,120)});
   }
