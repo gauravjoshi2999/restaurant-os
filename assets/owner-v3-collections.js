@@ -30,7 +30,21 @@
    entry.source_type:(entry.direction==='out'?'expense':'other');
  }
  function summarize(journal,method='all',day='',source='all'){
-  const all=Array.isArray(journal)?journal:[];
+  if(!Array.isArray(journal))return {error:'Collections could not be verified. Refresh Daily Book.'};
+  const all=journal;
+  const seen=new Set(),values=new Map();
+  const invalid=()=>({error:'Some recorded entries have duplicate or invalid amounts or identities. Refresh Daily Book.'});
+  for(const x of all){
+   if(!x||!['in','out','noncash'].includes(x.direction))return invalid();
+   if(x.direction==='noncash')continue;
+   if(typeof x.id!=='string'||!x.id.trim()||typeof x.source_type!=='string'||!x.source_type.trim())return invalid();
+   const key=JSON.stringify([x.source_type,x.id]);
+   const value=x.amount;
+   if(seen.has(key)||!(typeof value==='number'||typeof value==='string'&&value.trim()!==''))return invalid();
+   const numeric=Number(value),cents=Math.round(numeric*100);
+   if(!Number.isFinite(numeric)||numeric<0||!Number.isSafeInteger(cents)||Math.abs(numeric*100-cents)>0.00001)return invalid();
+   seen.add(key);values.set(x,cents);
+  }
   const included=all.filter(x=>(!day||x.day===day)&&
    (method==='all'||group(x.method)===method)&&
    (source==='all'||sourceGroup(x)===source));
@@ -38,10 +52,10 @@
   const received=valid.filter(x=>type(x)==='received');
   const paid=valid.filter(x=>type(x)==='paid');
   const other=valid.filter(x=>type(x)==='other'||type(x)==='unverified');
-  function total(rows){return rows.reduce((n,x)=>n+Number(x.amount),0)}
-  if(valid.some(x=>x.amount==null||!Number.isFinite(Number(x.amount))))
-   return {error:'Some recorded entries have incomplete amounts. Refresh Daily Book.'};
-  return {entries:valid,received:total(received),paid:total(paid),other:total(other),
+  function total(rows){let sum=0;for(const x of rows){sum+=values.get(x);if(!Number.isSafeInteger(sum))return null;}return sum/100;}
+  const totals=[total(received),total(paid),total(other)];
+  if(totals.includes(null))return invalid();
+  return {entries:valid,received:totals[0],paid:totals[1],other:totals[2],
    receiptCount:received.length,paymentCount:paid.length,excludedCount:other.length};
  }
  function render(target,report,options={}){
