@@ -3157,6 +3157,15 @@ async function loadSupportWorkspace(){
   const rows=data||[],ids=[...new Set(rows.map(r=>r.customer_id).filter(Boolean))];
   let profileMap={};
   if(ids.length){const p=await sb.from('profiles').select('id,full_name').in('id',ids);if(request!==supportAdminLoadSequence||access.role!=='super_admin')return;if(!p.error)profileMap=Object.fromEntries((p.data||[]).map(x=>[x.id,x.full_name]));}
+  // Read only linked, non-demo website orders; never fetch all platform orders for support.
+  const linkedOrderIds=[...new Set(rows.map(r=>r.order_id).filter(Boolean))],linkedOrders={};
+  let linkedOrderUnavailable=false;
+  if(linkedOrderIds.length){
+   const linked=await sb.from('orders').select('id,order_code,status').in('id',linkedOrderIds).eq('channel','Own Platform').eq('is_demo',false);
+   if(request!==supportAdminLoadSequence||access.role!=='super_admin')return;
+   if(linked.error)linkedOrderUnavailable=true;
+   else for(const o of linked.data||[])linkedOrders[o.id]=o;
+  }
   const ticketIds=rows.map(r=>r.id).filter(Boolean),auditMap={},historyCap=1000;
   let auditUnavailable=false;
   if(ticketIds.length){
@@ -3175,11 +3184,13 @@ async function loadSupportWorkspace(){
     const movement=created?'Initial status: '+String(details.status||'Open'):(details.old_status||'Unknown')+' → '+(details.new_status||'Unknown')+(details.response_changed?' · Reply edited':'');
     return '<li><strong>'+esc(title)+'</strong><small>'+esc(movement)+' · '+esc(new Date(event.created_at).toLocaleString('en-IN'))+'</small></li>';
    }).join('');
+   const linked=r.order_id?linkedOrders[r.order_id]:null;
+   const orderCell=linked?'<strong>'+esc(linked.order_code)+'</strong><br><small>'+esc(linked.status)+'</small>':r.order_id?'<small>Order reference …'+esc(String(r.order_id).slice(-8))+' · '+(linkedOrderUnavailable?'Unavailable':'Not accessible')+'</small>':'General';
    const historyCell='<td><details class="sa-support-history"><summary>History ('+events.length+')</summary>'+(auditUnavailable?'<p>History unavailable — refresh.</p>':events.length?'<ol>'+history+'</ol>':'<p>No recent audit events.</p>')+'</details></td>';
-   return '<tr data-support-row="'+esc(r.id)+'" data-support-updated-at="'+esc(r.updated_at||'')+'"><td>'+esc(customer)+'</td><td><strong>'+esc(r.category)+'</strong><br>'+esc(r.subject)+'<br><small>'+esc(new Date(r.created_at).toLocaleString('en-IN'))+'</small></td><td style="min-width:220px;white-space:normal">'+esc(r.message)+'</td><td>'+esc(String(r.order_id||'General').slice(0,8))+'</td><td><select data-support-status>'+statuses+'</select></td><td style="min-width:220px"><textarea data-support-response rows="3" maxlength="2000" placeholder="Customer ko response…">'+esc(r.admin_response||'')+'</textarea></td>'+historyCell+'<td><button class="btn secondary" type="button" data-support-save="'+esc(r.id)+'">Save</button></td></tr>';
+   return '<tr data-support-row="'+esc(r.id)+'" data-support-updated-at="'+esc(r.updated_at||'')+'"><td>'+esc(customer)+'</td><td><strong>'+esc(r.category)+'</strong><br>'+esc(r.subject)+'<br><small>'+esc(new Date(r.created_at).toLocaleString('en-IN'))+'</small></td><td style="min-width:220px;white-space:normal">'+esc(r.message)+'</td><td>'+orderCell+'</td><td><select data-support-status>'+statuses+'</select></td><td style="min-width:220px"><textarea data-support-response rows="3" maxlength="2000" placeholder="Customer ko response…">'+esc(r.admin_response||'')+'</textarea></td>'+historyCell+'<td><button class="btn secondary" type="button" data-support-save="'+esc(r.id)+'">Save</button></td></tr>';
   }).join('');
   if(empty)empty.style.display=rows.length?'none':'block';
-  status.textContent='Showing '+rows.length+' of '+(count??rows.length)+' matching support requests (latest 200 per filter).'+(auditUnavailable?' Audit history could not be loaded; ticket replies remain available.':'');
+  status.textContent='Showing '+rows.length+' of '+(count??rows.length)+' matching support requests (latest 200 per filter).'+(auditUnavailable?' Audit history could not be loaded; ticket replies remain available.':'')+(linkedOrderUnavailable?' Linked order details unavailable; showing references only.':'');
   body.onclick=async event=>{const button=event.target.closest('[data-support-save]');if(!button)return;await saveSupportTicket(button.dataset.supportSave,button);};
  }catch(error){if(request===supportAdminLoadSequence&&access.role==='super_admin'){status.textContent='Support requests load nahi hui: '+(error.message||String(error));console.error(error);}}
 }

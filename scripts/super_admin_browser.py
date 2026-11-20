@@ -96,7 +96,7 @@ try:
     check(dl.value.suggested_filename.endswith('.csv'),'Report export downloads real displayed period data')
     csv_text=Path(dl.value.path()).read_text(encoding='utf-8-sig')
     check('Ledger-recorded collections (provider/bank verification separate)' in csv_text and 'customer bank credit not proven' in csv_text,'CSV export retains source values but clearly marks missing bank evidence')
-    nav(page,'support');page.locator('[data-support-save]').wait_for()
+    nav(page,'support');page.locator('[data-support-save]').wait_for();check('QA-LIVE-00' in page.locator('#supportAdminRows').inner_text(),'Support shows source-backed website order code and status')
     page.locator('#supportAdminRows .sa-support-history summary').first.click()
     check('Ticket opened' in page.locator('#supportAdminRows .sa-support-history').first.inner_text(),'Support timeline displays admin-only audit events without leaking notes')
     page.locator('#supportAdminFilters [name=status]').select_option('Resolved')
