@@ -73,8 +73,24 @@ test('A03 integrates existing Daily Book instead of creating any payments',()=>{
  assert.match(accounts,/root\.printOwnerInvoice/);
  assert.match(accounts,/customer_ledger_payment/);
  assert.match(accounts,/Original ledger and account notes/);
- assert.match(html,/owner-v3-collections\.js\?v=20261119-a02-shared1/);
+ assert.match(html,/owner-v3-collections\.js\?v=20261120-a03-identity1/);
  assert.match(html,/owner-v3-collections\.css\?v=20261118-a03-collections1/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-collections.js','utf8'),/\.(?:insert|update|upsert|delete|rpc)\s*\(/);
+});
+
+test('A03 collections reject duplicate source identities, malformed amounts and missing journal before filters',()=>{
+ const a=journal[0];
+ assert.ok(collections.summarize(undefined).error);
+ assert.ok(collections.summarize([a,{...a}],'bank').error);
+ for(const amount of [null,undefined,'','  ',true,false,[],{},'bad',Infinity,-1,1.001,Number.MAX_SAFE_INTEGER]){
+  assert.ok(collections.summarize([{...a,amount}]).error,String(amount));
+ }
+ assert.ok(collections.summarize([{...a,id:''}]).error);
+ assert.ok(collections.summarize([{...a,source_type:''}]).error);
+ assert.ok(collections.summarize([null]).error);
+ assert.ok(collections.summarize([{...a,amount:90071992547409},{...a,id:'p2',amount:1}]).error);
+ assert.equal(collections.summarize([]).received,0);
+ assert.equal(collections.summarize([{...a,amount:0.1},{...a,id:'p2',amount:0.2}]).received,0.3);
+ assert.equal(collections.summarize([a,{...a,source_type:'folio',category:'payment'}]).received,1000);
 });
