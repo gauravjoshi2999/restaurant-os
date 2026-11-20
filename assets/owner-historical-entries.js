@@ -108,7 +108,7 @@
   }
   const date=currentDate(form);
   const monthSelected=()=>form.querySelector('[data-bhe-month]')?.getAttribute('aria-pressed')==='true';
-  const month=monthSelected(),session=ctx,user=ctx.getUser().id;
+  const month=monthSelected(),session=ctx;
   const current=()=>historyRequests.get(form)===token&&ctx===session&&ctx.getUser?.()?.id===user&&form.isConnected&&currentDate(form)===date&&scope(kind)===id&&isHistorical(form)&&monthSelected()===month;
   const first=date.slice(0,7)+'-01',last=plusDay(new Date(Date.UTC(Number(date.slice(0,4)),Number(date.slice(5,7)),0,12)).toISOString().slice(0,10));
   const key=kind==='room'?'property_id':'restaurant_id';
