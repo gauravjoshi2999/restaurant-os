@@ -96,9 +96,17 @@
  function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;scan()})}
  async function loadRows(form,kind){
   const token={};historyRequests.set(form,token);
-  if(!isHistorical(form)||!ctx?.sb||!scope(kind)||!ctx.getUser?.()?.id)return;
-  const list=form.querySelector('[data-bhe-list]'),date=currentDate(form),id=scope(kind);
+  const list=form?.querySelector?.('[data-bhe-list]');
   if(!list)return;
+  if(!isHistorical(form)){list.textContent='';return;}
+  const id=scope(kind),user=ctx?.getUser?.()?.id;
+  if(!ctx?.sb||!id||!user){
+   // Never leave a previous owner's / property's historical rows visible after access is lost.
+   list.textContent='';
+   status(form,'Owner login or property selection missing. Sign in again to view saved records.',true);
+   return;
+  }
+  const date=currentDate(form);
   const monthSelected=()=>form.querySelector('[data-bhe-month]')?.getAttribute('aria-pressed')==='true';
   const month=monthSelected(),session=ctx,user=ctx.getUser().id;
   const current=()=>historyRequests.get(form)===token&&ctx===session&&ctx.getUser?.()?.id===user&&form.isConnected&&currentDate(form)===date&&scope(kind)===id&&isHistorical(form)&&monthSelected()===month;

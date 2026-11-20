@@ -53,3 +53,21 @@ test('H15/R08: truncated, malformed or duplicate results never claim complete fi
  assert.match(t.list.innerHTML,/No partial total shown/);
  assert.doesNotMatch(t.list.innerHTML,/record\(s\)/);
 });
+
+test('H15/R08: cached historical rows are cleared when owner login or property scope disappears',async()=>{
+ const t=setup(),first=t.api.loadRows(t.form,'pos');
+ t.requests[0].resolve({data:[row('private-cached-owner',55)],error:null});await first;
+ assert.match(t.list.innerHTML,/private-cached-owner/);
+ t.setUser(null);
+ await t.api.loadRows(t.form,'pos');
+ assert.equal(t.list.innerHTML,'','logout must clear previously rendered historical rows');
+ assert.equal(t.requests.length,1,'no request is made without an authenticated owner');
+ t.setUser('owner-a');
+ const second=t.api.loadRows(t.form,'pos');
+ t.requests[1].resolve({data:[row('private-cached-property',65)],error:null});await second;
+ assert.match(t.list.innerHTML,/private-cached-property/);
+ t.setRestaurant(null);
+ await t.api.loadRows(t.form,'pos');
+ assert.equal(t.list.innerHTML,'','missing tenant scope must clear previously rendered historical rows');
+ assert.equal(t.requests.length,2,'no query is made without an active property scope');
+});
