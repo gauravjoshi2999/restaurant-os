@@ -4,6 +4,17 @@
 (function(root){
  'use strict';
  let ctx=null,observer=null,scheduled=false;
+ const historyRequests=new WeakMap(),historyLimit=200;
+ function historyListSummary(rows){
+  if(!Array.isArray(rows))throw Error('Saved records unavailable. Retry.');
+  if(rows.length>historyLimit)return {complete:false,count:historyLimit,rows:rows.slice(0,historyLimit)};
+  const ids=new Set();let cents=0;
+  for(const r of rows){const validMoney=v=>(typeof v==='number'||typeof v==='string'&&v.trim()!=='')&&Number.isFinite(Number(v))&&Number(v)>=0&&Number.isSafeInteger(Math.round(Number(v)*100))&&Math.abs(Number(v)*100-Math.round(Number(v)*100))<0.00001;
+   if(!r?.id||ids.has(r.id)||!validMoney(r.amount)||!validMoney(r.received_amount)||Number(r.received_amount)>Number(r.amount))throw Error('Saved record amounts unavailable. Retry.');
+   ids.add(r.id);cents+=Math.round(Number(r.amount)*100);if(!Number.isSafeInteger(cents))throw Error('Saved record total unavailable. Retry.');
+  }
+  return {complete:true,count:rows.length,total:cents/100,rows};
+ }
  const today=()=>root.BiteOwner?.day?.()||new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});
  const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const currency=v=>'₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});
@@ -45,6 +56,7 @@
   }
   box.querySelector('[data-bhe-day]')?.setAttribute('max',today());
   if(!historical){
+   historyRequests.delete(form);
    const list=form.querySelector('[data-bhe-list]');
    if(list)list.textContent='';
    status(form,'');
@@ -83,26 +95,31 @@
  }
  function schedule(){if(scheduled)return;scheduled=true;queueMicrotask(()=>{scheduled=false;scan()})}
  async function loadRows(form,kind){
-  if(!isHistorical(form)||!ctx?.sb||!scope(kind))return;
+  const token={};historyRequests.set(form,token);
+  if(!isHistorical(form)||!ctx?.sb||!scope(kind)||!ctx.getUser?.()?.id)return;
   const list=form.querySelector('[data-bhe-list]'),date=currentDate(form),id=scope(kind);
   if(!list)return;
-  const month=form.querySelector('[data-bhe-month]')?.getAttribute('aria-pressed')==='true';
+  const monthSelected=()=>form.querySelector('[data-bhe-month]')?.getAttribute('aria-pressed')==='true';
+  const month=monthSelected(),session=ctx,user=ctx.getUser().id;
+  const current=()=>historyRequests.get(form)===token&&ctx===session&&ctx.getUser?.()?.id===user&&form.isConnected&&currentDate(form)===date&&scope(kind)===id&&isHistorical(form)&&monthSelected()===month;
   const first=date.slice(0,7)+'-01',last=plusDay(new Date(Date.UTC(Number(date.slice(0,4)),Number(date.slice(5,7)),0,12)).toISOString().slice(0,10));
   const key=kind==='room'?'property_id':'restaurant_id';
   list.textContent='Reading saved records…';
   const q=ctx.sb.from('bite_owner_historical_entries')
    .select('id,record_date,customer_name,room_number,amount,received_amount,guest_count,visit_type,recorded_at')
    .eq('entry_kind',kind).eq(key,id).gte('record_date',month?first:date).lt('record_date',month?last:plusDay(date))
-   .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).limit(200);
+   .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false}).limit(historyLimit+1);
   try{
    const {data,error}=await q;
-   if(!form.isConnected||currentDate(form)!==date||scope(kind)!==id||!isHistorical(form))return;
+   if(!current())return;
    if(error)throw error;
-   const rows=data||[],total=rows.reduce((n,x)=>n+Number(x.amount||0),0);
+   const summary=historyListSummary(data);
+   if(!summary.complete){list.innerHTML=line('More than '+historyLimit+' records for this period. Use a shorter period or the full POS / Guest Register report. No partial total shown.');return;}
+   const rows=summary.rows,total=summary.total;
    list.innerHTML='<p class="bhe-totals">'+(month?'Month':'Date')+': '+rows.length+' record(s) · '+currency(total)+' billed</p>'+
     (rows.length?rows.map(x=>'<div class="bhe-record"><span><strong>'+safe(x.customer_name)+'</strong><small>'+safe(x.record_date)+' · '+safe(kind==='room'?'Room '+x.room_number:x.visit_type==='takeaway'?'Takeaway':(x.guest_count||'?')+' dine-in guests')+'</small></span><span><strong>'+currency(x.amount)+'</strong><small>Received '+currency(x.received_amount)+'</small></span></div>').join(''):
       line('Is date ka koi purana record abhi save nahi hai.'));
-  }catch(error){if(form.isConnected)list.innerHTML=line('Purane records load nahi hue: '+(error.message||'Network error'));}
+  }catch(error){if(current())list.innerHTML=line('Purane records load nahi hue: '+(error.message||'Network error'));}
  }
  function number(value,label){
   const n=Number(value);
@@ -223,5 +240,5 @@
   observer.observe(document.body,{childList:true,subtree:true});
   scan();
  }
- root.BiteOwnerHistory={init,scan,isHistorical,validDate,plusDay};
+ root.BiteOwnerHistory={init,scan,isHistorical,validDate,plusDay,historyListSummary,loadRows};
 })(window);
