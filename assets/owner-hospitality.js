@@ -303,7 +303,10 @@
   const canEdit=['owner','manager'].includes(prop().role);
   const canCharge=!!(inHouse&&folio?.status==='open'&&['owner','manager','receptionist'].includes(prop().role)&&has('folios'));
   const canFood=canCharge&&has('charge_to_room')&&restaurantAccess()&&['owner','manager'].includes(prop().role);
-  const balance=Number(folio?.totals?.balance),verified=folio?.totals&&Number.isFinite(balance);
+  const rawBalance=folio?.totals?.balance;
+  const validBalance=typeof rawBalance==='number'?Number.isFinite(rawBalance):
+   typeof rawBalance==='string'&&rawBalance.trim()!==''&&Number.isFinite(Number(rawBalance));
+  const balance=validBalance?Number(rawBalance):NaN,verified=!!folio?.totals&&validBalance;
   const due=verified?(balance>0?'Due':balance<0?'Credit to review':'No balance due'):'Balance unavailable';
   const dates=stay?esc(shortDate(stay.arrival))+' – '+esc(shortDate(stay.departure)):'';
   const note=String(room.status_note||'').trim(),showNote=note&&(hk||!/clean|housekeep|dnd|do not disturb/i.test(note));
