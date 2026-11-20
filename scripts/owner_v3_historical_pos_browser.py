@@ -35,7 +35,7 @@ fixtures="""async () => {
    client:{from(name){if(name!=='bite_owner_historical_entries')throw Error('Wrong table');return builder}},
    restaurantId:restaurant,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19',
    scope:'owner:hotel',isCurrent:()=>window.__scope,
-   journal:[{source_type:'order_payment',direction:'in',day:'2026-10-01',method:'Cash',amount:50}],
+   journal:[{id:'synthetic-receipt',source_type:'order_payment',direction:'in',day:'2026-10-01',method:'Cash',amount:50}],
    onOpen:(day,id)=>window.__opened.push({day,id})
   });
 }"""
