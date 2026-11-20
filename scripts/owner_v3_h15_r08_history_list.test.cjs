@@ -44,7 +44,7 @@ test('H15/R08: truncated, malformed or duplicate results never claim complete fi
  const t=setup(),s=t.api.historyListSummary;
  assert.equal(s([row('a',0),row('b','12.50')]).total,12.5);
  assert.equal(s([]).total,0);
- for(const bad of [null,undefined,'',' ',true,'NaN',Infinity,-1,1.001])assert.throws(()=>s([row('a',bad)]),/unavailable/);
+ for(const bad of [null,undefined,'',' ',true,'NaN',Infinity,-1,1.001])assert.throws(()=>s([{...row('a'),amount:bad}]),/unavailable/);
  assert.throws(()=>s([row('a'),row('a')]),/unavailable/);
  assert.throws(()=>s([{...row('a'),received_amount:21}]),/unavailable/);
  const a=t.api.loadRows(t.form,'pos');
