@@ -36,3 +36,10 @@ test('H13 selection includes only open in-house rooms in the exact booking',()=>
  const original=JSON.stringify(snapshot);assert.deepEqual(B.availableCheckoutRooms(stay,snapshot).map(x=>x.folio.id),['f1','f2']);assert.equal(JSON.stringify(snapshot),original);
  assert.throws(()=>B.availableCheckoutRooms(stay,{...snapshot,folios:[snapshot.folios[0]]}),/missing or duplicated/);
 });
+
+
+test('H13 selected checkout excludes unselected rooms and rejects duplicate or stale IDs',()=>{
+ const B=globalThis.BiteHotelBilling,stay={id:'s1',group_id:'g',status:'in_house'},workspace={stays:[stay,{id:'s2',group_id:'g',status:'in_house'},{id:'s3',group_id:'g',status:'in_house'}],folios:[1,2,3].map(n=>({id:'f'+n,stay_id:'s'+n,status:'open'})),rooms:[]};
+ assert.deepEqual(B.selectedCheckoutRows(stay,workspace,['f1','f3']).map(r=>r.folio.id),['f1','f3']);
+ for(const ids of [[],['f1','f1'],['f1','foreign']])assert.throws(()=>B.selectedCheckoutRows(stay,workspace,ids));
+});

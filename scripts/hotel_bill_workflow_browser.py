@@ -75,7 +75,7 @@ try:
   check(p.evaluate('JSON.stringify(__BITE_HOTEL_QA.db.entries)')==before,'Family ledger review creates no charge or receipt')
   check(p.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Family bill fits mobile width')
   p.locator('[data-bill-action=booking-select-checkout]').click();selection=p.locator('[data-bill-form=select-rooms]');selection.wait_for()
-  check(selection.locator('[name=selection]').count()==3,'H13 selection lists two active rooms and all rooms')
+  check(selection.locator('[name=selection]').count()==2,'H13 lists two active rooms as individual checkboxes')
   room_b=p.evaluate("(__BITE_HOTEL_QA.db.folios.find(f=>f.stay_id===__BITE_HOTEL_QA.db.stays.find(s=>s.room_id==='room-b').id)).id")
   selection.locator('[name=selection][value="'+room_b+'"]').check()
   selection.locator('[type=submit]').click();single=p.locator('[data-bill-form=checkout]');single.wait_for()
@@ -87,6 +87,28 @@ try:
   check(p.evaluate('__BITE_HOTEL_QA.db.entries.filter(e=>e.kind==="payment").reduce((n,e)=>n+e.amount,0)')==2950,'Combined collection is allocated once across room bills')
   with p.expect_popup()as event:p.locator('[data-bill-action=booking-bill]').click()
   combined=event.value;combined.get_by_text('Booking statement · 2 rooms',exact=True).wait_for();check('₹2,950.00'in combined.locator('body').inner_text(),'Combined bill attaches both room invoices with the correct total');combined.close();p.close()
+  p=open_page(browser);seed(p)
+  p.evaluate("""() => {const d=__BITE_HOTEL_QA.db,original=d.stays[0];original.group_id='selected-group';
+  d.rooms.push({id:'room-c',number:'103',room_type:'Deluxe',nightly_rate:700,adults:2,children:0,active:true,housekeeping:'ready'});
+  d.groups.push({id:'selected-group',name:'Synthetic selected rooms',payer_guest_id:original.guest_id});
+  for(const [id,room,amount] of [['two','room-b',900],['three','room-c',700]]){
+   d.stays.push({...original,id:'selected-'+id,room_id:room,nightly_rate:amount});
+   d.folios.push({id:'selected-folio-'+id,stay_id:'selected-'+id,status:'open'});
+   d.entries.push({id:'selected-charge-'+id,folio_id:'selected-folio-'+id,kind:'charge',category:'room',amount,tax_amount:0,status:'confirmed',description:'Synthetic room rent'});
+  }}""")
+  p.evaluate("BiteHospitality.reload()")
+  p.evaluate("BiteHospitality.redraw()")
+  p.locator('[data-bill-action=booking-select-checkout]').click()
+  rooms=p.locator('[data-bill-form=select-rooms]')
+  rooms.locator('[name=selection][value="folio-bill"]').check()
+  rooms.locator('[name=selection][value="selected-folio-three"]').check()
+  rooms.locator('[type=submit]').click();selected=p.locator('[data-bill-form=checkout]');selected.wait_for()
+  check(float(selected.locator('[name=amount]').input_value())==2750,'H13 two of three rooms show selected balance only')
+  selected.locator('[type=submit]').click()
+  p.wait_for_function("__BITE_HOTEL_QA.db.stays.filter(x=>x.status==='checked_out').length===2")
+  check(p.evaluate("__BITE_HOTEL_QA.db.stays.find(x=>x.id==='selected-two').status==='in_house'"),'H13 unselected room remains active')
+  check(p.evaluate("__BITE_HOTEL_QA.calls.some(x=>x.args?.p_action==='booking_checkout_collect'&&x.args?.p_payload?.selected_only===true)"),'H13 subset uses explicit atomic server action')
+  p.close()
   browser.close()
  check(not errors,'No hotel billing controller errors')
 except Exception:
