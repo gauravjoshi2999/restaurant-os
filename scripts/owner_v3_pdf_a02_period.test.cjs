@@ -79,3 +79,18 @@ test('A02 financial views share picker, preserve property scope and source date'
  assert.match(css,/@media\(max-width:340px\)/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-period.js','utf8'),/\.(?:insert|upsert|update|delete|rpc)\(/);
 });
+
+test('A02 remount disables old picker and validates leap-century boundaries',()=>{
+ const handlers={};const removed=[];
+ const target={innerHTML:'',isConnected:true,addEventListener:(k,f)=>handlers[k]=f,removeEventListener:(k,f)=>removed.push(k),contains:()=>true,querySelector:()=>null};
+ const options={today:()=>today,value:{mode:'month',month:'2026-10'},onApply:()=>{}};
+ period.mount(target,options);const oldClick=handlers.click;
+ period.mount(target,{...options,value:{mode:'day',day:today}});
+ const previous=target.innerHTML;
+ oldClick({target:{closest:()=>({dataset:{},matches:()=>true})}});
+ assert.equal(target.innerHTML,previous);
+ assert.deepEqual(removed,['click','submit']);
+ assert.equal(period.endOfMonth('1900-02'),'1900-02-28');
+ assert.equal(period.endOfMonth('2000-02'),'2000-02-29');
+ assert.equal(period.endOfMonth('0004-02'),'0004-02-29');
+});
