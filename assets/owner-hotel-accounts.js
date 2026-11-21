@@ -449,11 +449,14 @@
  function findPosReceipt(state,restaurantId,orderId,paymentId){
   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if(!restaurantId||!uuid.test(String(orderId||''))||!uuid.test(String(paymentId||'')))return null;
-  const order=(state?.orders||[]).find(o=>o.id===orderId&&o.restaurant===restaurantId&&
-   String(o.channel||'').startsWith('POS - ')&&!String(o.code||'').startsWith('POS-ROOM-')&&
+  const orderMatches=(state?.orders||[]).filter(o=>o.id===orderId);
+  const paymentMatches=(state?.orderPayments||[]).filter(x=>x.id===paymentId);
+  if(orderMatches.length!==1||paymentMatches.length!==1)return null;
+  const order=orderMatches.find(o=>o.id===orderId&&o.restaurant===restaurantId&&
+   ['POS - Counter','POS - Dine-in','POS - Takeaway'].includes(o.channel)&&!o.roomLinked&&!String(o.code||'').startsWith('POS-ROOM-')&&
    !o.isDemo&&!['Cancelled','Rejected'].includes(o.status));
-  const payment=(state?.orderPayments||[]).find(x=>x.id===paymentId&&x.order_id===orderId&&
-   x.restaurant_id===restaurantId&&Number(x.amount)>0);
+  const payment=paymentMatches.find(x=>x.id===paymentId&&x.order_id===orderId&&
+   x.restaurant_id===restaurantId&&Number.isFinite(Number(x.amount))&&Number(x.amount)>0&&Number.isSafeInteger(Math.round(Number(x.amount)*100))&&Math.abs(Number(x.amount)*100-Math.round(Number(x.amount)*100))<0.00001);
   const day=String(payment?.payment_date||'');
   if(!order||!payment||!/^\d{4}-\d{2}-\d{2}$/.test(day))return null;
   const parsed=new Date(day+'T00:00:00Z');
