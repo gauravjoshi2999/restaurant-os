@@ -36,3 +36,11 @@ test('A08 compensation and payment flows are unchanged in the existing Owner app
  assert.match(html,/restaurant_employee_attendance/);
  assert.match(html,/restaurant_employee_leaves/);
 });
+
+test('A08–A10 reject incomplete attendance, future salary dates and stale reports',()=>{
+ assert.match(html,/checkOut&&!checkIn/);
+ assert.match(html,/record.payment_date>localDateInput\(\)/);
+ assert.match(html,/version===reportLoadVersion&&key===reportKey\(\)/);
+ assert.match(html,/if\(!reportReady\(\)\)\{alert\('Refresh verified report before export/);
+ assert.match(html,/Report details incomplete/);
+});
