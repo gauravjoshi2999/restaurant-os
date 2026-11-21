@@ -175,3 +175,25 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
  .bh-guest-list{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
  .bh-guest-list .btn{grid-column:1/-1}
 }
+
+/* H06 register: mobile-first stay cards with explicit full sheet. */
+#guests .gr-view-tabs,#guests .gr-bottom-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+#guests .gr-view-tabs .btn,#guests .gr-bottom-actions .btn{flex:1 1 0;min-height:44px;white-space:normal}
+#guests .gr-view-tabs [aria-pressed="true"]{background:#fff0e5;color:#923e0d;border-color:#df762f;font-weight:700}
+#guests .gr-stay-cards{display:none}
+#guests .gr-stay-card{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:14px 12px;margin:8px 0;border:1px solid #e5ded8;border-radius:14px;background:var(--card-bg,#fff);min-width:0}
+#guests .gr-stay-card>div{min-width:0;overflow-wrap:anywhere}
+#guests .gr-stay-card p{margin:5px 0;font-size:13px}
+#guests .gr-stay-card small{font-size:12px}
+#guests .gr-stay-card .gr-name{text-align:left;max-width:100%;white-space:normal}
+#guests [data-gr-past],#guests [data-gr-drafts]{padding:12px 0}
+#guests [data-gr-past][hidden],#guests [data-gr-drafts][hidden],#guests [data-gr-table][hidden],#guests .gr-stay-cards[hidden]{display:none!important}
+@media(max-width:700px){
+ #guests .gr-stay-cards:not([hidden]){display:block}
+ #guests .gr-sheet-scroll:not(.gr-sheet-open){display:none}
+ #guests .gr-sheet-scroll.gr-sheet-open{display:block;max-width:100%;overflow-x:auto}
+ #guests .gr-scroll-hint{display:none}
+ #guests .gr-view-tabs .btn{min-width:0;padding:8px 5px}
+ #guests .gr-bottom-actions .btn{min-width:0;padding:8px 5px}
+ #guests .gr-stay-card .gr-status{max-width:95px;white-space:normal;text-align:center;flex-shrink:0}
+}
