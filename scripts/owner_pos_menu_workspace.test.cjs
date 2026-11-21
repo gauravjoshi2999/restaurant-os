@@ -23,3 +23,30 @@ test('Mobile workspaces keep four financial figures, accessible buttons and scro
  assert.match(css,/overflow-x:auto/);
  assert.match(css,/#menuSearchInput/);
 });
+
+test('R02 Hindi marks and keyboard initial Up/Down navigation are preserved',()=>{
+ const vm=require('node:vm');
+ const src=html.match(/function normalizePosSearch\(value\)\{[^\n]+\}/)[0];
+ const normalize=vm.runInNewContext(src+';normalizePosSearch');
+ assert.equal(normalize('पनीर टिक्का'),'पनीर टिक्का');
+ assert.notEqual(normalize('दाल'),normalize('दल'));
+ assert.match(html,/posSearchActiveIndex<0\?\(event.key==='ArrowDown'\?0:posSearchMatches.length-1\)/);
+});
+test('R02 selected duplicate-name menu item keeps its identity and stale requests are rejected',()=>{
+ assert.match(html,/matches\.find\(item=>item.id===selectedId\)/);
+ assert.match(html,/matches.length>1&&!match/);
+ assert.match(html,/request!==posMenuRequest\|\|posMenuRestaurantId!==restaurantId\|\|access.restaurantId!==restaurantId\|\|currentUser\?\.id!==userId/);
+});
+
+test('R02 validates fractional quantities and exact paise without accepting invalid inputs',()=>{
+ const vm=require('node:vm');
+ const q=html.match(/function posQuantityValid\(q\)\{[^\n]+\}/)[0];
+ const p=html.match(/function posPriceValid\(p\)\{[^\n]+\}/)[0];
+ const v=vm.runInNewContext(q+';'+p+';({q:posQuantityValid,p:posPriceValid})');
+ for(const value of [0.01,0.5,1,1.25,9999])assert.equal(v.q(value),true);
+ for(const value of [0,-1,0.001,1.234,9999.01,Infinity,NaN])assert.equal(v.q(value),false);
+ for(const value of [0,0.01,19.99,500])assert.equal(v.p(value),true);
+ for(const value of [-1,1.001,Infinity,NaN])assert.equal(v.p(value),false);
+ assert.match(html,/validateNew&&!posQuantityValid\(combined\)/);
+ assert.match(html,/!posQuantityValid\(x.quantity\)\|\|!posPriceValid\(x.unit_price\)/);
+});

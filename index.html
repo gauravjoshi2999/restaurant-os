@@ -1399,7 +1399,7 @@ body.bite-session-check #biteSessionSplash{
 <div class="form-row"><div class="field"><label for="orderCustomerName">Customer name</label><input id="orderCustomerName" type="text" name="customer_name" maxlength="120" placeholder="Yahan customer ka naam likhein" autocomplete="name" autocapitalize="words" spellcheck="false"></div><div class="field"><label for="orderCustomerPhone">Mobile number</label><input id="orderCustomerPhone" name="customer_phone" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+() -]{7,18}" maxlength="18" placeholder="Customer mobile"></div></div>
 
 <div class="section-head" style="margin:18px 0 10px"><h3 style="margin:0">Items in this bill</h3></div>
-<div class="pos-item-entry" id="posItemEntry"><div class="field"><label for="posPickerItemName">Item name *</label><div class="pos-search-wrap" id="posSearchWrap"><input id="posPickerItemName" maxlength="120" placeholder="Menu item search karein (jaise Roti)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="posMenuSuggestions" aria-haspopup="listbox"><div id="posMenuSuggestions" class="pos-search-results" role="listbox" aria-label="Matching menu items" hidden></div></div><span class="small">Naam type karein aur item chunein — price automatic bharega. Custom item bhi add kar sakte hain.</span></div><div class="field"><label for="posPickerQuantity">Quantity *</label><input id="posPickerQuantity" type="number" min="0.01" step="0.01" value="1"></div><div class="field"><label for="posPickerPrice">Price (₹) *</label><input id="posPickerPrice" type="number" min="0" step="0.01" placeholder="Price"></div><button type="button" class="btn secondary" onclick="confirmPosItemInline()">＋ Add to bill</button></div>
+<div class="pos-item-entry" id="posItemEntry"><div class="field"><label for="posPickerItemName">Item name *</label><div class="pos-search-wrap" id="posSearchWrap"><input id="posPickerItemName" maxlength="120" placeholder="Menu item search karein (jaise Roti)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="posMenuSuggestions" aria-haspopup="listbox"><div id="posMenuSuggestions" class="pos-search-results" role="listbox" aria-label="Matching menu items" hidden></div></div><span class="small">Naam type karein aur item chunein — price automatic bharega. Custom item bhi add kar sakte hain.</span></div><div class="field"><label for="posPickerQuantity">Quantity *</label><input id="posPickerQuantity" type="number" min="0.01" max="9999" step="0.01" value="1"></div><div class="field"><label for="posPickerPrice">Price (₹) *</label><input id="posPickerPrice" type="number" min="0" step="0.01" placeholder="Price"></div><button type="button" class="btn secondary" onclick="confirmPosItemInline()">＋ Add to bill</button></div>
 <div id="posItemSummary" class="pos-item-summary"><div class="small">Abhi koi item add nahi hua hai.</div></div><div id="orderItemRows" style="display:none"></div><div class="order-total-bar"><span>Grand Total</span><strong id="orderGrandTotal">₹0</strong></div>
 <div id="posPaymentSection" style="display:none;margin-top:22px"><div class="section-head"><h3 style="margin:0">Payment & balance</h3><span class="small">Bill total ke baad payment bharein</span></div><div class="form-row" id="posPaymentFields"><div class="field"><label>Received amount (₹)</label><input name="paid_amount" id="posPaidAmount" type="number" min="0" step="0.01" inputmode="decimal" autocomplete="off" placeholder="0.00"><span class="small">Jitna paisa mila hai, sirf utna hi likhein.</span></div><div class="field"><label>Remaining amount (₹)</label><input id="posBalanceDue" type="text" value="₹0" readonly></div></div><div class="form-row" id="posPaymentDetails" style="display:none"><div class="field"><label>Payment mode</label><select name="payment_method"><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></div><div class="field"><label>Payment date</label><input name="payment_date" id="posPaymentDate" type="date"></div><div class="field"><label>Reference (optional)</label><input name="payment_reference" maxlength="100" placeholder="UPI ref / receipt no."></div></div><div id="posBalanceActionFields" style="display:none;margin-top:12px"><div class="field"><label>Remaining amount ka kya karein?</label><select name="balance_action" id="posBalanceAction"><option value="udhar">Udhar — customer ke Khata mein jodein</option><option value="waive_off">Waive-off — baki amount maaf karein</option></select><span class="small" id="posBalanceActionHint">Udhar ke liye Khata mein registered customer ka mobile number dena zaroori hai.</span></div></div></div>
 <label class="small" style="display:flex;align-items:flex-start;gap:9px;padding:12px;background:#f0f7f2;border:1px solid #b9d9c5;border-radius:12px;margin-top:14px">
@@ -3641,9 +3641,9 @@ function editRestaurant(id){if(!access.isPlatformAdmin){alert('Only Super Admin 
 async function deleteRestaurant(id){if(!access.isPlatformAdmin){alert('Only Super Admin can delete restaurants.');return}const r=state.restaurants.find(x=>x.id===id);if(!r)return;if(!confirm('Pehli confirmation: "'+r.name+'" ko delete karna chahte hain?'))return;const typed=prompt('Dusri confirmation ke liye restaurant ka poora naam bilkul isi tarah type karein:\n'+r.name);if(typed===null||typed.trim()!==r.name){alert('Naam match nahi hua. Restaurant delete nahi kiya gaya.');return}try{const linked=await sb.from('orders').select('id',{count:'exact',head:true}).eq('restaurant_id',id);if(linked.error)throw linked.error;if((linked.count||0)>0){alert('Is restaurant ke saath '+linked.count+' order(s) jude hain. Data safety ke liye pehle orders ko resolve karein; restaurant delete nahi kiya gaya.');return}const result=await sb.from('restaurants').delete().eq('id',id);if(result.error)throw result.error;await loadCloudData();alert('Restaurant delete ho gaya.')}catch(err){alert('Restaurant delete nahi hua: '+(err.message||String(err)))}}
 
 function togglePosPaymentFields(){const isPos=(document.getElementById('orderChannel')?.value||'').startsWith('POS - ');document.getElementById('posPaymentFields').style.display=isPos?'grid':'none';if(isPos&&!document.getElementById('posPaymentDate').value)document.getElementById('posPaymentDate').value=localDateInput();updateOrderTotal()}
-let posMenuItems=[];let posMenuRestaurantId='';
+let posMenuItems=[];let posMenuRestaurantId='';let posMenuRequest=0;
 let posSearchMatches=[];let posSearchActiveIndex=-1;
-function normalizePosSearch(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function normalizePosSearch(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu,' ').trim()}
 function hidePosMenuSuggestions(){const list=document.getElementById('posMenuSuggestions'),input=document.getElementById('posPickerItemName');if(list){list.hidden=true;list.innerHTML=''}if(input){input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant')}posSearchMatches=[];posSearchActiveIndex=-1}
 function renderPosMenuSuggestions(){
  const input=document.getElementById('posPickerItemName'),list=document.getElementById('posMenuSuggestions'),query=normalizePosSearch(input.value);
@@ -3672,7 +3672,7 @@ function handlePosMenuSearchKeydown(event){
  if(event.key==='Escape'){hidePosMenuSuggestions();return}
  if(event.key==='ArrowDown'||event.key==='ArrowUp'){
   if(document.getElementById('posMenuSuggestions').hidden||!posSearchMatches.length)return;
-  event.preventDefault();setPosSearchActive((posSearchActiveIndex+(event.key==='ArrowDown'?1:-1)+posSearchMatches.length)%posSearchMatches.length);return;
+  event.preventDefault();setPosSearchActive(posSearchActiveIndex<0?(event.key==='ArrowDown'?0:posSearchMatches.length-1):(posSearchActiveIndex+(event.key==='ArrowDown'?1:-1)+posSearchMatches.length)%posSearchMatches.length);return;
  }
  if(event.key==='Enter'){
   event.preventDefault();
@@ -3682,15 +3682,16 @@ function handlePosMenuSearchKeydown(event){
  }
 }
 function selectPosMenuItem(index){
- const item=posMenuItems[index];if(!item)return;
+ const item=posMenuItems[index];if(!item||posMenuRestaurantId!==access.restaurantId)return;
  document.getElementById('posPickerItemName').value=item.name;
  const price=document.getElementById('posPickerPrice');price.value=Number(item.price||0).toFixed(2);price.dataset.menuItemId=item.id;
  hidePosMenuSuggestions();document.getElementById('posPickerQuantity').focus();
 }
 async function loadPosMenuItems(restaurantId){
+ const request=++posMenuRequest,userId=currentUser?.id;
  posMenuItems=[];posMenuRestaurantId=restaurantId;hidePosMenuSuggestions();
  const {data,error}=await sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');
- if(posMenuRestaurantId!==restaurantId)return;
+ if(request!==posMenuRequest||posMenuRestaurantId!==restaurantId||access.restaurantId!==restaurantId||currentUser?.id!==userId)return;
  if(error){console.warn('POS menu lookup failed:',error.message);return}
  posMenuItems=data||[];
  if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
@@ -3742,17 +3743,24 @@ async function openPosFromOverview(button){
 function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
 function syncPosPickerMenuPrice(){
  const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
- const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
+ const matches=posMenuRestaurantId===access.restaurantId?posMenuItems.filter(item=>normalizePosSearch(item.name)===name):[];
+ const match=matches.length===1?matches[0]:null;
  const price=document.getElementById('posPickerPrice');
  if(match){price.value=Number(match.price||0).toFixed(2);price.dataset.menuItemId=match.id}
  else{price.value='';delete price.dataset.menuItemId}
  renderPosMenuSuggestions();
 }
+function posQuantityValid(q){return Number.isFinite(q)&&q>=0.01&&q<=9999&&Math.abs(q*100-Math.round(q*100))<0.000001}
+function posPriceValid(p){return Number.isFinite(p)&&p>=0&&Number.isSafeInteger(Math.round(p*100))&&Math.abs(p*100-Math.round(p*100))<0.000001}
 function confirmPosItemInline(){
  const name=document.getElementById('posPickerItemName').value.trim(),quantity=Number(document.getElementById('posPickerQuantity').value),price=Number(document.getElementById('posPickerPrice').value);
- if(!name||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<0||document.getElementById('posPickerPrice').value===''){alert('Item ka naam, quantity aur sahi price bharein.');return}
- const match=posMenuItems.find(item=>normalizePosSearch(item.name)===normalizePosSearch(name));
- addOrderItemRow({name,quantity,price,menuItemId:match?.id||null});
+ if(!name||!posQuantityValid(quantity)||!posPriceValid(price)||document.getElementById('posPickerPrice').value.trim()===''){alert('Naam, quantity 0.01–9999 aur price maximum 2 decimal places mein bharein.');return}
+ const selectedId=document.getElementById('posPickerPrice').dataset.menuItemId;
+ const matches=posMenuRestaurantId===access.restaurantId?posMenuItems.filter(item=>normalizePosSearch(item.name)===normalizePosSearch(name)):[];
+ const match=matches.find(item=>item.id===selectedId)||(!selectedId&&matches.length===1?matches[0]:null);
+ if(matches.length>1&&!match){alert('Is naam ke multiple menu items hain. List se sahi item chunein.');return;}
+ if(selectedId&&!match){alert('Menu item dobara select karein.');return;}
+ if(addOrderItemRow({name,quantity,price,menuItemId:match?.id||null},true)===false)return;
  document.getElementById('posPickerItemName').value='';
  document.getElementById('posPickerQuantity').value='1';
  document.getElementById('posPickerPrice').value='';
@@ -3761,7 +3769,7 @@ function confirmPosItemInline(){
  document.getElementById('posPickerItemName').focus();
 }
 function confirmPosItem(event){event?.preventDefault();confirmPosItemInline()}
-function addOrderItemRow(item){
+function addOrderItemRow(item,validateNew=false){
  const wrap=document.getElementById('orderItemRows');
  const existing=[...wrap.querySelectorAll('.order-item-row')].find(row=>{
   const currentId=row.querySelector('.item-price').dataset.menuItemId||null;
@@ -3770,7 +3778,9 @@ function addOrderItemRow(item){
  });
  if(existing){
   const qty=existing.querySelector('.item-quantity');
-  qty.value=String(Math.round((Number(qty.value)+Number(item.quantity))*100)/100);
+  const combined=Math.round((Number(qty.value)+Number(item.quantity))*100)/100;
+  if(validateNew&&!posQuantityValid(combined)){alert('Is item ki total quantity 9999 se zyada nahi ho sakti.');return false;}
+  qty.value=String(combined);
   renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch();return;
  }
  const row=document.createElement('div');row.className='order-item-row';row.style.display='none';
@@ -3790,7 +3800,7 @@ function renderPosItemSummary(){
 function changePosItemQuantity(index,delta){
  const row=document.querySelectorAll('#orderItemRows .order-item-row')[index];if(!row||![1,-1].includes(delta))return;
  const field=row.querySelector('.item-quantity'),current=Number(field.value),next=Math.round((current+delta)*100)/100;
- if(!Number.isFinite(next)||next<=0||next>9999)return;
+ if(!posQuantityValid(next))return;
  field.value=String(next);renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch();
 }
 function removePosItem(index){const rows=document.querySelectorAll('#orderItemRows .order-item-row');if(rows[index])rows[index].remove();renderPosItemSummary();updateOrderTotal();window.BitePOS?.touch()}
@@ -3864,7 +3874,7 @@ document.getElementById('orderForm').addEventListener('submit',async e=>{
  const f=new FormData(e.target),btn=document.getElementById('createOrderBtn'),channel=String(f.get('channel')||'');
  const rows=[...document.querySelectorAll('#orderItemRows .order-item-row')];
  const items=rows.map(row=>({name:row.querySelector('.item-name').value.trim(),quantity:Number(row.querySelector('.item-quantity').value),unit_price:Number(row.querySelector('.item-price').value)}));
- if(!items.length||items.some(x=>!x.name||!Number.isFinite(x.quantity)||x.quantity<=0||!Number.isFinite(x.unit_price)||x.unit_price<0)){alert('Har item ka naam, sahi quantity aur price bharein.');return;}
+ if(!items.length||items.some(x=>!x.name||!posQuantityValid(x.quantity)||!posPriceValid(x.unit_price))){alert('Har item ka naam, quantity 0.01–9999 aur price maximum 2 decimal places mein bharein.');return;}
  btn.disabled=true;
  try{
   let data,error,sharePayload=null;
