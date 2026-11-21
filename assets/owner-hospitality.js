@@ -546,6 +546,29 @@
  function persistDraft(form){
   try{const fields=Object.fromEntries(Array.from(new FormData(form)).filter(([,value])=>typeof value==='string'));root.BiteFamilyCheckin?.saveDraft(form,fields);fields.guest_id=form.elements.guest_id.value;fields.stay_id=form.dataset.stayId||'';localStorage.setItem('bite_register_draft:'+identity(),JSON.stringify({savedAt:Date.now(),fields}));return true}catch{return false}
  }
+ function linkedPOSSource(entry,folioId,restaurantId,order){
+  return !!(entry&&entry.kind==='charge'&&entry.folio_id===folioId&&entry.source_order_id&&restaurantId&&order?.id===entry.source_order_id&&order.restaurant_id===restaurantId&&!order.is_demo&&String(order.channel||'').startsWith('POS - '));
+ }
+ const canReadLinkedPOS=()=>has('folios')&&has('restaurant_pos')&&restaurantAccess()&&['owner','manager'].includes(prop()?.role);
+ async function openOriginalPOS(entryId,button){
+  if(!canReadLinkedPOS()||!workspaceReady)throw Error('Original POS access is not available in this workspace.');
+  const scope=identity(),rid=ctx.getAccess().restaurantId,folioId=selectedFolio;
+  const entry=data.entries.find(e=>e.id===entryId&&e.folio_id===folioId&&e.kind==='charge'&&e.source_order_id);
+  if(!entry)throw Error('This food charge is not linked to the open guest bill.');
+  const stillCurrent=()=>scope===identity()&&rid===ctx.getAccess().restaurantId&&folioId===selectedFolio&&button.isConnected&&$('folios')?.classList.contains('active')&&canReadLinkedPOS();
+  const orderResult=await ctx.sb.from('orders').select('id,restaurant_id,order_code,channel,is_demo,amount,waived_off_amount,status,order_date').eq('restaurant_id',rid).eq('id',entry.source_order_id).maybeSingle();
+  if(!stillCurrent())return;
+  if(orderResult.error)throw orderResult.error;
+  const order=orderResult.data;
+  if(!linkedPOSSource(entry,folioId,rid,order))throw Error('Original POS bill is unavailable or not in this restaurant. The linked guest charge is unchanged.');
+  const result=await ctx.sb.from('order_items').select('order_id,item_name,quantity,unit_price,line_total').eq('order_id',order.id).order('created_at',{ascending:true});
+  if(!stillCurrent())return;
+  if(result.error)throw result.error;
+  const rows=(result.data||[]).filter(i=>i.order_id===order.id);
+  if(!rows.length)throw Error('Original POS items could not be loaded. Please retry.');
+  const amount=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?money(Number(value)):'Unavailable';
+  editor('<section class="bh-original-pos" aria-label="Original POS bill"><h2>Original POS bill</h2><p><strong>'+esc(order.order_code||order.id)+'</strong> · '+esc(order.status||'Status unavailable')+'</p><p>'+esc(order.order_date?new Date(order.order_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'Date unavailable')+'</p>'+rows.map(i=>'<div class="bh-guest-bill-line"><div><strong>'+esc(i.item_name)+'</strong><small>'+esc(i.quantity)+' × '+amount(i.unit_price)+'</small></div><strong>'+amount(i.line_total)+'</strong></div>').join('')+'<div class="bh-guest-bill-line"><strong>Original POS amount</strong><strong>'+amount(order.amount)+'</strong></div><div class="bh-guest-bill-line"><span>Recorded POS waiver / discount</span><strong>'+amount(order.waived_off_amount??0)+'</strong></div><div class="bh-guest-bill-line"><strong>Linked room food charge</strong><strong>'+amount(entry.amount)+'</strong></div><p class="bh-note">Linked to this guest bill. This is the original food sale, not a new bill or payment. Collect and correct through the guest bill.</p>'+btn('close-editor','Back to guest bill')+'</section>');
+ }
  function simpleEntryLabel(e){
   if(e.kind==='charge'&&e.source_order_id)return 'Restaurant food';
   if(e.kind==='charge'&&e.category==='room')return 'Room rent';
@@ -603,7 +626,7 @@
    const desc=String(e.description||'').trim();
    return '<div class="bh-guest-bill-line'+(e.status==='pending'?' is-pending':'')+'"><div><strong>'+esc(label)+'</strong>'+foodItems+
     (e.kind==='charge'&&!e.source_order_id&&desc.length>2?'<small>'+esc(desc)+'</small>':'')+
-    '<small>'+esc(e.status==='confirmed'?'Confirmed':e.status==='pending'?'Awaiting verification':e.status||'')+'</small></div><strong>'+ (negative?'−':'')+money(amount)+'</strong></div>';
+    '<small>'+esc(e.status==='confirmed'?'Confirmed':e.status==='pending'?'Awaiting verification':e.status||'')+'</small>'+(e.kind==='charge'&&e.source_order_id&&canReadLinkedPOS()?btn('original-pos','Open original POS bill',e.id):'')+'</div><strong>'+ (negative?'−':'')+money(amount)+'</strong></div>';
   }).join('');
   const adjustments=entries.map(e=>
    '<div class="bh-advanced-entry"><span>'+esc(e.description)+' · '+money(Number(e.amount||0)+Number(e.tax_amount||0))+'</span>'+
@@ -833,6 +856,7 @@
    else if(action==='add-guest-room'){const st=data.stays.find(st=>st.id===id);if(!st)return;await ctx.navigate('hotel-register');renderRegister(st.guest_id);const form=$('bhCheckinForm');root.BiteHotelBilling?.linkRoom(form,st);}
    else if(action==='folio'){selectedFolio=id;await ctx.navigate('folios')}
    else if(action==='folio-list'){selectedFolio=null;foodFolio=null;renderFolios()}
+   else if(action==='original-pos')await openOriginalPOS(id,b);
    else if(action==='food-menu')await openFoodPicker();
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
@@ -1102,6 +1126,6 @@
  }
  function clear(){roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={header,reservationRows,reservationAvailability,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
+ root.BiteHospitality={header,reservationRows,reservationAvailability,linkedPOSSource,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

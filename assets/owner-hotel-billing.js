@@ -35,6 +35,33 @@
   }
   return true;
  }
+ function familyBillSummary(stay,workspace){
+  if(!stay?.group_id)return null;
+  const stays=(workspace.stays||[]).filter(s=>s.group_id===stay.group_id&&!['cancelled','no_show'].includes(s.status));
+  const fields=['charges','paid','balance','deposit_held','pending'],totals=Object.fromEntries(fields.map(k=>[k,0]));
+  const seenFolios=new Set(),seenEntries=new Set();let ready=stays.length>0;
+  const rows=stays.map(s=>{
+   const matches=(workspace.folios||[]).filter(f=>f.stay_id===s.id),folio=matches.length===1?matches[0]:null;
+   const room=(workspace.rooms||[]).find(r=>r.id===s.room_id);
+   if(!folio||!folio.id||seenFolios.has(folio.id)){ready=false;return{stay:s,room,folio:null,entries:[]}}
+   seenFolios.add(folio.id);
+   for(const k of fields){const c=checkoutAmountCents(folio.totals?.[k]);if(c===null||(['deposit_held','pending'].includes(k)&&c<0)||!Number.isSafeInteger(totals[k]+c)){ready=false;continue}totals[k]+=c}
+   const entries=(workspace.entries||[]).filter(e=>e.folio_id===folio.id).filter(e=>{if(!e.id||seenEntries.has(e.id)){ready=false;return false}seenEntries.add(e.id);return true});
+   return{stay:s,room,folio,entries};
+  });
+  return{rows,totals:ready?Object.fromEntries(fields.map(k=>[k,totals[k]/100])):null};
+ }
+ function familyBillMarkup(summary){
+  if(!summary||summary.rows.length<2)return '';
+  const t=summary.totals;
+  const amount=v=>checkoutAmountCents(v)===null?'Unavailable':money(v);
+  const pairs=t?'<div class="bh-guest-bill-summary"><div><span>Total charges</span><strong>'+money(t.charges)+'</strong></div><div><span>Received &amp; applied</span><strong>'+money(t.paid)+'</strong></div><div><span>Net balance</span><strong>'+money(t.balance)+'</strong></div><div><span>Deposit held separately</span><strong>'+money(t.deposit_held)+'</strong></div><div><span>Pending verification</span><strong>'+money(t.pending)+'</strong></div></div>':'<p class="bh-note">Combined totals unavailable. Review every room bill before collecting.</p>';
+  const rows=summary.rows.map(r=>'<details class="bh-guest-advanced"><summary>Room '+esc(r.room?.number||'—')+' · '+esc(linkedBalanceLabel(r.folio))+'</summary>'+(!r.folio?'<p>Room bill unavailable.</p>':r.entries.map(e=>{
+   const a=checkoutAmountCents(e.amount),tax=checkoutAmountCents(e.tax_amount??0),total=a===null||tax===null||!Number.isSafeInteger(a+tax)?'Unavailable':money((a+tax)/100);
+   return '<div class="bh-guest-bill-line"><div><strong>'+esc(e.description||e.kind)+'</strong><small>'+esc(e.kind)+' · '+esc(e.status||'Status unavailable')+'</small>'+(e.source_order_id?'<small>Linked original food sale · open room bill to view POS</small>':'')+'</div><strong>'+total+'</strong></div>';
+  }).join('')+button('open-room','Open room bill',r.folio.id))+'</details>').join('');
+  return '<section class="bh-panel" data-h12-family-bill><h2>Family bill · '+summary.rows.length+' rooms</h2>'+pairs+rows+'<p class="bh-note">Combined view of existing room folios, not a new sale or collection. Collect through the individual room bill or authorized group checkout.</p></section>';
+ }
  function needsTax(f){const current=p()?.tax_profile||{},saved=f.bill_tax_profile;if(!saved)return mode()==='gst'||(db().entries||[]).some(e=>e.folio_id===f.id&&e.status==='confirmed'&&Number(e.tax_amount));return(saved.billing_mode||'plain')!==mode()||mode()==='gst'&&(saved.gstin!==current.gstin||Number(saved.food_rate)!==Number(current.food_rate)||Number(saved.incidental_rate)!==Number(current.incidental_rate))}
  async function ensureTax(id){const f=getFolio(id);if(f?.status==='open'&&needsTax(f))await H().command('folio_tax',{folio_id:id,mode:mode()})}
  function decorateRegister(form,draft={}){
@@ -54,6 +81,7 @@
   target.querySelector('.bh-guest-bill-summary')?.after(card);const guest=(db().guests||[]).find(g=>g.id===stay.guest_id);if(guest){const contact=document.createElement('p');contact.className='bh-room-guest-contact';contact.textContent=[guest.phone,guest.address].filter(Boolean).join(' · ');target.querySelector('.bh-stay-dates')?.after(contact)}
   if(folio.status==='open'&&['owner','manager','receptionist'].includes(p().role))target.querySelector('.bh-guest-bill-buttons')?.insertAdjacentHTML('beforeend','<button type="button" class="btn secondary" data-hotel-action="add-guest-room" data-id="'+esc(stay.id)+'">＋ Another room for this guest</button>');
   const rows=rowsFor(stay);if(rows.length>1){const box=document.createElement('section');box.className='bh-panel bh-linked-booking';box.innerHTML='<h2>'+(stay.group_id?'One booking':'This guest')+' · '+rows.length+' rooms</h2>'+rows.map(r=>'<div class="bh-room-line"><span>Room '+esc(r.room?.number)+' · '+esc(r.stay.status==='in_house'?'Staying':r.stay.status==='checked_out'?'Checked out':'Reserved')+' · '+esc(linkedBalanceLabel(r.folio))+'</span>'+button('open-room','Open',r.folio.id)+(stay.group_id&&r.stay.status==='in_house'&&r.folio.status==='open'&&H().has('charge_to_room')?button('food-room','＋ Food',r.folio.id):'')+'</div>').join('')+'<div class="bh-actions">'+button('booking-bill','Combined bill',stay.id)+(stay.group_id&&rows.filter(r=>r.stay.status==='in_house'&&r.folio.status==='open').length>1?button('booking-checkout','Checkout all rooms',stay.id):'')+'</div>';target.querySelector('.bh-guest-bill-top')?.after(box)}
+  const family=familyBillMarkup(familyBillSummary(stay,db()));if(family)target.querySelector('.bh-guest-bill-summary')?.insertAdjacentHTML('afterend',family);
   if(stay.status==='checked_out'){const done=document.createElement('p');done.className='bh-note';done.innerHTML='Checkout complete. '+(!H().housekeepingVisible()?'Room is available again. ':'')+'<button type="button" class="ha-text-button" data-bill-action="rooms">Back to rooms</button>';target.querySelector('.bh-guest-bill-top')?.after(done)}
  }
  function paymentFields(){return methods+field('account_note','Online account · Short note',p().tax_profile?.primary_account||'','maxlength="80"')+field('reference','Online transaction reference','','maxlength="100"')+'<label class="bh-check" data-online-verify><input type="checkbox" name="verified"> I verified this online receipt in the selected account.</label>'}
@@ -112,5 +140,5 @@
    if(type==='checkout'){if(values.method&&values.method!=='Cash'&&!form.elements.verified.checked)throw Error('Verify the online receipt first.');const f=getFolio(id),stay=(db().stays||[]).find(s=>s.id===f.stay_id);await H().command(form.dataset.group==='true'?'booking_checkout_collect':'checkout_collect',{folio_id:id,...(form.dataset.group==='true'?{group_id:stay.group_id,folio_ids:JSON.parse(values.folio_ids)}:{}),amount:Number(values.amount),method:values.method||'Cash',reference:values.reference||'',account_note:values.account_note||'',verified:values.verified==='on'});assertScope(scope,version);await H().reload();H().redraw();return}
   }catch(err){if(form.isConnected)msg.textContent=err.message||String(err)}finally{active=Math.max(0,active-1);if(b.isConnected)b.disabled=false}
  }
- const api={init,clear,linkedBalanceLabel,checkoutTotalsReady,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
+ const api={init,clear,linkedBalanceLabel,familyBillSummary,familyBillMarkup,checkoutTotalsReady,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
 })(typeof window!=='undefined'?window:globalThis);
