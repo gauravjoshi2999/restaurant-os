@@ -506,6 +506,7 @@
   root.BiteOwnerOperations?.registerFields($('bhCheckinForm'),draft,g);
   root.BiteHotelAccounts?.decorateRegister($('bhCheckinForm'),draft,g);
   root.BiteFamilyCheckin?.decorate($('bhCheckinForm'),draft,data);
+  root.BiteHotelAccounts?.mountRegisterSteps($('bhCheckinForm'),draft);
   $('bhCheckinForm').querySelector('[data-guest-picker]').addEventListener('change',e=>{
    const f=$('bhCheckinForm'),g=data.guests.find(g=>g.id===e.target.value);
    if(g&&f.elements.is_oci)f.elements.is_oci.checked=!!g.is_oci;
@@ -845,6 +846,7 @@
  }
  async function handleSubmit(event){
   const form=event.target.closest('[data-hotel-form]');if(!form)return;event.preventDefault();
+  if(form.dataset.hotelForm==='register'&&form.__haSteps?.advance())return;
   const button=form.querySelector('button[type="submit"]');if(button.disabled)return;button.disabled=true;
   const f=Object.fromEntries(new FormData(form)),type=form.dataset.hotelForm;const message=form.querySelector('.bh-message');if(message)message.textContent='Saving…';
   if(type==='register'){form.inert=true;form.setAttribute('aria-busy','true');if(message)message.textContent=form.dataset.reviewed==='true'?'Checking booking status…':'Checking room availability…'}
@@ -918,7 +920,7 @@
       '<section class="bh-review-deposit"><strong>Refundable security deposit</strong><p>Record separately in Guest Bill after booking confirmation. Deposit is not room sales or advance.</p></section>'+
       '<p class="bh-note">Received date is recorded by the server when the receipt is saved. Arrival time is not receipt time.</p><details><summary>Guest ID review</summary><p>'+people.map(esc).join(', ')+'</p></details>'+
       '<button type="button" class="btn secondary" data-review-back>Back to rooms</button>';
-     review.querySelector('[data-review-back]').addEventListener('click',()=>{const heading=form.querySelector('[data-h07-rooms]');if(heading){heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'})}else form.elements.room_id.focus()});
+     review.querySelector('[data-review-back]').addEventListener('click',()=>{if(form.dataset.haStepView!=='all'&&form.__haSteps){form.__haSteps.back('rooms');return}const heading=form.querySelector('[data-h07-rooms]');if(heading){heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'})}else form.elements.room_id.focus()});
      form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
     }
     let guestId=f.guest_id;
