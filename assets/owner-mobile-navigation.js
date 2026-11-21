@@ -276,7 +276,16 @@
     const history=[];
     let lastPage=currentPage();
     let pendingBack=false;
+    let navigationScope=null;
     function sync(){
+      const property=root.BiteHospitality?.prop?.();
+      const nextScope=doc.body.dataset.role+'|'+(property?.id||'');
+      if(navigationScope!==nextScope){
+        navigationScope=nextScope;
+        history.length=0;moreChildPage=null;moreEntryPage=null;moreRestored=false;pendingBack=false;
+        lastPage=currentPage();
+        if(moreOpen){closeMore();return;}
+      }
       const page=currentPage();
       syncHomeIdentity();
       if(doc.body.dataset.role!=='owner'&&moreOpen)closeMore();
@@ -325,7 +334,11 @@
         openMore(true);
         return;
       }
-      const target=history.pop()||'overview';
+      const property=root.BiteHospitality?.prop?.();
+      const allowed=property?root.BiteHospitality?.routeList?.({role:'owner',property}):null;
+      let target=history.pop()||'overview';
+      while(Array.isArray(allowed)&&!allowed.includes(target)&&history.length)target=history.pop();
+      if(Array.isArray(allowed)&&!allowed.includes(target))target='overview';
       pendingBack=true;
       if(typeof root.showPage==='function')void root.showPage(target);
     });
@@ -364,6 +377,7 @@
           const glyph=doc.createElement('span');glyph.className='bite-more-item-icon';glyph.textContent=icon;glyph.setAttribute('aria-hidden','true');
           const copy=doc.createElement('span');copy.className='bite-more-item-copy';const strong=doc.createElement('strong');strong.textContent=label;const small=doc.createElement('small');small.textContent=description;copy.append(strong,small);
           b.append(glyph,copy);b.addEventListener('click',()=>{
+            if(doc.body.dataset.role!=='owner'||!mobile())return;
             const actual=root.BiteHospitality?.prop?.();
             const scoped=actual?root.BiteHospitality?.routeList?.({role:'owner',property:actual}):null;
             if(Array.isArray(scoped)&&!scoped.includes(page))return;
