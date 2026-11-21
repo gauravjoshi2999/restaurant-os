@@ -33,7 +33,7 @@ setup=r"""() => {
  window.sb={
   from(name){
    const q={select(){return q},eq(){return q},
-    order(){return Promise.resolve({data:name==='restaurant_cashbook_entries'?window.__rows:[],error:null})},
+    order(){return Promise.resolve({data:name==='restaurant_cashbook_entries'?window.__rows:[],count:window.__rows.length,error:null})},
     maybeSingle(){return Promise.resolve({data:name==='restaurant_cashbook_closings'?window.__closing:null,error:null})}};
    return q;
   },
