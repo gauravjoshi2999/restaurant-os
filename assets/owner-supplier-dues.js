@@ -4,28 +4,52 @@
 (function(root){
  'use strict';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const cents=n=>Math.round((Number(n)||0)*100);
+ const cents=n=>{
+  if(typeof n!=='number'&&!(typeof n==='string'&&n.trim()))return null;
+  const v=Number(n),c=Math.round(v*100);
+  return Number.isFinite(v)&&v>=0&&Number.isSafeInteger(c)&&Math.abs(v*100-c)<0.00001?c:null;
+ };
  const rupees=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
  const validDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
    !Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
  function laterTotal(purchase,payments){
-  return (payments||[]).filter(x=>x.purchase_id===purchase.id&&(!x.restaurant_id||x.restaurant_id===purchase.restaurant_id))
-   .reduce((sum,p)=>sum+cents(p.amount),0);
+  if(!purchase?.id||!purchase.restaurant_id||!Array.isArray(payments))return null;
+  let sum=0;const seen=new Set();
+  for(const p of payments){
+   if(!p||p.purchase_id!==purchase.id||p.restaurant_id!==purchase.restaurant_id)continue;
+   const c=cents(p.amount);
+   if(!p.id||seen.has(p.id)||c===null||c<=0||!validDay(p.payment_date)||p.payment_date<purchase.purchase_date)return null;
+   seen.add(p.id);sum+=c;if(!Number.isSafeInteger(sum))return null;
+  }
+  return sum;
  }
- function outstanding(purchase,payments){
-  return Math.max(0,(cents(purchase.total_amount)-cents(purchase.paid_amount)-laterTotal(purchase,payments))/100);
+ function balances(purchase,payments){
+  if(!purchase||!validDay(purchase.purchase_date))return null;
+  const total=cents(purchase.total_amount),initial=cents(purchase.paid_amount),later=laterTotal(purchase,payments);
+  if([total,initial,later].includes(null)||!Number.isSafeInteger(initial+later)||initial+later>total)return null;
+  return {due:(total-initial-later)/100,paid:(initial+later)/100};
  }
- function paid(purchase,payments){return (cents(purchase.paid_amount)+laterTotal(purchase,payments))/100;}
+ function outstanding(purchase,payments){return balances(purchase,payments)?.due??null;}
+ function paid(purchase,payments){return balances(purchase,payments)?.paid??null;}
  function summary(purchases,payments){
-  const dues=(purchases||[]).map(p=>({id:p.id,amount:outstanding(p,payments)})).filter(x=>x.amount>0);
-  return {count:dues.length,total:dues.reduce((s,x)=>s+x.amount,0),dues};
+  if(!Array.isArray(purchases)||!Array.isArray(payments))return {error:'Supplier balances unavailable.'};
+  const seen=new Set(),dues=[];let sum=0;
+  for(const p of purchases){
+   const amount=outstanding(p,payments);
+   if(!p?.id||seen.has(p.id)||amount===null)return {error:'Supplier balance could not be verified. Refresh Purchases.'};
+   seen.add(p.id);if(amount>0){dues.push({id:p.id,amount});sum+=Math.round(amount*100);}
+   if(!Number.isSafeInteger(sum))return {error:'Supplier balance too large to verify.'};
+  }
+  return {count:dues.length,total:sum/100,dues};
  }
  function validate({purchase,payments,amount,date,method,reference,today}){
   if(!purchase||!purchase.id)throw Error('Select a saved supplier purchase.');
   const n=Number(amount);
   if(amount===''||!Number.isFinite(n)||n<=0||n!==Math.round(n*100)/100)
    throw Error('Enter a positive payment amount with at most two decimals.');
-  if(n>outstanding(purchase,payments))
+  const due=outstanding(purchase,payments);
+  if(due===null)throw Error('Supplier due could not be verified. Refresh Purchases.');
+  if(n>due)
    throw Error('Payment is higher than the current supplier due. Refresh Purchases.');
   if(!validDay(date)||date>today||date<purchase.purchase_date)
    throw Error('Payment date must be between purchase date and today.');
@@ -41,6 +65,7 @@
   if(!purchase||!onSave)throw Error('Purchase payment is unavailable.');
   close();
   const due=outstanding(purchase,payments);
+  if(due===null)throw Error('Supplier due could not be verified. Refresh Purchases.');
   if(due<=0)throw Error('This supplier purchase is already settled.');
   const requestId=root.crypto?.randomUUID?.();
   if(!requestId)throw Error('Secure payment request ID is unavailable. Open Bite via HTTPS.');
@@ -90,7 +115,9 @@
    target.innerHTML='<div class="bsp-unavailable"><strong>Supplier due payment service unavailable</strong><p>Existing purchases still work. Do not re-enter a purchase as an expense or record a second Cashbook payment.</p></div>';
    return;
   }
-  const d=summary(purchases,payments),owed=d.dues.slice(0,10);
+  const d=summary(purchases,payments);
+  if(d.error){target.onclick=null;target.textContent=d.error;return;}
+  const owed=d.dues.slice(0,10);
   target.innerHTML='<section class="bsp-summary" aria-label="Supplier dues">'+
    '<div class="bsp-summary-head"><div><small>SUPPLIER DUES</small><h2>Pay later · Outstanding bills</h2></div>'+
    '<span>'+d.count+' unpaid / partly paid</span></div>'+
