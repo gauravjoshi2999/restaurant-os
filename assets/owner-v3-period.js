@@ -101,7 +101,7 @@
   };
   target.addEventListener('click',onClick);
   target.addEventListener('submit',onSubmit);
-  const controller={getSelected:()=>({...selected}),dispose(){disposed=true;target.removeEventListener?.('click',onClick);target.removeEventListener?.('submit',onSubmit);if(mounted.get(target)===controller)mounted.delete(target);}};
+  const controller={getSelected:()=>({...selected}),dispose(){disposed=true;target.removeEventListener?.('click',onClick);target.removeEventListener?.('submit',onSubmit);if(mounted.get(target)===controller)mounted.set(target,null);}};
   mounted.set(target,controller);
   draw();
   return controller;
