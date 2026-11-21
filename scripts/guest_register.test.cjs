@@ -61,3 +61,14 @@ test('H06 unknown rent is blank in Excel rather than a false zero; confirmed zer
   assert.equal(R.exportRows(R.records({stays:[{id:'valid',nightly_rate:value}]}))[1][col],expected);
  }
 });
+
+test('H06 historical records stay separate, use original date and support name/mobile/room search',()=>{
+ const rows=[{id:'h1',record_date:'2026-10-01',customer_name:'Sample Guest',customer_phone:'12345',room_number:'101'},{id:'h2',record_date:'2026-11-01',customer_name:'Another',room_number:'102'}];
+ const october={from:'2026-10-01',to:'2026-10-31'};
+ for(const q of ['sample','12345','101'])assert.deepEqual(R.historicalRows(rows,october,q),[rows[0]]);
+ assert.deepEqual(R.historicalRows(rows,october,'102'),[]);
+ assert.equal(R.records({stays:[],historical_entries:rows}).length,0);
+ assert.throws(()=>R.historicalRows([rows[0],rows[0]],null),/verified/);
+ assert.throws(()=>R.historicalRows([{id:'bad',record_date:'2026-02-30'}],null),/verified/);
+ assert.throws(()=>R.historicalRows(Array(501).fill(rows[0]),null),/shorter/);
+});
