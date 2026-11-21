@@ -91,3 +91,10 @@ After each tested task record the screen IDs, exact commit SHA, PR, QA URL/job r
 2. Run the existing scoped POS R01–R08 tests against current source, then close reproducible workflow gaps (including historical accounting design: historical snapshots are currently intentionally separate from posted live receipts; never silently convert them to ledger entries).
 3. Continue R09–R15 and A01–A15 targeted gap audits and acceptance; preserve Customer and Super Admin.
 4. Record protected Owner manual/device acceptance separately. Keep real payments, refunds, payouts and destructive actions out of synthetic QA.
+
+
+### A15 operational handoff — release gates
+- Latest verified restaurant changes: main `21f75a18cac940a217d179c078da9bd7252045a3`, QA [44929348404](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44929348404), Pages [44930062941](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44930062941), both successful.
+- Accounting release chain: A01–A03 #281 merged `26541cca1ca3f1bb446d6b978f092c557ef19e90`, main QA 44933836979 pending at this checkpoint; A04 #282 browser fixture corrected (new QA required), A05–A07 #283 branch QA 44929782989 passed but merge conflict after #281; A08–A12 #284 pending QA; A13–A14 changes on this branch pending QA. Resolve conflicts against latest main and rerun combined QA; never overwrite earlier fixes.
+- For a failed deployment, inspect the exact main SHA and QA evidence, retain the current verified live version, and rerun the matching release only when its guard permits. For missing receipt or interrupted save, inspect the original source and reuse the original request identity where supported; do not re-enter money or blindly retry.
+- Before accepting all 45 screens: signed-in owner test at mobile and desktop widths, exact property and role access, date/amount and ledger source reconciliation, Android notifications with screen locked, QR physical scan, print/share, then record evidence in this register. Successful synthetic CI is not a substitute for these checks. No live monetary or destructive testing without explicit transaction authorization.
