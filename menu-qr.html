@@ -220,6 +220,14 @@ async function loadMenu({quiet=false}={}){
   if(catResult.error)throw catResult.error;
   if(itemResult.error)throw itemResult.error;
   const newCategories=catResult.data||[],newItems=itemResult.data||[];
+  // Do not label a partial or malformed price snapshot as a refreshed menu.
+  if(!Array.isArray(newCategories)||!Array.isArray(newItems)||newItems.length>=1000||
+   new Set(newItems.map(i=>i?.id)).size!==newItems.length||
+   newItems.some(i=>!i?.id||typeof i.name!=='string'||!i.name.trim()||
+    (typeof i.price!=='number'&&(typeof i.price!=='string'||!i.price.trim()))||
+    !Number.isFinite(Number(i.price))||Number(i.price)<0||
+    Math.abs(Number(i.price)*100-Math.round(Number(i.price)*100))>0.00001))
+   throw Error('Incomplete or invalid public menu snapshot');
   categories=newCategories;items=newItems;
   if(category!=='all'&&!categories.some(c=>c.id===category))category='all';
   const isPureVeg=pureVegMenu(restaurant,items);
@@ -247,7 +255,7 @@ async function loadMenu({quiet=false}={}){
  }catch(error){
   console.error('Bite QR menu public fetch:',error);
   if(alreadyLoaded){
-   $('menuFreshness').textContent='Update nahi hua. Internet check karke Refresh rates dabayein.';
+   $('menuFreshness').textContent='Purane rates dikh rahe hain; latest update verify nahi hua. Waiter se rate confirm karein ya Refresh rates dabayein.';
   }else status('Menu abhi load nahi ho pa raha. Internet check karein ya waiter se menu lein.');
  }finally{
   menuLoading=false;
