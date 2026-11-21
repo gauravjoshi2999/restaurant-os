@@ -1482,7 +1482,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
+<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1-safety2"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
 <script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261121-h07guest1-steps1-deposit1-h14receipts1-h14pdf1-h15release1-r05r08"></script><script src="assets/owner-v3-collections.js?v=20261120-a03-identity1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261120-a12-receipts1"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-h05balance1-h10review2-steps1-deposit1-h11availability1-h11fix2-h11review1-h11modify1-h12pos1-h12qa1-h13credit1-r05r08"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261120-h15-r08-scope1-h15release1"></script>
@@ -1754,17 +1754,18 @@ async function loadPurchases(){
   document.getElementById('supplierDueSummary').textContent='Loading supplier dues…';
  }
  try{
-  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data,error,count}=await sb.from('restaurant_purchases').select('*',{count:'exact'}).eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
   if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
   if(error)throw error;
-  const records=data||[],ids=records.map(x=>x.id);
+  if(!Array.isArray(data)||count!==data.length||data.some(x=>x.restaurant_id!==rid)||new Set(data.map(x=>x.id)).size!==data.length)throw Error('Purchase records incomplete. Refresh before recording payment.');
+  const records=data,ids=records.map(x=>x.id);
   let items=[],paymentRows=[],paymentAvailable=false;
   if(ids.length){
    const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);
    if(res.error)throw res.error;items=res.data||[];
   }
-  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at').eq('restaurant_id',rid).order('payment_date',{ascending:false});
-  if(!pay.error){paymentRows=pay.data||[];paymentAvailable=true}
+  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at',{count:'exact'}).eq('restaurant_id',rid).order('payment_date',{ascending:false});
+  if(!pay.error&&Array.isArray(pay.data)&&pay.count===pay.data.length&&pay.data.every(x=>x.restaurant_id===rid&&ids.includes(x.purchase_id))&&!window.BiteSupplierDues?.summary(records,pay.data)?.error){paymentRows=pay.data;paymentAvailable=true}
   if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
   purchaseRecords=records;purchaseItems=items; supplierPaymentRecords=paymentRows;supplierPaymentAvailable=paymentAvailable;
   renderPurchases();return true;
@@ -1810,12 +1811,14 @@ function openSupplierPayment(id){
       p_payment_date:date,p_method:method,p_request_id:requestId,p_reference:reference
     });
     if(result.error)throw result.error;
+    if(typeof result.data!=='string'||!result.data.trim())throw Error('Payment receipt not confirmed. Retry same request after refresh.');
     return result.data;
    },
    onSuccess:async ()=>{
     if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
     const ok=await loadPurchases();
-    document.getElementById('purchaseMessage').textContent=ok?
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
+    document.getElementById('purchaseMessage').textContent=ok&&supplierPaymentAvailable?
      'Supplier payment recorded once on the actual payment date. Cashbook will reflect it.' :
      'Payment saved but Purchases did not refresh. Refresh before recording anything again.';
    }
