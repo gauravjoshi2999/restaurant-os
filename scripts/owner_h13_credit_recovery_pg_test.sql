@@ -35,10 +35,13 @@ begin
  failed:=false;begin perform private.bite_hotel_credit_receipt(p,f,200,'Cash','','',false,req);exception when sqlstate '42501' then failed:=true;end;
  if not failed then raise exception 'Other property receipt accepted';end if;
  perform set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
- insert into public.bite_property_shift_closings(property_id,shift_date,opening_cash,counted_cash,locked,created_by) values(p,d,0,0,true,auth.uid());
- failed:=false;begin perform private.bite_hotel_credit_receipt(p,f,200,'Cash','','',false,req);exception when others then failed:=true;end;
- if not failed then raise exception 'Locked day accepted';end if;
- delete from public.bite_property_shift_closings where property_id=p and shift_date=d;
+ begin
+  insert into public.bite_property_shift_closings(property_id,shift_date,opening_cash,counted_cash,expected_cash,difference,snapshot,locked,created_by,locked_at,locked_by) values(p,d,0,0,0,0,'{}'::jsonb,true,auth.uid(),now(),auth.uid());
+  failed:=false;begin perform private.bite_hotel_credit_receipt(p,f,200,'Cash','','',false,req);exception when others then failed:=true;end;
+  if not failed then raise exception 'Locked day accepted';end if;
+  raise exception 'Rollback synthetic closing only' using errcode='ZX001';
+ exception when sqlstate 'ZX001' then null;
+ end;
  if (select count(*) from public.bite_folio_entries where folio_id=f)<>before_count then raise exception 'Rejected recovery mutated ledger';end if;
  v:=private.bite_hotel_credit_receipt(p,f,500,'Cash','','',false,req);
  if (v->>'balance')::numeric<>1000 or private.bite_hotel_credit_receipt(p,f,500,'Cash','','',false,req)<>v then raise exception 'Cash receipt or replay failed';end if;
