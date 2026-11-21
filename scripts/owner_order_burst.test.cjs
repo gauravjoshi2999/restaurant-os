@@ -71,7 +71,7 @@ test('Owner HTML wires per-order tracker to both realtime and resume; no timesta
  assert.match(page,/BiteOwnerOrderBurst\.paidOrderIds\(state\.financials,restaurantId\)/);
  assert.match(page,/function announceOwnerOrderBurst\(orders\)/);
  assert.doesNotMatch(realtime,/const isNew=payload\.eventType/);
- assert.match(catchup,/ownerOrderBurstTracker\.reconcile\([\s\S]*?before,state\.orders,restaurantId,order=>paid\.has\(String\(order\.id\)\)\)/);
+ assert.match(catchup,/ownerOrderBurstTracker\.reconcile\([\s\S]*?before,state\.orders,restaurantId,order=>paid\.has\(String\(order\.id\)\),beforePaid\)/);
  assert.doesNotMatch(catchup,/Date\.parse\(order\.created_at/);
  assert.match(page,/ownerOrderBurstTracker\.reset\(\)/);
 });
