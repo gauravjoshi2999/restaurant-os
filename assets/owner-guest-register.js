@@ -18,11 +18,11 @@
  const button=(a,label,id='',extra='')=>'<button type="button" class="btn secondary" data-gr-action="'+a+'" data-id="'+esc(id)+'" '+extra+'>'+esc(label)+'</button>';
  const foreignFields=[['nationality','Nationality'],['date_of_birth','Date of birth'],['document_type','Travel document'],['document_last4','Document last 4'],['document_expiry','Document expiry'],['visa_status','Visa / OCI'],['permission_last4','Permission last 4'],['visa_expiry','Permission expiry'],['india_arrival','Arrival in India'],['entry_port','Entry port'],['purpose','Purpose']];
  const status=s=>({in_house:'Staying',checked_out:'Checked out',reserved:'Reserved',cancelled:'Cancelled',no_show:'No-show'})[s]||s||'—';
- let ctx,bound=false,epoch=0,dialog=null,query='',period=null,state='',page=1,active=0,periodControl=null;const urls=new Set(),copies=new Map(),loading=new Set();
+ let ctx,bound=false,epoch=0,dialog=null,query='',period=null,state='',page=1,active=0,periodControl=null,historyEpoch=0;const urls=new Set(),copies=new Map(),loading=new Set();
  const scope=()=>ctx?.getUser()?.id+':'+H()?.prop()?.id;
  function init(context){ctx=context;if(bound)return;bound=true;document.addEventListener('click',click);document.addEventListener('input',filter);document.addEventListener('change',filter)}
  function close(){epoch++;root.BiteCheckinFlow?.closePreview();if(dialog){dialog.close();dialog.remove()}dialog=null;for(const url of urls)root.URL.revokeObjectURL(url);urls.clear();copies.clear();loading.clear()}
- function clear(){close();periodControl?.dispose();periodControl=null;query='';period=null;state='';page=1}
+ function clear(){historyEpoch++;close();periodControl?.dispose();periodControl=null;query='';period=null;state='';page=1}
  function records(db){
   const guests=new Map((db.guests||[]).map(g=>[g.id,g])),rooms=new Map((db.rooms||[]).map(r=>[r.id,r])),groups=new Map((db.groups||[]).map(g=>[g.id,g])),folios=new Map((db.folios||[]).map(f=>[f.stay_id,f]));
   return(db.stays||[]).map(s=>{const r=s.registration||{},g=guests.get(s.guest_id)||{},f=folios.get(s.id),snap=r.guest_snapshot||{},issued=f?.invoice_snapshot?.guest||{};
@@ -48,7 +48,7 @@
    '<label class="bh-field"><span>Status</span><select data-gr-filter="state"><option value="">All stays</option>'+
    ['in_house','checked_out','reserved','cancelled','no_show'].map(s=>'<option value="'+s+'" '+(state===s?'selected':'')+'>'+status(s)+'</option>').join('')+
    '</select></label><div class="gr-tool-buttons">'+button('reset','Show all dates')+button('excel','Excel')+button('print','Print register')+
-   '</div></div><div data-gr-table></div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
+   '</div></div><div data-gr-table></div></section><section class="bh-panel gr-historical"><h2>Past · Historical entries</h2><p>Old room entries saved through the calendar. Read-only records; never live occupancy or payments. Uses Record period and Search above.</p><div class="bh-actions">'+button('load-history','Open historical records')+'</div><div data-gr-history role="status"></div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
    '><summary>Saved guest profiles</summary><div data-gr-profiles></div></details>';
   const picker=root.BiteV3Period,periodBox=target.querySelector('[data-gr-period]');
   if(period&&picker){
@@ -69,8 +69,35 @@
   paint(target);const profiles=target.querySelector('[data-gr-profiles]'),db=H().getWorkspace();
   profiles.innerHTML=(db.guests||[]).map(g=>'<article class="bh-record"><div><strong>'+esc(g.full_name)+'</strong><p>'+esc(g.phone)+' · '+esc(g.address||g.country)+'</p></div><div class="bh-actions">'+button('repeat','Check in again',g.id)+'<button type="button" class="btn secondary" data-hotel-action="edit-guest" data-id="'+esc(g.id)+'">Edit profile</button>'+(root.BiteGuestDocuments?.button(g.id)||'')+'</div></article>').join('')||'<p>No saved guest profiles yet.</p>';
  }
- function paint(target){const all=records(H().getWorkspace()),rows=filtered(all),pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages);const visible=rows.slice((page-1)*50,page*50),box=target.querySelector('[data-gr-table]');if(!box)return;
+ function paint(target){historyEpoch++;const past=target.querySelector('[data-gr-history]');if(past)past.replaceChildren();const all=records(H().getWorkspace()),rows=filtered(all),pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages);const visible=rows.slice((page-1)*50,page*50),box=target.querySelector('[data-gr-table]');if(!box)return;
   box.innerHTML='<div class="gr-register-summary"><strong>'+rows.length+' '+(rows.length===1?'entry':'entries')+'</strong><span>'+new Set(rows.map(r=>r.guest_id)).size+' guests</span><span>'+rows.filter(r=>r.status==='in_house').length+' staying</span></div><p class="gr-scroll-hint">Scroll across the sheet to see all columns. Tap a guest to open the complete record.</p><div class="gr-sheet-scroll" tabindex="0" role="region" aria-label="Guest register sheet"><table class="gr-sheet"><thead><tr>'+['S.No.','Entry date','Guest / Mobile','Arrival','Checkout','Room','M / F / C','Permanent address','Arriving from','Next destination','Transport / Vehicle','Rent / night','ID photos','Status'].map(s=>'<th scope="col">'+s+'</th>').join('')+'</tr></thead><tbody>'+visible.map(r=>'<tr><td>'+esc(r.serial||'—')+'</td><td>'+esc(day(r.entry_date))+'</td><td><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.name)+'</button><small>'+esc(r.phone)+'</small></td><td>'+esc(day(r.arrival))+'<small>'+esc(r.arrival_time||'Not recorded')+'</small></td><td>'+esc(r.checkout_at?stamp(r.checkout_at):'Expected '+day(r.departure))+'</td><td><strong>'+esc(r.room)+'</strong></td><td>'+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</td><td class="gr-address">'+esc(r.address||'—')+'</td><td>'+esc(r.arrived_from||'—')+'</td><td>'+esc(r.next_destination||'—')+'</td><td>'+esc(r.transport||'—')+'<small>'+esc(r.vehicle_number)+'</small></td><td>'+money(r.nightly_rate)+'</td><td><div class="gr-photo-buttons">'+(r.id_front?button('photo-front','Front',r.id):'<span>Front not saved</span>')+(r.id_back?button('photo-back','Back',r.id):'<span>Back not saved</span>')+'</div></td><td><span class="gr-status">'+esc(status(r.status))+'</span></td></tr>').join('')+'</tbody></table></div>'+(!rows.length?'<p class="bh-empty">'+(all.length?(period?'No records for this period. Change the period or choose Show all dates.':'No records match these filters.'):'No stays have been saved yet. New check-ins will appear here.')+'</p>':'')+'<div class="gr-pagination"><span>Page '+page+' of '+pages+'</span>'+button('previous','Previous','',''+(page===1?'disabled':''))+button('next','Next','',page===pages?'disabled':'')+'</div>';
+ }
+ function historicalRows(rows,selectedPeriod,search=''){
+  if(!Array.isArray(rows))throw Error('Historical records unavailable.');
+  if(rows.length>500)throw Error('More than 500 historical entries. Choose a shorter record period.');
+  const ids=new Set(),q=String(search).trim().toLocaleLowerCase();
+  return rows.filter(r=>{
+   if(!r?.id||ids.has(r.id)||!validEntryDate(r.record_date))throw Error('Historical records could not be verified.');
+   ids.add(r.id);
+   return (!selectedPeriod||inPeriod({entry_date:r.record_date},selectedPeriod))&&(!q||[r.customer_name,r.customer_phone,r.room_number].join(' ').toLocaleLowerCase().includes(q));
+  });
+ }
+ async function loadHistory(target){
+  const panel=target?.querySelector('[data-gr-history]'),property=H()?.prop()?.id,user=ctx?.getUser()?.id;
+  if(!panel||!property||!user||!H().has('guest_register')||!ctx.sb)return;
+  const request=++historyEpoch,key=scope(),selected=period?{...period}:null,search=query;
+  const current=()=>request===historyEpoch&&key===scope()&&H()?.has('guest_register')&&target.isConnected&&target.querySelector('[data-gr-history]')===panel;
+  panel.textContent='Reading historical records…';
+  try{
+   let q=ctx.sb.from('bite_owner_historical_entries').select('id,record_date,departure_date,customer_name,customer_phone,room_number,amount,received_amount,guest_count,payment_method').eq('entry_kind','room').eq('property_id',property);
+   if(selected){if(!validEntryDate(selected.from)||!validEntryDate(selected.to)||selected.from>selected.to)throw Error('Choose a valid record period.');q=q.gte('record_date',selected.from).lte('record_date',selected.to);}
+   const {data,error}=await q.order('record_date',{ascending:false}).order('id',{ascending:false}).limit(501);
+   if(!current())return;
+   if(error)throw Error('Historical records could not be loaded. Retry or check property permissions.');
+   const rows=historicalRows(data,selected,search);
+   panel.innerHTML='<p><strong>'+rows.length+' historical '+(rows.length===1?'record':'records')+'</strong> · Original entry dates</p>'+
+    (rows.length?rows.map(r=>'<article class="bh-record"><div><strong>'+esc(r.customer_name||'Guest')+'</strong> <span class="gr-status">Historical</span><p>'+esc(day(r.record_date))+' → '+esc(day(r.departure_date))+' · Room '+esc(r.room_number||'—')+'</p><p>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</p></div><div><strong>Bill '+money(r.amount)+'</strong><p>Recorded received '+money(r.received_amount)+' · '+esc(r.payment_method||'—')+'</p></div></article>').join(''):'<p class="bh-empty">No historical records for this period and search.</p>');
+  }catch(error){if(current())panel.textContent=error.message||'Historical records unavailable. Retry.';}
  }
  function filter(e){const input=e.target.closest('[data-gr-filter]');if(!input)return;const target=input.closest('#guests');if(!target)return;if(input.dataset.grFilter==='query')query=input.value;else if(input.dataset.grFilter==='state')state=input.value;page=1;paint(target)}
  function details(record,photoSide){
@@ -120,7 +147,7 @@
    if(action==='bill'){close();await H().openFolio(id);return}
    if(action==='edit'){close();await H().navigate('guests');document.querySelector('#guests [data-hotel-action="edit-guest"][data-id="'+id+'"]')?.click();if(!document.querySelector('#bhActionEditor'))throw Error('Guest profile is unavailable. Refresh the register.');return}
    if(action==='view-photo'){const box=dialog;if(box?.__record)await loadPhoto(box.__record,Number(b.dataset.person),b.dataset.side,scope(),epoch,box,true,b);return}
-   const target=document.getElementById('guests');if(action==='record'||action==='photo-front'||action==='photo-back'){const r=records(H().getWorkspace()).find(r=>r.id===id);if(r)details(r,action==='photo-front'?'front':action==='photo-back'?'back':null);return}
+   const target=document.getElementById('guests');if(action==='load-history'){await loadHistory(target);return}if(action==='record'||action==='photo-front'||action==='photo-back'){const r=records(H().getWorkspace()).find(r=>r.id===id);if(r)details(r,action==='photo-front'?'front':action==='photo-back'?'back':null);return}
    if(action==='previous'||action==='next'){page+=action==='next'?1:-1;paint(target);return}
    if(action==='choose-period'){const picker=root.BiteV3Period,today=root.BiteOwner?.day?.();if(!picker||!today)throw Error('Record period picker is not ready.');period=picker.normalize({mode:'month',month:today.slice(0,7)},today);page=1;render(target);target.querySelector('[data-bv3-period-toggle]')?.click();return}
    if(action==='reset'){query='';period=null;state='';page=1;render(target);return}
@@ -128,5 +155,5 @@
    if(action==='print')printSheet(filtered(records(H().getWorkspace())));
   }catch(error){if(dialog)dialog.querySelector('.gr-record-message')?.replaceChildren(document.createTextNode(error.message||String(error)));else root.alert(error.message||String(error))}
  }
- const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,verifiedRent,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,verifiedRent,historicalRows,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
