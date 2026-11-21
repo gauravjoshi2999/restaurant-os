@@ -8,16 +8,16 @@ const sql=fs.readFileSync('docs/sql/owner_a04_supplier_payment_staging.sql','utf
 const css=fs.readFileSync('assets/owner-supplier-dues.css','utf8');
 const purchase={id:'bill-1',restaurant_id:'owner-restaurant',purchase_date:'2026-11-01',total_amount:1000,paid_amount:100,supplier_name_snapshot:'Test supplier'};
 const pays=[
- {purchase_id:'bill-1',restaurant_id:'owner-restaurant',payment_date:'2026-11-10',amount:250,method:'Cash'},
- {purchase_id:'bill-1',restaurant_id:'owner-restaurant',payment_date:'2026-11-15',amount:100,method:'UPI'},
- {purchase_id:'bill-1',restaurant_id:'other-business',payment_date:'2026-11-15',amount:999,method:'UPI'},
- {purchase_id:'bill-2',restaurant_id:'owner-restaurant',payment_date:'2026-11-10',amount:999,method:'Cash'}
+ {id:'payment-1',purchase_id:'bill-1',restaurant_id:'owner-restaurant',payment_date:'2026-11-10',amount:250,method:'Cash'},
+ {id:'payment-2',purchase_id:'bill-1',restaurant_id:'owner-restaurant',payment_date:'2026-11-15',amount:100,method:'UPI'},
+ {id:'payment-3',purchase_id:'bill-1',restaurant_id:'other-business',payment_date:'2026-11-15',amount:999,method:'UPI'},
+ {id:'payment-4',purchase_id:'bill-2',restaurant_id:'owner-restaurant',payment_date:'2026-11-10',amount:999,method:'Cash'}
 ];
 test('A04 initial paid amount remains on purchase day; later payments reduce due only once',()=>{
  assert.equal(due.laterTotal(purchase,pays),35000);
  assert.equal(due.paid(purchase,pays),450);
  assert.equal(due.outstanding(purchase,pays),550);
- assert.equal(due.outstanding({...purchase,total_amount:150},pays),0);
+ assert.equal(due.outstanding({...purchase,total_amount:150},pays),null);
  assert.equal(due.summary([purchase],pays).total,550);
  assert.equal(due.summary([purchase],pays).count,1);
 });
@@ -82,4 +82,16 @@ test('A04 SQL protects cashbook dates, RLS, idempotency and closed shifts',()=>{
 test('A04 canonical migration file exactly matches the SQL verified in PG17 and applied to live Supabase',()=>{
  const applied=fs.readFileSync('supabase/migrations/20261119041054_owner_a04_supplier_payment_date_ledger.sql','utf8');
  assert.equal(applied,sql);
+});
+
+test('A04 supplier balances reject duplicate receipts, unknown money and impossible dates',()=>{
+ assert.equal(due.outstanding(purchase,[...pays,pays[0]]),null);
+ for(const amount of [null,'',true,'oops',1.001,-1,Infinity]){
+  assert.equal(due.outstanding(purchase,[{...pays[0],amount}]),null);
+ }
+ assert.equal(due.outstanding(purchase,[{...pays[0],payment_date:'2026-02-30'}]),null);
+ assert.ok(due.summary([purchase,purchase],pays).error);
+ assert.throws(()=>due.validate({purchase,payments:[...pays,pays[0]],amount:1,date:'2026-11-19',today:'2026-11-19',method:'Cash'}));
+ assert.match(index,/pay.count===pay.data.length/);
+ assert.match(index,/count!==data.length/);
 });
