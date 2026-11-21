@@ -93,14 +93,16 @@
    field('deposit_amount','Refundable deposit (₹)','number',draft.deposit_amount??'','min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0"')+
    select('deposit_method','Deposit method',['Cash','UPI','Card','Bank Transfer'].map(m=>option(m,m,m===(draft.deposit_method||'Cash'))).join(''))+
    field('deposit_reference','Verified receipt reference','text',draft.deposit_reference||'','maxlength="100"')+field('deposit_account','Online account note','text',draft.deposit_account||'','maxlength="80"')+'</div>'+
-   check('deposit_verified','I verified this deposit in the bank/provider account.',draft.deposit_verified==='on'?'checked':'');
+   (manager()?check('deposit_verified','I verified this deposit in the bank/provider account.',draft.deposit_verified==='on'?'checked':''):'');
   booking.append(box);wireMoneyFields(form,'deposit_method','deposit_account','deposit_verified','deposit_reference');
   const amount=form.elements.deposit_amount,method=form.elements.deposit_method,verified=form.elements.deposit_verified;
+  if(!verified)return;
   let lastAmount=amount.value,lastMethod=method.value;
   function changedAmount(){if(lastAmount!==amount.value){lastAmount=amount.value;verified.checked=false}}
   amount.addEventListener('input',changedAmount);amount.addEventListener('change',changedAmount);
   method.addEventListener('change',()=>{if(lastMethod!==method.value){lastMethod=method.value;verified.checked=false;form.elements.deposit_reference.value='';form.elements.deposit_account.value=''}});
   form.elements.deposit_reference.addEventListener('input',()=>{verified.checked=false});
+  form.elements.deposit_account.addEventListener('input',()=>{verified.checked=false});
  }
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
