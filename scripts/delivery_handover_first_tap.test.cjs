@@ -14,8 +14,8 @@ function setup(status='Handed Over',defer=false){
  const pending=new Promise(resolve=>{finish=resolve;});
  const rpcCalls=[];
  const ctx={
-  access:{role:'owner'},
-  state:{orders:[{id:'order-1',status,deliveryType:'delivery'}]},
+  currentUser:{id:'owner-a'},access:{role:'owner',restaurantId:'restaurant-a'},
+  state:{orders:[{id:'order-1',status,restaurant:'restaurant-a',deliveryType:'delivery'}]},
   sb:{
    rpc:async(name,args)=>{
     rpcCalls.push({name,args});
@@ -65,4 +65,15 @@ test('Owner handover never pre-opens an empty browser tab',()=>{
  assert.match(js,/await openDeliveryWhatsAppShare\(message,waUrl\)/);
  assert.match(js,/BiteDeliveryShare/);
  assert.doesNotMatch(js,/prompt\('WhatsApp share/);
+});
+test('R11 delayed handoff never shares customer data after switching owner restaurant',async()=>{
+ const t=setup('Ready',true);const first=t.ctx.shareDeliveryHandoff('order-1',true);
+ t.ctx.access.restaurantId='restaurant-b';
+ t.finish();assert.equal(await first,false);
+ assert.equal(t.shares.length,0);assert.equal(t.updates.length,0);
+});
+test('R11 cannot share an order belonging to another restaurant',async()=>{
+ const t=setup();t.ctx.access.restaurantId='restaurant-b';
+ assert.equal(await t.ctx.shareDeliveryHandoff('order-1',false),false);
+ assert.equal(t.rpcCalls.length,0);
 });
