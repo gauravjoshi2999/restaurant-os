@@ -32,7 +32,7 @@
     !String(o.code||"").startsWith("POS-ROOM-")&&!(o.roomLinked);
  }
  function numbers(input){
-  const real=(input.orders||[]).filter(eligible);
+  const real=(input.orders||[]).filter(o=>eligible(o)&&(!input.restaurantId||o.restaurant===input.restaurantId)&&String(o.channel||'').startsWith('POS - '));
   const date=input.date||todayKey(),same=real.filter(o=>dateKey(o.createdAt)===date);
   const billed=same.reduce((n,o)=>n+Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0)),0);
   const received=same.reduce((n,o)=>n+Math.max(0,Number(o.receivedAmount||0)),0);
@@ -43,6 +43,12 @@
   return {same,all:real,bills:same.length,billed,received,due,people,
    dineInBills:dineIn.length,takeawayBills:withVisit.length-dineIn.length,
    untrackedBills:same.length-withVisit.length};
+ }
+ function billPaymentLabel(o){
+  const valid=v=>(typeof v==='number'||typeof v==='string'&&v.trim()!=='')&&Number.isFinite(Number(v))&&Number(v)>=0&&Number.isSafeInteger(Math.round(Number(v)*100))&&Math.abs(Number(v)*100-Math.round(Number(v)*100))<0.00001;
+  if(!valid(o?.dueAmount)||!valid(o?.receivedAmount))return 'Payment status unavailable';
+  if(Number(o.dueAmount)>0)return 'Due '+money(o.dueAmount);
+  return Number(o.receivedAmount)>0?'Received '+money(o.receivedAmount):'No balance due';
  }
  function ensure(){
   const pos=doc.getElementById('pos');
@@ -115,7 +121,7 @@
    return;
   }
   const n=numbers(current),last=n.same.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,3);
-  stats.innerHTML='<div class="bpv2-section-heading"><strong>'+safe(dayText(todayKey()))+'</strong><span>Recorded POS data</span></div>'+
+  stats.innerHTML='<div class="bpv2-section-heading"><strong>'+safe(dayText(todayKey()))+'</strong><button type="button" data-bpv2-go="reports" aria-label="Choose POS bill period">'+ic('calendar')+' Choose date / month</button></div>'+
    '<div class="bpv2-stats">'+
    '<div class="bpv2-stat is-orange">'+ic("bill")+'<small>Bills today</small><strong>'+n.bills+'</strong></div>'+
    '<div class="bpv2-stat is-green">'+ic("rupee")+'<small>POS billed</small><strong>'+money(n.billed)+'</strong></div>'+
@@ -129,6 +135,7 @@
     const amount=Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0));
     return '<article class="bpv2-recent"><span class="bpv2-recent-icon">'+ic('bill')+'</span>'+
      '<span class="bpv2-recent-body"><strong>'+safe(o.code||'POS Bill')+'</strong><small>'+safe(o.customerName||'Walk-in')+'</small>'+
+     '<small class="bpv2-visit-tag">'+safe(billPaymentLabel(o))+'</small>'+
      (o.posVisit?'<small class="bpv2-visit-tag">'+safe(o.posVisit.visit_type==='takeaway'?'Takeaway':'Dine-in · '+o.posVisit.guest_count+' people')+'</small>':'')+
      (o.receipt?'<button type="button" class="bpv2-receipt-link" data-bpv2-receipt="'+safe(o.id)+'" data-bpv2-payment-id="'+safe(o.receipt.id)+'">Daily Book · '+safe(o.receipt.date)+'</button>':'')+'</span>'+
      '<strong class="bpv2-amount">'+money(amount)+'</strong>'+
@@ -136,7 +143,8 @@
    }).join('')+'</div>':'<p class="bpv2-empty">No POS bills recorded today. Tap <strong>New POS Bill</strong> to begin.</p>');
  }
  function render(input){
-  if(!input||!input.restaurantId)return;
+  if(!input||!input.restaurantId||!input.userId){current=null;view='today';root.BitePOSReports?.clear?.();const stats=doc?.getElementById('bpv2Stats'),recent=doc?.getElementById('bpv2Recent');if(stats)stats.textContent='Select an authorized restaurant to view POS bills.';if(recent)recent.textContent='';return}
+  if(current&&(current.restaurantId!==input.restaurantId||current.userId!==input.userId)){view='today';root.BitePOSReports?.clear?.();}
   current={restaurantId:input.restaurantId,userId:input.userId,client:input.client,orders:Array.isArray(input.orders)?input.orders.map(o=>({...o})):[]};
   paint();
  }
@@ -145,5 +153,5 @@
   view='reports';paint();
   return root.BitePOSReports?.focusDate?.(day)===true;
  }
- root.BitePOSV2={render,dateKey,numbers,openReportDate,activeView:()=>view};
+ root.BitePOSV2={render,dateKey,numbers,billPaymentLabel,openReportDate,activeView:()=>view};
 })(window);

@@ -73,3 +73,14 @@ test('No fabricated diner count, no payment processing changes and real bill mea
  assert.doesNotMatch(js,/24,560|1,342|3,896|Rahul Verma|POS-2587/);
  assert.doesNotMatch(js,/supabase\.from|fetch\(|Cashfree|payment_intent|UPDATE public/);
 });
+
+
+test('R01 overview excludes unrelated restaurant and non-POS orders and explains actual outstanding',()=>{
+ const v=service(),result=v.numbers({restaurantId:'r1',date:'2026-11-17',orders:[bill({restaurant:'r1'}),bill({id:'other',restaurant:'r2'}),bill({id:'online',restaurant:'r1',channel:'Own Website'})]});
+ assert.equal(result.bills,1);assert.equal(result.due,150);
+ assert.equal(v.billPaymentLabel(bill()),'Due ₹150');
+ assert.equal(v.billPaymentLabel(bill({receivedAmount:500,dueAmount:0})),'Received ₹500');
+ assert.equal(v.billPaymentLabel(bill({receivedAmount:0,dueAmount:0})),'No balance due');
+ assert.equal(v.billPaymentLabel(bill({dueAmount:null})),'Payment status unavailable');
+ assert.match(js,/Choose date \/ month/);
+});
