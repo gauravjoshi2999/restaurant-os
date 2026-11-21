@@ -160,7 +160,7 @@
   function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();submit.textContent='Review check-in'}
   function show(next,focus=true){
    if(!panels[next])return;step=next;form.dataset.haStepView=full?'all':step;
-   for(const [key,el] of Object.entries(panels))el.hidden=!full&&key!==step;
+   for(const [key,el] of Object.entries(panels)){el.hidden=!full&&key!==step;if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
    roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';submit.hidden=!full&&step!=='payment';
    toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
    const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
