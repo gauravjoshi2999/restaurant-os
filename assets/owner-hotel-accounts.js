@@ -341,6 +341,40 @@
    (registered&&groups.length?'<table><thead><tr><th>Service / SAC</th><th>Taxable</th><th>GST breakdown</th></tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(({room:'Room rent',food:'Food',incidental:'Extras'})[g.category]||g.category)+'<br><small>'+esc(g.sac)+'</small></td><td>'+money(g.taxable)+'</td><td>CGST '+Number(g.rate)/2+'% · '+money(g.cgst)+'<br>SGST '+Number(g.rate)/2+'% · '+money(g.sgst)+'</td></tr>').join('')+'</tbody></table><small>Place of supply: '+esc(s.place_of_supply||String(s.tax_profile.gstin).slice(0,2))+' · Reverse charge: No</small>':'')+
    invoiceCreditNotice(s)+'<p class="sign">For '+esc(s.property?.name)+'<br><br>Authorized signatory</p></body></html>';
  }
+ // Render the exact sanitized issued bill to paginated local PDF. No remote service or new invoice.
+ function invoicePDF(s){
+  if(!s?.number||String(s.number).startsWith('DRAFT'))throw Error('Issue the final invoice before downloading.');
+  const doc=new DOMParser().parseFromString(billHTML(s),'text/html'),pages=[],W=1190,H=1684,M=76;
+  let canvas,c,y;
+  function page(){canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;c=canvas.getContext('2d');if(!c)throw Error('PDF renderer unavailable. Use Print / Save PDF.');c.fillStyle='#fff';c.fillRect(0,0,W,H);c.fillStyle='#202020';y=M;pages.push(canvas);}
+  function lines(value,width,font){
+   c.font=font;const result=[];for(const paragraph of String(value||'').split(/\n/)){let line='';for(const word of paragraph.split(/\s+/)){if(!word)continue;const next=line?line+' '+word:word;if(c.measureText(next).width<=width){line=next;continue}if(line){result.push(line);line=''}for(const ch of word){if(line&&c.measureText(line+ch).width>width){result.push(line);line=''}line+=ch}}result.push(line)}return result;
+  }
+  function lineBlock(value,size=25,bold=false,gap=12){const font=(bold?'700 ':'400 ')+size+'px system-ui, sans-serif';for(const line of lines(value,W-2*M,font)){if(y+size*1.45>H-M)page();c.font=font;c.fillStyle='#202020';c.fillText(line,M,y+size);y+=size*1.45;}y+=gap;}
+  function nodeText(n){if(n.nodeType===3)return n.textContent;if(n.nodeName==='BR')return '\n';return Array.from(n.childNodes).map(nodeText).join('');}
+  function tableRow(row){const cells=Array.from(row.cells||[]),font='400 24px system-ui, sans-serif';if(!cells.length)return;
+   const width=(W-2*M)/cells.length,blocks=cells.map(cell=>lines(nodeText(cell),width-30,font)),count=Math.max(...blocks.map(b=>b.length));
+   for(let i=0;i<count;i++){if(y+34>H-M)page();c.font=font;c.fillStyle='#202020';blocks.forEach((b,j)=>c.fillText(b[i]||'',M+j*width,y+24));y+=34}c.strokeStyle='#d0d0d0';c.beginPath();c.moveTo(M,y+3);c.lineTo(W-M,y+3);c.stroke();y+=12;
+  }
+  function walk(n){const tag=n.tagName;if(!tag||tag==='NAV'||tag==='BUTTON'||tag==='STYLE')return;
+   if(tag==='TABLE'){Array.from(n.rows).forEach(tableRow);y+=10;return}
+   if(['H1','H2','H3','P','SMALL','DIV'].includes(tag)){lineBlock(nodeText(n),tag==='H1'?40:tag==='H2'?33:tag==='H3'?28:24,/^H[123]$/.test(tag));return}
+   Array.from(n.children).forEach(walk);
+  }
+  page();Array.from(doc.body.children).forEach(walk);
+  const enc=new TextEncoder(),parts=[],offsets=[0];let length=0;
+  const push=x=>{const bytes=typeof x==='string'?enc.encode(x):x;parts.push(bytes);length+=bytes.length};
+  function object(id,body,bytes){offsets[id]=length;push(id+' 0 obj\n'+body);if(bytes){push('\nstream\n');push(bytes);push('\nendstream')}push('\nendobj\n')}
+  push('%PDF-1.4\n');object(1,'<< /Type /Catalog /Pages 2 0 R >>');object(2,'<< /Type /Pages /Count '+pages.length+' /Kids ['+pages.map((_,i)=>(3+i*3)+' 0 R').join(' ')+'] >>');
+  pages.forEach((p,i)=>{const id=3+i*3,jpeg=Uint8Array.from(atob(p.toDataURL('image/jpeg',0.94).split(',')[1]),x=>x.charCodeAt(0)),ops=enc.encode('q 595 0 0 842 0 0 cm /Im0 Do Q');
+   object(id,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 '+(id+1)+' 0 R >> >> /Contents '+(id+2)+' 0 R >>');
+   object(id+1,'<< /Type /XObject /Subtype /Image /Width '+W+' /Height '+H+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpeg.length+' >>',jpeg);
+   object(id+2,'<< /Length '+ops.length+' >>',ops);
+  });
+  const xref=length;push('xref\n0 '+offsets.length+'\n0000000000 65535 f \n');for(let i=1;i<offsets.length;i++)push(String(offsets[i]).padStart(10,'0')+' 00000 n \n');push('trailer\n<< /Size '+offsets.length+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+  return new File(parts,'Bite-Invoice-'+String(s.number).replace(/[^a-z0-9_-]/gi,'-').slice(0,100)+'.pdf',{type:'application/pdf'});
+ }
+ function downloadInvoice(s){const file=invoicePDF(s),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);return file;}
  function printStatement(s){const html=billHTML(s);const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(html);win.document.close();return true}
 
  function reportRows(v){
@@ -648,6 +682,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,invoicePDF,downloadInvoice};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
