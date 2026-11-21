@@ -84,3 +84,23 @@ test('R01 overview excludes unrelated restaurant and non-POS orders and explains
  assert.equal(v.billPaymentLabel(bill({dueAmount:null})),'Payment status unavailable');
  assert.match(js,/Choose date \/ month/);
 });
+
+test('Room food bills are visible separately without increasing counter totals or implying payment',()=>{
+ const v=service(),orders=[
+  bill({restaurant:'r1'}),
+  bill({restaurant:'r1',id:'room',code:'POS-ROOM-001',amount:900}),
+  bill({restaurant:'r1',id:'posted',roomLinked:true,amount:600}),
+  bill({restaurant:'r2',id:'foreign',roomLinked:true}),
+  bill({restaurant:'r1',id:'void',roomLinked:true,status:'Cancelled'}),
+  bill({restaurant:'r1',id:'demo',roomLinked:true,isDemo:true}),
+  bill({restaurant:'r1',id:'prior',roomLinked:true,createdAt:'2026-11-16T12:30:00+05:30'}),
+  bill({restaurant:'r1',id:'unknown-channel',roomLinked:true,channel:'POS - Unknown'})
+ ];
+ const n=v.numbers({orders,restaurantId:'r1',date:'2026-11-17'});
+ assert.equal(n.bills,1);assert.equal(n.billed,500);assert.equal(n.received,350);assert.equal(n.due,150);
+ assert.equal(n.roomToday.length,2);
+ assert.equal(v.billPaymentLabel(orders[1]),'Room bill · verify folio');
+ assert.equal(v.billPaymentLabel(orders[2]),'Transferred to room folio');
+ assert.match(js,/Room food bills/);
+ assert.match(js,/Check payment in the guest folio/);
+});
