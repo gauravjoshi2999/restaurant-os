@@ -1449,8 +1449,8 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 <script src="./assets/bite-pos-v2.js?v=20261119-reconcile1-r01scope2"></script>
 <script src="./assets/bite-pos-reports.js?v=20261120-r07-history-check1-r01period1"></script>
 <script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
-<script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
-<script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
+<script src="./assets/bite-pos-payment-safety.js?v=20261113-1-r04"></script>
+<script src="./assets/bite-pos-payment-ui.js?v=20261114-session2-r04"></script>
 <script>
 window.addEventListener('error', function(e) {
   const box = document.getElementById('authError');
@@ -4122,7 +4122,7 @@ function paymentSummaryFor(orderId){const order=state.orders.find(o=>o.id===orde
 function posPaymentContext(orderId){
  const order=state.orders.find(x=>x.id===orderId);
  const userId=currentUser?.id,restaurantId=access.restaurantId,role=access.role;
- return {sb,userId,restaurantId,role,orderId,order,
+ return {sb,userId,restaurantId,role,orderId,order:order?{...order,roomLinked:!!window.BiteHospitality?.postedOrder(orderId)}:order,
   paymentSummaryFor,money,today:localDateInput,closeModal,loadCloudData,
   // Async payment confirmations must never close or update a different Owner session.
   isCurrent:()=>!!userId&&currentUser?.id===userId&&
