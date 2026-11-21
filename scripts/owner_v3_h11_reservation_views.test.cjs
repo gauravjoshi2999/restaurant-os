@@ -35,3 +35,20 @@ test('H11 availability uses actual reservation overlap and room type, never muta
  assert.throws(()=>availability(rooms,stays,'2026-11-22','2026-11-22','2026-11-19'));
  assert.equal(JSON.stringify({rooms,stays}),snapshot);
 });
+
+
+test('H11 reservation opens the existing register before any booking write',()=>{
+ const js=fs.readFileSync('assets/owner-hospitality.js','utf8');
+ assert.match(js,/renderRegister\('',false,id\)/);
+ assert.doesNotMatch(js,/action==='checkin'\)\{await command\('checkin'/);
+ assert.match(js,/This does NOT send or confirm a refund/);
+ assert.match(js,/if\(!root.confirm\(\(action==='cancel'/);
+});
+
+
+test('H11 reservation modification separately reviews server quotes before writing',()=>{
+ const js=fs.readFileSync('assets/owner-hospitality.js','utf8');
+ assert.match(js,/oldQuote=await root.BiteOwnerOperations.reservationQuote\(original,stay.id\),newQuote=await root.BiteOwnerOperations.reservationQuote\(proposed,stay.id\)/);
+ assert.match(js,/Quote difference:/);
+ assert.match(js,/action='reservation_edit';payload=\{id:stay.id/);
+});

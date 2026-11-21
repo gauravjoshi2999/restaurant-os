@@ -371,7 +371,7 @@
  }
  function stayCard(s,tag=''){
   const g=data.guests.find(g=>g.id===s.guest_id),r=data.rooms.find(r=>r.id===s.room_id),f=data.folios.find(f=>f.stay_id===s.id),group=data.groups.find(g=>g.id===s.group_id);
-  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)}${s.arrival_time?' · '+esc(String(s.arrival_time).slice(0,5)):''} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?btn('checkin','Check in',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
+  return `<article class="bh-record" data-hotel-search-card="${esc([g?.full_name,g?.phone,r?.number,s.status,group?.name].join(' ').toLowerCase())}"><div><strong>${esc(g?.full_name||'Guest')}</strong><span class="bh-chip ${esc(s.status)}">${esc(tag||s.status)}</span><p>Room ${esc(r?.number||'—')} · ${esc(s.arrival)}${s.arrival_time?' · '+esc(String(s.arrival_time).slice(0,5)):''} → ${esc(s.departure)}${group?'<br>Group: '+esc(group.name)+' · individual room folio':''}</p></div><div class="bh-actions">${s.status==='reserved'?(s.arrival<=today()?btn('checkin','Check in',s.id):'')+btn('reservation-modify','Modify reservation',s.id):''}${f?btn('folio','View folio',f.id):''}${['reserved','in_house'].includes(s.status)?btn('stay-options','Manage stay',s.id):''}</div></article>`;
  }
  function renderPage(id){
   if(!prop()&&id!=='business-modules'){void ctx.navigate('business-modules');return}
@@ -498,17 +498,18 @@
   await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
   raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));for(const item of resolved)localStorage.removeItem(item);return raw;
  }
- function renderRegister(guestId='',resume=false){
+ function renderRegister(guestId='',resume=false,reservationId=''){
   let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null')}catch{}
   const state=root.BiteCheckinGuard?.draftState(raw,data.stays)||{kind:raw?.fields?'draft':'none',fields:raw?.fields};
   if(state.kind==='stale')try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}
   let draft=resume&&['draft','reserved'].includes(state.kind)?{...state.fields}:{};
   if(guestId)draft={guest_id:guestId};
+  if(reservationId){const saved=data.stays.find(s=>s.id===reservationId&&s.status==='reserved');if(!saved)throw Error('Reservation no longer available.');draft={stay_id:saved.id,mode:saved.arrival>today()?'reserve':'checkin',adults:saved.adults,children:saved.children,booking_source:saved.booking_source,booking_reference:saved.booking_reference};}
   if(draft.stay_id){
    const stay=data.stays.find(s=>s.id===draft.stay_id),reg=stay?.registration||{},savedGuest=data.guests.find(g=>g.id===stay?.guest_id);
    if(stay){draft={guest_id:stay.guest_id,room_id:stay.room_id,arrival:stay.arrival,departure:stay.departure,arrival_time:String(stay.arrival_time||'').slice(0,5),...draft,male:reg.male??stay.adults,female:reg.female??0,children:stay.children,nightly_rate:stay.nightly_rate,arrived_from:reg.arrived_from||'',next_destination:reg.next_destination||'',transport:reg.transport||'Bus',vehicle_number:reg.vehicle_number||'',id_front_id:reg.id_front||'',id_back_id:reg.id_back||'',additional_ids:JSON.stringify(reg.additional_ids||[]),foreign_details:JSON.stringify(reg.foreign_details||null),...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,savedGuest?.[k]||'']))};}
   }
-  const pending=pendingRegistration().length>0,offer=!guestId&&!resume&&(['draft','reserved'].includes(state.kind)||pending);
+  const pending=pendingRegistration().length>0,offer=!guestId&&!resume&&!reservationId&&(['draft','reserved'].includes(state.kind)||pending);
   const banner=offer?'<aside class="ha-draft-choice" role="status"><strong>'+(pending?'Earlier check-in needs verification':state.kind==='reserved'?'An earlier reservation is saved':'You have an unfinished check-in')+'</strong><p>'+esc(state.fields?.full_name||'Guest details')+' · Choose Resume to continue that entry. New check-ins start with empty guest details.</p><div class="bh-actions">'+btn('resume-register',pending?'Verify & resume':'Resume draft')+btn('fresh-register','Start fresh')+'</div></aside>':'';
 
   const g=data.guests.find(g=>g.id===draft.guest_id);
@@ -849,7 +850,14 @@
    else if(action==='checkout'){
     if(!root.confirm('Guest ka bill aur payment check kar liya? Ab checkout karke final bill save karein?'))return;
     await command('checkout',{folio_id:id});await reload();renderFolios();
-   }else if(action==='checkin'){await command('checkin',{id});await reload();renderPage('reservations')}
+   }else if(action==='checkin'){
+    if(!has('guest_register'))throw Error('Check-in permission is required.');
+    const before=identity(),fresh=await reload(false);if(before!==identity()||!fresh)return;
+    const stay=data.stays.find(s=>s.id===id&&s.status==='reserved');if(!stay)throw Error('Reservation no longer available. Refresh the list.');
+    await ctx.navigate('hotel-register');if(before!==identity()||!$('hotel-register')?.classList.contains('active'))return;
+    const form=$('bhCheckinForm');if(!form||form.inert||form.dataset.stayId||$('hotel-register').querySelector('.ha-draft-choice')||pendingRegistration().length){if(form)form.querySelector('.bh-message').textContent='Resolve the earlier draft before opening another reservation.';return;}
+    renderRegister('',false,id);
+   }
    else if(action==='preview'){if(root.BiteHotelBilling)await root.BiteHotelBilling.preview(id);else printStatement(id);}
    else if(action==='share')await shareStatement(id);
    else if(action==='setup-back'){setupStep=Math.max(1,setupStep-1);renderSetup()}
@@ -863,9 +871,13 @@
    }else if(action==='room-status'){
     if(!housekeepingVisible())throw Error('Housekeeping is off. Enable it in Settings to manage room readiness.');
     editor(`<form class="bh-form" data-hotel-form="room-status" data-room-id="${esc(id)}"><h2>Update room status</h2>${select('status','Status',['dirty','cleaning',...(['owner','manager','receptionist'].includes(prop().role)?['ready']:[]),...(['owner','manager'].includes(prop().role)?['blocked']:[])].map(s=>option(s,s)).join(''))}${field('note','Reason / cleaning note','text','','maxlength="250"')}${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Update status</button></div></form>`);
+   }else if(action==='reservation-modify'){
+    if(!has('reservations'))throw Error('Reservation access required.');
+    const s=data.stays.find(x=>x.id===id&&x.status==='reserved');if(!s)throw Error('Reservation is no longer active.');
+    editor(`<form class="bh-form" data-hotel-form="reservation-modify" data-stay-id="${esc(id)}"><h2>Modify reservation</h2><p>Room ${esc(data.rooms.find(r=>r.id===s.room_id)?.number||'—')} · ${esc(s.arrival)} → ${esc(s.departure)}</p><div class="bh-form-grid">${field('arrival','New arrival','date',s.arrival,'required')}${field('departure','New checkout','date',s.departure,'required')}${select('room_id','Room',option('','Choose room')+data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===s.room_id)).join(''),'required')}</div><p class="bh-note">Review the server price and availability before changing this room reservation. The original agreed rate is retained. No new payment or refund is sent.</p>${notice()}<div class="bh-actions">${btn('close-editor','Back')}<button class="btn" type="submit">Review price & availability</button></div></form>`);
    }else if(action==='stay-options'){
     const s=data.stays.find(s=>s.id===id);if(!s)return;
-    editor(`<form class="bh-form" data-hotel-form="stay" data-stay-id="${esc(id)}"><h2>Manage stay</h2>${select('action','Action',(s.status==='in_house'?option('extend','Extend stay')+option('move','Move room'):option('cancel','Cancel reservation')+option('no_show','Mark no-show')+option('extend','Extend reservation')+option('move','Reassign room')))}${field('departure','New departure (for extension)','date',datePlus(2))}${['owner','manager'].includes(prop().role)&&s.status==='in_house'?field('nightly_rate','Extension nightly rate (₹)','number',s.nightly_rate,'min="0" step="0.01"'):''}${select('room_id','New room (for move)',option('','Choose')+data.rooms.filter(r=>r.active&&r.id!==s.room_id).map(r=>option(r.id,r.number+' · '+roomState(r))).join(''))}<p class="bh-note">Extension uses the displayed agreed rate; only a manager can authorize a new rate for added nights. Advances/deposits must be resolved before cancellation.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Review & apply</button></div></form>`);
+    editor(`<form class="bh-form" data-hotel-form="stay" data-stay-id="${esc(id)}"><h2>Manage stay</h2>${select('action','Action',(s.status==='in_house'?option('extend','Extend stay')+option('move','Move room'):option('cancel','Cancel reservation')+option('no_show','Mark no-show')))}${field('departure','New departure (for extension)','date',datePlus(2))}${['owner','manager'].includes(prop().role)&&s.status==='in_house'?field('nightly_rate','Extension nightly rate (₹)','number',s.nightly_rate,'min="0" step="0.01"'):''}${select('room_id','New room (for move)',option('','Choose')+data.rooms.filter(r=>r.active&&r.id!==s.room_id).map(r=>option(r.id,r.number+' · '+roomState(r))).join(''))}<p class="bh-note">Extension uses the displayed agreed rate; only a manager can authorize a new rate for added nights. Advances/deposits must be resolved before cancellation.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Review & apply</button></div></form>`);
    }else if(action==='edit-guest'){
     const g=data.guests.find(g=>g.id===id);if(!g)return;
     editor(`<form class="bh-form" data-hotel-form="guest" data-guest-id="${esc(id)}"><h2>Correct guest details</h2>${['full_name','phone','country','email','address','id_type','id_last4'].map(k=>field(k,k.replaceAll('_',' '),k==='email'?'email':'text',g[k]||'',(k==='id_last4'?'maxlength="4"':k==='id_type'?'maxlength="40"':'maxlength="120"')+(['full_name','phone','country'].includes(k)?' required':''))).join('')}${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button class="btn" type="submit">Save correction</button></div></form>`);
@@ -990,7 +1002,34 @@
     if(type==='room-status'){action='room_status';payload={...f,id:form.dataset.roomId}}
     if(type==='guest'){action='guest_save';payload={...f,id:form.dataset.guestId}}
     if(type==='entry'){action=form.dataset.action;payload={...f,folio_id:selectedFolio,...(f.amount?{amount:Number(f.amount)}:{}),...(form.dataset.entryId?{id:form.dataset.entryId}:{})}}
-    if(type==='stay'){action=f.action;payload={id:form.dataset.stayId,...(action==='move'?{room_id:f.room_id}:action==='extend'?{departure:f.departure,...(f.nightly_rate!==undefined?{nightly_rate:Number(f.nightly_rate)}:{})}:{})}}
+    if(type==='reservation-modify'){
+     const before=identity(),fresh=await reload(false);if(before!==identity()||!form.isConnected)return;if(!fresh)throw Error('Booking refresh interrupted. Try again.');
+     const stay=data.stays.find(s=>s.id===form.dataset.stayId&&s.status==='reserved');if(!stay)throw Error('Reservation is no longer active.');
+     const guard=root.BiteCheckinGuard;if(!guard?.validDate(f.arrival)||!guard.validDate(f.departure)||f.arrival<today()||f.departure<=f.arrival)throw Error('Choose arrival today or later and checkout after arrival.');
+     if(f.room_id===stay.room_id&&f.arrival===stay.arrival&&f.departure===stay.departure)throw Error('Change the room or dates to review a modification.');
+     const original={room_id:stay.room_id,arrival:stay.arrival,departure:stay.departure,adults:stay.adults,children:stay.children,mode:'reserve'};
+     const proposed={...original,room_id:f.room_id,arrival:f.arrival,departure:f.departure};
+     const oldQuote=await root.BiteOwnerOperations.reservationQuote(original,stay.id),newQuote=await root.BiteOwnerOperations.reservationQuote(proposed,stay.id);
+     if(before!==identity()||!form.isConnected)return;
+     const paise=value=>{if(value===null||value===undefined||value===''||!Number.isFinite(Number(value))||Number(value)<0||!Number.isSafeInteger(Math.round(Number(value)*100))||Math.abs(Number(value)*100-Math.round(Number(value)*100))>0.00001)throw Error('Server quote unavailable. No booking change sent.');return Math.round(Number(value)*100)};
+     const oldTotal=paise(oldQuote.total),newTotal=paise(newQuote.total),difference=newTotal-oldTotal;
+     const roomLabel=id=>data.rooms.find(r=>r.id===id)?.number||'—';
+     if(!root.confirm('Modify reservation?\nCurrent: Room '+roomLabel(original.room_id)+' · '+original.arrival+' → '+original.departure+' · '+money(oldTotal/100)+'\nProposed: Room '+roomLabel(proposed.room_id)+' · '+proposed.arrival+' → '+proposed.departure+' · '+money(newTotal/100)+'\nQuote difference: '+(difference<0?'-':'+')+money(Math.abs(difference)/100)+'\nServer will recheck availability. No payment or refund will be initiated.'))return;
+     if(before!==identity()||!form.isConnected)return;
+     action='reservation_edit';payload={id:stay.id,room_id:proposed.room_id,arrival:proposed.arrival,departure:proposed.departure,adults:proposed.adults,children:proposed.children};
+    }
+    if(type==='stay'){
+     action=f.action;payload={id:form.dataset.stayId,...(action==='move'?{room_id:f.room_id}:action==='extend'?{departure:f.departure,...(f.nightly_rate!==undefined?{nightly_rate:Number(f.nightly_rate)}:{})}:{})};
+     if(['cancel','no_show'].includes(action)){
+      const before=identity(),fresh=await reload(false);if(before!==identity()||!form.isConnected)return;if(!fresh)throw Error('Could not refresh booking. Try again.');
+      const stay=data.stays.find(s=>s.id===payload.id&&s.status==='reserved');if(!stay)throw Error('Reservation is no longer active. Reopen the booking.');
+      const folio=data.folios.find(x=>x.stay_id===stay.id);const totals=folio?.totals;if(!totals)throw Error('Guest bill could not be verified. Open the folio before cancelling.');
+      const format=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?money(Number(value)):'Unavailable';
+      const summary='Room '+(data.rooms.find(r=>r.id===stay.room_id)?.number||'—')+' · '+stay.arrival+' → '+stay.departure+'\nRecorded applied payments: '+format(totals.paid)+'\nPending receipts: '+format(totals.pending)+'\nDeposit held: '+format(totals.deposit_held)+'\nGuest bill balance: '+format(totals.balance)+'\nThis does NOT send or confirm a refund. Resolve outstanding receipts and deposits in Guest Bill. Server checks still apply.';
+      if(!root.confirm((action==='cancel'?'Cancel reservation?':'Mark no-show?')+'\n\n'+summary))return;
+      if(before!==identity()||!form.isConnected)return;
+     }
+    }
     if(type==='member'){action='member';payload={...f,active:f.active==='true'}}
     if(type==='expense'){action='expense';payload={...f,amount:Number(f.amount)}}
     if(!action)throw Error('Unknown action');await command(action,payload);await reload();

@@ -136,6 +136,33 @@ try:
    check('Room 102' in results.inner_text() and 'Room 101' not in results.inner_text(),f'{width}px H11 type filter uses actual rooms')
    check(page.evaluate("window.__BITE_HOTEL_QA.db.stays.length===1&&window.__BITE_HOTEL_QA.db.entries.length===2"),f'{width}px H11 availability is read-only')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'{width}px H11 availability fits viewport')
+   # Open a saved reservation without altering its status or creating a new booking.
+   page.evaluate("""() => {
+     const q=window.__BITE_HOTEL_QA,d=q.db,t=BiteOwner.day();
+     const tomorrow=new Date(Date.parse(t+'T12:00:00+05:30')+86400000).toISOString().slice(0,10);
+     d.guests.push({id:'reserved-guest',property_id:q.property.id,full_name:'Reserved Guest',phone:'9999999999',country:'India'});
+     d.stays.push({id:'reserved-stay',property_id:q.property.id,room_id:'room-b',guest_id:'reserved-guest',status:'reserved',arrival:t,departure:tomorrow,adults:2,children:1,nightly_rate:1500});
+     Object.keys(localStorage).filter(k=>k.startsWith('bite_register_draft:')).forEach(k=>localStorage.removeItem(k));
+   }""")
+   page.evaluate("BiteHospitality.reload()")
+   page.evaluate("BiteHospitality.redraw()")
+   page.locator('#reservations.active [data-hotel-action=reservation-modify][data-id=reserved-stay]').click()
+   modify=page.locator('#reservations.active [data-hotel-form=reservation-modify]')
+   modify.wait_for()
+   page.evaluate("""() => {window.__h11_original_confirm=window.confirm;window.confirm=message=>{window.__h11_review=message;return false}}""")
+   modify.locator('[name=departure]').fill(page.evaluate("new Date(Date.parse(BiteOwner.day()+'T12:00:00+05:30')+3*86400000).toISOString().slice(0,10)"))
+   modify.locator('button[type=submit]').click()
+   page.wait_for_function("window.__h11_review?.includes('Quote difference:')")
+   check(page.evaluate("window.__h11_review.includes('Current:')&&window.__h11_review.includes('Proposed:')"),f'{width}px H11 compares server quotes before booking edit')
+   check(page.evaluate("window.__BITE_HOTEL_QA.db.stays.find(x=>x.id==='reserved-stay').departure!==document.querySelector('[data-hotel-form=reservation-modify] [name=departure]').value"),f'{width}px declined modification never changes booking')
+   page.evaluate("window.confirm=window.__h11_original_confirm")
+   modify.locator('[data-hotel-action=close-editor]').click()
+   page.locator('#reservations.active [data-hotel-action=checkin][data-id=reserved-stay]').click()
+   existing=page.locator('#hotel-register.active #bhCheckinForm[data-stay-id=reserved-stay]')
+   existing.wait_for()
+   check(existing.locator('[name=full_name]').input_value()=='Reserved Guest',f'{width}px reservation opens original guest')
+   check(existing.locator('[name=room_id]').input_value()=='room-b',f'{width}px reservation opens original room')
+   check(page.evaluate("window.__BITE_HOTEL_QA.db.stays.find(x=>x.id==='reserved-stay').status==='reserved'&&window.__BITE_HOTEL_QA.db.stays.length===2"),f'{width}px opening reservation does not check in or duplicate')
    page.close()
   check(not errors,'No uncaught page JavaScript errors: '+str(errors[:3]))
   browser.close()
