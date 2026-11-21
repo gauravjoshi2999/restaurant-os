@@ -1473,7 +1473,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/owner-cash-closing.js?v=20261113-review1"></script>
 <script src="assets/owner-orders-workspace.js?v=20261115-urgency3"></script><script src="assets/owner-order-confirmations.js?v=20261118-confirm-mobile-recovery1"></script>
 <script src="assets/owner-cancellation-alerts.js?v=20261115-live1"></script>
-<script src="assets/owner-order-burst.js?v=20261115-verified2"></script>
+<script src="assets/owner-order-burst.js?v=20261115-verified2-r09"></script>
 <script src="assets/owner-dashboard.js"></script>
 <script src="assets/owner-reference-v3.js?v=20261118-h02-finance1"></script>
 <script src="assets/owner-menu-options-preview.js?v=20261116-preview1"></script>
@@ -4656,12 +4656,13 @@ async function refreshOwnerOrderSnapshot(){
  const userId=currentUser?.id,restaurantId=access.restaurantId;
  try{
   const before=state.orders.slice();
+  const beforePaid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
   // A failed fetch must not consume pending order IDs or reuse stale payment evidence.
   await loadCloudData({silent:true,throwOnError:true});
   if(userId===currentUser?.id&&restaurantId===access.restaurantId&&access.role==='owner'){
    const paid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
    announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(
-    before,state.orders,restaurantId,order=>paid.has(String(order.id))));
+    before,state.orders,restaurantId,order=>paid.has(String(order.id)),beforePaid));
   }
   if(!ownerOrderBurstTracker.pendingCount())ownerOrderRefreshRetries=0;
  }catch(error){console.warn('Live order refresh deferred; pending alerts retained',error);}
@@ -4696,7 +4697,8 @@ async function checkOwnerMissedOrders(){
    .order('order_date',{ascending:false}).limit(200);
   if(error)throw error;
   if(currentUser?.id!==userId||access.restaurantId!==restaurantId||access.role!=='owner')return;
-  const knownIds=new Set((state.orders||[]).map(order=>String(order.id)));
+  const paid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
+  const knownIds=new Set((state.orders||[]).filter(order=>paid.has(String(order.id))).map(order=>String(order.id)));
   const missing=BiteOwnerOrderBurst.unseenReceivedIds(data,knownIds,restaurantId);
   for(const id of missing)ownerOrderBurstTracker.queue(id);
   if(missing.length||ownerOrderBurstTracker.pendingCount())scheduleOwnerOrderRefresh(150);
@@ -4785,12 +4787,13 @@ async function catchUpOwnerLiveOrders(){
  const userId=currentUser.id,restaurantId=access.restaurantId;
  try{
   const before=state.orders.slice();
+  const beforePaid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
   if(ownerRealtimeDisconnected||!orderRealtimeChannel)startRealtimeOrderUpdates();
   await loadCloudData({silent:true,throwOnError:true});
   if(currentUser?.id!==userId||access.role!=='owner'||access.restaurantId!==restaurantId)return;
   const paid=BiteOwnerOrderBurst.paidOrderIds(state.financials,restaurantId);
   announceOwnerOrderBurst(ownerOrderBurstTracker.reconcile(
-   before,state.orders,restaurantId,order=>paid.has(String(order.id))));
+   before,state.orders,restaurantId,order=>paid.has(String(order.id)),beforePaid));
  }catch(error){console.warn('Owner order catch-up postponed; alerts retained',error);}
  finally{ownerResumeRefreshActive=false;}
 }
