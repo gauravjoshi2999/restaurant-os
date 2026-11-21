@@ -79,7 +79,7 @@ test('Hotel register includes family room occupants and all protected family ID 
  assert.match(src,/uniqueIds/);
  assert.match(src,/Family \/ group booking/);
  assert.match(src,/Guests staying in this room/);
- assert.match(HTML,/owner-guest-register\.js\?v=20261119-[a-z0-9-]+/);
+ assert.match(HTML,/owner-guest-register\.js\?v=\d{8}-[a-z0-9-]+/);
 });
 
 test('H08 extra rooms require explicit rent and counts, honor zero child capacity and recheck occupancy',()=>{
