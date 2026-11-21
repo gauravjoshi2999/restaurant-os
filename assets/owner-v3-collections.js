@@ -58,13 +58,16 @@
   return {entries:valid,received:totals[0],paid:totals[1],other:totals[2],
    receiptCount:received.length,paymentCount:paid.length,excludedCount:other.length};
  }
+ const validDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
+ function validPeriod(report){return !!report&&validDay(report.from)&&validDay(report.to)&&report.from<=report.to&&Array.isArray(report.journal)&&report.journal.every(x=>x&&validDay(x.day)&&x.day>=report.from&&x.day<=report.to);}
  function render(target,report,options={}){
-  if(!target||!report||!Array.isArray(report.journal))return false;
+  if(!target)return false;
+  if(!validPeriod(report)){target.textContent='Collections period could not be verified. Refresh Daily Book.';return false;}
   const from=String(report.from||''),to=String(report.to||''),scope=String(options.scope||'');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||!scope)return false;
   const selected={method:'all',source:'all'}; // A02 parent is the only record-date control.
   let active=true;
-  const visible=()=>active&&options.scope===scope;
+  const visible=()=>active&&target.isConnected!==false&&options.scope===scope&&(!options.isCurrent||options.isCurrent());
   function draw(){
    if(!visible())return;
    const sum=summarize(report.journal,selected.method,'',selected.source);
@@ -110,7 +113,7 @@
    if(source){
     const record=report.journal.find(x=>x.source_type===source.dataset.v3MoneySource&&
       String(x.id)===source.dataset.v3MoneyId);
-    if(record&&visible()&&typeof options.onOpen==='function')options.onOpen(record);
+    if(record&&visible()&&!summarize(report.journal).error&&typeof options.onOpen==='function')options.onOpen(record);
    }
   });
   target.addEventListener('change',event=>{
@@ -123,7 +126,7 @@
   draw();
   return {dispose(){active=false},draw};
  }
- const api={type,group,summarize,render};
+ const api={type,group,summarize,validPeriod,render};
  if(typeof module==='object'&&module.exports)module.exports=api;
  else root.BiteV3Collections=api;
 })(typeof window!=='undefined'?window:globalThis);
