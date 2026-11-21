@@ -21,9 +21,11 @@ def record(code,label):
  checks.append({'scenario':code,'name':label,'status':'PASS'});print('PASS:',code,label)
 def nav(page,route):
  page.evaluate('(id)=>showPage(id)',route);page.locator('#'+route+'.active').wait_for(state='visible')
-def open_case(browser,seed='',width=390,clock=None):
+def open_case(browser,seed='',width=390,clock=None,steps=False):
  context=browser.new_context(viewport={'width':width,'height':950})
- page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept())
+ page=context.new_page();
+ if steps:page.add_init_script("sessionStorage.setItem('bite_checkin_full_form','0')")
+ page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept())
  page.route('**/*.supabase.co/**',lambda r:r.abort())
  if clock:page.clock.install(time=clock)
  page.goto('http://127.0.0.1:4196/qa/checkin-personal-review.html?scenario='+seed,wait_until='domcontentloaded')
@@ -69,7 +71,11 @@ try:
   browser=pw.chromium.launch()
   # Original PDF wizard, including backwards navigation and no early database mutation.
   for width in [320,390,1440]:
-   c,p,f=open_case(browser,width=width);f.locator('[data-ha-toggle-view]').click()
+   c,p,f=open_case(browser,width=width,steps=True)
+   f.wait_for(state='visible')
+   if f.get_attribute('data-ha-step-view')=='all':f.locator('[data-ha-toggle-view]').click()
+   p.wait_for_function("document.querySelector('#bhCheckinForm')?.dataset.haStepView==='guest'")
+   print('STAGE_DIAGNOSTIC',p.evaluate("()=>{const f=document.querySelector('#bhCheckinForm');return {view:f.dataset.haStepView,panels:[...f.querySelectorAll('[data-ha-step]')].map(e=>({name:e.dataset.haStep,hidden:e.hidden,display:getComputedStyle(e).display})),phone:f.elements.phone.closest('[data-ha-step]')?.dataset.haStep,room:f.elements.room_id.closest('[data-ha-step]')?.dataset.haStep}}"))
    check(f.get_attribute('data-ha-step-view')=='guest' and f.locator('[name=phone]').is_visible() and not f.locator('[name=room_id]').is_visible(),'PDF H07 guest-only first screen at '+str(width))
    f.locator('[data-h07-continue]').click();focused(p,'phone')
    for name,value in {'full_name':'Synthetic Step Guest','phone':'7777777777','address':'Synthetic address','arrived_from':'Udaipur','next_destination':'Jaipur'}.items():f.locator('[name='+name+']').fill(value)
