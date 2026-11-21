@@ -362,6 +362,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118040512_staff_room_charge_scope.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_guest_controls_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261121061528_owner_h10_checkin_deposit.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_family_selected_checkout.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_h13_selected_checkout_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h10_checkin_deposit_pg_test.sql
 
   super-admin-postgres-qa:
