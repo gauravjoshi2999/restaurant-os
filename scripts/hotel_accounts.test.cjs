@@ -101,3 +101,12 @@ test('H10 deposit is distinct, optional and requires reference for verified onli
  assert.equal(A.depositPayload({deposit_amount:'500',deposit_method:'UPI',deposit_verified:'on',deposit_reference:'SYNTHETIC'}).verified,true);
  for(const deposit_amount of ['-1','1.001','1e4','99999999999'])assert.throws(()=>A.depositPayload({deposit_amount,deposit_method:'Cash'}),/deposit/);
 });
+
+
+test('H14 issued credit bill separates actual receipts, deposits and unpaid balance without leaking references',()=>{
+ const s={...invoice,credit:{amount:975,due_date:'2026-11-28',status:'unpaid'},totals:{...invoice.totals,deposit_held:0},entries:[...invoice.entries,{kind:'deposit_hold',amount:500,method:'Cash',status:'confirmed',reference:'PRIVATE_BANK_REFERENCE'},{kind:'deposit_return',amount:500,method:'Cash',status:'confirmed'},{kind:'payment',amount:10,method:'UPI',status:'pending',reference:'PENDING_SECRET'}]};
+ const before=JSON.stringify(s),html=A.billHTML(s);for(const label of ['Payment receipts','Security deposit transactions','Security deposit returned','Authorized credit · unpaid at issue','2026-11-28','Later receipts appear in Guest Khata'])assert.ok(html.includes(label),label);
+ for(const secret of ['PRIVATE_BANK_REFERENCE','PENDING_SECRET','SECRET_ACCOUNT','INTERNAL_PAYMENT_NOTE'])assert.ok(!html.includes(secret));assert.equal(JSON.stringify(s),before);
+ assert.equal(A.billHTML(s),html);assert.throws(()=>A.billHTML({...s,credit:{...s.credit,amount:974}}),/credit invoice details unavailable/);
+ const combined=A.combinedBillHTML([s,{...s,number:'B/26-27/000043'}]);assert.ok(combined.includes('Payments received'));assert.ok(combined.includes('1,950.00'));
+});

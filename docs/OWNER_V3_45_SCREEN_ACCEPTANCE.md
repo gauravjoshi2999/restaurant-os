@@ -49,7 +49,7 @@ Reference: user-approved `Bite Owner — Complete Editable Dashboard & Workflows
 | H10 | Payment and review | P | scripts/owner_guest_controls_pg_test.sql | Advance/security separation, retry and verified online receipt |
 | H11 | Reservations | P | scripts/owner_v3_h11_reservation_views.test.cjs; PR #236 | Modify/cancel/no-show/refund status and actual availability |
 | H12 | Guest bill — room + food | P | scripts/owner_v3_h12_linked_balance.test.cjs; PR #239 | Source POS link, adjustments and owner acceptance |
-| H13 | Family checkout | P | scripts/owner_v3_h13_checkout_totals.test.cjs; PR #241 | Selected rooms, split tender, deposit resolution and credit authorization |
+| H13 | Family checkout | P | PR #267; exact main QA 44910541726; Pages 44911167987; Supabase migration 20261121134610 | Code deployed: selected rooms, split tender, individual credit checkout, Guest Khata recovery. Authenticated owner/device acceptance remains. |
 | H14 | Invoice / print / WhatsApp | P | scripts/hotel_accounts.test.cjs; PR #243 | Current main rollout, final PDF/WhatsApp file and consented share |
 | H15 | Historical stay / cleaning | P | assets/owner-historical-entries.js; scripts/owner_housekeeping_display.test.cjs | Historical period completeness, request race, housekeeping off/on |
 | R01 | POS overview | P | scripts/pos_calendar_reports_step3.test.cjs | Bill history, covers and totals by period on device |
