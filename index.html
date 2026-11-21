@@ -823,10 +823,10 @@ body.bite-session-check #biteSessionSplash{
  <div class="notice">Dine-in: Guest QR scan karke menu dekhta hai, waiter order leta hai. Khana serve hone ke baad owner New POS Bill mein items add karke direct Cash/UPI payment record karega. QR se order ya Cashfree checkout nahi hota.</div><div class="notice">New POS Bill mein items, customer mobile, received payment aur remaining balance add karein. WhatsApp share optional hai aur customer ki permission ke baad hi bhejein. Orders restaurant-wise alag hain.</div>
  <div class="card section" id="posDraftWorkspace"><div class="section-head"><h2>Saved POS Drafts</h2><button type="button" class="btn secondary" onclick="BitePOS.refreshDrafts()">Refresh Drafts</button></div><div class="small" style="margin:6px 0 12px">Mobile par bill adhura reh jaye to dobara type nahi karna padega. Draft ko resume ya delete kar sakte hain; draft sales mein count nahi hota.</div><div id="posDraftCards" class="pos-draft-cards" aria-live="polite">Loading drafts...</div></div>
  <div class="grid section">
-  <div class="card"><div class="metric-label">POS orders</div><div class="metric" id="posOrderCount">0</div></div>
-  <div class="card"><div class="metric-label">POS sales</div><div class="metric" id="posSalesTotal">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Payments received</div><div class="metric" id="posCollectedTotal">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Balance due</div><div class="metric" id="posDueTotal">₹0.00</div></div>
+  <div class="card"><div class="metric-label">POS orders (incl. room)</div><div class="metric" id="posOrderCount">0</div></div>
+  <div class="card"><div class="metric-label">POS billed (incl. room)</div><div class="metric" id="posSalesTotal">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Counter payments received</div><div class="metric" id="posCollectedTotal">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Counter balance due</div><div class="metric" id="posDueTotal">₹0.00</div></div>
  </div>
  <div class="section"><div class="section-head"><h2>POS sales history</h2><span class="small">Latest 100 orders</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Customer</th><th>Entry</th><th>Total</th><th>Paid</th><th>Due</th><th>Payment</th><th>Bill</th></tr></thead><tbody id="posRows"></tbody></table><div class="empty" id="posEmpty">Abhi POS sale nahi hai.</div></div>
@@ -1446,8 +1446,8 @@ body[data-role="owner"] #ownerQuickPosBtn{min-height:44px;padding:10px 16px;whit
 @media(max-width:430px){.pos-original-receipts,.pos-original-receipt-items .btn{width:100%}}
 </style>
 <script src="./assets/bite-pos-drafts.js?v=20261114-owner-scope2"></script>
-<script src="./assets/bite-pos-v2.js?v=20261119-reconcile1"></script>
-<script src="./assets/bite-pos-reports.js?v=20261120-r07-history-check1"></script>
+<script src="./assets/bite-pos-v2.js?v=20261119-reconcile1-r01scope2"></script>
+<script src="./assets/bite-pos-reports.js?v=20261120-r07-history-check1-r01period1"></script>
 <script src="./assets/bite-pos-visits.js?v=20261117-step2"></script>
 <script src="./assets/bite-pos-payment-safety.js?v=20261113-1"></script>
 <script src="./assets/bite-pos-payment-ui.js?v=20261114-session2"></script>
