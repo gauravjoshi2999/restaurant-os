@@ -28,3 +28,11 @@ test('H13 security deposit and pending receipt totals must be known, nonnegative
  assert.equal(checkoutTotalsReady([large,large]),false);
  assert.equal(checkoutTotalsReady([valid({charges:'1500.25',paid:'500.25',balance:'1000.00'})]),true);
 });
+
+
+test('H13 selection includes only open in-house rooms in the exact booking',()=>{
+ const B=globalThis.BiteHotelBilling,stay={id:'s1',group_id:'g',status:'in_house',room_id:'r1'};
+ const snapshot={stays:[stay,{id:'s2',group_id:'g',status:'in_house',room_id:'r2'},{id:'s3',group_id:'g',status:'checked_out'},{id:'s4',group_id:'other',status:'in_house'}],folios:[{id:'f1',stay_id:'s1',status:'open'},{id:'f2',stay_id:'s2',status:'open'},{id:'f3',stay_id:'s3',status:'settled'},{id:'f4',stay_id:'s4',status:'open'}],rooms:[]};
+ const original=JSON.stringify(snapshot);assert.deepEqual(B.availableCheckoutRooms(stay,snapshot).map(x=>x.folio.id),['f1','f2']);assert.equal(JSON.stringify(snapshot),original);
+ assert.throws(()=>B.availableCheckoutRooms(stay,{...snapshot,folios:[snapshot.folios[0]]}),/missing or duplicated/);
+});
