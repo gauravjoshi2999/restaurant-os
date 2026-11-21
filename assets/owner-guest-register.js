@@ -18,11 +18,11 @@
  const button=(a,label,id='',extra='')=>'<button type="button" class="btn secondary" data-gr-action="'+a+'" data-id="'+esc(id)+'" '+extra+'>'+esc(label)+'</button>';
  const foreignFields=[['nationality','Nationality'],['date_of_birth','Date of birth'],['document_type','Travel document'],['document_last4','Document last 4'],['document_expiry','Document expiry'],['visa_status','Visa / OCI'],['permission_last4','Permission last 4'],['visa_expiry','Permission expiry'],['india_arrival','Arrival in India'],['entry_port','Entry port'],['purpose','Purpose']];
  const status=s=>({in_house:'Staying',checked_out:'Checked out',reserved:'Reserved',cancelled:'Cancelled',no_show:'No-show'})[s]||s||'—';
- let ctx,bound=false,epoch=0,dialog=null,query='',period=null,state='',page=1,active=0,periodControl=null,historyEpoch=0,registerTab='stays',sheetOpen=false;const urls=new Set(),copies=new Map(),loading=new Set();
+ let ctx,bound=false,epoch=0,dialog=null,query='',period=null,state='',page=1,active=0,periodControl=null,historyEpoch=0,registerTab='stays',sheetOpen=false,historyExport=null;const urls=new Set(),copies=new Map(),loading=new Set();
  const scope=()=>ctx?.getUser()?.id+':'+H()?.prop()?.id;
  function init(context){ctx=context;if(bound)return;bound=true;document.addEventListener('click',click);document.addEventListener('input',filter);document.addEventListener('change',filter)}
  function close(){epoch++;root.BiteCheckinFlow?.closePreview();if(dialog){dialog.close();dialog.remove()}dialog=null;for(const url of urls)root.URL.revokeObjectURL(url);urls.clear();copies.clear();loading.clear()}
- function clear(){historyEpoch++;registerTab='stays';sheetOpen=false;close();periodControl?.dispose();periodControl=null;query='';period=null;state='';page=1}
+ function clear(){historyEpoch++;historyExport=null;registerTab='stays';sheetOpen=false;close();periodControl?.dispose();periodControl=null;query='';period=null;state='';page=1}
  function records(db){
   const guests=new Map((db.guests||[]).map(g=>[g.id,g])),rooms=new Map((db.rooms||[]).map(r=>[r.id,r])),groups=new Map((db.groups||[]).map(g=>[g.id,g])),folios=new Map((db.folios||[]).map(f=>[f.stay_id,f]));
   return(db.stays||[]).map(s=>{const r=s.registration||{},g=guests.get(s.guest_id)||{},f=folios.get(s.id),snap=r.guest_snapshot||{},issued=f?.invoice_snapshot?.guest||{};
@@ -47,7 +47,7 @@
    '<label class="bh-field"><span>Find a record</span><input type="search" data-gr-filter="query" value="'+esc(query)+'" placeholder="Guest, mobile, room or serial"></label>'+
    '<label class="bh-field"><span>Status</span><select data-gr-filter="state"><option value="">All stays</option>'+
    ['in_house','checked_out','reserved','cancelled','no_show'].map(s=>'<option value="'+s+'" '+(state===s?'selected':'')+'>'+status(s)+'</option>').join('')+
-   '</select></label><div class="gr-tool-buttons">'+button('reset','Show all dates')+button('excel','Excel')+button('print','Print register')+
+   '</select></label><div class="gr-tool-buttons">'+button('reset','Show all dates')+button('excel','Excel · stays')+button('print','Print stays')+
    '</div></div><nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Stays'],['drafts','Drafts'],['past','Past']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3><p>Resume the saved draft or verify an earlier pending check-in in the existing check-in form. Drafts are not saved stays.</p>'+button('new','Open check-in drafts')+'</div><section data-gr-past hidden><h3>Past · Historical entries</h3><p>Old room entries saved through the calendar. Read-only records; never live occupancy or payments.</p><div class="bh-actions">'+button('load-history','Load historical records')+'</div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('new','＋ New check-in')+button('sheet',sheetOpen?'Close register sheet':'Open register sheet')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
    '><summary>Saved guest profiles</summary><div data-gr-profiles></div></details>';
   const picker=root.BiteV3Period,periodBox=target.querySelector('[data-gr-period]');
@@ -69,13 +69,20 @@
   paint(target);const profiles=target.querySelector('[data-gr-profiles]'),db=H().getWorkspace();
   profiles.innerHTML=(db.guests||[]).map(g=>'<article class="bh-record"><div><strong>'+esc(g.full_name)+'</strong><p>'+esc(g.phone)+' · '+esc(g.address||g.country)+'</p></div><div class="bh-actions">'+button('repeat','Check in again',g.id)+'<button type="button" class="btn secondary" data-hotel-action="edit-guest" data-id="'+esc(g.id)+'">Edit profile</button>'+(root.BiteGuestDocuments?.button(g.id)||'')+'</div></article>').join('')||'<p>No saved guest profiles yet.</p>';
  }
- function paint(target){historyEpoch++;
+ function paint(target){historyEpoch++;historyExport=null;
   const table=target.querySelector('[data-gr-table]'),drafts=target.querySelector('[data-gr-drafts]'),pastTab=target.querySelector('[data-gr-past]');
   if(table)table.hidden=registerTab!=='stays';
   if(drafts)drafts.hidden=registerTab!=='drafts';
   if(pastTab)pastTab.hidden=registerTab!=='past';
+  for(const b of target.querySelectorAll('[data-gr-action="excel"],[data-gr-action="print"]'))b.hidden=registerTab!=='stays';
+  const statusFilter=target.querySelector('[data-gr-filter="state"]');if(statusFilter)statusFilter.closest('label').hidden=registerTab!=='stays';
   for(const b of target.querySelectorAll('[data-gr-action="tab"]'))b.setAttribute('aria-pressed',String(b.dataset.id===registerTab));
-  const past=target.querySelector('[data-gr-history]');if(past)past.replaceChildren();if(registerTab==='past'){void loadHistory(target);return}if(registerTab==='drafts')return;const all=records(H().getWorkspace()),rows=filtered(all),pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages);const visible=rows.slice((page-1)*50,page*50),box=target.querySelector('[data-gr-table]');if(!box)return;
+  const past=target.querySelector('[data-gr-history]');if(past)past.replaceChildren();if(registerTab==='past'){void loadHistory(target);return}if(registerTab==='drafts'){
+   let draft=null;try{draft=JSON.parse(root.localStorage.getItem('bite_register_draft:'+scope())||'null')}catch{}
+   const draftState=root.BiteCheckinGuard?.draftState(draft,H().getWorkspace().stays)||{kind:draft?.fields?'draft':'none',fields:draft?.fields};
+   const pending=H().registrationPending();
+   drafts.innerHTML='<h3>Unfinished check-in</h3>'+(pending?'<p>Earlier check-in needs verification. Open the check-in form before making a new entry.</p>':['draft','reserved'].includes(draftState.kind)?'<p><strong>'+esc(draftState.fields?.full_name||'Saved guest details')+'</strong> · '+esc(day(draftState.fields?.arrival))+'</p><p>Saved on this device; not a new completed stay.</p>':'<p>No unfinished check-in on this device.</p>')+button('new',pending?'Verify & resume':['draft','reserved'].includes(draftState.kind)?'Open saved draft':'New check-in');return;
+  }const all=records(H().getWorkspace()),rows=filtered(all),pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages);const visible=rows.slice((page-1)*50,page*50),box=target.querySelector('[data-gr-table]');if(!box)return;
   box.innerHTML='<div class="gr-stay-cards" '+(sheetOpen?'hidden':'')+'>'+visible.map(r=>'<article class="gr-stay-card"><div><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.serial?'ST-'+r.serial+' · ':'')+esc(r.name)+'</button><p>'+esc(day(r.arrival))+' → '+esc(day(r.departure))+' · Room '+esc(r.room)+'</p><small>'+esc(r.phone||'')+' · M / F / C '+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</small></div><span class="gr-status">'+esc(status(r.status))+'</span></article>').join('')+'</div><div class="gr-register-summary"><strong>'+rows.length+' '+(rows.length===1?'entry':'entries')+'</strong><span>'+new Set(rows.map(r=>r.guest_id)).size+' guests</span><span>'+rows.filter(r=>r.status==='in_house').length+' staying</span></div><p class="gr-scroll-hint">Scroll across the sheet to see all columns. Tap a guest to open the complete record.</p><div class="gr-sheet-scroll '+(sheetOpen?'gr-sheet-open':'')+'" tabindex="0" role="region" aria-label="Guest register sheet"><table class="gr-sheet"><thead><tr>'+['S.No.','Entry date','Guest / Mobile','Arrival','Checkout','Room','M / F / C','Permanent address','Arriving from','Next destination','Transport / Vehicle','Rent / night','ID photos','Status'].map(s=>'<th scope="col">'+s+'</th>').join('')+'</tr></thead><tbody>'+visible.map(r=>'<tr><td>'+esc(r.serial||'—')+'</td><td>'+esc(day(r.entry_date))+'</td><td><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.name)+'</button><small>'+esc(r.phone)+'</small></td><td>'+esc(day(r.arrival))+'<small>'+esc(r.arrival_time||'Not recorded')+'</small></td><td>'+esc(r.checkout_at?stamp(r.checkout_at):'Expected '+day(r.departure))+'</td><td><strong>'+esc(r.room)+'</strong></td><td>'+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</td><td class="gr-address">'+esc(r.address||'—')+'</td><td>'+esc(r.arrived_from||'—')+'</td><td>'+esc(r.next_destination||'—')+'</td><td>'+esc(r.transport||'—')+'<small>'+esc(r.vehicle_number)+'</small></td><td>'+money(r.nightly_rate)+'</td><td><div class="gr-photo-buttons">'+(r.id_front?button('photo-front','Front',r.id):'<span>Front not saved</span>')+(r.id_back?button('photo-back','Back',r.id):'<span>Back not saved</span>')+'</div></td><td><span class="gr-status">'+esc(status(r.status))+'</span></td></tr>').join('')+'</tbody></table></div>'+(!rows.length?'<p class="bh-empty">'+(all.length?(period?'No records for this period. Change the period or choose Show all dates.':'No records match these filters.'):'No stays have been saved yet. New check-ins will appear here.')+'</p>':'')+'<div class="gr-pagination"><span>Page '+page+' of '+pages+'</span>'+button('previous','Previous','',''+(page===1?'disabled':''))+button('next','Next','',page===pages?'disabled':'')+'</div>';
  }
  function historicalRows(rows,selectedPeriod,search=''){
@@ -88,11 +95,12 @@
    return (!selectedPeriod||inPeriod({entry_date:r.record_date},selectedPeriod))&&(!q||[r.customer_name,r.customer_phone,r.room_number].join(' ').toLocaleLowerCase().includes(q));
   });
  }
+ function historicalExportRows(rows){return [['Type','Entry date','Departure date','Guest','Mobile','Room','Guest count','Recorded bill','Recorded received','Payment method'],...rows.map(r=>['Historical',r.record_date,r.departure_date,r.customer_name,r.customer_phone,r.room_number,r.guest_count,verifiedRent(r.amount)??'',verifiedRent(r.received_amount)??'',r.payment_method])]}
  async function loadHistory(target){
   const panel=target?.querySelector('[data-gr-history]'),property=H()?.prop()?.id,user=ctx?.getUser()?.id;
   if(!panel||!property||!user||!H().has('guest_register')||!ctx.sb)return;
   if(!['owner','manager'].includes(H().prop()?.role)){panel.textContent='Historical entries are available to the property owner and manager.';return;}
-  const request=++historyEpoch,key=scope(),selected=period?{...period}:null,search=query;
+  historyExport=null;const request=++historyEpoch,key=scope(),selected=period?{...period}:null,search=query;
   const current=()=>request===historyEpoch&&key===scope()&&H()?.has('guest_register')&&target.isConnected&&target.querySelector('[data-gr-history]')===panel;
   panel.textContent='Reading historical records…';
   try{
@@ -102,7 +110,7 @@
    if(!current())return;
    if(error)throw Error('Historical records could not be loaded. Retry or check property permissions.');
    const rows=historicalRows(data,selected,search);
-   panel.innerHTML='<p><strong>'+rows.length+' historical '+(rows.length===1?'record':'records')+'</strong> · Original entry dates</p>'+
+   historyExport={key,request,rows};panel.innerHTML=button('historical-excel','Excel · historical entries')+'<p><strong>'+rows.length+' historical '+(rows.length===1?'record':'records')+'</strong> · Original entry dates</p>'+
     (rows.length?rows.map(r=>'<article class="bh-record"><div><strong>'+esc(r.customer_name||'Guest')+'</strong> <span class="gr-status">Historical</span><p>'+esc(day(r.record_date))+' → '+esc(day(r.departure_date))+' · Room '+esc(r.room_number||'—')+'</p><p>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</p></div><div><strong>Bill '+money(r.amount)+'</strong><p>Recorded received '+money(r.received_amount)+' · '+esc(r.payment_method||'—')+'</p></div></article>').join(''):'<p class="bh-empty">No historical records for this period and search.</p>');
   }catch(error){if(current())panel.textContent=error.message||'Historical records unavailable. Retry.';}
  }
@@ -156,7 +164,12 @@
    if(action==='view-photo'){const box=dialog;if(box?.__record)await loadPhoto(box.__record,Number(b.dataset.person),b.dataset.side,scope(),epoch,box,true,b);return}
    const target=document.getElementById('guests');if(action==='tab'){if(!['stays','drafts','past'].includes(id))return;registerTab=id;page=1;paint(target);return}
    if(action==='sheet'){registerTab='stays';sheetOpen=!sheetOpen;render(target);return}
-   if(action==='load-history'){await loadHistory(target);return}if(action==='record'||action==='photo-front'||action==='photo-back'){const r=records(H().getWorkspace()).find(r=>r.id===id);if(r)details(r,action==='photo-front'?'front':action==='photo-back'?'back':null);return}
+   if(action==='load-history'){await loadHistory(target);return}
+   if(action==='historical-excel'){
+    if(!historyExport||historyExport.key!==scope()||historyExport.request!==historyEpoch||registerTab!=='past'||!H().has('guest_register')||!['owner','manager'].includes(H().prop()?.role))throw Error('Refresh historical records before exporting.');
+    const rows=historicalExportRows(historyExport.rows);
+    root.BiteExports.download(root.BiteExports.workbook(rows),'Bite-Historical-Guest-Register-'+(period?period.from+'-'+period.to:'All')+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
+   }if(action==='record'||action==='photo-front'||action==='photo-back'){const r=records(H().getWorkspace()).find(r=>r.id===id);if(r)details(r,action==='photo-front'?'front':action==='photo-back'?'back':null);return}
    if(action==='previous'||action==='next'){page+=action==='next'?1:-1;paint(target);return}
    if(action==='choose-period'){const picker=root.BiteV3Period,today=root.BiteOwner?.day?.();if(!picker||!today)throw Error('Record period picker is not ready.');period=picker.normalize({mode:'month',month:today.slice(0,7)},today);page=1;render(target);target.querySelector('[data-bv3-period-toggle]')?.click();return}
    if(action==='reset'){query='';period=null;state='';page=1;render(target);return}
@@ -164,5 +177,5 @@
    if(action==='print')printSheet(filtered(records(H().getWorkspace())));
   }catch(error){if(dialog)dialog.querySelector('.gr-record-message')?.replaceChildren(document.createTextNode(error.message||String(error)));else root.alert(error.message||String(error))}
  }
- const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,verifiedRent,historicalRows,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,verifiedRent,historicalRows,historicalExportRows,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
