@@ -121,3 +121,12 @@ test('A06: HTML-escape untrusted provider text and order titles',()=>{
  assert.doesNotMatch(host.innerHTML,/<img src=x/);
  assert.match(host.innerHTML,/&lt;img/i);
 });
+
+test('A06 malformed money or conflicting provider evidence is never confirmed',()=>{
+ for(const value of [true,false,[],{},' '])assert.equal(api.cents(value),null);
+ const otherCheck={...p,id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',collection_status:'NOT_PAID'};
+ assert.equal(summarize({...fixture,checks:[p,otherCheck]}).providerChecked,0);
+ assert.equal(summarize({...fixture,checks:[{...p,checked_at:'not a date'}]}).providerChecked,0);
+ assert.equal(summarize({...fixture,refunds:[{...r,status:'completed'}]}).pendingRefunds,1);
+ assert.match(api.refundLabel({...r,provider_status:'SUCCESS',provider_refund_id:'ref-ok',provider_checked_at:'invalid'}),/unverified/i);
+});
