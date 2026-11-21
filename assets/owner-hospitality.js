@@ -498,17 +498,18 @@
   await refreshRegistration(form);if(key!==identity())throw Error('Property changed. Reopen check-in.');
   raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));for(const item of resolved)localStorage.removeItem(item);return raw;
  }
- function renderRegister(guestId='',resume=false){
+ function renderRegister(guestId='',resume=false,reservationId=''){
   let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null')}catch{}
   const state=root.BiteCheckinGuard?.draftState(raw,data.stays)||{kind:raw?.fields?'draft':'none',fields:raw?.fields};
   if(state.kind==='stale')try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}
   let draft=resume&&['draft','reserved'].includes(state.kind)?{...state.fields}:{};
   if(guestId)draft={guest_id:guestId};
+  if(reservationId){const saved=data.stays.find(s=>s.id===reservationId&&s.status==='reserved');if(!saved)throw Error('Reservation no longer available.');draft={stay_id:saved.id,mode:saved.arrival>today()?'reserve':'checkin',adults:saved.adults,children:saved.children,booking_source:saved.booking_source,booking_reference:saved.booking_reference};}
   if(draft.stay_id){
    const stay=data.stays.find(s=>s.id===draft.stay_id),reg=stay?.registration||{},savedGuest=data.guests.find(g=>g.id===stay?.guest_id);
    if(stay){draft={guest_id:stay.guest_id,room_id:stay.room_id,arrival:stay.arrival,departure:stay.departure,arrival_time:String(stay.arrival_time||'').slice(0,5),...draft,male:reg.male??stay.adults,female:reg.female??0,children:stay.children,nightly_rate:stay.nightly_rate,arrived_from:reg.arrived_from||'',next_destination:reg.next_destination||'',transport:reg.transport||'Bus',vehicle_number:reg.vehicle_number||'',id_front_id:reg.id_front||'',id_back_id:reg.id_back||'',additional_ids:JSON.stringify(reg.additional_ids||[]),foreign_details:JSON.stringify(reg.foreign_details||null),...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,savedGuest?.[k]||'']))};}
   }
-  const pending=pendingRegistration().length>0,offer=!guestId&&!resume&&(['draft','reserved'].includes(state.kind)||pending);
+  const pending=pendingRegistration().length>0,offer=!guestId&&!resume&&!reservationId&&(['draft','reserved'].includes(state.kind)||pending);
   const banner=offer?'<aside class="ha-draft-choice" role="status"><strong>'+(pending?'Earlier check-in needs verification':state.kind==='reserved'?'An earlier reservation is saved':'You have an unfinished check-in')+'</strong><p>'+esc(state.fields?.full_name||'Guest details')+' · Choose Resume to continue that entry. New check-ins start with empty guest details.</p><div class="bh-actions">'+btn('resume-register',pending?'Verify & resume':'Resume draft')+btn('fresh-register','Start fresh')+'</div></aside>':'';
 
   const g=data.guests.find(g=>g.id===draft.guest_id);
@@ -849,7 +850,14 @@
    else if(action==='checkout'){
     if(!root.confirm('Guest ka bill aur payment check kar liya? Ab checkout karke final bill save karein?'))return;
     await command('checkout',{folio_id:id});await reload();renderFolios();
-   }else if(action==='checkin'){await command('checkin',{id});await reload();renderPage('reservations')}
+   }else if(action==='checkin'){
+    if(!has('guest_register'))throw Error('Check-in permission is required.');
+    const before=identity(),fresh=await reload(false);if(before!==identity()||!fresh)return;
+    const stay=data.stays.find(s=>s.id===id&&s.status==='reserved');if(!stay)throw Error('Reservation no longer available. Refresh the list.');
+    await ctx.navigate('hotel-register');if(before!==identity()||!$('hotel-register')?.classList.contains('active'))return;
+    const form=$('bhCheckinForm');if(!form||form.inert||form.dataset.stayId||$('hotel-register').querySelector('.ha-draft-choice')||pendingRegistration().length){if(form)form.querySelector('.bh-message').textContent='Resolve the earlier draft before opening another reservation.';return;}
+    renderRegister('',false,id);
+   }
    else if(action==='preview'){if(root.BiteHotelBilling)await root.BiteHotelBilling.preview(id);else printStatement(id);}
    else if(action==='share')await shareStatement(id);
    else if(action==='setup-back'){setupStep=Math.max(1,setupStep-1);renderSetup()}
@@ -990,7 +998,18 @@
     if(type==='room-status'){action='room_status';payload={...f,id:form.dataset.roomId}}
     if(type==='guest'){action='guest_save';payload={...f,id:form.dataset.guestId}}
     if(type==='entry'){action=form.dataset.action;payload={...f,folio_id:selectedFolio,...(f.amount?{amount:Number(f.amount)}:{}),...(form.dataset.entryId?{id:form.dataset.entryId}:{})}}
-    if(type==='stay'){action=f.action;payload={id:form.dataset.stayId,...(action==='move'?{room_id:f.room_id}:action==='extend'?{departure:f.departure,...(f.nightly_rate!==undefined?{nightly_rate:Number(f.nightly_rate)}:{})}:{})}}
+    if(type==='stay'){
+     action=f.action;payload={id:form.dataset.stayId,...(action==='move'?{room_id:f.room_id}:action==='extend'?{departure:f.departure,...(f.nightly_rate!==undefined?{nightly_rate:Number(f.nightly_rate)}:{})}:{})};
+     if(['cancel','no_show'].includes(action)){
+      const before=identity(),fresh=await reload(false);if(before!==identity()||!form.isConnected)return;if(!fresh)throw Error('Could not refresh booking. Try again.');
+      const stay=data.stays.find(s=>s.id===payload.id&&s.status==='reserved');if(!stay)throw Error('Reservation is no longer active. Reopen the booking.');
+      const folio=data.folios.find(x=>x.stay_id===stay.id);const totals=folio?.totals;if(!totals)throw Error('Guest bill could not be verified. Open the folio before cancelling.');
+      const format=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?money(Number(value)):'Unavailable';
+      const summary='Room '+(data.rooms.find(r=>r.id===stay.room_id)?.number||'—')+' · '+stay.arrival+' → '+stay.departure+'\nRecorded applied payments: '+format(totals.paid)+'\nPending receipts: '+format(totals.pending)+'\nDeposit held: '+format(totals.deposit_held)+'\nGuest bill balance: '+format(totals.balance)+'\nThis does NOT send or confirm a refund. Resolve outstanding receipts and deposits in Guest Bill. Server checks still apply.';
+      if(!root.confirm((action==='cancel'?'Cancel reservation?':'Mark no-show?')+'\n\n'+summary))return;
+      if(before!==identity()||!form.isConnected)return;
+     }
+    }
     if(type==='member'){action='member';payload={...f,active:f.active==='true'}}
     if(type==='expense'){action='expense';payload={...f,amount:Number(f.amount)}}
     if(!action)throw Error('Unknown action');await command(action,payload);await reload();
