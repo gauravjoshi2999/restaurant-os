@@ -110,3 +110,12 @@ test('H14 issued credit bill separates actual receipts, deposits and unpaid bala
  assert.equal(A.billHTML(s),html);assert.throws(()=>A.billHTML({...s,credit:{...s.credit,amount:974}}),/credit invoice details unavailable/);
  const combined=A.combinedBillHTML([s,{...s,number:'B/26-27/000043'}]);assert.ok(combined.includes('Payments received'));assert.ok(combined.includes('1,950.00'));
 });
+
+
+test('H15 historical receipt date totals remain separate from bill period totals',()=>{
+ const from='2026-10-01',to='2026-10-31',v={from,to,record_type:'historical_register_only',bill_count:2,billed:5500,undated_received:300,dated_receipts:1000,receipts:[{day:'2026-10-05',method:'Cash',count:1,amount:1000}]};
+ assert.equal(A.historicalRoomSummary(v,from,to),v);
+ assert.throws(()=>A.historicalRoomSummary({...v,dated_receipts:999},from,to));
+ assert.throws(()=>A.historicalRoomSummary({...v,receipts:[{...v.receipts[0],day:'2026-11-01'}]},from,to));
+ assert.throws(()=>A.historicalRoomSummary({...v,receipts:[...v.receipts,...v.receipts]},from,to));
+});

@@ -221,6 +221,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/owner_historical_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118130000_owner_historical_date_entries.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_historical_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_historical_receipt_dates.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_h15_historical_receipt_dates_pg_test.sql
 
   cashbook-postgres-qa:
     runs-on: ubuntu-latest
