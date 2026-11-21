@@ -1987,11 +1987,13 @@ async function loadCashbookWorkspace(){
 }
 async function fetchCashbookSnapshot(rid,date){
  const [entries,closing]=await Promise.all([
-  sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
+  sb.from('restaurant_cashbook_entries').select('*',{count:'exact'}).eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
   sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle()
  ]);
  if(entries.error)throw entries.error;if(closing.error)throw closing.error;
- return {entries:entries.data||[],closing:closing.data||null};
+ if(!Array.isArray(entries.data)||entries.count!==entries.data.length)throw Error('Cashbook entries incomplete; closing disabled.');
+ const seen=new Set();for(const e of entries.data){const k=JSON.stringify([e.source_type,e.entry_id]);if(e.restaurant_id!==rid||e.entry_date!==date||!e.entry_id||!e.source_type||seen.has(k)||!['in','out'].includes(e.direction))throw Error('Invalid or duplicate cashbook source.');window.BiteCashClosing.paise(e.amount,'Cashbook entry');seen.add(k);}
+ return {entries:entries.data,closing:closing.data||null};
 }
 async function loadCashbook(){
  const rid=cashbookRestaurantId(),date=cashbookDateValue();if(!rid||!date)return;
@@ -2386,7 +2388,7 @@ async function saveHRAttendance(){
     !['Present','Absent','Half Day','Leave','Holiday'].includes(status)){
   message.textContent='Active employee aur valid past/current attendance date select karein.';return;
  }
- if(checkIn&&checkOut&&checkOut<checkIn){message.textContent='Check-out, check-in se pehle nahi ho sakta.';return}
+ if(checkOut&&!checkIn||checkIn&&checkOut&&checkOut<checkIn){message.textContent='Check-out ke liye valid check-in zaroori hai.';return}
  const key=userId+':'+rid+':'+eid+':'+date;
  if(message.dataset.saving===key)return;
  message.dataset.saving=key;
@@ -2395,7 +2397,7 @@ async function saveHRAttendance(){
    .select('id,status,check_in,check_out,notes,updated_at').eq('restaurant_id',rid)
    .eq('employee_id',eid).eq('attendance_date',date).maybeSingle();
   if(lookup.error)throw lookup.error;
-  if(currentUser?.id!==userId||hrRestaurantId()!==rid)throw Error('Restaurant/login changed. Try again.');
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid||!['owner','manager'].includes(access.role))throw Error('Restaurant/login changed. Try again.');
   let result,finalNotes=notes||null;
   if(lookup.data){
    const before=lookup.data;
@@ -2420,10 +2422,11 @@ async function saveHRAttendance(){
    });
   }
   if(result.error)throw result.error;
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid||!['owner','manager'].includes(access.role))return;
   message.textContent=lookup.data?'Attendance correction saved with reason.':'Attendance saved';
   document.getElementById('hrAttendanceNotes').value='';
   await loadHRData();
- }catch(e){message.textContent='Attendance save nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(currentUser?.id===userId&&hrRestaurantId()===rid)message.textContent='Attendance save nahi hua: '+e.message;console.error(e)}
  finally{if(message.dataset.saving===key)delete message.dataset.saving;}
 }
 async function saveHRLeave(){
@@ -2471,6 +2474,7 @@ async function saveHREmployeePayment(){
   reference:document.getElementById('hrPaymentReference').value,
   notes:document.getElementById('hrPaymentNotes').value,created_by:userId
  };
+ if(!window.BiteV3Period?.validDay(record.payment_date)||record.payment_date>localDateInput()||record.period_month&&record.period_month.slice(0,7)>localDateInput().slice(0,7)){status.textContent='Choose an actual past/current payment date and salary month.';return;}
  const button=document.getElementById('hrPaymentSaveBtn');
  if(button.disabled||window.BiteOwnerSafeStaffPayment.isBusy()){
   status.textContent='Payment save is already in progress.';return;
@@ -2841,14 +2845,17 @@ document.querySelector('#khata .v3-khata-filters').addEventListener('click',e=>{
  khataFilter=selected;renderKhata();
 });
 
-let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[];
+let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[],reportLoadVersion=0,reportReadyKey='';
+function reportKey(){return [currentUser?.id||'',access.role,reportRestaurantId(),document.getElementById('reportFrom').value,document.getElementById('reportTo').value].join('|');}
+function reportReady(){return !!currentUser?.id&&['owner','manager'].includes(access.role)&&reportReadyKey===reportKey();}
+function clearReportView(){reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
 function reportRestaurantId(){return document.getElementById('reportRestaurant').value||''}
 async function loadReportsWorkspace(){
  const sel=document.getElementById('reportRestaurant'),previous=sel.value;
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
+ if(!eligible.length){reportLoadVersion++;clearReportView();document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput(),month=today.slice(0,8)+'01';
  if(!document.getElementById('reportFrom').value)document.getElementById('reportFrom').value=month;if(!document.getElementById('reportTo').value)document.getElementById('reportTo').value=today;
@@ -2856,7 +2863,9 @@ async function loadReportsWorkspace(){
 }
 async function loadReportsData(){
  const rid=reportRestaurantId(),from=document.getElementById('reportFrom').value,to=document.getElementById('reportTo').value;
- if(!rid||!from||!to||to<from){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
+ const version=++reportLoadVersion,key=reportKey();clearReportView();
+ const current=()=>version===reportLoadVersion&&key===reportKey()&&!!currentUser?.id&&['owner','manager'].includes(access.role);
+ if(!rid||!current()||!window.BiteV3Period?.validDay(from)||!window.BiteV3Period?.validDay(to)||to<from||to>localDateInput()){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
  document.getElementById('reportStatus').textContent='Reports load ho rahe hain…';
  try{
   const interval=BiteOwner.range(from,to);
@@ -2867,19 +2876,23 @@ async function loadReportsData(){
    sb.from('restaurant_expenses').select('id,is_demo').eq('restaurant_id',rid),
    sb.from('order_financials').select('*').eq('restaurant_id',rid)
   ]);
-  for(const x of [orders,cashbook,balances,expenses,financials])if(x.error)throw x.error;
-  reportOrders=orders.data||[];reportFinancials=financials.data||[];const demoExpenses=new Set((expenses.data||[]).filter(e=>e.is_demo).map(e=>e.id));reportCashbook=(cashbook.data||[]).filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data||[];
-  const ids=reportOrders.map(o=>o.id);
+  if(!current())return;
+  for(const x of [orders,cashbook,balances,expenses,financials]){if(x.error)throw x.error;if(!Array.isArray(x.data)||x.data.length>=1000)throw Error('Report data incomplete. Use a verified export or shorter period.');}
+  const ids=orders.data.map(o=>o.id);let itemRows=[],paymentRows=[];
   if(ids.length){
    const [items,payments]=await Promise.all([
     sb.from('order_items').select('*').in('order_id',ids),
     sb.from('restaurant_order_payment_summaries').select('*').in('order_id',ids)
    ]);
    if(items.error)throw items.error;if(payments.error)throw payments.error;
-   reportItems=items.data||[];reportPaymentSummaries=payments.data||[];
-  }else{reportItems=[];reportPaymentSummaries=[]}
+   if(!current())return;
+   if(!Array.isArray(items.data)||!Array.isArray(payments.data)||items.data.length>=1000||payments.data.length>=1000)throw Error('Report details incomplete. Choose a shorter period.');
+   itemRows=items.data;paymentRows=payments.data;
+  }
+  if(!current())return;
+  reportOrders=orders.data;reportFinancials=financials.data;const demoExpenses=new Set(expenses.data.filter(e=>e.is_demo).map(e=>e.id));reportCashbook=cashbook.data.filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data;reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
   renderReports();
- }catch(e){document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(!current())return;clearReportView();document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
 }
 function reportSummaryFor(orderId){
  return reportPaymentSummaries.find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:0,cancelled_sale_amount:0,refunded_amount:0};
@@ -2925,11 +2938,13 @@ function ownerReportRows(){
  return rows;
 }
 function exportReportsCSV(){
+ if(!reportReady()){alert('Refresh verified report before export.');return;}
  const csv=ownerReportRows().map(row=>row.map(BiteOwner.csvCell).join(',')).join('\r\n');
  BiteExports.download('\uFEFF'+csv,'bite-report-'+document.getElementById('reportFrom').value+'.csv','text/csv;charset=utf-8');
 }
-function exportReportsXLSX(){BiteExports.download(BiteExports.workbook(ownerReportRows()),'bite-report-'+document.getElementById('reportFrom').value+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
+function exportReportsXLSX(){if(!reportReady()){alert('Refresh verified report before export.');return;}BiteExports.download(BiteExports.workbook(ownerReportRows()),'bite-report-'+document.getElementById('reportFrom').value+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
 function printOwnerReport(){
+ if(!reportReady()){alert('Refresh verified report before printing.');return;}
  const restaurant=state.restaurants.find(r=>r.id===reportRestaurantId());const rows=ownerReportRows();
  BiteExports.print('Bite · Business Report',(restaurant?.name||'Restaurant')+' · '+document.getElementById('reportFrom').value+' to '+document.getElementById('reportTo').value,rows[0],rows.slice(1),['Demo and unpaid orders are excluded from verified collection totals.','Cash movement is separate from sales and is not final net profit.']);
 }
