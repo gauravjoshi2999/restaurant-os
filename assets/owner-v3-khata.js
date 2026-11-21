@@ -5,7 +5,9 @@
  'use strict';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const cash=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
- const cents=n=>{const x=Number(n);return Number.isFinite(x)&&x>=0&&Math.abs(x*100-Math.round(x*100))<1e-6?Math.round(x*100):null};
+ const signedCents=n=>{if(typeof n!=='number'&&!(typeof n==='string'&&n.trim()))return null;const x=Number(n),c=Math.round(x*100);return Number.isFinite(x)&&Number.isSafeInteger(c)&&Math.abs(x*100-c)<1e-6?c:null};
+ const cents=n=>{const c=signedCents(n);return c!==null&&c>=0?c:null};
+ const verifiedBalanceFor=(balances,id)=>{const matches=(balances||[]).filter(x=>x?.customer_id===id);return matches.length===1?signedCents(matches[0].balance):null;};
  const signed=n=>n>0?cash(n/100)+' due':n<0?cash(-n/100)+' advance':'Clear';
  const sourceLabel=row=>({
   manual:row.entry_type==='credit'?'Receipt · Khata':'Manual due / opening',
@@ -15,19 +17,22 @@
   const n=cents(row?.amount);
   return n===null||!['debit','credit'].includes(row.entry_type)?null:row.entry_type==='debit'?n:-n;
  };
- function statement({entries=[],customerId,balance=0,from,to,complete=true}){
-  const amount=Number(balance);
-  const valid=Number.isFinite(amount)&&Number.isFinite(amount*100)&&Math.abs(amount*100-Math.round(amount*100))<1e-6;
+ function statement({entries=[],customerId,balance=null,from,to,complete=true}){
+  const amount=signedCents(balance);
+  const valid=amount!==null&&Array.isArray(entries)&&!!customerId;
   if(!valid||!complete)return {verified:false,reason:!complete?'Statement history is incomplete. Balance after each entry is hidden.':'Current balance is unverified.'};
   if(!root.BiteV3Period?.validDay(from)||!root.BiteV3Period?.validDay(to)||to<from)
    return {verified:false,reason:'Invalid report dates.'};
-  const own=entries.filter(x=>x.customer_id===customerId),all=[];
+  const own=entries.filter(x=>x?.customer_id===customerId),all=[],seen=new Set();
+  if(entries.some(x=>!x))return {verified:false,reason:'Invalid ledger response.'};
   for(const x of own){
    const n=effect(x);
-   if(n===null||!root.BiteV3Period?.validDay(x.entry_date))return {verified:false,reason:'One or more historical ledger rows are invalid.'};
+   const identity=JSON.stringify([x.source_type,x.entry_id]);
+   if(n===null||!x.entry_id||!x.source_type||seen.has(identity)||!root.BiteV3Period?.validDay(x.entry_date))return {verified:false,reason:'One or more historical ledger rows are invalid or duplicated.'};
+   seen.add(identity);
    all.push({...x,effectCents:n});
   }
-  const closing=Math.round(amount*100)-all.filter(x=>x.entry_date>to).reduce((a,x)=>a+x.effectCents,0);
+  const closing=amount-all.filter(x=>x.entry_date>to).reduce((a,x)=>a+x.effectCents,0);
   const within=all.filter(x=>x.entry_date>=from&&x.entry_date<=to);
   const opening=closing-within.reduce((a,x)=>a+x.effectCents,0);
   const ordered=within.sort((a,b)=>
@@ -36,6 +41,7 @@
    String(a.entry_id||'').localeCompare(String(b.entry_id||'')));
   let running=opening;
   const rows=ordered.map(x=>({...x,balanceAfterCents:(running+=x.effectCents)})).reverse();
+  if(![opening,closing,...rows.map(x=>x.balanceAfterCents)].every(Number.isSafeInteger))return {verified:false,reason:'Statement total cannot be verified.'};
   return {verified:true,openingCents:opening,closingCents:closing,rows,
    receiptCents:within.filter(x=>x.entry_type==='credit').reduce((a,x)=>a+cents(x.amount),0),
    chargeCents:within.filter(x=>x.entry_type==='debit').reduce((a,x)=>a+cents(x.amount),0)};
@@ -43,9 +49,8 @@
  function filterCustomers(customers,balances,query='',status='all'){
   const q=String(query||'').trim().toLocaleLowerCase('en-IN');
   return (customers||[]).filter(c=>{
-   const b=(balances||[]).find(x=>x.customer_id===c.id);
-   const verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
-   const balance=verified?Number(b.balance):null;
+   const value=verifiedBalanceFor(balances,c.id),verified=value!==null;
+   const balance=verified?value/100:null;
    const match=!q||[c.full_name,c.phone,c.address].some(x=>String(x||'').toLocaleLowerCase('en-IN').includes(q));
    const state=status==='due'?verified&&balance>0:status==='advance'?verified&&balance<0:status==='clear'?verified&&balance===0:true;
    return match&&state;
@@ -54,8 +59,8 @@
  function customerCards(host,{customers=[],balances=[],selectedId='',onSelect,onCollect}){
   if(!host)return;
   host.innerHTML=customers.length?customers.map(c=>{
-   const b=balances.find(x=>x.customer_id===c.id),verified=b?.balance!==null&&b?.balance!==undefined&&Number.isFinite(Number(b.balance));
-   const bal=verified?Number(b.balance):0;
+   const value=verifiedBalanceFor(balances,c.id),verified=value!==null;
+   const bal=verified?value/100:0;
    return '<article class="v3-khata-person'+(c.id===selectedId?' selected':'')+'">'+
     '<div class="v3-khata-person-top"><div><strong>'+esc(c.full_name)+'</strong><small>'+esc(c.phone||'No phone')+'</small></div>'+
     '<span class="'+(bal>0?'due':bal<0?'advance':'clear')+'">'+esc(verified?signed(Math.round(bal*100)):'Balance unavailable')+'</span></div>'+
@@ -90,9 +95,9 @@
    onApply:next=>{if(scope!==key)throw Error('Restaurant changed. Reload Customer Khata.');selectedPeriod=next;onChange?.();}
   });
  }
- function renderStatement({host,customer,entries=[],balance=0,complete=true,key,today,onChange,onCollect,onOpening}){
+ function renderStatement({host,customer,entries=[],balance=null,complete=true,key,today,onChange,onCollect,onOpening}){
   if(!host)return {verified:false};
-  const p=periodFor(key,today),verifiedBalance=balance!==null&&balance!==undefined&&Number.isFinite(Number(balance));
+  const p=periodFor(key,today),verifiedBalance=signedCents(balance)!==null;
   const report=customer&&p?statement({entries,customerId:customer.id,balance,from:p.from,to:p.to,complete}):{verified:false,reason:'Select a customer.'};
   host.innerHTML=customer?
    '<div class="v3-khata-statement-head"><div><small>CUSTOMER STATEMENT</small><h2>'+esc(customer.full_name)+'</h2>'+
@@ -106,7 +111,7 @@
     '<div><span>Balance at period end</span><strong>'+esc(signed(report.closingCents))+'</strong></div></div>':
     '<p role="alert" class="v3-khata-warning">'+esc(report.reason||'Statement not available.')+'</p>')+
    '<div class="v3-khata-statement-actions">'+
-   (verifiedBalance&&Number(balance)>0&&customer.status==='Active'?'<button type="button" class="primary" data-v3-khata-collect-due>Collect due</button>':'')+
+   (report.verified&&verifiedBalance&&Number(balance)>0&&customer.status==='Active'?'<button type="button" class="primary" data-v3-khata-collect-due>Collect due</button>':'')+
    (customer.status==='Active'?'<button type="button" data-v3-khata-opening>Add opening balance</button>':'')+
    '<button type="button" data-v3-khata-copy>Copy statement</button>'+
    '<button type="button" data-v3-khata-print>Print statement</button></div>'+
@@ -116,11 +121,12 @@
   if(customer){
    mountPeriod(host.querySelector('#v3KhataStatementPeriod'),{key,today,onChange});
    host.onclick=async e=>{
+    if(scope!==key||host.isConnected===false)return;
     const collect=e.target.closest?.('[data-v3-khata-collect-due]');
     const opening=e.target.closest?.('[data-v3-khata-opening]');
     const copy=e.target.closest?.('[data-v3-khata-copy]');
     const print=e.target.closest?.('[data-v3-khata-print]');
-    if(collect){onCollect?.(customer.id);return}
+    if(collect){if(report.verified)onCollect?.(customer.id);return}
     if(opening){onOpening?.(customer.id);return}
     if(print){
      if(!report.verified){host.querySelector('#v3KhataShareStatus').textContent='Statement history is incomplete. Refresh before printing.';return}

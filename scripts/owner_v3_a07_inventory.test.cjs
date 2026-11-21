@@ -53,3 +53,12 @@ test('A07 stays within existing inventory, purchases, supplier payments and same
  assert.match(css,/@media\(max-width:430px\)/);
  assert.doesNotMatch(stockSource,/\.from\(|\.rpc\(|\.insert\(|\.update\(/);
 });
+
+test('A07 missing stock is unverified and outward quantities are exact to three decimals',()=>{
+ const snapshot=api.stockView(items,{rice:null,oil:'invalid'});
+ assert.equal(snapshot.unknown,2);assert.equal(snapshot.low,0);assert.equal(snapshot.filtered[0].stock,null);
+ const base={type:'adjustment_out',quantity:1,stock:25,item:items[0],date:'2026-11-19',today:'2026-11-19',reason:'Used stock'};
+ for(const variant of [{stock:null},{stock:'bad'},{quantity:1.0001},{quantity:true},{cost:1.001}])assert.equal(api.reviewMovement({...base,...variant}).ok,false);
+ const host={innerHTML:''};api.render(host,{items:[items[0]],balances:{}});
+ assert.match(host.innerHTML,/Stock unverified/);assert.match(host.innerHTML,/disabled/);
+});

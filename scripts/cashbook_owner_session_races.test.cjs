@@ -33,7 +33,7 @@ function harness(){
     select(){return q},eq(){return q},
     order(){
      const gate=nextFetch;nextFetch=null;
-     return gate?gate.promise.then(()=>({data:rows,error:null})):Promise.resolve({data:rows,error:null});
+     return gate?gate.promise.then(()=>({data:rows,count:rows.length,error:null})):Promise.resolve({data:rows,count:rows.length,error:null});
     },
     maybeSingle(){return Promise.resolve({data:null,error:null})},
     insert(payload){

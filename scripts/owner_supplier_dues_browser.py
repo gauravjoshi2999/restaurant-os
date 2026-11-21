@@ -26,7 +26,7 @@ with sync_playwright() as pw:
   page.evaluate("""() => {
    const purchase={id:'bill-one',restaurant_id:'restaurant-1',purchase_date:'2026-10-01',
     supplier_name_snapshot:'Synthetic supplier',total_amount:900,paid_amount:100};
-   const payments=[{restaurant_id:'restaurant-1',purchase_id:'bill-one',payment_date:'2026-10-20',amount:200}];
+   const payments=[{id:'payment-one',restaurant_id:'restaurant-1',purchase_id:'bill-one',payment_date:'2026-10-20',amount:200}];
    window.__A04_QA={purchase,payments,calls:[],success:0};
    const x=window.__A04_QA;
    const show=id=>window.BiteSupplierDues.open({
