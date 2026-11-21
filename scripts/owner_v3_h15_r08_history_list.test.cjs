@@ -71,3 +71,20 @@ test('H15/R08: cached historical rows are cleared when owner login or property s
  assert.equal(t.list.innerHTML,'','missing tenant scope must clear previously rendered historical rows');
  assert.equal(t.requests.length,2,'no query is made without an active property scope');
 });
+
+
+test('H15 completed historical stay never accepts future checkout or invalid date',()=>{
+ const valid=setup().api.validCompletedStay;
+ assert.equal(valid('2026-10-01','2026-10-02','2026-11-20'),true);
+ assert.equal(valid('2026-11-19','2026-11-20','2026-11-20'),true);
+ for(const [arrival,departure] of [['2026-11-19','2026-11-21'],['2026-11-20','2026-11-21'],['2026-10-02','2026-10-02'],['2026-02-30','2026-03-02'],['1999-12-31','2000-01-01']])assert.equal(valid(arrival,departure,'2026-11-20'),false,arrival+' '+departure);
+});
+
+
+test('H15 original guest receipt date is independent of bill date and requires actual method',()=>{
+ const h=setup().api.historicalReceipt;
+ assert.equal(h(3000,'2026-10-05','Cash','2026-11-20').received_date,'2026-10-05');
+ assert.equal(h(3000,'2026-11-20','UPI','2026-11-20').payment_method,'UPI');
+ assert.equal(h(0,'','', '2026-11-20').received_date,null);
+ for(const [date,method] of [['','Cash'],['2026-11-21','Cash'],['2026-02-30','Cash'],['2026-10-05','']])assert.throws(()=>h(3000,date,method,'2026-11-20'));
+});
