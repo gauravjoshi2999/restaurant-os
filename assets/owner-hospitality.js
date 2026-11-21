@@ -169,6 +169,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
+  reservationPeriod=null;reservationView='upcoming';roomFilters={floor:'',type:''};
   root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();setupDraft=null;setupStep=1;reportFrom='';reportTo='';hotelReportPeriod=null;
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
   startPolling();
@@ -238,7 +239,7 @@
   const count=orders.filter(o=>o.restaurant===rid&&!o.isDemo&&o.status==='Received'&&paid.has(o.id)&&/own platform|website|web/i.test(String(o.channel||''))&&!/^POS/i.test(String(o.channel||''))).length;
   e.hidden=!count||!has('online_food_orders');e.textContent=count+' new food order'+(count===1?'':'s');
  }
- async function reload(){
+ async function reload(redraw=true){
   const p=prop();if(!p)return;
   const version=++loadVersion,pid=p.id;
   if(p.role!=='owner'){
@@ -255,7 +256,8 @@
   data={...empty(),...rows};workspaceReady=true;renderHome();root.BiteOwnerAccess?.apply();
   if(typeof root.dispatchEvent==='function')root.dispatchEvent(new Event('bite:owner-summary'));
   const active=document.querySelector('#mainApp .page.active')?.id;
-  if(active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))renderPage(active);
+  if(redraw!==false&&active&&handles(active)&&!document.querySelector('#'+active+' form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))renderPage(active);
+  return true;
  }
  function handles(id){return (!!prop()||ctx?.getAccess().needsProperty)&&(!!titles[id]||(!restaurantAccess()&&['reports','settings','hr','expenses','overview'].includes(id)))}
  async function open(id){
@@ -418,11 +420,11 @@
    const tabs=[['upcoming','Upcoming'],['arrivals','Arrivals'],['cancelled','Cancelled / No-show'],['all','All records']].map(([value,label])=>btn('reservation-filter',label,value,'aria-pressed="'+(reservationView===value)+'"')).join('');
    const period=reservationPeriod||{from:today(),to:datePlus(7),type:'',opened:false};
    const types=[...new Set(data.rooms.filter(r=>r.active).map(r=>String(r.room_type||'Unspecified')))].sort();
-   target.innerHTML=header('Reservations','Upcoming bookings and available rooms.')+notice()+
+   target.innerHTML=header('Reservations','Upcoming bookings and available rooms.',btn('group-booking','Group booking'))+notice()+
     '<form data-hotel-form="reservation-availability" class="bh-panel bh-form bh-h11-period"><h2>Availability period</h2><div class="bh-form-grid">'+field('availability_from','Arrival','date',period.from,'required min="'+esc(today())+'"')+field('availability_to','Checkout','date',period.to,'required')+select('availability_type','Room type',option('','All room types',!period.type)+types.map(t=>option(t,t,t===period.type)).join(''))+'</div><div class="bh-actions"><button type="submit" class="btn secondary">Open availability</button>'+btn('reservation-new','＋ New reservation')+'</div>'+notice()+'</form><div data-h11-availability></div>'+
     '<nav class="bh-actions bh-reservation-filters" aria-label="Reservation views">'+tabs+'</nav>'+
     searchBox('Search guest, room or status')+rows.map(s=>stayCard(s)).join('')+
-    (!rows.length?stateCard(reservationView==='upcoming'?'No upcoming reservations. Choose Arrivals or All records to review other stays.':reservationView==='arrivals'?'No arrivals awaiting check-in.':reservationView==='cancelled'?'No cancelled or no-show reservations.':'No stays saved for this property.'):'' )+'<details class="bh-panel"><summary>Group bookings</summary><p>Reserve multiple rooms together using existing group booking.</p>'+btn('group-booking','Group booking')+'</details>';
+    (!rows.length?stateCard(reservationView==='upcoming'?'No upcoming reservations. Choose Arrivals or All records to review other stays.':reservationView==='arrivals'?'No arrivals awaiting check-in.':reservationView==='cancelled'?'No cancelled or no-show reservations.':'No stays saved for this property.'):'' );
    renderReservationAvailability(target);
    return;
   }
@@ -880,7 +882,8 @@
    if(type==='reservation-availability'){
     const before=identity(),from=f.availability_from,to=f.availability_to,type=f.availability_type||'';
     reservationAvailability(data.rooms,data.stays,from,to,today(),prop(),type);
-    await reload();if(before!==identity()||!form.isConnected)return;
+    const fresh=await reload(false);if(before!==identity()||!form.isConnected||!$('reservations')?.classList.contains('active'))return;
+    if(!fresh)throw Error('Availability refresh was interrupted. Please try again.');
     reservationPeriod={from,to,type,opened:true};renderPage('reservations');return;
    }else if(type==='audit-search'){auditQuery=f.query||'';auditBefore=null;await searchAudit(false)}else if(type==='report-filter'){root.BiteOwner.range(f.from,f.to);reportFrom=f.from;reportTo=f.to;const mount=$('biteHotelReports')||$('reports');renderReports(mount)}else if(type==='setup'){
     const step=Number(form.dataset.step);
