@@ -62,9 +62,32 @@ test('UI always describes old records as separate from live cash and allows date
   'historical_received','not cash collected now','Old POS register',
   'historyError','role="alert"'
  ])assert.ok(source.includes(phrase),phrase);
- assert.match(html,/bite-pos-reports\.js\?v=20261119-[a-z0-9-]+/);
+ assert.match(html,/bite-pos-reports\.js\?v=20\d{6}-[a-z0-9-]+/);
  assert.ok(html.includes('bite-pos-reports.css?v=20261118-historical-report1'));
  assert.ok(entry.includes("root.BitePOSReports?.refresh?.(true)"));
  assert.ok(entry.includes('delete form.dataset.bheSavedSignature'));
  assert.ok(entry.includes('date.value===resetValue'), 'A delayed new-bill reset must not overwrite calendar selection');
+});
+
+test('R07 history merge rejects duplicate or out-of-period rows rather than understating or duplicating sales',()=>{
+ const a=api(),h=history[0];
+ assert.throws(()=>a.mergeHistorical(live,[h,{...h}]),/Duplicate/);
+ assert.throws(()=>a.mergeHistorical(live,[{...h,id:''}]),/identity/);
+ assert.throws(()=>a.mergeHistorical(live,[{...h,record_date:'2026-11-01'}]),/outside/);
+ for(const amount of [null,undefined,'','  ',true,'bad',Infinity,-1,1.001]){
+  assert.throws(()=>a.mergeHistorical(live,[{...h,amount}]),/Historical money/);
+  assert.throws(()=>a.mergeHistorical(live,[{...h,received_amount:amount}]),/Historical money/);
+ }
+ assert.throws(()=>a.mergeHistorical(live,[{...h,received_amount:401}]),/exceeds/);
+ assert.throws(()=>a.mergeHistorical(live,[{...h,guest_count:null}]),/guest count/);
+ assert.throws(()=>a.mergeHistorical(live,[{...h,visit_type:'unknown'}]),/visit type/);
+ const zero=a.mergeHistorical(live,[{...h,amount:0,received_amount:0}]);
+ assert.equal(zero.days[0].historical_billed,0);
+ assert.equal(zero.days[0].historical_bills,1);
+ assert.equal(live.days[0].bills,0);
+});
+test('R07 history failure keeps the existing genuine live report with explicit warning, no partial history',()=>{
+ assert.match(source,/order\('id',\{ascending:false\}\)/);
+ assert.match(source,/catch\(e\)\{historyError=e\?\.message\|\|'Historical register validation failed';report=mergeHistorical\(res.data,\[\]\);\}/);
+ assert.match(source,/Live bills only dikh rahe hain/);
 });

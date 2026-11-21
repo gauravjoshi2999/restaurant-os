@@ -79,5 +79,58 @@ test('Hotel register includes family room occupants and all protected family ID 
  assert.match(src,/uniqueIds/);
  assert.match(src,/Family \/ group booking/);
  assert.match(src,/Guests staying in this room/);
- assert.match(HTML,/owner-guest-register\.js\?v=20261119-[a-z0-9-]+/);
+ assert.match(HTML,/owner-guest-register\.js\?v=\d{8}-[a-z0-9-]+/);
+});
+
+test('H08 extra rooms require explicit rent and counts, honor zero child capacity and recheck occupancy',()=>{
+ const previousData=globalThis.FormData,previousGuard=globalThis.BiteCheckinGuard,previousHospitality=globalThis.BiteHospitality;
+ globalThis.FormData=class{getAll(name){return name==='family_room_ids'?['B']:[]}};
+ globalThis.BiteCheckinGuard=require('../assets/owner-checkin-guard.js');
+ globalThis.BiteHospitality={prop:()=>({business_type:'hotel'}),housekeepingVisible:()=>true};
+ try{
+  const field=value=>({value});
+  const form={dataset:{},elements:{family_enabled:{checked:true},family_adults_B:field('1'),family_children_B:field('0'),family_female_B:field('0'),family_rate_B:field('1200')},querySelectorAll:()=>[]};
+  const f={full_name:'Synthetic family',room_id:'A',male:'1',female:'0',children:'0',nightly_rate:'1200',mode:'reserve',arrival:'2026-12-01',departure:'2026-12-02'};
+  const db={rooms:[{id:'A',active:true,housekeeping:'ready',adults:2,children:1},{id:'B',active:true,housekeeping:'ready',adults:2,children:0}],stays:[]};
+  const plan=()=>Family.plan(form,f,db);
+  assert.equal(plan().rooms[1].nightly_rate,1200);
+  for(const value of ['', ' ', undefined, '1.001', '-1']){
+   form.elements.family_rate_B.value=value;
+   assert.throws(plan,e=>e.field==='family_rate_B');
+  }
+  form.elements.family_rate_B.value='0';assert.equal(plan().rooms[1].nightly_rate,0);
+  for(const value of ['','1']){
+   form.elements.family_children_B.value=value;assert.throws(plan,e=>e.field==='family_children_B');
+  }
+  form.elements.family_children_B.value='0';form.elements.family_female_B.value='';
+  assert.throws(plan,e=>e.field==='family_female_B');
+  form.elements.family_female_B.value='0';
+  db.stays.push({id:'other',room_id:'B',status:'reserved',arrival:f.arrival,departure:f.departure});
+  assert.throws(plan,e=>e.field==='family_room_ids'&&/Reserved/.test(e.message));
+ }finally{globalThis.FormData=previousData;globalThis.BiteCheckinGuard=previousGuard;globalThis.BiteHospitality=previousHospitality}
+});
+
+test('H08 room estimate uses original stay dates and known rates; blank is not zero',()=>{
+ const est=(rates,arrival='2026-11-18',departure='2026-11-19')=>Family.roomEstimate(arrival,departure,rates);
+ assert.deepEqual(est(['1500','1500']),{nights:1,total:3000});
+ assert.deepEqual(est(['1500','1200.25'],'2026-11-18','2026-11-20'),{nights:2,total:5400.50});
+ assert.deepEqual(est(['0',0]),{nights:1,total:0});
+ for(const v of ['',null,undefined,' ',true,'1.001','-1'])assert.equal(est(['1500',v]).total,null);
+ assert.equal(est(['1500'],'2026-11-31','2026-12-02').total,null);
+ assert.equal(est(['1500'],'2026-11-19','2026-11-18').total,null);
+});
+
+test('H10 family deposit uses one stable booking request, rejects a changed receipt during retry',async()=>{
+ const store=new Map(),calls=[],original=globalThis.localStorage;
+ globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+ try{
+  const payload={guest_id:'synthetic-lead',rooms:[{room_id:'A',adults:1,children:0},{room_id:'B',adults:1,children:0}],checkin_deposit:{amount:500,method:'Cash',reference:'',verified:false,account_note:''}};
+  const sb={rpc:async(name,args)=>{calls.push({name,args});return calls.length===1?{error:{message:'Synthetic response unknown'}}:{data:{id:'group-id',deposit_entry_id:'deposit-id',stays:[{folio_id:'f-a'},{folio_id:'f-b'}]}}}};
+  await assert.rejects(Family.commit(payload,'synthetic-p','synthetic-u:p',sb),/unknown/);
+  await assert.rejects(Family.commit({...payload,checkin_deposit:{...payload.checkin_deposit,amount:501}},'synthetic-p','synthetic-u:p',sb),/Earlier family booking/);
+  const done=await Family.commit(payload,'synthetic-p','synthetic-u:p',sb);
+  assert.equal(calls.length,2);assert.equal(calls[0].name,'bite_booking_with_deposit');assert.equal(calls[0].args.p_booking_kind,'family');assert.equal(calls[0].args.p_request,calls[1].args.p_request);
+  assert.equal(done.booking.deposit_entry_id,'deposit-id');
+  Family.clearAttempt(done.requestKey);assert.equal(store.size,0);
+ }finally{globalThis.localStorage=original;}
 });

@@ -150,3 +150,12 @@ test('read-only historical activity stays separate from visit-only unread and re
  assert.doesNotMatch(center,/\.from\('order_status_history'\)[\s\S]*?\.insert\(/);
  assert.doesNotMatch(center,/localStorage|sessionStorage|PushManager|Notification\.requestPermission/);
 });
+
+
+test('history assets are cache-versioned and every account switch clears old activity',()=>{
+ const center=fs.readFileSync('assets/customer-notification-center.js','utf8');
+ assert.match(html,/customer-notification-center\.js\?v=20261119-feed1-history2/);
+ assert.match(html,/customer-notification-center\.css\?v=20261119-feed1-history2/);
+ assert.match(center,/syncUser:id=>\{revision\+\+;useSession/);
+ assert.match(center,/win\.setTimeout\(\(\)=>\{if\(store\.snapshot\(\)\.userId===next/);
+});

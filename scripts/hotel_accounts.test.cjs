@@ -59,3 +59,45 @@ test('draft bill returns to Partner and hides internal POS references',()=>{
  const html=A.billHTML({number:'DRAFT',property:{name:'Test hotel'},guest:{name:'Test guest'},room:{number:'104'},stay:{},tax_profile:{gstin:'08ABCDE1234F1Z5',reviewed:true},entries:[{kind:'charge',category:'room',status:'confirmed',amount:1400,tax_rate:5,tax_amount:70},{kind:'charge',category:'food',status:'confirmed',description:'POS-ROOM-INTERNAL',amount:650,tax_rate:5,tax_amount:32.5,source_items:[{name:'Meal',quantity:1,unit_price:650}]}],totals:{charges:2152.5,paid:0,balance:2152.5}});
  assert.match(html,/Back to Partner/);assert.match(html,/2,152.50/);assert.match(html,/CGST 2.5%/);assert.match(html,/SGST 2.5%/);assert(!html.includes('POS-ROOM-INTERNAL'));
 });
+
+test('H14: missing invoice totals cannot become a false zero on print or share',()=>{
+ const good={...invoice,room:{number:'101'}};
+ assert.equal(A.billTotalsReady(good),true);
+ assert.equal(A.billTotalsReady({totals:{charges:0,paid:0,balance:0}}),true);
+ assert.equal(A.billTotalsReady({}),false);
+ for(const field of ['charges','paid','balance'])for(const missing of [null,undefined,'','  ','bad',Infinity,-Infinity]){
+  const broken={...good,totals:{...good.totals,[field]:missing}};
+  assert.equal(A.billTotalsReady(broken),false,field+' unavailable');
+  assert.throws(()=>A.billHTML(broken),/totals unavailable/);
+  assert.throws(()=>A.printStatement(broken),/totals unavailable/);
+  assert.throws(()=>A.combinedBillHTML([good,broken]),/totals unavailable/);
+ }
+ assert.throws(()=>A.combinedBillHTML([]),/totals unavailable/);
+ const combined=A.combinedBillHTML([good,{...good,room:{number:'102'}}]);
+ assert.match(combined,/Booking statement/);
+ assert.match(combined,/Combined total/);
+});
+
+test('H10 changing advance amount or payment method requires fresh verification',()=>{
+ const input=value=>({value,checked:false,listeners:{},addEventListener(event,fn){(this.listeners[event]??=[]).push(fn)},fire(event){for(const fn of this.listeners[event]||[])fn()}});
+ const elements={advance_amount:input('100'),advance_method:input('UPI'),advance_verified:input('on'),advance_reference:input('SYNTHETIC-REF'),advance_account:input('Test account')};
+ const {advance_amount:a,advance_method:m,advance_verified:v,advance_reference:r,advance_account:n}=elements;
+ v.checked=true;A.wireAdvanceVerification({elements});
+ assert.equal(v.checked,true,'Existing restored details are not modified just by rendering');
+ a.fire('change');assert.equal(v.checked,true,'Unchanged amount remains verified');
+ a.value='200';a.fire('input');assert.equal(v.checked,false,'New amount requires verification');
+ v.checked=true;a.fire('change');assert.equal(v.checked,true,'Duplicate event does not invalidate a fresh verification');
+ m.value='Card';m.fire('change');assert.equal(v.checked,false,'Switching between online methods invalidates verification');
+ assert.equal(r.value,'');assert.equal(n.value,'');
+ v.checked=true;r.value='NEW-REF';m.fire('change');assert.equal(v.checked,true);assert.equal(r.value,'NEW-REF');
+});
+
+test('H10 deposit is distinct, optional and requires reference for verified online receipts',()=>{
+ assert.equal(A.depositPayload({deposit_amount:''}),null);
+ assert.equal(A.depositPayload({deposit_amount:'0'}),null);
+ assert.deepEqual(A.depositPayload({deposit_amount:'500',deposit_method:'Cash'}),{amount:500,method:'Cash',verified:false,reference:'',account_note:''});
+ assert.equal(A.depositPayload({deposit_amount:'120.25',deposit_method:'UPI'}).verified,false);
+ assert.throws(()=>A.depositPayload({deposit_amount:'500',deposit_method:'UPI',deposit_verified:'on'}),/reference/);
+ assert.equal(A.depositPayload({deposit_amount:'500',deposit_method:'UPI',deposit_verified:'on',deposit_reference:'SYNTHETIC'}).verified,true);
+ for(const deposit_amount of ['-1','1.001','1e4','99999999999'])assert.throws(()=>A.depositPayload({deposit_amount,deposit_method:'Cash'}),/deposit/);
+});

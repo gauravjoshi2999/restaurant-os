@@ -33,15 +33,15 @@ test('H02 totals use one authorized property/date-scoped Daily Book RPC, never c
  const f=fixture();f.setHandler(async()=>({data:{
   days:[{day:'2026-10-01',gross_sales:'850',expenses:'125'}],
   journal:[
-   {day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:'300'},
-   {day:'2026-10-01',source_type:'folio',category:'advance',direction:'in',method:'UPI',amount:'200'},
-   {day:'2026-10-01',source_type:'daybook',category:'income',direction:'in',method:'Cash',amount:'30'},
-   {day:'2026-10-01',source_type:'folio',category:'deposit_hold',direction:'in',method:'Cash',amount:'500'},
-   {day:'2026-10-01',source_type:'daybook',category:'opening',direction:'in',method:'Cash',amount:'700'},
-   {day:'2026-10-01',source_type:'daybook',category:'transfer_in',direction:'in',method:'UPI',amount:'150'},
-   {day:'2026-10-01',source_type:'folio',category:'payment',direction:'in',method:'Other',amount:'55'},
-   {day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'out',method:'Cash',amount:'20'},
-   {day:'2026-11-18',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:'900'}
+   {id:'receipt-pos-1',day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:'300'},
+   {id:'receipt-folio-1',day:'2026-10-01',source_type:'folio',category:'advance',direction:'in',method:'UPI',amount:'200'},
+   {id:'receipt-daybook-1',day:'2026-10-01',source_type:'daybook',category:'income',direction:'in',method:'Cash',amount:'30'},
+   {id:'deposit-1',day:'2026-10-01',source_type:'folio',category:'deposit_hold',direction:'in',method:'Cash',amount:'500'},
+   {id:'opening-1',day:'2026-10-01',source_type:'daybook',category:'opening',direction:'in',method:'Cash',amount:'700'},
+   {id:'transfer-1',day:'2026-10-01',source_type:'daybook',category:'transfer_in',direction:'in',method:'UPI',amount:'150'},
+   {id:'other-payment-1',day:'2026-10-01',source_type:'folio',category:'payment',direction:'in',method:'Other',amount:'55'},
+   {id:'refund-1',day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'out',method:'Cash',amount:'20'},
+   {id:'receipt-later-1',day:'2026-11-18',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:'900'}
   ]}}));
  const x=await f.run('2026-10-01');
  assert.equal(x.sales,850);
@@ -81,6 +81,24 @@ test('H02/H03 selected day stays separate from live alerts and old dashboard',()
  assert.match(homeCss,/\.bv3-pdf-date-field input/);
  assert.match(homeCss,/@media\(max-width:760px\)/);
  assert.match(html,/owner-reference-v3\.js\?v=20261118-h02-finance1/);
- assert.match(html,/owner-hotel-accounts\.js\?v=20261119-[a-z0-9-]+/);
+ assert.match(html,/owner-hotel-accounts\.js\?v=20\d{6}-[a-z0-9-]+/);
  assert.match(html,/owner-pdf-v3-home\.css\?v=20261118-h02-finance1/);
+});
+
+test('H02 selected-day receipts reject duplicate source identities and malformed paise amounts',async()=>{
+ const receipt={id:'payment-1',day:'2026-10-01',source_type:'order_payment',category:'Order payment',direction:'in',method:'Cash',amount:'10.00'};
+ const report=journal=>({data:{days:[{day:'2026-10-01',gross_sales:10,expenses:0}],journal}});
+ const duplicate=fixture();duplicate.setHandler(async()=>report([receipt,{...receipt}]));
+ await assert.rejects(duplicate.run('2026-10-01'),/duplicate receipt/);
+ for(const amount of ['', '  ', null, undefined, true, 'NaN', Infinity, -1, 1.001, Number.MAX_SAFE_INTEGER]){
+  const f=fixture();f.setHandler(async()=>report([{...receipt,amount}]));
+  await assert.rejects(f.run('2026-10-01'),/invalid receipt|too large/);
+ }
+ const missingIdentity=fixture();missingIdentity.setHandler(async()=>report([{...receipt,id:''}]));
+ await assert.rejects(missingIdentity.run('2026-10-01'),/invalid receipt identity/);
+});
+
+test('H02 does not assume zero received when the selected-day receipt journal is missing',async()=>{
+ const f=fixture();f.setHandler(async()=>({data:{days:[{day:'2026-10-01',gross_sales:10,expenses:0}]}}));
+ await assert.rejects(f.run('2026-10-01'),/receipt journal is unavailable/);
 });

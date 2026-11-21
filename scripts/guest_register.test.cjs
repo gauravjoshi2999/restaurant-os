@@ -40,3 +40,40 @@ test('H07 close guard protects changed fields beyond guest name, including date,
  assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,input('id_front_id','sensitive-hidden','','hidden')]}),false);
  assert.equal(R.hasUnsavedCheckinChanges({elements:[...unchanged,{name:'guest_id',type:'select-one',tagName:'SELECT',selectedIndex:0,options:[{defaultSelected:false},{defaultSelected:false}]}]}),false);
 });
+
+test('H06 period filter rejects impossible dates while All dates keeps old records accessible',()=>{
+ const period={mode:'month',from:'2026-02-01',to:'2026-03-01'};
+ for(const entry_date of ['2026-02-29','2026-02-30','2026-02-00','2026-01-32','invalid-date','']){
+  assert.equal(R.inPeriod({entry_date},period),false,entry_date);
+  assert.equal(R.inPeriod({entry_date},null),true,entry_date);
+ }
+ assert.equal(R.inPeriod({entry_date:'2028-02-29'},{from:'2028-02-01',to:'2028-02-29'}),true);
+ assert.equal(R.inPeriod({entry_date:'2026-02-28'},{from:'2026-02-30',to:'2026-03-01'}),false);
+ assert.equal(R.inPeriod({entry_date:'2026-02-28'},period),true);
+});
+test('H06 unknown rent is blank in Excel rather than a false zero; confirmed zero remains zero',()=>{
+ const values=[null,undefined,'','  ',false,true,[],{},'not recorded',-1,1.001,Infinity,'0x10',Number.MAX_SAFE_INTEGER];
+ const rows=R.records({stays:values.map((nightly_rate,i)=>({id:'synthetic-'+i,nightly_rate,register_number:i}))});
+ const sheet=R.exportRows(rows),col=sheet[0].indexOf('Agreed rent / night');
+ assert.ok(col>=0);assert.ok(sheet.slice(1).every(row=>row[col]===''));
+ for(const [value,expected] of [[0,0],['0',0],[1200.25,1200.25],['1200.25',1200.25]]){
+  assert.equal(R.verifiedRent(value),expected);
+  assert.equal(R.exportRows(R.records({stays:[{id:'valid',nightly_rate:value}]}))[1][col],expected);
+ }
+});
+
+test('H06 historical records stay separate, use original date and support name/mobile/room search',()=>{
+ const rows=[{id:'h1',record_date:'2026-10-01',customer_name:'Sample Guest',customer_phone:'12345',room_number:'101'},{id:'h2',record_date:'2026-11-01',customer_name:'Another',room_number:'102'}];
+ const october={from:'2026-10-01',to:'2026-10-31'};
+ for(const q of ['sample','12345','101'])assert.deepEqual(R.historicalRows(rows,october,q),[rows[0]]);
+ assert.deepEqual(R.historicalRows(rows,october,'102'),[]);
+ assert.equal(R.records({stays:[],historical_entries:rows}).length,0);
+ assert.throws(()=>R.historicalRows([rows[0],rows[0]],null),/verified/);
+ assert.throws(()=>R.historicalRows([{id:'bad',record_date:'2026-02-30'}],null),/verified/);
+ assert.throws(()=>R.historicalRows(Array(501).fill(rows[0]),null),/shorter/);
+});
+
+test('H06 historical export distinguishes recorded total from rent and unknown money from zero',()=>{
+ const sheet=R.historicalExportRows([{record_date:'2026-10-01',customer_name:'Synthetic',room_number:'101',amount:1250,received_amount:0},{record_date:'2026-10-02',amount:null,received_amount:null}]);
+ assert.equal(sheet[0][7],'Recorded bill');assert.equal(sheet[1][0],'Historical');assert.equal(sheet[1][7],1250);assert.equal(sheet[1][8],0);assert.equal(sheet[2][7],'');assert.equal(sheet[2][8],'');
+});

@@ -96,3 +96,20 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
  #mainApp #guests .gr-tools{grid-template-columns:minmax(0,1fr)}
  #mainApp #guests .gr-tools>.bh-field{grid-column:1/-1}
 }
+
+/* PDF H07–H10: one set of fields, separate default screens, optional full form. */
+#bhCheckinForm .ha-step-panel[hidden],#bhCheckinForm .ha-step-actions[hidden],#bhCheckinForm .bh-form-actions [hidden],#bhCheckinForm .bh-review[hidden]{display:none!important}
+#bhCheckinForm .ha-step-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;scroll-margin-top:110px}
+#bhCheckinForm .ha-step-header small{display:block;color:#9b531e;font-size:11px;font-weight:750;letter-spacing:.04em}
+#bhCheckinForm .ha-step-header strong{display:block;font-size:21px;margin-top:4px}
+#bhCheckinForm .ha-step-panel h2{font-size:17px;margin:13px 0}
+#bhCheckinForm .ha-step-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+#bhCheckinForm .ha-step-actions .btn,#bhCheckinForm .bh-form-actions .btn{min-height:44px}
+#bhCheckinForm[data-ha-step-view="all"] .ha-step-panel{display:contents}
+#bhCheckinForm:not([data-ha-step-view="all"]) .ha-step-panel:not([hidden]){display:block}
+#bhCheckinForm:not([data-ha-step-view="all"]) .ha-step-panel>h2{display:none}
+#bhCheckinForm:not([data-ha-step-view="all"]) .bh-form-actions{flex-wrap:wrap}
+
+#bhCheckinForm .ha-checkin-deposit{margin-top:16px;padding:14px;border:1px solid #eed9bd;background:#fffbf3;border-radius:12px}
+#bhCheckinForm .ha-checkin-deposit h3{font-size:15px;margin:0 0 6px}
+#bhCheckinForm .ha-checkin-deposit p{font-size:13px;margin:0 0 12px;color:#76572c}

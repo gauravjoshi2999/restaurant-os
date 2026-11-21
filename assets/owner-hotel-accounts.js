@@ -36,7 +36,7 @@
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
-  root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
+  form.__haSteps?.reveal(input);root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -64,33 +64,76 @@
    if(!online&&form.elements[verifyName])form.elements[verifyName].checked=false;
   };method.addEventListener('change',update);update();
  }
+ // A verified advance applies only to the amount and payment mode the owner checked.
+ function wireAdvanceVerification(form){
+  const amount=form.elements.advance_amount,method=form.elements.advance_method,verified=form.elements.advance_verified;
+  if(!amount||!method||!verified)return;
+  let lastAmount=amount.value,lastMethod=method.value;
+  const invalidateAmount=()=>{if(amount.value!==lastAmount){lastAmount=amount.value;verified.checked=false;}};
+  amount.addEventListener('input',invalidateAmount);amount.addEventListener('change',invalidateAmount);
+  method.addEventListener('change',()=>{
+   if(method.value===lastMethod)return;
+   lastMethod=method.value;verified.checked=false;
+   for(const key of ['advance_reference','advance_account'])if(form.elements[key])form.elements[key].value='';
+  });
+ }
+ function depositPayload(f){
+  const raw=String(f.deposit_amount??'').trim();if(!raw)return null;
+  if(!/^\d+(?:\.\d{1,2})?$/.test(raw)||Number(raw)>9999999999.99)throw fieldError('deposit_amount','Enter a refundable deposit with at most two decimals.');
+  const amount=Number(raw);if(amount===0)return null;
+  const method=f.deposit_method;if(!['Cash','UPI','Card','Bank Transfer'].includes(method))throw fieldError('deposit_method','Choose how the deposit was received.');
+  const online=method!=='Cash',verified=online&&f.deposit_verified==='on',reference=online?String(f.deposit_reference||'').trim():'',account_note=online?String(f.deposit_account||'').trim():'';
+  if(verified&&!reference)throw fieldError('deposit_reference','Enter the verified deposit receipt reference.');
+  if(reference.length>100||account_note.length>80)throw fieldError('deposit_reference','Deposit reference or account note is too long.');
+  return {amount,method,verified,reference,account_note};
+ }
+ function addDepositFields(form,booking,draft){
+  if(draft.stay_id)return; // Earlier bookings use their existing Guest Bill rather than recording twice.
+  const box=document.createElement('section');box.className='ha-checkin-deposit';box.innerHTML='<h3>Refundable security deposit · Optional</h3><p>Separate receipt. Deposit is not room sales or advance. Record only the actual collection; unverified online receipts stay pending.</p><div class="bh-form-grid">'+
+   field('deposit_amount','Refundable deposit (₹)','number',draft.deposit_amount??'','min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0"')+
+   select('deposit_method','Deposit method',['Cash','UPI','Card','Bank Transfer'].map(m=>option(m,m,m===(draft.deposit_method||'Cash'))).join(''))+
+   field('deposit_reference','Verified receipt reference','text',draft.deposit_reference||'','maxlength="100"')+field('deposit_account','Online account note','text',draft.deposit_account||'','maxlength="80"')+'</div>'+
+   (manager()?check('deposit_verified','I verified this deposit in the bank/provider account.',draft.deposit_verified==='on'?'checked':''):'');
+  booking.append(box);wireMoneyFields(form,'deposit_method','deposit_account','deposit_verified','deposit_reference');
+  const amount=form.elements.deposit_amount,method=form.elements.deposit_method,verified=form.elements.deposit_verified;
+  if(!verified)return;
+  let lastAmount=amount.value,lastMethod=method.value;
+  function changedAmount(){if(lastAmount!==amount.value){lastAmount=amount.value;verified.checked=false}}
+  amount.addEventListener('input',changedAmount);amount.addEventListener('change',changedAmount);
+  method.addEventListener('change',()=>{if(lastMethod!==method.value){lastMethod=method.value;verified.checked=false;form.elements.deposit_reference.value='';form.elements.deposit_account.value=''}});
+  form.elements.deposit_reference.addEventListener('input',()=>{verified.checked=false});
+  form.elements.deposit_account.addEventListener('input',()=>{verified.checked=false});
+ }
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
   const booking=form.querySelector('#biteRegistrationOperations');booking?.remove();
   form.dataset.enhanced='true';form.noValidate=true;
   const rooms=db().rooms||[],guests=db().guests||[];
   const roomId=draft.room_id||'',room=rooms.find(r=>r.id===roomId),saved=!!draft.id_front_id;
-  form.innerHTML='<div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
-   '<h2>1 · Guest details</h2><div class="bh-form-grid ha-guest-counts">'+field('male','Male','number',draft.male??1,'required min="0" max="20" step="1"')+field('female','Female','number',draft.female??0,'required min="0" max="20" step="1"')+field('children','Children','number',draft.children??0,'required min="0" max="20" step="1"')+'</div><input type="hidden" name="adults" value="1">'+
+  form.innerHTML='<section class="ha-step-panel" data-ha-step="guest"><div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
+   '<h2>1 · Guest details</h2>'+
    '<details class="ha-returning"><summary>Returning guest</summary>'+field('guest_search','Find by name or mobile','search','','data-guest-search autocomplete="off"')+select('guest_id','Use saved guest',option('','New guest')+guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===(guest?.id||draft.guest_id))).join(''),'data-guest-picker')+'</details>'+
-   '<div class="bh-form-grid">'+field('full_name','Guest name *','text',guest?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')+field('phone','Mobile number *','tel',guest?.phone||draft.phone||'','required minlength="7" maxlength="20" autocomplete="tel"')+
+   '<div class="bh-form-grid">'+field('phone','Mobile number *','tel',guest?.phone||draft.phone||'','required minlength="7" maxlength="20" autocomplete="tel"')+field('full_name','Guest name *','text',guest?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')+'</div><div class="bh-form-grid ha-guest-counts">'+field('male','Male','number',draft.male??1,'required min="0" max="20" step="1"')+field('female','Female','number',draft.female??0,'required min="0" max="20" step="1"')+field('children','Children','number',draft.children??0,'required min="0" max="20" step="1"')+'</div><input type="hidden" name="adults" value="1"><div class="bh-form-grid">'+
    field('address','Permanent address *','text',guest?.address||draft.address||'','required maxlength="500" autocomplete="street-address"')+field('arrived_from','Arriving from *','text',draft.arrived_from||'','required maxlength="120"')+field('next_destination','Next destination *','text',draft.next_destination||'','required maxlength="120"')+
    select('transport','Arrived by *',['Car','Bike','Bus','Train','Other'].map(x=>option(x,x,x===(draft.transport||'Bus'))).join(''),'required')+
    field('vehicle_number','Vehicle registration number *','text',draft.vehicle_number||'','maxlength="30" data-ha-vehicle')+'</div>'+
+   '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
+   '<div class="bh-actions" data-h07-guest-actions><button type="button" class="btn" data-h07-continue>Continue to rooms</button>'+button('draft','Save draft')+'</div></section><section class="ha-step-panel" data-ha-step="ids">'+
    '<div class="ha-id-section"><h3>Guest ID</h3><div class="bh-form-grid"><label class="bh-field"><span>ID front — Required</span><input type="file" name="id_front" accept="image/jpeg,image/png,application/pdf" '+(saved?'':'required')+'><small data-front-status>'+esc(saved?'Previously saved front will be checked again.':'Take a clear photo or choose a file · Up to 4 MB')+'</small></label><label class="bh-field"><span>ID back — Optional, if available</span><input type="file" name="id_back" accept="image/jpeg,image/png,application/pdf"><small>JPEG, PNG or PDF · Up to 4 MB</small></label></div>'+
    '<input type="hidden" name="id_front_id" value="'+esc(draft.id_front_id||'')+'"><input type="hidden" name="id_back_id" value="'+esc(draft.id_back_id||'')+'">'+
    check('id_checked','I checked that the ID copy is necessary and masked where required.','required')+'<p class="bh-note">ID copies are private to authorized property staff and are excluded from bills.</p></div>'+
-   '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
-   '<h2>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
+   '</section><section class="ha-step-panel" data-ha-step="rooms"><h2 tabindex="-1" data-h07-rooms>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
    field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??'','required min="0" step="0.01" inputmode="decimal" placeholder="Enter this guest’s agreed rent"')+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
-   '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"><div data-ha-booking></div>'+message()+'<div class="bh-form-actions">'+button('draft','Save draft')+'<button type="submit" class="btn">Review check-in</button></div>';
+   '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"></section><section class="ha-step-panel" data-ha-step="payment"><div data-ha-booking></div></section>'+message()+'<div class="bh-form-actions"><button type="submit" class="btn">Review check-in</button></div>';
   if(booking){
    booking.querySelector('h3').textContent='3 · Advance payment · Optional';
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
    form.querySelector('[data-ha-booking]').append(booking);
    wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
+   wireAdvanceVerification(form);
+   addDepositFields(form,booking,draft);
   }
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
@@ -123,6 +166,57 @@
   root.BiteCheckinFlow?.decorate(form,draft);
   root.BiteCheckinGuard?.decorate(form,draft,guest);
   root.BiteHotelBilling?.decorateRegister(form,draft);
+  form.querySelector('[data-h07-continue]').addEventListener('click',()=>{const heading=form.querySelector('[data-h07-rooms]');heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});});
+ }
+ function mountRegisterSteps(form,draft={}){
+  if(form.dataset.enhanced!=='true'||form.__haSteps)return;
+  const heading=form.querySelector('[data-h07-rooms]'),booking=form.querySelector('[data-ha-booking]'),actions=form.querySelector('.bh-form-actions'),ids=form.querySelector('.ha-id-section'),guestActions=form.querySelector('[data-h07-guest-actions]');
+  if(!heading||!booking||!actions||!ids||!guestActions)return;
+  const guest=form.querySelector('[data-ha-step="guest"]'),rooms=form.querySelector('[data-ha-step="rooms"]'),payment=form.querySelector('[data-ha-step="payment"]'),photos=form.querySelector('[data-ha-step="ids"]');
+  if(!guest||!rooms||!payment||!photos)return;
+  const draftButton=guestActions.querySelector('[data-ha-action=draft]');if(draftButton)actions.prepend(draftButton);
+  const header=document.createElement('div');header.className='ha-step-header';header.innerHTML='<div><small data-ha-step-caption></small><strong data-ha-step-title></strong></div><button type="button" class="ha-text-button" data-ha-toggle-view>Full form</button>';form.prepend(header);
+  const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to review</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
+  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
+  const paymentBack=document.createElement('button');paymentBack.type='button';paymentBack.className='btn secondary';paymentBack.dataset.haPaymentBack='';paymentBack.textContent='Back to rooms';actions.prepend(paymentBack);
+  const panels={guest,rooms,ids:photos,payment},labels={guest:['STEP 1 OF 3 · Guest','Guest'],rooms:['STEP 2 OF 3 · Rooms','Multiple rooms'],ids:['STEP 2 OF 3 · Guest ID photos','Guest ID photos'],payment:['STEP 3 OF 3 · Review','Payment & review']};
+  let full=false,step='guest';try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
+  const submit=actions.querySelector('[type=submit]'),toggle=header.querySelector('[data-ha-toggle-view]');
+  function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();submit.textContent='Review check-in'}
+  function show(next,focus=true){
+   if(!panels[next])return;step=next;form.dataset.haStepView=full?'all':step;
+   for(const [key,el] of Object.entries(panels)){el.hidden=!full&&key!==step;if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
+   roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';submit.hidden=!full&&step!=='payment';
+   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
+   const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
+   if(focus&&!full){header.tabIndex=-1;header.focus({preventScroll:true});header.scrollIntoView({block:'start',behavior:'instant'})}
+  }
+  function validate(panelNode){
+   for(const input of form.elements){if(panelNode.contains(input)&&input.willValidate&&!input.validity.valid){showRegisterError(form,fieldError(input.name,input.validationMessage||'Complete this field.'));return false}}
+   return true;
+  }
+  function advance(){
+   if(full)return false;
+   if(step==='guest'){
+    if(!validate(guest))return true;
+    if(!form.dataset.stayId){try{validateRegistration({...Object.fromEntries(new FormData(form)),nightly_rate:'0'})}catch(e){showRegisterError(form,e);return true}}
+    show('rooms');return true;
+   }
+   if(step==='rooms'){
+    if(!validate(rooms))return true;
+    if(form.elements.departure.value<=form.elements.arrival.value){showRegisterError(form,fieldError('departure','Departure must be after arrival.'));return true}
+    try{root.BiteFamilyCheckin?.plan(form,Object.fromEntries(new FormData(form)),H().getWorkspace())}catch(e){if(!showRegisterError(form,e))form.querySelector('.bh-message').textContent=e.message||String(e);return true}
+    show('payment');return true;
+   }
+   if(step==='ids'){show('rooms');return true}return false;
+  }
+  function back(next){invalidate();show(next)}
+  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&id!==step)show(id,false)},back,show};
+  toggle.onclick=()=>{full=!full;try{root.sessionStorage.setItem('bite_checkin_full_form',full?'1':'0')}catch{}show(step)};
+  guestActions.querySelector('[data-h07-continue]').addEventListener('click',e=>{if(!full){e.preventDefault();e.stopImmediatePropagation();advance()}},true);
+  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>show('rooms');paymentBack.onclick=()=>back('rooms');
+  form.addEventListener('input',()=>{submit.textContent='Review check-in'});
+  show(draft.stay_id?'rooms':'guest',false);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -134,7 +228,7 @@
   root.BiteCheckinFlow?.prepare(form);
   root.BiteCheckinGuard?.prepare(form,f);
   if(!form.dataset.stayId){
-   const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
+   const r=validateRegistration(f);depositPayload(f);f.adults=r.adults;form.elements.adults.value=r.adults;
    if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
    if(!form.elements.id_checked.checked)throw fieldError('id_checked','Check the guest ID before continuing.');
    if(f.booking_source==='external_booking'&&!String(f.booking_reference||'').trim())throw fieldError('booking_reference','Enter the external booking reference.');
@@ -191,10 +285,23 @@
   form.querySelector('.bh-actions')?.insertAdjacentHTML('beforebegin',field('account_note','Online account · Short note','text',p()?.tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
   wireMoneyFields(form);
  }
+ function billAmountCents(raw){
+  if(typeof raw!=='number'&&!(typeof raw==='string'&&/^-?\d+(?:\.\d+)?$/.test(raw.trim())))return null;
+  const amount=Number(raw),cents=Math.round(amount*100);
+  return Number.isFinite(amount)&&Number.isSafeInteger(cents)&&Math.abs(amount*100-cents)<0.00001?cents:null;
+ }
+ function billTotalsReady(statement){
+  const t=statement?.totals,charges=billAmountCents(t?.charges),paid=billAmountCents(t?.paid),balance=billAmountCents(t?.balance);
+  return charges!==null&&paid!==null&&balance!==null&&Number.isSafeInteger(charges-paid)&&charges-paid===balance;
+ }
+ function combinedAmount(snapshots,key){
+  let cents=0;for(const snapshot of snapshots){const value=billAmountCents(snapshot?.totals?.[key]);if(value===null)return null;cents+=value;if(!Number.isSafeInteger(cents))return null;}return cents/100;
+ }
  function billToolbar(){const back=new URL('./index.html',root.location?.href||'https://gauravjoshi2999.github.io/restaurant-os/index.html').href;return '<nav class="bill-toolbar"><a href="'+esc(back)+'" onclick="window.close();return true">← Back to Partner</a><button onclick="window.print()">Print / Save PDF</button></nav>'}
  function billTaxGroups(entries){const map=new Map();for(const e of entries){const category=e.category||'incidental',rate=Number(e.tax_rate??(Number(e.amount)>0?Number(e.tax_amount||0)*100/Number(e.amount):0)),key=category+':'+rate,sign=['discount','reversal'].includes(e.kind)?-1:1;const group=map.get(key)||{category,rate,taxable:0,tax:0,sac:category==='room'?'996311':category==='food'?'996331':''};group.taxable+=sign*Number(e.amount);group.tax+=sign*Number(e.tax_amount||0);map.set(key,group)}return [...map.values()].map(g=>({...g,cgst:Math.round(g.tax*50)/100,sgst:Math.round((g.tax-Math.round(g.tax*50)/100)*100)/100}))}
- function combinedBillHTML(snapshots){const bills=snapshots.map(billHTML),template=bills[0]||billHTML({}),head=template.slice(0,template.indexOf('<body>')+6);return head+billToolbar()+'<h1>'+esc(snapshots[0]?.property?.name)+'</h1><h2>Booking statement · '+snapshots.length+' rooms</h2><p>Individual room invoices are attached below.</p><table><tr><th>Room / Bill</th><th>Total</th></tr>'+snapshots.map(s=>'<tr><td>Room '+esc(s.room?.number)+' · '+esc(s.number)+'</td><td>'+money(s.totals?.charges)+'</td></tr>').join('')+'<tr><th>Combined total</th><th>'+money(snapshots.reduce((n,s)=>n+Number(s.totals?.charges||0),0))+'</th></tr><tr><th>Balance due</th><th>'+money(snapshots.reduce((n,s)=>n+Number(s.totals?.balance||0),0))+'</th></tr></table>'+bills.map(h=>'<article class="invoice-page">'+h.split('<body>')[1].split('</body>')[0].replace(/<nav class="bill-toolbar">[\s\S]*?<\/nav>/,'')+'</article>').join('')+'</body></html>'}
+ function combinedBillHTML(snapshots){if(!Array.isArray(snapshots)||!snapshots.length||snapshots.some(s=>!billTotalsReady(s))||['charges','paid','balance'].some(key=>combinedAmount(snapshots,key)===null))throw Error('Booking bill totals unavailable. Refresh and review every linked room before printing or sharing.');const bills=snapshots.map(billHTML),template=bills[0]||billHTML({}),head=template.slice(0,template.indexOf('<body>')+6);return head+billToolbar()+'<h1>'+esc(snapshots[0]?.property?.name)+'</h1><h2>Booking statement · '+snapshots.length+' rooms</h2><p>Individual room invoices are attached below.</p><table><tr><th>Room / Bill</th><th>Total</th></tr>'+snapshots.map(s=>'<tr><td>Room '+esc(s.room?.number)+' · '+esc(s.number)+'</td><td>'+money(s.totals?.charges)+'</td></tr>').join('')+'<tr><th>Combined total</th><th>'+money(combinedAmount(snapshots,'charges'))+'</th></tr><tr><th>Balance due</th><th>'+money(combinedAmount(snapshots,'balance'))+'</th></tr></table>'+bills.map(h=>'<article class="invoice-page">'+h.split('<body>')[1].split('</body>')[0].replace(/<nav class="bill-toolbar">[\s\S]*?<\/nav>/,'')+'</article>').join('')+'</body></html>'}
  function billHTML(s){
+  if(!billTotalsReady(s))throw Error('Guest bill totals unavailable. Reopen and refresh this bill before printing or sharing.');
   const entries=(s.entries||[]).filter(e=>e.status==='confirmed'&&['charge','discount','reversal'].includes(e.kind));
   const lines=cat=>entries.filter(e=>(cat==='extras'?!['room','food'].includes(e.category):e.category===cat)).map(e=>{
    const sign=['discount','reversal'].includes(e.kind)?-1:1;
@@ -213,7 +320,7 @@
    (registered&&groups.length?'<table><thead><tr><th>Service / SAC</th><th>Taxable</th><th>GST breakdown</th></tr></thead><tbody>'+groups.map(g=>'<tr><td>'+esc(({room:'Room rent',food:'Food',incidental:'Extras'})[g.category]||g.category)+'<br><small>'+esc(g.sac)+'</small></td><td>'+money(g.taxable)+'</td><td>CGST '+Number(g.rate)/2+'% · '+money(g.cgst)+'<br>SGST '+Number(g.rate)/2+'% · '+money(g.sgst)+'</td></tr>').join('')+'</tbody></table><small>Place of supply: '+esc(s.place_of_supply||String(s.tax_profile.gstin).slice(0,2))+' · Reverse charge: No</small>':'')+
    '<p class="sign">For '+esc(s.property?.name)+'<br><br>Authorized signatory</p></body></html>';
  }
- function printStatement(s){const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(billHTML(s));win.document.close();return true}
+ function printStatement(s){const html=billHTML(s);const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to print the bill.');win.opener=null;win.document.write(html);win.document.close();return true}
 
  function reportRows(v){
   const heading=['Date','POS sales','Room + food bills','Other income','Total billed sales','Output GST','Net sales','Expenses / salary cost','Staff advance paid','Cash received','Cash paid','Cash closing','Online received','Online paid','Online closing','Recorded profit / loss'];
@@ -248,15 +355,32 @@
   const sales=Number(daily.gross_sales),expenses=Number(daily.expenses);
   if(daily.gross_sales==null||daily.expenses==null||!Number.isFinite(sales)||!Number.isFinite(expenses))
    throw Error('The selected day has incomplete accounting values.');
-  const eligible=(result.data.journal||[]).filter(entry=>{
+  if(!Array.isArray(result.data?.journal))throw Error('The selected day receipt journal is unavailable.');
+  const eligible=result.data.journal.filter(entry=>{
    if(entry.day!==day||entry.direction!=='in'||!['Cash','UPI','Card','Bank Transfer'].includes(entry.method))return false;
    if(['order_payment','customer_ledger_payment'].includes(entry.source_type))return true;
    if(entry.source_type==='folio')return ['payment','advance'].includes(entry.category);
    if(entry.source_type==='daybook')return entry.category==='income';
    return false;
   });
-  const received=eligible.reduce((sum,entry)=>sum+Number(entry.amount),0);
-  if(eligible.some(entry=>entry.amount==null)||!Number.isFinite(received))throw Error('The selected day has an invalid receipt.');
+  const receiptIds=new Set();let receivedCents=0;
+  for(const entry of eligible){
+   if(!entry||typeof entry.source_type!=='string'||!entry.source_type.trim()||
+      typeof entry.id!=='string'||!entry.id.trim())
+    throw Error('The selected day has an invalid receipt identity.');
+   const identity=JSON.stringify([entry.source_type,entry.id]);
+   if(receiptIds.has(identity))throw Error('The selected day contains a duplicate receipt. Refresh Daily Book.');
+   receiptIds.add(identity);
+   const value=entry.amount;
+   if(!((typeof value==='number'&&Number.isFinite(value))||(typeof value==='string'&&value.trim()!=='')))
+    throw Error('The selected day has an invalid receipt.');
+   const amount=Number(value),cents=Math.round(amount*100);
+   if(!Number.isFinite(amount)||amount<0||!Number.isSafeInteger(cents)||Math.abs(amount*100-cents)>0.00001)
+    throw Error('The selected day has an invalid receipt.');
+   receivedCents+=cents;
+   if(!Number.isSafeInteger(receivedCents))throw Error('The selected day receipt total is too large to verify.');
+  }
+  const received=receivedCents/100;
   return {propertyId:property.id,day,sales,expenses,received,receiptCount:eligible.length,
    source:'bite_daily_book',receivedBasis:'Confirmed POS/guest receipts and recorded other income. Excludes deposits, transfers and opening balances.'};
  }
@@ -414,7 +538,7 @@
    version===reportVersion&&linkedRegisterRestaurant()===restaurantId;
   void root.BiteV3HistoricalReconcile.mount(target,{
    client:ctx.sb,restaurantId,from,to,today:today(),scope:key,
-   journal:report?.journal||[],isCurrent:current,
+   journal:report?.journal,isCurrent:current,
    onOpen:(day,id,selectedScope)=>openOldPosDay(day,id,selectedScope,version,restaurantId)
   });
  }
@@ -503,6 +627,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

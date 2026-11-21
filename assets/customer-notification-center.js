@@ -154,13 +154,14 @@
   });
   let revision=0;
   function useSession(session){
-   const next=session?.user?.id||null;
+   const id=session?.user?.id;
+   const next=typeof id==='string'&&id.trim()?id.trim():null;
    if(store.snapshot().userId!==next){
     filter='all';
     ++historyRequest;historyList.replaceChildren();
     historyStatus.textContent=next?'Open to load your saved order activity.':'Sign in to view previous order activity.';
     store.setUser(next);
-    if(historyPanel.open)void refreshHistory();
+    if(historyPanel.open)win.setTimeout(()=>{if(store.snapshot().userId===next&&historyPanel.open)void refreshHistory();},0);
    }
   }
   sb.auth.onAuthStateChange((_event,session)=>{revision++;useSession(session);});
@@ -169,7 +170,7 @@
    if(startRevision===revision)useSession(data?.session||null);
   }).catch(()=>{});
   render();
-  return {syncUser:id=>store.setUser(id),record:store.record,markAllSeen:store.markAllSeen,snapshot:store.snapshot,render};
+  return {syncUser:id=>{revision++;useSession(id?{user:{id}}:null)},record:store.record,markAllSeen:store.markAllSeen,snapshot:store.snapshot,render};
  }
  return {createStore,fetchVerifiedOrderHistory,attachBrowser};
 });
