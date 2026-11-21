@@ -14,9 +14,11 @@
  function eligible(ctx){
   return ['owner','manager','staff'].includes(ctx.role)&&
    ctx.order&&ctx.order.restaurant===ctx.restaurantId&&
+   !ctx.order.roomLinked&&!String(ctx.order.code||'').startsWith('POS-ROOM-')&&
    String(ctx.order.channel||'').startsWith('POS - ')&&
    !['Rejected','Cancelled'].includes(ctx.order.status);
  }
+ function validBalance(value){return (typeof value==='number'||typeof value==='string'&&value.trim()!=='')&&Number.isFinite(Number(value))&&Number(value)>=0;}
  function pendingUI(pending){
   el('paymentCheckBtn').style.display=pending?'inline-flex':'none';
   el('paymentSaveBtn').textContent=pending?'Retry same payment':'Save payment';
@@ -32,13 +34,15 @@
   let pending;
   try{pending=core().getPending(localStorage,id)}
   catch(err){alert(err.message);return}
+  if(!validBalance(summary?.balance_amount)&&!pending){alert('Bill balance unavailable. Refresh karke dobara check karein.');return;}
   if(Number(summary.balance_amount)<=0&&!pending){alert('Is order ka balance zero hai.');return}
   el('paymentOrderId').value=ctx.orderId;
   el('paymentOrderLabel').textContent=(ctx.order.code||ctx.orderId.slice(0,8))+
    ' · Total '+ctx.money(ctx.order.amount)+' · Paid '+ctx.money(summary.paid_amount)+
    ' · Due '+ctx.money(summary.balance_amount);
   el('paymentAmount').value=pending?pending.details.amount:Number(summary.balance_amount).toFixed(2);
-  el('paymentAmount').max=Number(summary.balance_amount).toFixed(2);
+  el('paymentAmount').max=validBalance(summary?.balance_amount)?Number(summary.balance_amount).toFixed(2):'';
+  el('paymentDate').max=ctx.today();
   el('paymentMethod').value=pending?.details.method||'Cash';
   el('paymentDate').value=pending?.details.date||ctx.today();
   el('paymentReference').value=pending?.details.reference||'';
@@ -79,10 +83,13 @@
    date:el('paymentDate').value,reference:el('paymentReference').value.trim(),
    notes:el('paymentNotes').value.trim()
   };
-  if(Number(summary.balance_amount)<=0){
-   if(core().getPending(localStorage,id))return check(ctx);
-   message.textContent='Is bill ka due zero hai. Dashboard refresh karein.';return;
+  let pending;
+  try{pending=core().getPending(localStorage,id)}catch(err){message.textContent=err.message;return;}
+  if(!validBalance(summary?.balance_amount)||Number(summary.balance_amount)<=0||details.amount>Number(summary.balance_amount)){
+   if(pending)return check(ctx);
+   message.textContent='Bill balance unavailable, zero ya payment due se zyada hai. Dashboard refresh karein.';return;
   }
+  if(typeof ctx.today==='function'&&details.date>ctx.today()&&!pending){message.textContent='Future payment date allowed nahi hai.';return;}
   if(!details.date||!Number.isFinite(details.amount)||details.amount<=0||
      details.amount>Number(summary.balance_amount)){
    message.textContent='Valid amount bharein; amount remaining due se zyada nahi ho sakta.';return;
