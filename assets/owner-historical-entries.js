@@ -19,6 +19,13 @@
  const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const currency=v=>'₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});
  const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))&&!Number.isNaN(Date.parse(v))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
+ function historicalReceipt(amount,date,method,current){
+  if(!Number.isFinite(amount)||amount<0)throw Error('Received amount unavailable.');
+  if(amount===0)return {received_date:null,payment_method:null};
+  if(!validDate(date)||date<'2000-01-01'||date>current)throw Error('Enter the actual payment received date, not a future date.');
+  if(!['Cash','UPI','Card','Bank Transfer','Other'].includes(method))throw Error('Select the original payment method.');
+  return {received_date:date,payment_method:method};
+ }
  function validCompletedStay(arrival,departure,current){
   return validDate(arrival)&&validDate(departure)&&validDate(current)&&arrival>='2000-01-01'&&arrival<current&&departure>arrival&&departure<=current;
  }
@@ -79,12 +86,13 @@
   holder.innerHTML='<div class="bhe-calendar-top"><label><strong>📅 Entry date</strong><input data-bhe-day name="history_date" type="date" max="'+today()+'" value="'+today()+'" aria-label="Select old entry date"></label><button type="button" data-bhe-today>Today</button></div>'+
    '<strong class="bhe-muted" data-bhe-badge hidden>HISTORICAL RECORD · Completed stay / backdated entry</strong><p class="bhe-hint" data-bhe-hint>Aaj ki entry normal live flow se save hogi.</p>'+
    '<div class="bhe-extra" data-bhe-extra hidden>'+(kind==='room'?
-     '<p class="bhe-muted"><strong>Old register mode:</strong> guest details aur old room bill save honge. Live room change, payment collection, aur photo ID upload nahi hoga. ID photos yahan select karne par bhi save nahi hongi.</p><div class="bhe-fields"><label>Old register room number<input name="history_room_number" maxlength="60" placeholder="e.g. 101"></label><label>Old room bill (₹)<input name="history_room_amount" type="number" min="0" step=".01" value="0"></label><label>Amount already received (₹)<input name="history_room_received" type="number" min="0" step=".01" value="0"></label><label>Payment method<select name="history_room_method"><option value="">Not recorded</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>':
+     '<p class="bhe-muted"><strong>Old register mode:</strong> guest details aur old room bill save honge. Live room change, payment collection, aur photo ID upload nahi hoga. ID photos yahan select karne par bhi save nahi hongi.</p><div class="bhe-fields"><label>Old register room number<input name="history_room_number" maxlength="60" placeholder="e.g. 101"></label><label>Old room bill (₹)<input name="history_room_amount" type="number" min="0" step=".01" value="0"></label><label>Amount already received (₹)<input name="history_room_received" type="number" min="0" step=".01" value="0"></label><label>Actual payment received date<input name="history_room_received_date" type="date" min="2000-01-01" max="'+today()+'"></label><label>Payment method<select name="history_room_method"><option value="">Not recorded</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>':
      '<p class="bhe-muted"><strong>Old bill date is the Entry date selected above.</strong> Items aur received amount isi POS form mein bharein. Sirf Payment date badalne se bill ki date nahi badalti. Old bill register mein save hoga; naya payment request nahi jayega.</p>')+
    '<div class="bhe-actions"><strong>Saved old records</strong><button type="button" data-bhe-month aria-pressed="false">View whole month</button></div>'+
    '<div data-bhe-list aria-live="polite"></div></div>'+
    '<p class="bhe-status" data-bhe-status role="status" aria-live="polite"></p>';
   form.prepend(holder);
+  if(kind==='room'){const amount=getField(form,'history_room_received'),receivedDate=getField(form,'history_room_received_date'),method=getField(form,'history_room_method');const syncReceipt=()=>{const has=Number(amount.value)>0;receivedDate.disabled=!has;receivedDate.required=has;method.disabled=!has;method.required=has;receivedDate.max=today();if(!has){receivedDate.value='';method.value='';}};amount.addEventListener('input',syncReceipt);form.addEventListener('reset',()=>setTimeout(syncReceipt,0));syncReceipt();}
   const date=holder.querySelector('[data-bhe-day]');
   date.addEventListener('change',()=>{holder.querySelector('[data-bhe-month]').setAttribute('aria-pressed','false');renderState(form,kind,true)});
   holder.querySelector('[data-bhe-today]').addEventListener('click',()=>{date.value=today();renderState(form,kind,true)});
@@ -119,7 +127,7 @@
   const key=kind==='room'?'property_id':'restaurant_id';
   list.textContent='Reading saved records…';
   const q=ctx.sb.from('bite_owner_historical_entries')
-   .select('id,record_date,customer_name,room_number,amount,received_amount,guest_count,visit_type,recorded_at')
+   .select('id,record_date,customer_name,room_number,amount,received_amount,received_date,guest_count,visit_type,recorded_at')
    .eq('entry_kind',kind).eq(key,id).gte('record_date',month?first:date).lt('record_date',month?last:plusDay(date))
    .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false}).limit(historyLimit+1);
   try{
@@ -130,7 +138,7 @@
    if(!summary.complete){list.innerHTML=line('More than '+historyLimit+' records for this period. Use a shorter period or the full POS / Guest Register report. No partial total shown.');return;}
    const rows=summary.rows,total=summary.total;
    list.innerHTML='<p class="bhe-totals">'+(month?'Month':'Date')+': '+rows.length+' record(s) · '+currency(total)+' billed</p>'+
-    (rows.length?rows.map(x=>'<div class="bhe-record"><span><strong>'+safe(x.customer_name)+'</strong><small>'+safe(x.record_date)+' · '+safe(kind==='room'?'Room '+x.room_number:x.visit_type==='takeaway'?'Takeaway':(x.guest_count||'?')+' dine-in guests')+'</small></span><span><strong>'+currency(x.amount)+'</strong><small>Received '+currency(x.received_amount)+'</small></span></div>').join(''):
+    (rows.length?rows.map(x=>'<div class="bhe-record"><span><strong>'+safe(x.customer_name)+'</strong><small>'+safe(x.record_date)+' · '+safe(kind==='room'?'Room '+x.room_number:x.visit_type==='takeaway'?'Takeaway':(x.guest_count||'?')+' dine-in guests')+'</small></span><span><strong>'+currency(x.amount)+'</strong><small>Received '+currency(x.received_amount)+(kind==='room'&&Number(x.received_amount)>0?' · '+safe(x.received_date||'Receipt date not recorded'):'')+'</small></span></div>').join(''):
       line('Is date ka koi purana record abhi save nahi hai.'));
   }catch(error){if(current())list.innerHTML=line('Purane records load nahi hue: '+(error.message||'Network error'));}
  }
@@ -161,7 +169,7 @@
    values.departure_date=departure;values.room_number=roomNumber;values.amount=amount;values.received_amount=received;
    values.guest_count=Number(getField(form,'adults')?.value||1)+Number(getField(form,'children')?.value||0);
    if(values.guest_count<1||values.guest_count>200)throw new Error('Guest count check karein.');
-   values.payment_method=received?getField(form,'history_room_method')?.value||null:null;
+   Object.assign(values,historicalReceipt(received,getField(form,'history_room_received_date')?.value,getField(form,'history_room_method')?.value,today()));
    values.guest_details=Object.fromEntries(['country','address','email','id_type','id_last4','arrived_from','next_destination','transport','vehicle_number','booking_reference','booking_source','compliance_note','male','female','children','arrival_time'].map(key=>[key,String(getField(form,key)?.value||'').slice(0,500)]));
    values.notes=String(getField(form,'compliance_note')?.value||'').slice(0,500);
    // Identity files from the live form are never silently copied into historical storage.
@@ -253,5 +261,5 @@
   observer.observe(document.body,{childList:true,subtree:true});
   scan();
  }
- root.BiteOwnerHistory={init,scan,isHistorical,validDate,validCompletedStay,plusDay,historyListSummary,loadRows};
+ root.BiteOwnerHistory={init,scan,isHistorical,validDate,validCompletedStay,historicalReceipt,plusDay,historyListSummary,loadRows};
 })(window);

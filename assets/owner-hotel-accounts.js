@@ -520,6 +520,7 @@
    '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
    '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
    '<section class="bh-panel" id="haCollections" aria-label="Source-linked Collections"></section>'+
+   '<section class="bh-panel" id="haHistoricalRoom" aria-label="Read-only historical guest collections"></section>'+
    '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section>'+
    '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
    (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
@@ -527,6 +528,7 @@
    '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
    '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
   root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',onOpen:openCollectionSource});
+  renderHistoricalRoomCollections(body,{from,to,key,version});
   renderOldPosReconciliation(body,{from,to,key,version});
  }
 
@@ -550,6 +552,28 @@
   if(reportKey!==scope()||version!==reportVersion||access.restaurantId!==ctx.getAccess?.()?.restaurantId)return;
   if(typeof root.BitePOSV2?.openReportDate==='function')root.BitePOSV2.openReportDate(day);
   else root.alert?.('POS calendar is unavailable. Open POS → Reports and select '+day+'.');
+ }
+ function historicalRoomSummary(v,from,to){
+  if(!v||v.record_type!=='historical_register_only'||v.from!==from||v.to!==to||!Array.isArray(v.receipts))throw Error('Historical collections response unavailable.');
+  const amounts=['billed','undated_received','dated_receipts'];for(const k of amounts)if(billAmountCents(v[k])===null||billAmountCents(v[k])<0)throw Error('Historical amount unavailable.');
+  if(!Number.isSafeInteger(Number(v.bill_count))||Number(v.bill_count)<0)throw Error('Historical bill count unavailable.');
+  let total=0;const seen=new Set();
+  for(const r of v.receipts){const c=billAmountCents(r.amount),k=r.day+':'+r.method;if(c===null||c<=0||!/^\d{4}-\d{2}-\d{2}$/.test(r.day)||r.day<from||r.day>to||!['Cash','UPI','Card','Bank Transfer','Other'].includes(r.method)||seen.has(k)||!Number.isSafeInteger(Number(r.count))||Number(r.count)<1)throw Error('Historical receipt detail unavailable.');seen.add(k);total+=c;}
+  if(!Number.isSafeInteger(total)||total!==billAmountCents(v.dated_receipts))throw Error('Historical receipt totals changed.');
+  return v;
+ }
+ async function renderHistoricalRoomCollections(body,{from,to,key,version}){
+  const target=body?.querySelector('#haHistoricalRoom');if(!target)return;
+  if(!manager()){target.hidden=true;return;}
+  target.textContent='Reading historical guest collections…';
+  try{
+   const r=await ctx.sb.rpc('bite_historical_room_period',{p_property:p().id,p_from:from,p_to:to});
+   if(key!==scope()||version!==reportVersion||!target.isConnected)return;
+   if(r.error)throw r.error;
+   const v=historicalRoomSummary(r.data,from,to);
+   target.innerHTML='<h2>Historical guest register · Read only</h2><p class="bh-note">Imported old records, not posted live income. Bill date and actual receipt date are separate. Do not add these amounts again to live Cash Book.</p><div class="bh-metrics">'+[['Old bills in period',Number(v.bill_count)],['Old billed amount',money(v.billed)],['Dated old receipts',money(v.dated_receipts)],['Old bills with undated receipts',money(v.undated_received)]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
+    (v.receipts.length?'<div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Actual receipt date</th><th>Method</th><th>Records</th><th>Amount</th></tr></thead><tbody>'+v.receipts.map(r=>'<tr><td>'+esc(r.day)+'</td><td>'+esc(r.method)+'</td><td>'+esc(r.count)+'</td><td>'+money(r.amount)+'</td></tr>').join('')+'</tbody></table></div>':'<p>No dated historical guest receipts for this period.</p>')+'<p>Legacy undated receipts are shown separately under the bill period; no date is guessed.</p>';
+  }catch(e){if(key===scope()&&version===reportVersion&&target.isConnected)target.textContent='Historical guest collections unavailable. Refresh this period. '+(e.message||'');}
  }
  function renderOldPosReconciliation(body,{from,to,key,version}){
   const target=body?.querySelector('#haHistoricalPOS'),restaurantId=linkedRegisterRestaurant()||'';
@@ -648,6 +672,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,historicalRoomSummary};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
