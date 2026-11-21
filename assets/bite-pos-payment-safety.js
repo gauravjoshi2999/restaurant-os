@@ -11,6 +11,11 @@
   if(!identity?.uid||!identity.restaurantId||!identity.orderId)throw Error('Payment identity unavailable');
   return PREFIX+[identity.uid,identity.restaurantId,identity.orderId].join(':');
  }
+ function validDate(date){
+  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+  const d=new Date(date+'T00:00:00Z');
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===date;
+ }
  function normalize(details){
   const value=Number(details?.amount),cents=Math.round(value*100);
   if(!Number.isFinite(value)||value<=0||!Number.isSafeInteger(cents)||Math.abs(value*100-cents)>0.000001)
@@ -18,7 +23,7 @@
   const method=String(details?.method||'');
   if(!METHODS.includes(method))throw Error('Valid payment method select karein.');
   const date=String(details?.date||'');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw Error('Valid payment date bharein.');
+  if(!validDate(date))throw Error('Valid payment date bharein.');
   const reference=String(details?.reference||'').trim(),notes=String(details?.notes||'').trim();
   if(reference.length>100||notes.length>250)throw Error('Payment reference/note too long.');
   return {amount:cents/100,method,date,reference,notes};
@@ -58,7 +63,7 @@
   if(!attempt)return {status:'none'};
   try{
    const {data,error}=await sb.from('restaurant_order_payments')
-    .select('id,order_id,restaurant_id,amount,payment_method,payment_date,reference')
+    .select('id,order_id,restaurant_id,amount,payment_method,payment_date,reference,notes,created_by')
     .eq('id',attempt.id).eq('order_id',identity.orderId)
     .eq('restaurant_id',identity.restaurantId).maybeSingle();
    if(error)return {status:'unknown',attempt,error};
@@ -68,7 +73,8 @@
       data.restaurant_id!==identity.restaurantId||
       Math.round(Number(data.amount)*100)!==Math.round(expected.amount*100)||
       data.payment_method!==expected.method||data.payment_date!==expected.date||
-      String(data.reference||'')!==expected.reference)
+      String(data.reference||'')!==expected.reference||
+      String(data.notes||'')!==expected.notes||data.created_by!==identity.uid)
     return {status:'conflict',attempt,error:Error('Payment ID matched unexpected data')};
    clear(storage,identity);
    return {status:'confirmed',attempt,recovered:true};
@@ -100,7 +106,7 @@
   }
   return {status:'pending',error:check.error||error,attempt};
  }
- const api={key,normalize,getPending,begin,reconcile,save};
+ const api={key,validDate,normalize,getPending,begin,reconcile,save};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.BitePOSPayment=api;
 })(typeof window!=='undefined'?window:globalThis);
