@@ -23,3 +23,17 @@ test('Mobile workspaces keep four financial figures, accessible buttons and scro
  assert.match(css,/overflow-x:auto/);
  assert.match(css,/#menuSearchInput/);
 });
+
+test('R02 Hindi marks and keyboard initial Up/Down navigation are preserved',()=>{
+ const vm=require('node:vm');
+ const src=html.match(/function normalizePosSearch\(value\)\{[^\n]+\}/)[0];
+ const normalize=vm.runInNewContext(src+';normalizePosSearch');
+ assert.equal(normalize('पनीर टिक्का'),'पनीर टिक्का');
+ assert.notEqual(normalize('दाल'),normalize('दल'));
+ assert.match(html,/posSearchActiveIndex<0\?\(event.key==='ArrowDown'\?0:posSearchMatches.length-1\)/);
+});
+test('R02 selected duplicate-name menu item keeps its identity and stale requests are rejected',()=>{
+ assert.match(html,/matches\.find\(item=>item.id===selectedId\)/);
+ assert.match(html,/matches.length>1&&!match/);
+ assert.match(html,/request!==posMenuRequest\|\|posMenuRestaurantId!==restaurantId\|\|access.restaurantId!==restaurantId\|\|currentUser\?\.id!==userId/);
+});
