@@ -72,3 +72,8 @@ test('H06 historical records stay separate, use original date and support name/m
  assert.throws(()=>R.historicalRows([{id:'bad',record_date:'2026-02-30'}],null),/verified/);
  assert.throws(()=>R.historicalRows(Array(501).fill(rows[0]),null),/shorter/);
 });
+
+test('H06 historical export distinguishes recorded total from rent and unknown money from zero',()=>{
+ const sheet=R.historicalExportRows([{record_date:'2026-10-01',customer_name:'Synthetic',room_number:'101',amount:1250,received_amount:0},{record_date:'2026-10-02',amount:null,received_amount:null}]);
+ assert.equal(sheet[0][7],'Recorded bill');assert.equal(sheet[1][0],'Historical');assert.equal(sheet[1][7],1250);assert.equal(sheet[1][8],0);assert.equal(sheet[2][7],'');assert.equal(sheet[2][8],'');
+});
