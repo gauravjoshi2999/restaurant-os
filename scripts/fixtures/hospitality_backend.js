@@ -1,5 +1,7 @@
 /* SYNTHETIC UI TRANSPORT ONLY. Never packaged or loaded by the public app. */
 (function(){
+ // Regression fixture defaults to the supported full-form preference; stage tests switch through UI.
+ if(sessionStorage.getItem('bite_checkin_full_form')===null)sessionStorage.setItem('bite_checkin_full_form','1');
  const factory=window.supabase.createClient;
  window.supabase.createClient=(...args)=>{
   const client=factory(...args),rpc=client.rpc.bind(client),requested=window.__BITE_HOSPITALITY_TYPE||'hotel',type=requested==='new'?'hotel':['cashier','new-restaurant'].includes(requested)?'restaurant':requested;
