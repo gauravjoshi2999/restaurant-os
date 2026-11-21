@@ -36,7 +36,7 @@
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
-  root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
+  form.__haSteps?.reveal(input);root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -83,22 +83,23 @@
   form.dataset.enhanced='true';form.noValidate=true;
   const rooms=db().rooms||[],guests=db().guests||[];
   const roomId=draft.room_id||'',room=rooms.find(r=>r.id===roomId),saved=!!draft.id_front_id;
-  form.innerHTML='<div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
+  form.innerHTML='<section class="ha-step-panel" data-ha-step="guest"><div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
    '<h2>1 · Guest details</h2>'+
    '<details class="ha-returning"><summary>Returning guest</summary>'+field('guest_search','Find by name or mobile','search','','data-guest-search autocomplete="off"')+select('guest_id','Use saved guest',option('','New guest')+guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===(guest?.id||draft.guest_id))).join(''),'data-guest-picker')+'</details>'+
    '<div class="bh-form-grid">'+field('phone','Mobile number *','tel',guest?.phone||draft.phone||'','required minlength="7" maxlength="20" autocomplete="tel"')+field('full_name','Guest name *','text',guest?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')+'</div><div class="bh-form-grid ha-guest-counts">'+field('male','Male','number',draft.male??1,'required min="0" max="20" step="1"')+field('female','Female','number',draft.female??0,'required min="0" max="20" step="1"')+field('children','Children','number',draft.children??0,'required min="0" max="20" step="1"')+'</div><input type="hidden" name="adults" value="1"><div class="bh-form-grid">'+
    field('address','Permanent address *','text',guest?.address||draft.address||'','required maxlength="500" autocomplete="street-address"')+field('arrived_from','Arriving from *','text',draft.arrived_from||'','required maxlength="120"')+field('next_destination','Next destination *','text',draft.next_destination||'','required maxlength="120"')+
    select('transport','Arrived by *',['Car','Bike','Bus','Train','Other'].map(x=>option(x,x,x===(draft.transport||'Bus'))).join(''),'required')+
    field('vehicle_number','Vehicle registration number *','text',draft.vehicle_number||'','maxlength="30" data-ha-vehicle')+'</div>'+
+   '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
+   '<div class="bh-actions" data-h07-guest-actions><button type="button" class="btn" data-h07-continue>Continue to rooms</button>'+button('draft','Save draft')+'</div></section><section class="ha-step-panel" data-ha-step="ids">'+
    '<div class="ha-id-section"><h3>Guest ID</h3><div class="bh-form-grid"><label class="bh-field"><span>ID front — Required</span><input type="file" name="id_front" accept="image/jpeg,image/png,application/pdf" '+(saved?'':'required')+'><small data-front-status>'+esc(saved?'Previously saved front will be checked again.':'Take a clear photo or choose a file · Up to 4 MB')+'</small></label><label class="bh-field"><span>ID back — Optional, if available</span><input type="file" name="id_back" accept="image/jpeg,image/png,application/pdf"><small>JPEG, PNG or PDF · Up to 4 MB</small></label></div>'+
    '<input type="hidden" name="id_front_id" value="'+esc(draft.id_front_id||'')+'"><input type="hidden" name="id_back_id" value="'+esc(draft.id_back_id||'')+'">'+
    check('id_checked','I checked that the ID copy is necessary and masked where required.','required')+'<p class="bh-note">ID copies are private to authorized property staff and are excluded from bills.</p></div>'+
-   '<details><summary>Additional guest details</summary><div class="bh-form-grid">'+field('country','Nationality / country','text',guest?.country||draft.country||'India','required maxlength="60"')+field('email','Email · Optional','email',guest?.email||draft.email||'','maxlength="120"')+field('id_type','ID type','text',guest?.id_type||draft.id_type||'','maxlength="40"')+field('id_last4','Last 4 ID characters only','text',guest?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')+field('compliance_note','Arrival note · Optional','text',draft.compliance_note||'','maxlength="250"')+'</div></details>'+
-   '<div class="bh-actions" data-h07-guest-actions><button type="button" class="btn" data-h07-continue>Continue to rooms</button>'+button('draft','Save draft')+'</div><h2 tabindex="-1" data-h07-rooms>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
+   '</section><section class="ha-step-panel" data-ha-step="rooms"><h2 tabindex="-1" data-h07-rooms>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
    field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??'','required min="0" step="0.01" inputmode="decimal" placeholder="Enter this guest’s agreed rent"')+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
-   '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"><div data-ha-booking></div>'+message()+'<div class="bh-form-actions"><button type="submit" class="btn">Review check-in</button></div>';
+   '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"></section><section class="ha-step-panel" data-ha-step="payment"><div data-ha-booking></div></section>'+message()+'<div class="bh-form-actions"><button type="submit" class="btn">Review check-in</button></div>';
   if(booking){
    booking.querySelector('h3').textContent='3 · Advance payment · Optional';
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
@@ -138,6 +139,56 @@
   root.BiteCheckinGuard?.decorate(form,draft,guest);
   root.BiteHotelBilling?.decorateRegister(form,draft);
   form.querySelector('[data-h07-continue]').addEventListener('click',()=>{const heading=form.querySelector('[data-h07-rooms]');heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});});
+ }
+ function mountRegisterSteps(form,draft={}){
+  if(form.dataset.enhanced!=='true'||form.__haSteps)return;
+  const heading=form.querySelector('[data-h07-rooms]'),booking=form.querySelector('[data-ha-booking]'),actions=form.querySelector('.bh-form-actions'),ids=form.querySelector('.ha-id-section'),guestActions=form.querySelector('[data-h07-guest-actions]');
+  if(!heading||!booking||!actions||!ids||!guestActions)return;
+  const guest=form.querySelector('[data-ha-step="guest"]'),rooms=form.querySelector('[data-ha-step="rooms"]'),payment=form.querySelector('[data-ha-step="payment"]'),photos=form.querySelector('[data-ha-step="ids"]');
+  if(!guest||!rooms||!payment||!photos)return;
+  const draftButton=guestActions.querySelector('[data-ha-action=draft]');if(draftButton)actions.prepend(draftButton);
+  const header=document.createElement('div');header.className='ha-step-header';header.innerHTML='<div><small data-ha-step-caption></small><strong data-ha-step-title></strong></div><button type="button" class="ha-text-button" data-ha-toggle-view>Full form</button>';form.prepend(header);
+  const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to review</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
+  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
+  const paymentBack=document.createElement('button');paymentBack.type='button';paymentBack.className='btn secondary';paymentBack.dataset.haPaymentBack='';paymentBack.textContent='Back to rooms';actions.prepend(paymentBack);
+  const panels={guest,rooms,ids:photos,payment},labels={guest:['STEP 1 OF 3 · Guest','Guest'],rooms:['STEP 2 OF 3 · Rooms','Multiple rooms'],ids:['STEP 2 OF 3 · Guest ID photos','Guest ID photos'],payment:['STEP 3 OF 3 · Review','Payment & review']};
+  let full=false,step='guest';try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
+  const submit=actions.querySelector('[type=submit]'),toggle=header.querySelector('[data-ha-toggle-view]');
+  function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();submit.textContent='Review check-in'}
+  function show(next,focus=true){
+   if(!panels[next])return;step=next;form.dataset.haStepView=full?'all':step;
+   for(const [key,el] of Object.entries(panels)){el.hidden=!full&&key!==step;if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
+   roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';submit.hidden=!full&&step!=='payment';
+   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
+   const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
+   if(focus&&!full){header.tabIndex=-1;header.focus({preventScroll:true});header.scrollIntoView({block:'start',behavior:'instant'})}
+  }
+  function validate(panelNode){
+   for(const input of form.elements){if(panelNode.contains(input)&&input.willValidate&&!input.validity.valid){showRegisterError(form,fieldError(input.name,input.validationMessage||'Complete this field.'));return false}}
+   return true;
+  }
+  function advance(){
+   if(full)return false;
+   if(step==='guest'){
+    if(!validate(guest))return true;
+    if(!form.dataset.stayId){try{validateRegistration({...Object.fromEntries(new FormData(form)),nightly_rate:'0'})}catch(e){showRegisterError(form,e);return true}}
+    show('rooms');return true;
+   }
+   if(step==='rooms'){
+    if(!validate(rooms))return true;
+    if(form.elements.departure.value<=form.elements.arrival.value){showRegisterError(form,fieldError('departure','Departure must be after arrival.'));return true}
+    try{root.BiteFamilyCheckin?.plan(form,Object.fromEntries(new FormData(form)),H().getWorkspace())}catch(e){if(!showRegisterError(form,e))form.querySelector('.bh-message').textContent=e.message||String(e);return true}
+    show('payment');return true;
+   }
+   if(step==='ids'){show('rooms');return true}return false;
+  }
+  function back(next){invalidate();show(next)}
+  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&id!==step)show(id,false)},back,show};
+  toggle.onclick=()=>{full=!full;try{root.sessionStorage.setItem('bite_checkin_full_form',full?'1':'0')}catch{}show(step)};
+  guestActions.querySelector('[data-h07-continue]').addEventListener('click',e=>{if(!full){e.preventDefault();e.stopImmediatePropagation();advance()}},true);
+  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>show('rooms');paymentBack.onclick=()=>back('rooms');
+  form.addEventListener('input',()=>{submit.textContent='Review check-in'});
+  show(draft.stay_id?'rooms':'guest',false);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -548,6 +599,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
