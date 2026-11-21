@@ -10,7 +10,7 @@ set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$
 declare
  p uuid; g uuid; r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid; r6 uuid;
- req uuid:=gen_random_uuid(); familyreq uuid:=gen_random_uuid(); payload jsonb; family jsonb; result jsonb; again jsonb; denied boolean; n integer; day date:=current_date+10;
+ req uuid:=gen_random_uuid(); familyreq uuid:=gen_random_uuid(); payload jsonb; family jsonb; result jsonb; again jsonb; denied boolean; n integer; day date:=current_date+10; front uuid; back uuid; d uuid; copy jsonb; reg jsonb; immediate jsonb; walkin_request uuid:=gen_random_uuid();
 begin
  p:=public.bite_create_property('Synthetic H10 Deposit Hotel','hotel',gen_random_uuid());
  g:=(public.bite_property_command(p,'guest_save','{"full_name":"Synthetic Deposit Guest","phone":"7777777701","country":"India","address":"Synthetic QA"}',gen_random_uuid())->>'id')::uuid;
@@ -40,6 +40,21 @@ begin
  denied:=false;begin perform public.bite_booking_with_deposit(p,'single',payload||jsonb_build_object('room_id',r5,'checkin_deposit',jsonb_build_object('amount',300,'method','UPI','verified',true)),gen_random_uuid());exception when others then denied:=true;end;
  if not denied then raise exception 'Online verification without reference accepted';end if;
  if exists(select 1 from public.bite_stays where property_id=p and room_id=r5) then raise exception 'Invalid deposit created a reservation';end if;
+ -- Same-day check-in, using actual synthetic document authorization and an atomic receipt.
+ for n in 1..2 loop
+  d:=gen_random_uuid();
+  copy:=public.bite_guest_document_command(p,g,d,'begin','{"kind":"masked_id","mime_type":"image/png","byte_size":8,"redacted_confirmed":true}'::jsonb);
+  perform set_config('storage.operation','object.upload',true);
+  insert into storage.objects(bucket_id,name,metadata,owner_id) values('bite-guest-documents',copy->>'object_path','{"size":8,"mimetype":"image/png"}',auth.uid()::text);
+  perform public.bite_guest_document_command(p,g,d,'finish');
+  if n=1 then front:=d;else back:=d;end if;
+ end loop;
+ reg:=jsonb_build_object('male',1,'female',0,'children',0,'id_front',front,'id_back',back,'arrived_from','Udaipur','next_destination','Jaipur','transport','Bus','guest_snapshot',jsonb_build_object('full_name','Synthetic Deposit Guest','address','Synthetic QA'),'additional_ids','[]'::jsonb);
+ immediate:=payload||jsonb_build_object('room_id',r5,'arrival',(now() at time zone 'Asia/Kolkata')::date,'departure',(now() at time zone 'Asia/Kolkata')::date+1,'booking_mode','checkin','terms_at_checkin',true,'registration',reg,'advance_amount',100,'checkin_deposit',jsonb_build_object('amount',450,'method','Cash'));
+ result:=public.bite_booking_with_deposit(p,'single',immediate,walkin_request);
+ if result->>'checkin_completed'<>'true' or not exists(select 1 from public.bite_stays where id=(result->>'id')::uuid and status='in_house') then raise exception 'Deposit check-in did not atomically occupy the room';end if;
+ if public.bite_booking_with_deposit(p,'single',immediate,walkin_request)<>result then raise exception 'Check-in with deposit retry is not idempotent';end if;
+ if (select count(*) from public.bite_folio_entries where folio_id=(result->>'folio_id')::uuid and kind='deposit_hold' and amount=450 and status='confirmed')<>1 then raise exception 'Immediate check-in duplicated deposit';end if;
  perform public.bite_save_staff_access(p,'33333333-3333-4333-8333-333333333333','','manager',true,array['guest_entry','reservation_entry','checkin']);
  perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
  denied:=false;begin perform public.bite_booking_with_deposit(p,'single',payload||jsonb_build_object('room_id',r6,'advance_amount',0),gen_random_uuid());exception when others then denied:=true;end;
