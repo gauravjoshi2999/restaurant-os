@@ -1992,7 +1992,7 @@ async function fetchCashbookSnapshot(rid,date){
  ]);
  if(entries.error)throw entries.error;if(closing.error)throw closing.error;
  if(!Array.isArray(entries.data)||entries.count!==entries.data.length)throw Error('Cashbook entries incomplete; closing disabled.');
- const seen=new Set();for(const e of entries.data){const k=JSON.stringify([e.source_type,e.entry_id]);if(e.restaurant_id!==rid||e.entry_date!==date||!e.entry_id||!e.source_type||seen.has(k)||!['in','out'].includes(e.direction))throw Error('Invalid or duplicate cashbook source.');window.BiteCashClosing.paise(e.amount,'Cashbook entry');seen.add(k);}
+ const seen=new Set();for(const e of entries.data){const k=JSON.stringify([e.source_type,e.entry_id]);if(e.restaurant_id!==rid||e.entry_date!==date||!e.entry_id||!e.source_type||seen.has(k)||!['in','out'].includes(e.direction))throw Error('Invalid or duplicate cashbook source.');BiteCashClosing.paise(e.amount,'Cashbook entry');seen.add(k);}
  return {entries:entries.data,closing:closing.data||null};
 }
 async function loadCashbook(){
