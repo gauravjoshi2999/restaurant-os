@@ -1111,8 +1111,12 @@
   const total=items.reduce((n,i)=>n+Math.round(i.quantity*i.unit_price*100)/100,0);
   const text=$('biteRoomPOSFolio').selectedOptions[0]?.textContent;
   const discount=Number($('orderForm').elements.bite_food_discount?.value||0);
+  const cents=Math.round(discount*100),reason=String($('orderForm').elements.bite_discount_reason?.value||'').trim();
+  if(!Number.isFinite(total)||total<0||!Number.isFinite(discount)||discount<0||!Number.isSafeInteger(cents)||Math.abs(discount*100-cents)>0.00001||cents>Math.round(total*100))
+   throw Error('Room food discount must be a valid amount up to bill total.');
+  if(cents>0&&!reason)throw Error('Enter the room food discount reason.');
   if(!root.confirm(text+'\nFood charge '+money(total-discount)+(discount?' (discount '+money(discount)+')':'')+'\nPost once to this guest folio?'))throw Error('Room charge cancelled. Bill draft is preserved.');
-  return command('room_pos',{folio_id,restaurant_id:ctx.getAccess().restaurantId,items,fulfilment:$('orderForm').elements.bite_fulfilment?.value||'served',service_note:$('orderForm').elements.bite_service_note?.value||'',channel:$('orderChannel').value,discount:Number($('orderForm').elements.bite_food_discount?.value||0),discount_reason:$('orderForm').elements.bite_discount_reason?.value||''});
+  return command('room_pos',{folio_id,restaurant_id:ctx.getAccess().restaurantId,items,fulfilment:$('orderForm').elements.bite_fulfilment?.value||'served',service_note:$('orderForm').elements.bite_service_note?.value||'',channel:$('orderChannel').value,discount,discount_reason:reason});
  }
  function createPOSSale(items,fields){const visit=root.BitePOSVisits?.selected?.();return command('pos_sale',{restaurant_id:ctx.getAccess().restaurantId,items,channel:fields.get('channel'),customer_name:fields.get('customer_name')||'',customer_phone:fields.get('customer_phone')||'',paid_amount:Number(fields.get('paid_amount')||0),payment_method:fields.get('payment_method'),reference:fields.get('payment_reference')||'',table_id:fields.get('bite_table_id')||null,...(visit&&['POS - Dine-in','POS - Takeaway'].includes(fields.get('channel'))?{pos_visit_type:visit.visitType,guest_count:visit.guestCount}:{})})}
  function postedOrder(id){return data.entries.find(e=>e.source_order_id===id)||null}

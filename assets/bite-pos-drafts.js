@@ -192,6 +192,7 @@ function fill(data){
 }
 async function openDraft(id){
  const ident=identity();if(!ident)return;
+ if($('orderModal')?.classList.contains('show')){alert('Current bill pehle save ya close karein.');return;}
  let rec=readCache(ident).find(x=>x.id===id);
  if(!rec&&!deletionExists(ident,id)){
   const r=await ctx.sb.from('restaurant_pos_drafts').select('*')
@@ -202,9 +203,10 @@ async function openDraft(id){
  }
  if(!sameIdentity(ident))return;
  if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,id)){alert('Draft already deleted or not found for your restaurant.');return}
+ if($('orderModal')?.classList.contains('show')){alert('Current bill pehle save ya close karein.');return;}
  await window.openOrder();
  // openOrder may itself be async; do not fill one Owner's customer details in another Owner's bill.
- if(!sameIdentity(ident))return;
+ if(!sameIdentity(ident)||deletionExists(ident,id))return;
  activeOwner=ident;activeId=rec.id;fill(rec.payload||{});
  setStatus(rec.dirty?'Draft restored · cloud sync pending':'Draft restored ✓');
 }
@@ -247,14 +249,15 @@ async function finishOrder(){
 function currentOrderCode(){return activeId?'POS-'+activeId.replace(/-/g,'').slice(0,24).toUpperCase():null}
 async function refreshDrafts(){
  const ident=identity();if(!ident)return;
- let local=readCache(ident),list=local.slice();
  const r=await ctx.sb.from('restaurant_pos_drafts').select('id,restaurant_id,created_by,payload,updated_at')
   .eq('restaurant_id',ident.restaurantId).eq('created_by',ident.uid).order('updated_at',{ascending:false}).limit(40);
  // Stale list responses must not update cache or UI after an account/restaurant switch.
  if(!sameIdentity(ident))return;
  if(r.error){console.warn('Draft list unavailable:',r.error.message);renderDrafts();void cleanupDeletions();return}
+ // Re-read after network wait: local edits or deletes may have occurred in flight.
+ const list=readCache(ident).slice();
  for(const remote of r.data||[]){
-  if(remote.created_by!==ident.uid||deletionExists(ident,remote.id))continue;
+  if(!remote.id||remote.restaurant_id!==ident.restaurantId||remote.created_by!==ident.uid||deletionExists(ident,remote.id))continue;
   const idx=list.findIndex(x=>x.id===remote.id);
   if(idx<0)list.push({...remote,dirty:false});
   else if(!list[idx].dirty&&new Date(remote.updated_at)>new Date(list[idx].updated_at))list[idx]={...remote,dirty:false};

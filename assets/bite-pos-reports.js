@@ -72,7 +72,7 @@ function historicalMoney(value){
  return cents/100;
 }
 function mergeHistorical(live,rows){
- const days=(live.days||[]).map(d=>({...d,historical_bills:0,historical_billed:0,historical_received:0}));
+ const days=(live.days||[]).map(d=>({...d,historical_bills:0,historical_billed:0,historical_received:0})).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
  const byDay=new Map(days.map(d=>[d.date,d]));
  const selectedHistory=[],seen=new Set();
  if(!Array.isArray(rows))throw Error('Incomplete historical register response');
@@ -147,7 +147,7 @@ function showReport(){
  const current=selectedRow()||{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0,historical_bills:0,historical_billed:0,historical_received:0};
  const totals=summarize(data);
  const metric=mode==='monthly'?totals:current;
- const metricTitle=mode==='monthly'?'Monthly POS summary':dateLabel(selected);
+ const metricTitle=(mode==='monthly'?'Monthly POS summary':dateLabel(selected))+(report.historyError?' · Live bills only':'');
  const avg=Number(metric.bills)?money(Number(metric.billed)/Number(metric.bills)):'₹0';
  const cards='<div class="bpr-metrics">'+
   summaryCard('Bills',String(metric.bills),'is-purple','▤')+

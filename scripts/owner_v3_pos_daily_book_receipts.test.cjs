@@ -64,3 +64,23 @@ test('R02: mobile recent bills expose only verified receipt link and a focusable
  assert.match(css,/min-height:36px/);
  assert.match(css,/\.bpv2-receipt-link:focus-visible/);
 });
+
+test('R06 rejects duplicate order/receipt IDs and malformed receipt money',()=>{
+ assert.equal(match({...fixture,orders:[normalOrder,normalOrder]}),null);
+ assert.equal(match({...fixture,orderPayments:[receipt,receipt]}),null);
+ assert.equal(match({...fixture,orderPayments:[{...receipt,amount:100.001}]}),null);
+ assert.equal(match({...fixture,orderPayments:[{...receipt,amount:Infinity}]}),null);
+ assert.equal(match({...fixture,orders:[{...normalOrder,roomLinked:true}]}),null);
+});
+test('R05 R07 R08 guard room discount, historical completeness and in-flight draft refresh',()=>{
+ const hospitality=fs.readFileSync('assets/owner-hospitality.js','utf8');
+ const reports=fs.readFileSync('assets/bite-pos-reports.js','utf8');
+ const drafts=fs.readFileSync('assets/bite-pos-drafts.js','utf8');
+ assert.match(hospitality,/cents>Math.round\(total\*100\)/);
+ assert.match(hospitality,/cents>0&&!reason/);
+ assert.match(reports,/report.historyError\?' · Live bills only'/);
+ const refresh=drafts.slice(drafts.indexOf('async function refreshDrafts()'),drafts.indexOf('function renderDrafts()'));
+ assert.ok(refresh.indexOf('await ctx.sb.from')<refresh.indexOf('const list=readCache'));
+ assert.match(refresh,/remote.restaurant_id!==ident.restaurantId/);
+ assert.match(drafts,/Current bill pehle save ya close karein/);
+});
