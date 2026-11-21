@@ -222,7 +222,7 @@ check("Refund is not marked paid: provider confirmation is required" in owner,
 # Customer review visibility and strict role separation regression checks
 check('data-owner-review-workspace' in owner and "e.style.display=role==='owner'?'':'none'" in owner,
       "Customer review management is visible only in the Restaurant Owner workspace")
-check("if(!list||access.role!=='owner'||!access.restaurantId)return" in owner and ".eq('restaurant_id',access.restaurantId)" in owner,
+check("function currentOwnerReviewScope()" in owner and "access.role==='owner'&&currentUser?.id&&access.restaurantId" in owner and ".eq('restaurant_id',rid)" in owner and "currentOwnerReviewScope()===scope" in owner,
       "Owner review workspace loads only its own restaurant reviews")
 check("Save hidden reply" not in owner and "access.role!=='owner'||!access.restaurantId" in owner,
       "Owner cannot hide customer reviews and reply action is owner-only")
