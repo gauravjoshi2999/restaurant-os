@@ -70,6 +70,9 @@ try:
   c,p,f=open_case(browser)
   check(f.locator('[name=full_name]').input_value()==''and f.locator('[name=nightly_rate]').input_value()=='','Fresh guest and rent are blank')
   check(f.locator('[name=serial_number]').input_value()=='1'and f.locator('[name=register_date]').input_value()==p.evaluate('BiteOwner.day()'),'Serial and India entry date')
+  check(f.locator('[name=phone]').evaluate("(e)=>!!(e.compareDocumentPosition(e.form.elements.full_name)&Node.DOCUMENT_POSITION_FOLLOWING)"),'H07 mobile number appears before name')
+  f.locator('[name=phone]').fill('7777777777');f.locator('[data-h07-continue]').click()
+  check(f.locator('[name=phone]').input_value()=='7777777777' and p.evaluate("document.activeElement.hasAttribute('data-h07-rooms')&&__BITE_HOTEL_QA.db.stays.length===0&&__BITE_HOTEL_QA.db.folios.length===0"),'H07 Continue to rooms preserves guest details and creates no stay or folio')
   fill(f);raw_id(f);review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===1&&__BITE_HOTEL_QA.db.folios.length===1'),'Walk-in creates one stay and khata');record('S01','Fresh walk-in and successful check-in');c.close()
 
