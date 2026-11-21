@@ -163,7 +163,9 @@
   if(!attempt){attempt={id:root.crypto.randomUUID(),signature};
    root.localStorage.setItem(key,JSON.stringify(attempt));}
   const request=withRoomRegistrations(payload);
-  const result=await sb.rpc('bite_family_booking',{p_property:propertyId,p_payload:request,p_request:attempt.id});
+  const result=request.checkin_deposit?
+   await sb.rpc('bite_booking_with_deposit',{p_property:propertyId,p_booking_kind:'family',p_payload:request,p_request:attempt.id}):
+   await sb.rpc('bite_family_booking',{p_property:propertyId,p_payload:request,p_request:attempt.id});
   if(result.error){
    if(['P0001','42501','P0002'].includes(result.error.code)||/^(22|23)/.test(result.error.code||''))root.localStorage.removeItem(key);
    throw Error(result.error.message||'Family booking was not confirmed. Retry the same details.');
