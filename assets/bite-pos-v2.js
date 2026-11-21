@@ -27,24 +27,29 @@
   return parts.year+"-"+parts.month+"-"+parts.day;
  }
  function todayKey(){return dateKey(new Date());}
- function eligible(o){
+ function roomBill(o){return !!o&&(!!o.roomLinked||String(o.code||'').startsWith('POS-ROOM-'));}
+ function scopedBill(o,input){
   return !!o&&!o.isDemo&&!['Cancelled','Rejected'].includes(o.status)&&
-    !String(o.code||"").startsWith("POS-ROOM-")&&!(o.roomLinked);
+   (!input.restaurantId||o.restaurant===input.restaurantId)&&
+   ['POS - Counter','POS - Dine-in','POS - Takeaway'].includes(o.channel);
  }
  function numbers(input){
-  const real=(input.orders||[]).filter(o=>eligible(o)&&(!input.restaurantId||o.restaurant===input.restaurantId)&&String(o.channel||'').startsWith('POS - '));
+  const scoped=(input.orders||[]).filter(o=>scopedBill(o,input));
+  const real=scoped.filter(o=>!roomBill(o));
   const date=input.date||todayKey(),same=real.filter(o=>dateKey(o.createdAt)===date);
+  const roomToday=scoped.filter(o=>roomBill(o)&&dateKey(o.createdAt)===date);
   const billed=same.reduce((n,o)=>n+Math.max(0,Number(o.amount||0)-Number(o.waivedOffAmount||0)),0);
   const received=same.reduce((n,o)=>n+Math.max(0,Number(o.receivedAmount||0)),0);
   const due=same.reduce((n,o)=>n+Math.max(0,Number(o.dueAmount||0)),0);
   const withVisit=same.filter(o=>o.posVisit&&['dine_in','takeaway'].includes(o.posVisit.visit_type));
   const dineIn=withVisit.filter(o=>o.posVisit.visit_type==='dine_in');
   const people=dineIn.reduce((n,o)=>n+Number(o.posVisit.guest_count||0),0);
-  return {same,all:real,bills:same.length,billed,received,due,people,
+  return {same,all:real,roomToday,bills:same.length,billed,received,due,people,
    dineInBills:dineIn.length,takeawayBills:withVisit.length-dineIn.length,
    untrackedBills:same.length-withVisit.length};
  }
  function billPaymentLabel(o){
+  if(roomBill(o))return o.roomLinked?'Transferred to room folio':'Room bill · verify folio';
   const valid=v=>(typeof v==='number'||typeof v==='string'&&v.trim()!=='')&&Number.isFinite(Number(v))&&Number(v)>=0&&Number.isSafeInteger(Math.round(Number(v)*100))&&Math.abs(Number(v)*100-Math.round(Number(v)*100))<0.00001;
   if(!valid(o?.dueAmount)||!valid(o?.receivedAmount))return 'Payment status unavailable';
   if(Number(o.dueAmount)>0)return 'Due '+money(o.dueAmount);
@@ -56,7 +61,7 @@
   let el=doc.getElementById("bitePosV2Desk");
   if(el)return el;
   el=doc.createElement("section");el.id="bitePosV2Desk";el.className="bite-pos-v2";el.setAttribute("aria-label","Restaurant POS dashboard");
-  el.innerHTML='<div class="bpv2-intro"><span class="bpv2-eyebrow">BITE • RESTAURANT POS</span><strong>Fast counter billing</strong><small>One itemized bill for dine-in &amp; takeaway.</small></div>'+
+  el.innerHTML='<div class="bpv2-intro"><span class="bpv2-eyebrow">BITE • RESTAURANT POS</span><strong>Fast counter billing</strong><small>One itemized bill for dine-in &amp; takeaway. Room food bills are separate.</small></div>'+
    '<nav class="bpv2-tabs" aria-label="POS sections">'+
    '<button type="button" data-bpv2-tab="today" aria-pressed="true">Today</button>'+
    '<button type="button" data-bpv2-tab="bills" aria-pressed="false">Bills</button>'+
@@ -141,6 +146,14 @@
      '<strong class="bpv2-amount">'+money(amount)+'</strong>'+
      '<button type="button" data-bpv2-print="'+safe(o.id)+'" aria-label="Open bill '+safe(o.code||'')+'">'+ic('forward')+'</button></article>';
    }).join('')+'</div>':'<p class="bpv2-empty">No POS bills recorded today. Tap <strong>New POS Bill</strong> to begin.</p>');
+  if(n.roomToday.length){
+   const roomRows=n.roomToday.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,3);
+   recent.innerHTML+='<div class="bpv2-section-heading"><strong>Room food bills · '+n.roomToday.length+'</strong><button type="button" data-bpv2-go="bills">View bills '+ic('forward')+'</button></div>'+
+    '<p class="bpv2-footer-note">Separate from counter billing, receipts and balance due. Check payment in the guest folio.</p>'+
+    '<div class="bpv2-recents">'+roomRows.map(o=>'<article class="bpv2-recent"><span class="bpv2-recent-icon">'+ic('bill')+'</span>'+
+     '<span class="bpv2-recent-body"><strong>'+safe(o.code||'Room food bill')+'</strong><small>'+safe(o.customerName||'Hotel guest')+'</small>'+
+     '<small class="bpv2-visit-tag">'+safe(billPaymentLabel(o))+'</small></span></article>').join('')+'</div>';
+  }
  }
  function render(input){
   if(!input||!input.restaurantId||!input.userId){current=null;view='today';root.BitePOSReports?.clear?.();const stats=doc?.getElementById('bpv2Stats'),recent=doc?.getElementById('bpv2Recent');if(stats)stats.textContent='Select an authorized restaurant to view POS bills.';if(recent)recent.textContent='';return}
