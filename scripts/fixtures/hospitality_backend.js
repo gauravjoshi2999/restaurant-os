@@ -12,6 +12,14 @@
   // Fixture-only RLS-aware preference transport. This fake never reaches production.
   const originalFrom=client.from.bind(client),prefKey='synthetic-housekeeping-display:'+pid;
   client.from=(table)=>{
+   if(table==='bite_owner_historical_entries'&&Array.isArray(window.__BITE_HOTEL_QA.historicalRegisterRows)){
+    let rows=window.__BITE_HOTEL_QA.historicalRegisterRows.slice(),columns=[],scopeChecked=false;
+    const q={select(fields){columns=fields.split(',');return q},eq(key,value){if(key==='property_id'&&value===pid)scopeChecked=true;rows=rows.filter(r=>r[key]===value);return q},gte(key,value){rows=rows.filter(r=>r[key]>=value);return q},lte(key,value){rows=rows.filter(r=>r[key]<=value);return q},order(){return q},async limit(n){
+     if(!scopeChecked||!['owner','manager'].includes(p.role))return {data:null,error:{code:'42501',message:'Synthetic permission denied'}};
+     return {data:rows.slice(0,n).map(r=>Object.fromEntries(columns.map(k=>[k,r[k]]))),error:null};
+    }};
+    return q;
+   }
    if(table!=='bite_property_ui_preferences')return originalFrom(table);
    return {
     select(){return {eq(column,id){return {async maybeSingle(){
