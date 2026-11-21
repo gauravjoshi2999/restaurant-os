@@ -1482,8 +1482,8 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
-<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261121-h07guest1-steps1-deposit1-h14receipts1-h14pdf1-h15release1-r05r08"></script><script src="assets/owner-v3-collections.js?v=20261120-a03-identity1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261120-a12-receipts1"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
+<script src="assets/owner-v3-settlements.js?v=20261119-a06-1-verify2"></script><script src="assets/owner-hotel-accounts.js?v=20261121-h07guest1-steps1-deposit1-h14receipts1-h14pdf1-h15release1-r05r08"></script><script src="assets/owner-v3-collections.js?v=20261120-a03-identity1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1-verify2"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261120-a12-receipts1"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-h05balance1-h10review2-steps1-deposit1-h11availability1-h11fix2-h11review1-h11modify1-h12pos1-h12qa1-h13credit1-r05r08"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261120-h15-r08-scope1-h15release1"></script>
 <script>
@@ -1879,20 +1879,23 @@ async function loadInventory(){
   ]);
   if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id||!['owner','manager'].includes(access.role))return;
   if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
-  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,Number(b.current_stock)]));stockMovements=moves.data||[];renderInventory();
+  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,b.current_stock]));stockMovements=moves.data||[];renderInventory();
  }catch(e){if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id)return;
   document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;
+  inventoryItems=[];inventoryBalances={};stockMovements=[];
+  document.getElementById('inventoryRows').replaceChildren();document.getElementById('stockMovementRows').replaceChildren();document.getElementById('stockItem').replaceChildren();
+  document.getElementById('inventoryItemCount').textContent='—';document.getElementById('inventoryLowCount').textContent='—';document.getElementById('inventorySummary').textContent='Stock unverified';
   document.getElementById('inventoryV3Cards').textContent='Stock load nahi hua. Refresh karein.';
   console.error(e)}
 }
-function stockBalance(itemId){return Number(inventoryBalances[itemId]||0)}
+function stockBalance(itemId){const v=inventoryBalances[itemId];return (typeof v==='number'||typeof v==='string'&&v.trim())&&Number.isFinite(Number(v))?Number(v):null}
 function renderInventory(){
- const active=inventoryItems.length,low=inventoryItems.filter(i=>stockBalance(i.id)<=Number(i.reorder_level)).length;
+ const active=inventoryItems.length,low=inventoryItems.filter(i=>stockBalance(i.id)!==null&&stockBalance(i.id)<=Number(i.reorder_level)).length;
  document.getElementById('inventoryItemCount').textContent=String(active);document.getElementById('inventoryLowCount').textContent=String(low);
  document.getElementById('inventorySummary').textContent=active+' items · '+low+' low stock';
  document.getElementById('inventoryRows').innerHTML=inventoryItems.map(i=>{
-  const qty=stockBalance(i.id),isLow=qty<=Number(i.reorder_level);
-  return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+qty.toFixed(3)+' '+esc(i.unit)+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(isLow?'amber':'green')+'">'+(isLow?'Low stock':'In stock')+'</span></td></tr>';
+  const qty=stockBalance(i.id),isLow=qty!==null&&qty<=Number(i.reorder_level);
+  return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+(qty===null?'Unverified':qty.toFixed(3)+' '+esc(i.unit))+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(qty===null||isLow?'amber':'green')+'">'+(qty===null?'Stock unverified':isLow?'Low stock':'In stock')+'</span></td></tr>';
  }).join('');
  document.getElementById('inventoryEmpty').style.display=active?'none':'block';
  window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
