@@ -94,3 +94,19 @@ test('A03 collections reject duplicate source identities, malformed amounts and 
  assert.equal(collections.summarize([{...a,amount:0.1},{...a,id:'p2',amount:0.2}]).received,0.3);
  assert.equal(collections.summarize([a,{...a,source_type:'folio',category:'payment'}]).received,1000);
 });
+
+test('A03 out-of-period or invalid receipt dates fail closed and stale scope cannot open records',()=>{
+ const valid={from:'2026-10-01',to:'2026-10-31',journal};
+ assert.equal(collections.validPeriod(valid),true);
+ for(const day of ['2026-09-30','2026-11-01','2026-10-32','2026-02-30',null]){
+  assert.equal(collections.validPeriod({...valid,journal:[{...journal[0],day}]}),false);
+ }
+ let current=true;const handlers={},opened=[];
+ const target={isConnected:true,innerHTML:'',addEventListener:(k,f)=>handlers[k]=f};
+ collections.render(target,valid,{scope:'owner|hotel',isCurrent:()=>current,onOpen:x=>opened.push(x)});
+ current=false;
+ handlers.click({target:{closest:q=>q==='[data-v3-money-source]'?{dataset:{v3MoneySource:'order_payment',v3MoneyId:id}}:null}});
+ assert.equal(opened.length,0);
+ assert.match(accounts,/report=null;reportScope='';/);
+ assert.match(accounts,/r.data\?\.from!==from\|\|r.data\?\.to!==to/);
+});
