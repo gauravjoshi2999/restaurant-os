@@ -3641,9 +3641,9 @@ function editRestaurant(id){if(!access.isPlatformAdmin){alert('Only Super Admin 
 async function deleteRestaurant(id){if(!access.isPlatformAdmin){alert('Only Super Admin can delete restaurants.');return}const r=state.restaurants.find(x=>x.id===id);if(!r)return;if(!confirm('Pehli confirmation: "'+r.name+'" ko delete karna chahte hain?'))return;const typed=prompt('Dusri confirmation ke liye restaurant ka poora naam bilkul isi tarah type karein:\n'+r.name);if(typed===null||typed.trim()!==r.name){alert('Naam match nahi hua. Restaurant delete nahi kiya gaya.');return}try{const linked=await sb.from('orders').select('id',{count:'exact',head:true}).eq('restaurant_id',id);if(linked.error)throw linked.error;if((linked.count||0)>0){alert('Is restaurant ke saath '+linked.count+' order(s) jude hain. Data safety ke liye pehle orders ko resolve karein; restaurant delete nahi kiya gaya.');return}const result=await sb.from('restaurants').delete().eq('id',id);if(result.error)throw result.error;await loadCloudData();alert('Restaurant delete ho gaya.')}catch(err){alert('Restaurant delete nahi hua: '+(err.message||String(err)))}}
 
 function togglePosPaymentFields(){const isPos=(document.getElementById('orderChannel')?.value||'').startsWith('POS - ');document.getElementById('posPaymentFields').style.display=isPos?'grid':'none';if(isPos&&!document.getElementById('posPaymentDate').value)document.getElementById('posPaymentDate').value=localDateInput();updateOrderTotal()}
-let posMenuItems=[];let posMenuRestaurantId='';
+let posMenuItems=[];let posMenuRestaurantId='';let posMenuRequest=0;
 let posSearchMatches=[];let posSearchActiveIndex=-1;
-function normalizePosSearch(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function normalizePosSearch(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu,' ').trim()}
 function hidePosMenuSuggestions(){const list=document.getElementById('posMenuSuggestions'),input=document.getElementById('posPickerItemName');if(list){list.hidden=true;list.innerHTML=''}if(input){input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant')}posSearchMatches=[];posSearchActiveIndex=-1}
 function renderPosMenuSuggestions(){
  const input=document.getElementById('posPickerItemName'),list=document.getElementById('posMenuSuggestions'),query=normalizePosSearch(input.value);
@@ -3672,7 +3672,7 @@ function handlePosMenuSearchKeydown(event){
  if(event.key==='Escape'){hidePosMenuSuggestions();return}
  if(event.key==='ArrowDown'||event.key==='ArrowUp'){
   if(document.getElementById('posMenuSuggestions').hidden||!posSearchMatches.length)return;
-  event.preventDefault();setPosSearchActive((posSearchActiveIndex+(event.key==='ArrowDown'?1:-1)+posSearchMatches.length)%posSearchMatches.length);return;
+  event.preventDefault();setPosSearchActive(posSearchActiveIndex<0?(event.key==='ArrowDown'?0:posSearchMatches.length-1):(posSearchActiveIndex+(event.key==='ArrowDown'?1:-1)+posSearchMatches.length)%posSearchMatches.length);return;
  }
  if(event.key==='Enter'){
   event.preventDefault();
@@ -3682,15 +3682,16 @@ function handlePosMenuSearchKeydown(event){
  }
 }
 function selectPosMenuItem(index){
- const item=posMenuItems[index];if(!item)return;
+ const item=posMenuItems[index];if(!item||posMenuRestaurantId!==access.restaurantId)return;
  document.getElementById('posPickerItemName').value=item.name;
  const price=document.getElementById('posPickerPrice');price.value=Number(item.price||0).toFixed(2);price.dataset.menuItemId=item.id;
  hidePosMenuSuggestions();document.getElementById('posPickerQuantity').focus();
 }
 async function loadPosMenuItems(restaurantId){
+ const request=++posMenuRequest,userId=currentUser?.id;
  posMenuItems=[];posMenuRestaurantId=restaurantId;hidePosMenuSuggestions();
  const {data,error}=await sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');
- if(posMenuRestaurantId!==restaurantId)return;
+ if(request!==posMenuRequest||posMenuRestaurantId!==restaurantId||access.restaurantId!==restaurantId||currentUser?.id!==userId)return;
  if(error){console.warn('POS menu lookup failed:',error.message);return}
  posMenuItems=data||[];
  if(document.getElementById('posPickerItemName').value.trim())renderPosMenuSuggestions();
@@ -3742,7 +3743,8 @@ async function openPosFromOverview(button){
 function openPosItemPicker(){document.getElementById('posPickerItemName').focus()}
 function syncPosPickerMenuPrice(){
  const name=normalizePosSearch(document.getElementById('posPickerItemName').value);
- const match=posMenuItems.find(item=>normalizePosSearch(item.name)===name);
+ const matches=posMenuRestaurantId===access.restaurantId?posMenuItems.filter(item=>normalizePosSearch(item.name)===name):[];
+ const match=matches.length===1?matches[0]:null;
  const price=document.getElementById('posPickerPrice');
  if(match){price.value=Number(match.price||0).toFixed(2);price.dataset.menuItemId=match.id}
  else{price.value='';delete price.dataset.menuItemId}
@@ -3751,7 +3753,11 @@ function syncPosPickerMenuPrice(){
 function confirmPosItemInline(){
  const name=document.getElementById('posPickerItemName').value.trim(),quantity=Number(document.getElementById('posPickerQuantity').value),price=Number(document.getElementById('posPickerPrice').value);
  if(!name||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<0||document.getElementById('posPickerPrice').value===''){alert('Item ka naam, quantity aur sahi price bharein.');return}
- const match=posMenuItems.find(item=>normalizePosSearch(item.name)===normalizePosSearch(name));
+ const selectedId=document.getElementById('posPickerPrice').dataset.menuItemId;
+ const matches=posMenuRestaurantId===access.restaurantId?posMenuItems.filter(item=>normalizePosSearch(item.name)===normalizePosSearch(name)):[];
+ const match=matches.find(item=>item.id===selectedId)||(!selectedId&&matches.length===1?matches[0]:null);
+ if(matches.length>1&&!match){alert('Is naam ke multiple menu items hain. List se sahi item chunein.');return;}
+ if(selectedId&&!match){alert('Menu item dobara select karein.');return;}
  addOrderItemRow({name,quantity,price,menuItemId:match?.id||null});
  document.getElementById('posPickerItemName').value='';
  document.getElementById('posPickerQuantity').value='1';
