@@ -4031,20 +4031,24 @@ const deliveryShareInFlight=new Set();
 async function shareDeliveryHandoff(id,commitHandover=false){
  if(deliveryShareInFlight.has(id))return false;
  if(access.role!=='owner'){alert('Delivery link sirf Restaurant Owner share kar sakta hai.');return false}
- const o=state.orders.find(x=>x.id===id);
- if(!o||!['Ready','Handed Over'].includes(o.status)||o.deliveryType!=='delivery'){alert('Delivery link Ready ya Handed Over delivery order ke liye hai.');return false}
+ const o=state.orders.find(x=>x.id===id&&x.restaurant===access.restaurantId);
+ const shareUser=currentUser?.id,shareRestaurant=access.restaurantId;
+ const shareCurrent=()=>!!shareUser&&currentUser?.id===shareUser&&access.role==='owner'&&access.restaurantId===shareRestaurant;
+ if(!shareCurrent()||!o||!['Ready','Handed Over'].includes(o.status)||o.deliveryType!=='delivery'){alert('Delivery link Ready ya Handed Over delivery order ke liye hai.');return false}
  deliveryShareInFlight.add(id);
  try{
   const {data,error}=await sb.rpc('create_delivery_handoff',{p_order_id:id});
   if(error)throw error;
+  if(!shareCurrent())return false;
   const h=Array.isArray(data)?data[0]:data;
   if(!h||!h.token)throw new Error('Delivery link generate nahi hua.');
   if(commitHandover){
-   const {data:changed,error:statusError}=await sb.from('orders').update({status:'Handed Over',status_note:'Physically handed to delivery person'}).eq('id',id).eq('status','Ready').select('id,status').maybeSingle();
+   const {data:changed,error:statusError}=await sb.from('orders').update({status:'Handed Over',status_note:'Physically handed to delivery person'}).eq('id',id).eq('restaurant_id',shareRestaurant).eq('status','Ready').select('id,status').maybeSingle();
    if(statusError||!changed)throw new Error('Handover status save nahi hua: '+(statusError?.message||'Order changed; refresh karein.'));
    // WhatsApp navigation should not wait for another large dashboard reload.
    void loadCloudData().catch(err=>console.warn('Delivery status refresh deferred',err));
   }
+  if(!shareCurrent())return false;
   const a=h.delivery_address||{};
   const address=[a.address_line,a.landmark,a.city,a.state,a.postal_code].filter(Boolean).join(', ');
   const lat=Number(a.latitude),lng=Number(a.longitude);
@@ -4075,6 +4079,8 @@ async function acceptAndStartOrder(id){
  if(access.role!=='owner'){alert('Sirf restaurant Owner order accept kar sakta hai.');return;}
  const order=state.orders.find(o=>o.id===id&&o.restaurant===access.restaurantId);
  if(!order||order.status!=='Received'||ownerOrderActionsPending.has(id))return;
+ const actionUser=currentUser?.id,actionRestaurant=access.restaurantId;
+ if(!actionUser||(!order.isDemo&&order.channel==='Own Platform'&&!BiteOwnerOrderBurst.paidOrderIds(state.financials,actionRestaurant).has(id))){alert('Payment verification pending. Refresh before accepting.');return;}
  ownerOrderActionsPending.add(id);
  const card=[...document.querySelectorAll('#orderBoard .order-card')].find(el=>el.dataset.orderId===id);
  const buttons=[...(card?.querySelectorAll('button')||[])],previous=buttons.map(button=>button.disabled);
@@ -4083,6 +4089,7 @@ async function acceptAndStartOrder(id){
  let accepted=false;
  try{
   const change=async(from,to)=>{
+   if(currentUser?.id!==actionUser||access.role!=='owner'||access.restaurantId!==actionRestaurant)throw Error('Owner session changed. Refresh before continuing.');
    const {data,error}=await sb.from('orders').update({status:to,status_note:null})
     .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status',from).select('id,status').maybeSingle();
    if(error)throw error;
@@ -4105,6 +4112,9 @@ async function advanceOrder(id,next){
  if(access.role!=='owner'){alert('Sirf restaurant Owner order status badal sakta hai.');return}
  const o=state.orders.find(x=>x.id===id&&x.restaurant===access.restaurantId);
  if(!o)return;
+ const actionUser=currentUser?.id,actionRestaurant=access.restaurantId;
+ if(!actionUser)return;
+ if(next==='Accepted'&&!o.isDemo&&o.channel==='Own Platform'&&!BiteOwnerOrderBurst.paidOrderIds(state.financials,actionRestaurant).has(id)){alert('Payment verification pending. Refresh before accepting.');return;}
  const allowed={Received:['Accepted','Rejected'],Accepted:['Preparing','Cancelled'],
    Preparing:['Ready','Cancelled'],Ready:['Handed Over','Cancelled'],
    'Handed Over':['Completed']};
@@ -4125,6 +4135,7 @@ async function advanceOrder(id,next){
      note=note.trim();
      if(!note){alert('Reason likhna zaroori hai.');return}
    }
+   if(currentUser?.id!==actionUser||access.role!=='owner'||access.restaurantId!==actionRestaurant)return;
    // Same existing backend mutation and authentication/tenant RLS; no new RPC.
    const {data:changed,error}=await sb.from('orders').update({status:next,status_note:note})
     .eq('id',id).eq('restaurant_id',access.restaurantId).eq('status',o.status)
@@ -4749,9 +4760,12 @@ let ownerRealtimeDisconnected=false;
 function startRealtimeOrderUpdates(){
  if(access.role==='owner'&&!access.restaurantId)return;
  if(orderRealtimeChannel){sb.removeChannel(orderRealtimeChannel);orderRealtimeChannel=null;}
+ const liveUser=currentUser?.id,liveRestaurant=access.restaurantId,liveRole=access.role;
+ const liveCurrent=()=>!!liveUser&&currentUser?.id===liveUser&&access.restaurantId===liveRestaurant&&access.role===liveRole;
  setOrderLiveState('Live updates connecting...','');
  orderRealtimeChannel=sb.channel('restaurantos-owner-orders-'+currentUser.id)
  .on('postgres_changes',{event:'*',schema:'public',table:'orders'},payload=>{
+  if(!liveCurrent())return;
   const row=payload.new||payload.old;if(!row)return;
   const allowed=access.isPlatformAdmin||access.memberships.some(m=>m.restaurant_id===row.restaurant_id);
   if(!allowed)return;
@@ -4760,6 +4774,7 @@ function startRealtimeOrderUpdates(){
   // One database reload for an entire burst, but retain every distinct inserted order ID.
   scheduleOwnerOrderRefresh();
  }).subscribe(status=>{
+  if(!liveCurrent())return;
   if(status==='SUBSCRIBED'){
    ownerRealtimeDisconnected=false;
    setOrderLiveState('Live updates connected','connected');
@@ -5069,7 +5084,7 @@ async function loadCustomerOrderRequestsWorkspace(){
   }).join('');
  }catch(e){list.innerHTML='<div class="empty">Requests load nahi hue: '+esc(e.message||'Try again.')+'</div>';console.error(e);}
 }
-async function respondCustomerOrderRequest(id,decision){const response=prompt(decision==='Approved'?'Cancellation approve karne ka response likhein:':decision==='Resolved'?'Complaint resolve karne ka response likhein:':'Customer ko response likhein (3-500 characters):');if(response===null)return;try{const {error}=await sb.rpc('respond_customer_order_request',{p_request_id:id,p_decision:decision,p_response:response.trim()});if(error)throw error;await loadCustomerOrderRequestsWorkspace();await loadCloudData();alert(decision==='Approved'?'Cancellation approved. Order cancelled. Refund is not marked paid: provider confirmation is required.':decision==='Resolved'?'Complaint resolved.':'Request response saved.');}catch(e){alert(e.message||'Request response save nahi hua.');}}
+async function respondCustomerOrderRequest(id,decision){if(!['owner','manager'].includes(access.role)||decision==='Approved'&&access.role!=='owner')return;const requestUser=currentUser?.id,requestRestaurant=access.restaurantId;if(!requestUser||!requestRestaurant)return;const response=prompt(decision==='Approved'?'Cancellation approve karne ka response likhein:':decision==='Resolved'?'Complaint resolve karne ka response likhein:':'Customer ko response likhein (3-500 characters):');if(response===null)return;if(response.trim().length<3||response.trim().length>500){alert('Response 3–500 characters ka hona chahiye.');return;}if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;try{const {error}=await sb.rpc('respond_customer_order_request',{p_request_id:id,p_decision:decision,p_response:response.trim()});if(error)throw error;if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;await loadCustomerOrderRequestsWorkspace();await loadCloudData();if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;alert(decision==='Approved'?'Cancellation approved. Order cancelled. Refund is not marked paid: provider confirmation is required.':decision==='Resolved'?'Complaint resolved.':'Request response saved.');}catch(e){alert(e.message||'Request response save nahi hua.');}}
 function renderTenantSwitcher(){const el=document.getElementById('tenantSwitcher');if(!el)return;const options=access.restaurantOptions||[];if(access.isPlatformAdmin||options.length<2){el.style.display='none';return;}el.style.display='';el.innerHTML=options.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');el.value=access.restaurantId||options[0]?.id||'';}
 function switchRestaurant(id){if(access.isPlatformAdmin||!access.memberships.some(m=>m.restaurant_id===id))return;if(access.restaurantId===id)return;access.restaurantId=id;startOwnerCancellationAlerts();loadCloudData().then(()=>{const active=document.querySelector('.page.active')?.id;const refresh={menu:loadMenuWorkspace,pos:loadPOSWorkspace,tables:loadTablesWorkspace,refunds:loadRefundWorkspace,khata:loadKhataWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,settings:loadDeliveryZonesWorkspace,orders:loadCustomerOrderRequestsWorkspace};if(active&&refresh[active])return refresh[active]();}).catch(e=>alert('Restaurant data load nahi hua: '+e.message));}
 document.getElementById('tenantSwitcher')?.addEventListener('change',e=>switchRestaurant(e.target.value));
