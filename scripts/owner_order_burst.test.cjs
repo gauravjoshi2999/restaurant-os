@@ -75,3 +75,26 @@ test('Owner HTML wires per-order tracker to both realtime and resume; no timesta
  assert.doesNotMatch(catchup,/Date\.parse\(order\.created_at/);
  assert.match(page,/ownerOrderBurstTracker\.reset\(\)/);
 });
+
+test('R09 already loaded unpaid orders alert once when verified paid after reconnect',()=>{
+ const tracker=burst.createTracker(),batch=orders(5);
+ const beforePaid=new Set([batch[0].id]);
+ const afterPaid=new Set(batch.slice(0,3).map(o=>o.id));
+ const canAnnounce=o=>afterPaid.has(o.id);
+ assert.deepEqual(tracker.reconcile(batch,batch,'restaurant-A',canAnnounce,beforePaid).map(o=>o.id),[batch[1].id,batch[2].id]);
+ assert.deepEqual(tracker.reconcile(batch,batch,'restaurant-A',canAnnounce,beforePaid),[]);
+ afterPaid.add(batch[3].id);
+ assert.deepEqual(tracker.reconcile(batch,batch,'restaurant-A',canAnnounce,new Set(batch.slice(0,3).map(o=>o.id))).map(o=>o.id),[batch[3].id]);
+});
+test('R09 unpaid, cross-restaurant and already accepted orders do not alert on late payment',()=>{
+ const tracker=burst.createTracker(),batch=orders(4);
+ batch[1].restaurant='restaurant-B';batch[2].status='Accepted';
+ const paid=new Set([batch[1].id,batch[2].id,batch[3].id]);
+ assert.deepEqual(tracker.reconcile(batch,batch,'restaurant-A',o=>paid.has(o.id),new Set()).map(o=>o.id),[batch[3].id]);
+});
+test('R09 backup polling includes loaded orders whose payment evidence is still missing',()=>{
+ const page=fs.readFileSync('index.html','utf8');
+ const watchdog=page.slice(page.indexOf('async function checkOwnerMissedOrders(){'),page.indexOf('let ownerCancelAlertController'));
+ assert.match(watchdog,/filter\(order=>paid.has\(String\(order.id\)\)\)/);
+ assert.equal((page.match(/const beforePaid=BiteOwnerOrderBurst.paidOrderIds/g)||[]).length,2);
+});
