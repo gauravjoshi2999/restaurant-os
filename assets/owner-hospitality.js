@@ -589,7 +589,7 @@
     const sa=data.stays.find(s=>s.id===a.stay_id),sb=data.stays.find(s=>s.id===b.stay_id);
     return Number(sb?.status==='in_house')-Number(sa?.status==='in_house');
    });
-   target.innerHTML=header('Guest Bills','Select a room or guest to view everything on one bill.')+notice()+
+   target.innerHTML=header('Guest Bills','Select a room or guest to view everything on one bill.')+notice()+(root.BiteHotelBilling?.creditNav()||'')+
     searchBox('Search guest name or room number')+
     sorted.map(x=>{
      const s=data.stays.find(s=>s.id===x.stay_id),g=data.guests.find(g=>g.id===s?.guest_id),r=data.rooms.find(r=>r.id===s?.room_id),due=Number(x.totals?.balance||0);

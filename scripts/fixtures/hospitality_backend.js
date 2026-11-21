@@ -80,7 +80,17 @@
     const {p_action:a,p_payload:v,p_request:k}=args;
     if(commands.has(k)){const old=commandMeta.get(k);if(old?.action==='abandoned_checkin'||old&&old.action!==a)return{data:null,error:{code:'P0001',message:'Request ID already used for different details'}};return structuredClone(commands.get(k))}
     let result={id:crypto.randomUUID(),confirmed:true};
-    if(a==='guest_save'){const g=db.guests.find(g=>g.id===v.id);if(g)Object.assign(g,v);else db.guests.push({...v,id:result.id,property_id:pid,created_at:new Date().toISOString()});if(g)result.id=g.id;}
+    if(a==='hotel_credit_list'){
+     return {data:{accounts:db.folios.filter(f=>f.invoice_snapshot?.credit).map(f=>{const s=db.stays.find(s=>s.id===f.stay_id),g=db.guests.find(g=>g.id===s.guest_id),r=db.rooms.find(r=>r.id===s.room_id);return{folio_id:f.id,guest_id:g.id,guest_name:g.full_name,room:r.number,invoice_number:f.invoice_number,approved_balance:f.invoice_snapshot.credit.amount,due_date:f.invoice_snapshot.credit.due_date,balance:totals(f).balance}})},error:null};
+    }else if(a==='hotel_credit_checkout'){
+     const f=db.folios.find(f=>f.id===v.folio_id),t=totals(f),s=db.stays.find(s=>s.id===f.stay_id),room=db.rooms.find(r=>r.id===s.room_id),guest=db.guests.find(g=>g.id===s.guest_id);
+     if(f.status!=='open'||s.status!=='in_house'||t.balance!==v.balance||t.balance<=0||t.pending||t.deposit_held||!v.due_date||v.reason.length<10)return {data:null,error:{code:'P0001',message:'Credit approval rejected'}};
+     s.status='checked_out';room.housekeeping=sessionStorage.getItem(prefKey)==='true'?'dirty':'ready';f.status='settled';f.invoice_number='SYNTHETIC-CREDIT';
+     f.invoice_snapshot=structuredClone({number:f.invoice_number,property:p,guest:{name:guest.full_name},stay:s,room,entries:db.entries.filter(e=>e.folio_id===f.id),totals:t,tax_profile:f.bill_tax_profile||p.tax_profile,credit:{amount:v.balance,due_date:v.due_date,status:'unpaid'}});result={id:s.id,folio_id:f.id,invoice:f.invoice_snapshot};
+    }else if(a==='hotel_credit_receipt'){
+     const f=db.folios.find(f=>f.id===v.folio_id);if(!f?.invoice_snapshot?.credit||v.amount<=0||v.amount>totals(f).balance||(v.method!=='Cash'&&(!v.verified||!v.reference)))return {data:null,error:{code:'P0001',message:'Credit receipt rejected'}};
+     db.entries.push({id:result.id,folio_id:f.id,kind:'payment',category:'payment',amount:v.amount,method:v.method,status:'confirmed',reference:v.reference,description:'Hotel guest credit recovery',created_at:new Date().toISOString()});result.balance=totals(f).balance;
+    }else if(a==='guest_save'){const g=db.guests.find(g=>g.id===v.id);if(g)Object.assign(g,v);else db.guests.push({...v,id:result.id,property_id:pid,created_at:new Date().toISOString()});if(g)result.id=g.id;}
     else if(a==='reserve'){
      if(db.stays.some(s=>s.room_id===v.room_id&&['reserved','in_house'].includes(s.status)&&s.arrival<v.departure&&v.arrival<s.departure))return {data:null,error:{code:'P0001',message:'Room already reserved'}};
      const folio_id=crypto.randomUUID(),room=db.rooms.find(r=>r.id===v.room_id);db.stays.push({...v,id:result.id,status:'reserved',nightly_rate:v.nightly_rate??room.nightly_rate});if(v.booking_stay_id){const parent=db.stays.find(s=>s.id===v.booking_stay_id);parent.group_id=parent.group_id||crypto.randomUUID();db.stays.at(-1).group_id=parent.group_id;}db.folios.push({id:folio_id,property_id:pid,stay_id:result.id,status:'open'});result.folio_id=folio_id;
