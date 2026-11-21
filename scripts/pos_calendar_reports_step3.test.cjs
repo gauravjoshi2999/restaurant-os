@@ -73,3 +73,20 @@ test('Copy distinguishes billed sales from actual cash collections, reports rema
  assert.doesNotMatch(js,/12,480|Rahul Verma|64 guests|POS-12856/);
  assert.doesNotMatch(js,/localStorage|service_role|INSERT INTO/);
 });
+
+test('R01 report requires every calendar date exactly once and the requested day',()=>{
+ const r=api();
+ const sample=(month,count)=>({month,selected_day:month+'-01',recent:[],days:Array.from({length:count},(_,i)=>({date:month+'-'+String(i+1).padStart(2,'0')}))});
+ const nov=sample('2026-11',30);
+ assert.equal(r.completePeriod(nov,'2026-11','2026-11-01'),true);
+ assert.equal(r.completePeriod(sample('2024-02',29),'2024-02','2024-02-01'),true);
+ assert.equal(r.completePeriod(sample('2026-02',28),'2026-02','2026-02-01'),true);
+ assert.equal(r.completePeriod(sample('2026-11',28),'2026-11','2026-11-01'),false);
+ assert.equal(r.completePeriod({...nov,days:[...nov.days.slice(0,29),nov.days[0]]},'2026-11','2026-11-01'),false);
+ assert.equal(r.completePeriod(nov,'2026-11','2026-11-02'),false);
+ assert.equal(r.completePeriod({...nov,recent:null},'2026-11','2026-11-01'),false);
+});
+test('R01 clearing a report removes its binding marker so reopening can bind again',()=>{
+ assert.match(js,/delete container\.dataset\.bprBound/);
+ assert.match(js,/el\.addEventListener\('click',onClick\)/);
+});

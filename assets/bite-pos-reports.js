@@ -33,6 +33,18 @@ function summarize(days){
   return out;
  },{bills:0,billed:0,guests:0,dine_in:0,takeaway:0,untracked:0,historical_bills:0,historical_billed:0,historical_received:0});
 }
+// Reject partial, duplicate or mismatched calendar responses before calculating totals.
+function completePeriod(data,period,day){
+ if(!data||data.month!==period||data.selected_day!==day||
+    !Array.isArray(data.days)||!Array.isArray(data.recent)||!/^\d{4}-(0[1-9]|1[0-2])$/.test(period))return false;
+ const [year,m]=period.split('-').map(Number);
+ const count=new Date(Date.UTC(year,m,0)).getUTCDate();
+ if(data.days.length!==count)return false;
+ const dates=new Set(data.days.map(row=>row?.date));
+ if(!dates.has(day)||dates.size!==count)return false;
+ for(let i=1;i<=count;i++)if(!dates.has(period+'-'+pad(i)))return false;
+ return true;
+}
 function selectedRow(){return (report?.days||[]).find(x=>x.date===selected)||null;}
 // Historical POS snapshots are read-only register entries, not new orders or cash movements.
 // RLS on bite_owner_historical_entries scopes every page to the authenticated outlet.
@@ -183,7 +195,7 @@ async function refresh(force=false){
   const res=await sb.rpc('bite_pos_reports_v1',{p_restaurant_id:scope,p_month:period+'-01',p_day:day});
   if(epoch!==request||scope!==restaurantId||authUser!==userId||container==null)return;
   if(res.error)throw res.error;
-  if(!res.data||res.data.month!==period||!Array.isArray(res.data.days)||res.data.days.length<28)
+  if(!completePeriod(res.data,period,day))
    throw new Error('Incomplete report response');
   let historical=[],historyError='';
   try{historical=await historicalRowsForMonth(sb,scope,period);}
@@ -236,7 +248,7 @@ function mount({el,client,restaurant,user}){
  const replacedPanel=container!==el;
  if(changed){epoch++;report=null;month=istToday().slice(0,7);selected=istToday();mode='today';loading=false;}
  else if(replacedPanel){epoch++;report=null;loading=false;} // Reopening Reports fetches fresh saved bills.
- if(container&&container!==el)container.removeEventListener('click',onClick);
+ if(container&&container!==el){container.removeEventListener('click',onClick);delete container.dataset.bprBound;}
  container=el;sb=client;restaurantId=restaurant;userId=user;
  if(el.dataset.bprBound!=='true'){el.dataset.bprBound='true';el.addEventListener('click',onClick);}
  if(!report&&!loading)void refresh();
@@ -249,6 +261,6 @@ function focusDate(day){
  month=day.slice(0,7);selected=day;mode='calendar';
  void refresh(true);return true;
 }
-function clear(){epoch++;if(container)container.removeEventListener('click',onClick);container=null;sb=null;restaurantId='';userId='';report=null;loading=false;}
-root.BitePOSReports={mount,refresh,focusDate,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth};
+function clear(){epoch++;if(container){container.removeEventListener('click',onClick);delete container.dataset.bprBound;}container=null;sb=null;restaurantId='';userId='';report=null;loading=false;}
+root.BitePOSReports={mount,refresh,focusDate,clear,summarize,shiftMonth,calendarHtml,istToday,mergeHistorical,historicalRowsForMonth,completePeriod};
 })(window);
