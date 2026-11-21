@@ -203,6 +203,7 @@ async function openDraft(id){
  }
  if(!sameIdentity(ident))return;
  if(!rec||rec.restaurant_id!==ident.restaurantId||rec.created_by!==ident.uid||deletionExists(ident,id)){alert('Draft already deleted or not found for your restaurant.');return}
+ if($('orderModal')?.classList.contains('show')){alert('Current bill pehle save ya close karein.');return;}
  await window.openOrder();
  // openOrder may itself be async; do not fill one Owner's customer details in another Owner's bill.
  if(!sameIdentity(ident)||deletionExists(ident,id))return;
