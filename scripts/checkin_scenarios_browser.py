@@ -67,6 +67,22 @@ def noise_png():
 try:
  with sync_playwright()as pw:
   browser=pw.chromium.launch()
+  # Original PDF wizard, including backwards navigation and no early database mutation.
+  for width in [320,390,1440]:
+   c,p,f=open_case(browser,width=width);f.locator('[data-ha-toggle-view]').click()
+   check(f.get_attribute('data-ha-step-view')=='guest' and f.locator('[name=phone]').is_visible() and not f.locator('[name=room_id]').is_visible(),'PDF H07 guest-only first screen at '+str(width))
+   f.locator('[data-h07-continue]').click();focused(p,'phone')
+   for name,value in {'full_name':'Synthetic Step Guest','phone':'7777777777','address':'Synthetic address','arrived_from':'Udaipur','next_destination':'Jaipur'}.items():f.locator('[name='+name+']').fill(value)
+   f.locator('[data-h07-continue]').click()
+   check(f.get_attribute('data-ha-step-view')=='rooms' and not f.locator('[name=phone]').is_visible(),'PDF H08 room-only second screen')
+   f.locator('[name=room_id]').select_option('room-a');f.locator('[name=nightly_rate]').fill('1200')
+   f.locator('[data-ha-open-ids]').click();check(f.get_attribute('data-ha-step-view')=='ids' and f.locator('[data-id-side=front]').is_visible(),'PDF H09 separate ID screen')
+   raw_id(f);f.locator('[data-ha-return-rooms]').click();f.locator('[data-ha-room-next]').click()
+   check(f.get_attribute('data-ha-step-view')=='payment' and not f.locator('[name=room_id]').is_visible(),'PDF H10 payment-only third screen')
+   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===0&&__BITE_HOTEL_QA.db.entries.length===0'),'Navigation and photo selection create no booking or receipt')
+   review(f);check(f.locator('.bh-review').is_visible(),'Server quote before final confirmation')
+   f.locator('[data-review-back]').click();check(f.get_attribute('data-ha-step-view')=='rooms' and f.locator('[name=nightly_rate]').input_value()=='1200','Back retains room values and invalidates quote')
+   f.locator('[data-ha-room-next]').click();review(f);confirm(p,f);c.close()
   c,p,f=open_case(browser)
   check(f.locator('[name=full_name]').input_value()==''and f.locator('[name=nightly_rate]').input_value()=='','Fresh guest and rent are blank')
   check(f.locator('[name=serial_number]').input_value()=='1'and f.locator('[name=register_date]').input_value()==p.evaluate('BiteOwner.day()'),'Serial and India entry date')
