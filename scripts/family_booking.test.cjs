@@ -119,3 +119,18 @@ test('H08 room estimate uses original stay dates and known rates; blank is not z
  assert.equal(est(['1500'],'2026-11-31','2026-12-02').total,null);
  assert.equal(est(['1500'],'2026-11-19','2026-11-18').total,null);
 });
+
+test('H10 family deposit uses one stable booking request, rejects a changed receipt during retry',async()=>{
+ const store=new Map(),calls=[],original=globalThis.localStorage;
+ globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+ try{
+  const payload={guest_id:'synthetic-lead',rooms:[{room_id:'A',adults:1,children:0},{room_id:'B',adults:1,children:0}],checkin_deposit:{amount:500,method:'Cash',reference:'',verified:false,account_note:''}};
+  const sb={rpc:async(name,args)=>{calls.push({name,args});return calls.length===1?{error:{message:'Synthetic response unknown'}}:{data:{id:'group-id',deposit_entry_id:'deposit-id',stays:[{folio_id:'f-a'},{folio_id:'f-b'}]}}}};
+  await assert.rejects(Family.commit(payload,'synthetic-p','synthetic-u:p',sb),/unknown/);
+  await assert.rejects(Family.commit({...payload,checkin_deposit:{...payload.checkin_deposit,amount:501}},'synthetic-p','synthetic-u:p',sb),/Earlier family booking/);
+  const done=await Family.commit(payload,'synthetic-p','synthetic-u:p',sb);
+  assert.equal(calls.length,2);assert.equal(calls[0].name,'bite_booking_with_deposit');assert.equal(calls[0].args.p_booking_kind,'family');assert.equal(calls[0].args.p_request,calls[1].args.p_request);
+  assert.equal(done.booking.deposit_entry_id,'deposit-id');
+  Family.clearAttempt(done.requestKey);assert.equal(store.size,0);
+ }finally{globalThis.localStorage=original;}
+});
