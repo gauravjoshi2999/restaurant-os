@@ -1482,8 +1482,8 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1"></script>
-<script src="assets/owner-v3-settlements.js?v=20261119-a06-1"></script><script src="assets/owner-hotel-accounts.js?v=20261121-h07guest1-steps1-deposit1-h14receipts1-h14pdf1-h15release1-r05r08-a01a03safe1"></script><script src="assets/owner-v3-collections.js?v=20261120-a03-identity1-a01a03safe1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261120-a12-receipts1"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1-safety2"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
+<script src="assets/owner-v3-settlements.js?v=20261119-a06-1-verify2"></script><script src="assets/owner-hotel-accounts.js?v=20261121-h07guest1-steps1-deposit1-h14receipts1-h14pdf1-h15release1-r05r08-a01a03safe1"></script><script src="assets/owner-v3-collections.js?v=20261120-a03-identity1-a01a03safe1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1-verify2"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261120-a12-receipts1"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-h05balance1-h10review2-steps1-deposit1-h11availability1-h11fix2-h11review1-h11modify1-h12pos1-h12qa1-h13credit1-r05r08"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261120-h15-r08-scope1-h15release1"></script>
 <script>
@@ -1588,8 +1588,9 @@ async function switchBiteProperty(id){
  localStorage.setItem('bite_property_v1:'+currentUser.id,id);
  location.reload();
 }
-function applyRoleUI(){const role=access.role;const appScope=new URLSearchParams(location.search).get('bite_app');if((appScope==='admin'&&role!=='super_admin')||(appScope==='partner'&&role!=='owner')){document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';showAuthError(appScope==='admin'?'This app requires a Super Admin account. Please sign in with your platform administrator account.':'This app requires a Restaurant Owner account.');return;}document.body.dataset.role=role;const labels={super_admin:'SUPER ADMIN',owner:'RESTAURANT OWNER',manager:'MANAGER',staff:'STAFF',no_membership:'NO RESTAURANT ROLE'};document.getElementById('accountRole').textContent=labels[role]||'USER';const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront','platform-commission','platform-reports'];const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','owner-settlements','expenses','purchases','inventory','hr','reports','settings'];document.querySelectorAll('.nav button').forEach(b=>{const p=b.dataset.page;const ok=role==='super_admin'?platformPages.includes(p):role==='owner'?(ownerPages.includes(p)&&(p!=='owner-settlements'||!!access.restaurantId&&(!access.property||access.property.capabilities?.includes('online_food_orders')))):false;b.hidden=!ok;b.style.display=ok?'flex':'none'});document.querySelectorAll('.nav-group').forEach(g=>{const visible=[...g.querySelectorAll('button')].some(b=>!b.hidden);g.hidden=!visible;g.style.display=visible?'':'none'});document.querySelectorAll('[data-owner-up]').forEach(e=>e.style.display=['super_admin','owner'].includes(role)?'':'none');document.querySelectorAll('[data-order-create]').forEach(e=>e.style.display='none');document.querySelectorAll('[data-order-channel]').forEach(e=>{const c=e.dataset.orderChannel;e.style.display=role==='owner'?(['all','website'].includes(c)?'':'none'):role==='super_admin'?(c==='website'?'':'none'):'none'});document.querySelectorAll('[data-admin-only]').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('[data-owner-review-workspace]').forEach(e=>e.style.display=role==='owner'?'':'none');const welcome=document.getElementById('ownerWelcomeTitle'),subtitle=document.getElementById('ownerWelcomeSubtitle');if(welcome&&subtitle){welcome.textContent=role==='super_admin'?'Platform command center':role==='staff'?'Today’s service desk':'Your restaurant, one dashboard';subtitle.textContent=role==='super_admin'?'Manage restaurant partners and the Bite platform.':'Online orders, menu, expenses, reports and restaurant settings — simple and clear.'}document.querySelectorAll('[data-owner-dashboard]').forEach(e=>e.style.setProperty('display',['owner','manager'].includes(role)?'block':'none','important'));document.querySelectorAll('[data-platform-dashboard]').forEach(e=>e.style.display=role==='super_admin'?'block':'none');document.querySelectorAll('.owner-launcher').forEach(e=>e.style.display='none');document.querySelectorAll('.owner-launcher .launch-card').forEach(b=>{const match=(b.getAttribute('onclick')||'').match(/showPage\('([^']+)'\)/);const target=match?match[1]:'';b.style.display=role==='owner'&&['orders','menu','expenses','reports','settings'].includes(target)?'flex':'none'});if(role==='owner'){const ordersLabel=document.querySelector('[data-page="orders"] .nav-text'),menuLabel=document.querySelector('[data-page="menu"] .nav-text');if(ordersLabel)ordersLabel.textContent='Orders';if(menuLabel)menuLabel.textContent='Menu & prices'}if(role==='super_admin'){const a=document.getElementById('metricOrders')?.previousElementSibling,b=document.getElementById('metricSales')?.previousElementSibling,c=document.getElementById('metricPending')?.previousElementSibling;if(a)a.textContent='🌐 Website orders';if(b)b.textContent='💳 Website sales';if(c)c.textContent='↗ Orders awaiting settlement';const orderNav=document.querySelector('[data-page="orders"] .nav-text');if(orderNav)orderNav.textContent='Website Orders';const oh=document.querySelector('#orders .welcome h1'),os=document.querySelector('#orders .welcome .muted'),cn=document.querySelector('.channel-connection-note');if(oh)oh.textContent='Website Orders';if(os)os.textContent='Bite ki apni website se aaye orders aur unka status.';if(cn)cn.style.display='none';const kicker=document.querySelector('[data-platform-dashboard] .owner-home-eyebrow');if(kicker)kicker.textContent='RESTAURANTOS PLATFORM';const banner=document.querySelector('[data-platform-dashboard] .welcome+div div div:last-child');if(banner)banner.textContent='Website Orders · Commission · Settlements'}if(role==='owner'||role==='manager'){showPage('overview');const overview=document.getElementById('overview'),dashboard=document.querySelector('#overview [data-owner-dashboard]');BiteOwner.activatePage(document,'overview');if(overview){overview.style.setProperty('visibility','visible','important')}if(dashboard){dashboard.style.setProperty('display','block','important');dashboard.style.setProperty('visibility','visible','important');dashboard.style.setProperty('opacity','1','important')}}else if(role==='staff')showPage('orders');else showPage('overview');window.BiteHospitality?.applyShell();window.BiteSuperAdmin?.mount();}
+function applyRoleUI(){if(ownerReviewScope&&ownerReviewScope!==currentOwnerReviewScope())clearOwnerReviews();const role=access.role;const appScope=new URLSearchParams(location.search).get('bite_app');if((appScope==='admin'&&role!=='super_admin')||(appScope==='partner'&&role!=='owner')){document.getElementById('mainApp').style.display='none';document.getElementById('authScreen').style.display='flex';showAuthError(appScope==='admin'?'This app requires a Super Admin account. Please sign in with your platform administrator account.':'This app requires a Restaurant Owner account.');return;}document.body.dataset.role=role;const labels={super_admin:'SUPER ADMIN',owner:'RESTAURANT OWNER',manager:'MANAGER',staff:'STAFF',no_membership:'NO RESTAURANT ROLE'};document.getElementById('accountRole').textContent=labels[role]||'USER';const platformPages=['overview','restaurants','orders','reconciliation','financials','audit','support','moderation','customers','storefront','platform-commission','platform-reports'];const ownerPages=['overview','orders','pos','menu','tables','khata','cashbook','owner-settlements','expenses','purchases','inventory','hr','reports','settings'];document.querySelectorAll('.nav button').forEach(b=>{const p=b.dataset.page;const ok=role==='super_admin'?platformPages.includes(p):role==='owner'?(ownerPages.includes(p)&&(p!=='owner-settlements'||!!access.restaurantId&&(!access.property||access.property.capabilities?.includes('online_food_orders')))):false;b.hidden=!ok;b.style.display=ok?'flex':'none'});document.querySelectorAll('.nav-group').forEach(g=>{const visible=[...g.querySelectorAll('button')].some(b=>!b.hidden);g.hidden=!visible;g.style.display=visible?'':'none'});document.querySelectorAll('[data-owner-up]').forEach(e=>e.style.display=['super_admin','owner'].includes(role)?'':'none');document.querySelectorAll('[data-order-create]').forEach(e=>e.style.display='none');document.querySelectorAll('[data-order-channel]').forEach(e=>{const c=e.dataset.orderChannel;e.style.display=role==='owner'?(['all','website'].includes(c)?'':'none'):role==='super_admin'?(c==='website'?'':'none'):'none'});document.querySelectorAll('[data-admin-only]').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('#platformRestaurantManager').forEach(e=>e.style.display=role==='super_admin'?'':'none');document.querySelectorAll('[data-owner-review-workspace]').forEach(e=>e.style.display=role==='owner'?'':'none');const welcome=document.getElementById('ownerWelcomeTitle'),subtitle=document.getElementById('ownerWelcomeSubtitle');if(welcome&&subtitle){welcome.textContent=role==='super_admin'?'Platform command center':role==='staff'?'Today’s service desk':'Your restaurant, one dashboard';subtitle.textContent=role==='super_admin'?'Manage restaurant partners and the Bite platform.':'Online orders, menu, expenses, reports and restaurant settings — simple and clear.'}document.querySelectorAll('[data-owner-dashboard]').forEach(e=>e.style.setProperty('display',['owner','manager'].includes(role)?'block':'none','important'));document.querySelectorAll('[data-platform-dashboard]').forEach(e=>e.style.display=role==='super_admin'?'block':'none');document.querySelectorAll('.owner-launcher').forEach(e=>e.style.display='none');document.querySelectorAll('.owner-launcher .launch-card').forEach(b=>{const match=(b.getAttribute('onclick')||'').match(/showPage\('([^']+)'\)/);const target=match?match[1]:'';b.style.display=role==='owner'&&['orders','menu','expenses','reports','settings'].includes(target)?'flex':'none'});if(role==='owner'){const ordersLabel=document.querySelector('[data-page="orders"] .nav-text'),menuLabel=document.querySelector('[data-page="menu"] .nav-text');if(ordersLabel)ordersLabel.textContent='Orders';if(menuLabel)menuLabel.textContent='Menu & prices'}if(role==='super_admin'){const a=document.getElementById('metricOrders')?.previousElementSibling,b=document.getElementById('metricSales')?.previousElementSibling,c=document.getElementById('metricPending')?.previousElementSibling;if(a)a.textContent='🌐 Website orders';if(b)b.textContent='💳 Website sales';if(c)c.textContent='↗ Orders awaiting settlement';const orderNav=document.querySelector('[data-page="orders"] .nav-text');if(orderNav)orderNav.textContent='Website Orders';const oh=document.querySelector('#orders .welcome h1'),os=document.querySelector('#orders .welcome .muted'),cn=document.querySelector('.channel-connection-note');if(oh)oh.textContent='Website Orders';if(os)os.textContent='Bite ki apni website se aaye orders aur unka status.';if(cn)cn.style.display='none';const kicker=document.querySelector('[data-platform-dashboard] .owner-home-eyebrow');if(kicker)kicker.textContent='RESTAURANTOS PLATFORM';const banner=document.querySelector('[data-platform-dashboard] .welcome+div div div:last-child');if(banner)banner.textContent='Website Orders · Commission · Settlements'}if(role==='owner'||role==='manager'){showPage('overview');const overview=document.getElementById('overview'),dashboard=document.querySelector('#overview [data-owner-dashboard]');BiteOwner.activatePage(document,'overview');if(overview){overview.style.setProperty('visibility','visible','important')}if(dashboard){dashboard.style.setProperty('display','block','important');dashboard.style.setProperty('visibility','visible','important');dashboard.style.setProperty('opacity','1','important')}}else if(role==='staff')showPage('orders');else showPage('overview');window.BiteHospitality?.applyShell();window.BiteSuperAdmin?.mount();}
 async function logout(){
+ clearOwnerReviews();
  window.BitePOSReports?.clear?.();
  window.BiteOwnerA06?.clear?.();
  window.BiteHospitality?.clear();
@@ -1754,17 +1755,18 @@ async function loadPurchases(){
   document.getElementById('supplierDueSummary').textContent='Loading supplier dues…';
  }
  try{
-  const {data,error}=await sb.from('restaurant_purchases').select('*').eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data,error,count}=await sb.from('restaurant_purchases').select('*',{count:'exact'}).eq('restaurant_id',rid).order('purchase_date',{ascending:false}).order('created_at',{ascending:false});
   if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
   if(error)throw error;
-  const records=data||[],ids=records.map(x=>x.id);
+  if(!Array.isArray(data)||count!==data.length||data.some(x=>x.restaurant_id!==rid)||new Set(data.map(x=>x.id)).size!==data.length)throw Error('Purchase records incomplete. Refresh before recording payment.');
+  const records=data,ids=records.map(x=>x.id);
   let items=[],paymentRows=[],paymentAvailable=false;
   if(ids.length){
    const res=await sb.from('restaurant_purchase_items').select('*').in('purchase_id',ids);
    if(res.error)throw res.error;items=res.data||[];
   }
-  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at').eq('restaurant_id',rid).order('payment_date',{ascending:false});
-  if(!pay.error){paymentRows=pay.data||[];paymentAvailable=true}
+  const pay=await sb.from('restaurant_supplier_payments').select('id,restaurant_id,purchase_id,payment_date,amount,method,reference,request_id,created_at',{count:'exact'}).eq('restaurant_id',rid).order('payment_date',{ascending:false});
+  if(!pay.error&&Array.isArray(pay.data)&&pay.count===pay.data.length&&pay.data.every(x=>x.restaurant_id===rid&&ids.includes(x.purchase_id))&&!window.BiteSupplierDues?.summary(records,pay.data)?.error){paymentRows=pay.data;paymentAvailable=true}
   if(version!==purchaseRequestVersion||purchaseRestaurantId()!==rid||currentUser?.id!==userId)return false;
   purchaseRecords=records;purchaseItems=items; supplierPaymentRecords=paymentRows;supplierPaymentAvailable=paymentAvailable;
   renderPurchases();return true;
@@ -1810,12 +1812,14 @@ function openSupplierPayment(id){
       p_payment_date:date,p_method:method,p_request_id:requestId,p_reference:reference
     });
     if(result.error)throw result.error;
+    if(typeof result.data!=='string'||!result.data.trim())throw Error('Payment receipt not confirmed. Retry same request after refresh.');
     return result.data;
    },
    onSuccess:async ()=>{
     if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
     const ok=await loadPurchases();
-    document.getElementById('purchaseMessage').textContent=ok?
+    if(purchaseRestaurantId()!==rid||currentUser?.id!==userId)return;
+    document.getElementById('purchaseMessage').textContent=ok&&supplierPaymentAvailable?
      'Supplier payment recorded once on the actual payment date. Cashbook will reflect it.' :
      'Payment saved but Purchases did not refresh. Refresh before recording anything again.';
    }
@@ -1879,20 +1883,23 @@ async function loadInventory(){
   ]);
   if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id||!['owner','manager'].includes(access.role))return;
   if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
-  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,Number(b.current_stock)]));stockMovements=moves.data||[];renderInventory();
+  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,b.current_stock]));stockMovements=moves.data||[];renderInventory();
  }catch(e){if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id)return;
   document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;
+  inventoryItems=[];inventoryBalances={};stockMovements=[];
+  document.getElementById('inventoryRows').replaceChildren();document.getElementById('stockMovementRows').replaceChildren();document.getElementById('stockItem').replaceChildren();
+  document.getElementById('inventoryItemCount').textContent='—';document.getElementById('inventoryLowCount').textContent='—';document.getElementById('inventorySummary').textContent='Stock unverified';
   document.getElementById('inventoryV3Cards').textContent='Stock load nahi hua. Refresh karein.';
   console.error(e)}
 }
-function stockBalance(itemId){return Number(inventoryBalances[itemId]||0)}
+function stockBalance(itemId){const v=inventoryBalances[itemId];return (typeof v==='number'||typeof v==='string'&&v.trim())&&Number.isFinite(Number(v))?Number(v):null}
 function renderInventory(){
- const active=inventoryItems.length,low=inventoryItems.filter(i=>stockBalance(i.id)<=Number(i.reorder_level)).length;
+ const active=inventoryItems.length,low=inventoryItems.filter(i=>stockBalance(i.id)!==null&&stockBalance(i.id)<=Number(i.reorder_level)).length;
  document.getElementById('inventoryItemCount').textContent=String(active);document.getElementById('inventoryLowCount').textContent=String(low);
  document.getElementById('inventorySummary').textContent=active+' items · '+low+' low stock';
  document.getElementById('inventoryRows').innerHTML=inventoryItems.map(i=>{
-  const qty=stockBalance(i.id),isLow=qty<=Number(i.reorder_level);
-  return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+qty.toFixed(3)+' '+esc(i.unit)+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(isLow?'amber':'green')+'">'+(isLow?'Low stock':'In stock')+'</span></td></tr>';
+  const qty=stockBalance(i.id),isLow=qty!==null&&qty<=Number(i.reorder_level);
+  return '<tr><td><strong>'+esc(i.name)+'</strong></td><td>'+esc(i.category||'—')+'</td><td><strong>'+(qty===null?'Unverified':qty.toFixed(3)+' '+esc(i.unit))+'</strong></td><td>'+Number(i.reorder_level).toFixed(3)+' '+esc(i.unit)+'</td><td><span class="pill '+(qty===null||isLow?'amber':'green')+'">'+(qty===null?'Stock unverified':isLow?'Low stock':'In stock')+'</span></td></tr>';
  }).join('');
  document.getElementById('inventoryEmpty').style.display=active?'none':'block';
  window.BiteV3Inventory?.render?.(document.getElementById('inventoryV3Cards'),{
@@ -1987,11 +1994,13 @@ async function loadCashbookWorkspace(){
 }
 async function fetchCashbookSnapshot(rid,date){
  const [entries,closing]=await Promise.all([
-  sb.from('restaurant_cashbook_entries').select('*').eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
+  sb.from('restaurant_cashbook_entries').select('*',{count:'exact'}).eq('restaurant_id',rid).eq('entry_date',date).order('created_at',{ascending:false}),
   sb.from('restaurant_cashbook_closings').select('*').eq('restaurant_id',rid).eq('close_date',date).maybeSingle()
  ]);
  if(entries.error)throw entries.error;if(closing.error)throw closing.error;
- return {entries:entries.data||[],closing:closing.data||null};
+ if(!Array.isArray(entries.data)||entries.count!==entries.data.length)throw Error('Cashbook entries incomplete; closing disabled.');
+ const seen=new Set();for(const e of entries.data){const k=JSON.stringify([e.source_type,e.entry_id]);if(e.restaurant_id!==rid||e.entry_date!==date||!e.entry_id||!e.source_type||seen.has(k)||!['in','out'].includes(e.direction))throw Error('Invalid or duplicate cashbook source.');BiteCashClosing.paise(e.amount,'Cashbook entry');seen.add(k);}
+ return {entries:entries.data,closing:closing.data||null};
 }
 async function loadCashbook(){
  const rid=cashbookRestaurantId(),date=cashbookDateValue();if(!rid||!date)return;
@@ -2386,7 +2395,7 @@ async function saveHRAttendance(){
     !['Present','Absent','Half Day','Leave','Holiday'].includes(status)){
   message.textContent='Active employee aur valid past/current attendance date select karein.';return;
  }
- if(checkIn&&checkOut&&checkOut<checkIn){message.textContent='Check-out, check-in se pehle nahi ho sakta.';return}
+ if(checkOut&&!checkIn||checkIn&&checkOut&&checkOut<checkIn){message.textContent='Check-out ke liye valid check-in zaroori hai.';return}
  const key=userId+':'+rid+':'+eid+':'+date;
  if(message.dataset.saving===key)return;
  message.dataset.saving=key;
@@ -2395,7 +2404,7 @@ async function saveHRAttendance(){
    .select('id,status,check_in,check_out,notes,updated_at').eq('restaurant_id',rid)
    .eq('employee_id',eid).eq('attendance_date',date).maybeSingle();
   if(lookup.error)throw lookup.error;
-  if(currentUser?.id!==userId||hrRestaurantId()!==rid)throw Error('Restaurant/login changed. Try again.');
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid||!['owner','manager'].includes(access.role))throw Error('Restaurant/login changed. Try again.');
   let result,finalNotes=notes||null;
   if(lookup.data){
    const before=lookup.data;
@@ -2420,10 +2429,11 @@ async function saveHRAttendance(){
    });
   }
   if(result.error)throw result.error;
+  if(currentUser?.id!==userId||hrRestaurantId()!==rid||!['owner','manager'].includes(access.role))return;
   message.textContent=lookup.data?'Attendance correction saved with reason.':'Attendance saved';
   document.getElementById('hrAttendanceNotes').value='';
   await loadHRData();
- }catch(e){message.textContent='Attendance save nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(currentUser?.id===userId&&hrRestaurantId()===rid)message.textContent='Attendance save nahi hua: '+e.message;console.error(e)}
  finally{if(message.dataset.saving===key)delete message.dataset.saving;}
 }
 async function saveHRLeave(){
@@ -2471,6 +2481,7 @@ async function saveHREmployeePayment(){
   reference:document.getElementById('hrPaymentReference').value,
   notes:document.getElementById('hrPaymentNotes').value,created_by:userId
  };
+ if(!window.BiteV3Period?.validDay(record.payment_date)||record.payment_date>localDateInput()||record.period_month&&record.period_month.slice(0,7)>localDateInput().slice(0,7)){status.textContent='Choose an actual past/current payment date and salary month.';return;}
  const button=document.getElementById('hrPaymentSaveBtn');
  if(button.disabled||window.BiteOwnerSafeStaffPayment.isBusy()){
   status.textContent='Payment save is already in progress.';return;
@@ -2841,14 +2852,17 @@ document.querySelector('#khata .v3-khata-filters').addEventListener('click',e=>{
  khataFilter=selected;renderKhata();
 });
 
-let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[];
+let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[],reportLoadVersion=0,reportReadyKey='';
+function reportKey(){return [currentUser?.id||'',access.role,reportRestaurantId(),document.getElementById('reportFrom').value,document.getElementById('reportTo').value].join('|');}
+function reportReady(){return !!currentUser?.id&&['owner','manager'].includes(access.role)&&reportReadyKey===reportKey();}
+function clearReportView(){reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
 function reportRestaurantId(){return document.getElementById('reportRestaurant').value||''}
 async function loadReportsWorkspace(){
  const sel=document.getElementById('reportRestaurant'),previous=sel.value;
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  sel.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
+ if(!eligible.length){reportLoadVersion++;clearReportView();document.getElementById('reportStatus').textContent='No Owner/Manager access';return}
  sel.value=eligible.some(r=>r.id===previous)?previous:eligible[0].id;
  const today=localDateInput(),month=today.slice(0,8)+'01';
  if(!document.getElementById('reportFrom').value)document.getElementById('reportFrom').value=month;if(!document.getElementById('reportTo').value)document.getElementById('reportTo').value=today;
@@ -2856,7 +2870,9 @@ async function loadReportsWorkspace(){
 }
 async function loadReportsData(){
  const rid=reportRestaurantId(),from=document.getElementById('reportFrom').value,to=document.getElementById('reportTo').value;
- if(!rid||!from||!to||to<from){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
+ const version=++reportLoadVersion,key=reportKey();clearReportView();
+ const current=()=>version===reportLoadVersion&&key===reportKey()&&!!currentUser?.id&&['owner','manager'].includes(access.role);
+ if(!rid||!current()||!window.BiteV3Period?.validDay(from)||!window.BiteV3Period?.validDay(to)||to<from||to>localDateInput()){document.getElementById('reportStatus').textContent='Date range sahi select karein';return}
  document.getElementById('reportStatus').textContent='Reports load ho rahe hain…';
  try{
   const interval=BiteOwner.range(from,to);
@@ -2867,19 +2883,23 @@ async function loadReportsData(){
    sb.from('restaurant_expenses').select('id,is_demo').eq('restaurant_id',rid),
    sb.from('order_financials').select('*').eq('restaurant_id',rid)
   ]);
-  for(const x of [orders,cashbook,balances,expenses,financials])if(x.error)throw x.error;
-  reportOrders=orders.data||[];reportFinancials=financials.data||[];const demoExpenses=new Set((expenses.data||[]).filter(e=>e.is_demo).map(e=>e.id));reportCashbook=(cashbook.data||[]).filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data||[];
-  const ids=reportOrders.map(o=>o.id);
+  if(!current())return;
+  for(const x of [orders,cashbook,balances,expenses,financials]){if(x.error)throw x.error;if(!Array.isArray(x.data)||x.data.length>=1000)throw Error('Report data incomplete. Use a verified export or shorter period.');}
+  const ids=orders.data.map(o=>o.id);let itemRows=[],paymentRows=[];
   if(ids.length){
    const [items,payments]=await Promise.all([
     sb.from('order_items').select('*').in('order_id',ids),
     sb.from('restaurant_order_payment_summaries').select('*').in('order_id',ids)
    ]);
    if(items.error)throw items.error;if(payments.error)throw payments.error;
-   reportItems=items.data||[];reportPaymentSummaries=payments.data||[];
-  }else{reportItems=[];reportPaymentSummaries=[]}
+   if(!current())return;
+   if(!Array.isArray(items.data)||!Array.isArray(payments.data)||items.data.length>=1000||payments.data.length>=1000)throw Error('Report details incomplete. Choose a shorter period.');
+   itemRows=items.data;paymentRows=payments.data;
+  }
+  if(!current())return;
+  reportOrders=orders.data;reportFinancials=financials.data;const demoExpenses=new Set(expenses.data.filter(e=>e.is_demo).map(e=>e.id));reportCashbook=cashbook.data.filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data;reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
   renderReports();
- }catch(e){document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
+ }catch(e){if(!current())return;clearReportView();document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
 }
 function reportSummaryFor(orderId){
  return reportPaymentSummaries.find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:0,cancelled_sale_amount:0,refunded_amount:0};
@@ -2925,11 +2945,13 @@ function ownerReportRows(){
  return rows;
 }
 function exportReportsCSV(){
+ if(!reportReady()){alert('Refresh verified report before export.');return;}
  const csv=ownerReportRows().map(row=>row.map(BiteOwner.csvCell).join(',')).join('\r\n');
  BiteExports.download('\uFEFF'+csv,'bite-report-'+document.getElementById('reportFrom').value+'.csv','text/csv;charset=utf-8');
 }
-function exportReportsXLSX(){BiteExports.download(BiteExports.workbook(ownerReportRows()),'bite-report-'+document.getElementById('reportFrom').value+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
+function exportReportsXLSX(){if(!reportReady()){alert('Refresh verified report before export.');return;}BiteExports.download(BiteExports.workbook(ownerReportRows()),'bite-report-'+document.getElementById('reportFrom').value+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');}
 function printOwnerReport(){
+ if(!reportReady()){alert('Refresh verified report before printing.');return;}
  const restaurant=state.restaurants.find(r=>r.id===reportRestaurantId());const rows=ownerReportRows();
  BiteExports.print('Bite · Business Report',(restaurant?.name||'Restaurant')+' · '+document.getElementById('reportFrom').value+' to '+document.getElementById('reportTo').value,rows[0],rows.slice(1),['Demo and unpaid orders are excluded from verified collection totals.','Cash movement is separate from sales and is not final net profit.']);
 }
@@ -5054,25 +5076,45 @@ document.addEventListener('bite-owner-order-date-change',()=>{if(access.role==='
 let deliveryZoneRows=[],deliveryZonePinRows=[];
 function deliveryZoneRestaurantId(){return access.role==='owner'?access.restaurantId:'';}
 async function loadDeliveryZonesWorkspace(){
- const rid=deliveryZoneRestaurantId(),rows=document.getElementById('deliveryZoneRows');if(!rows)return;
+ const rid=deliveryZoneRestaurantId(),rows=document.getElementById('deliveryZoneRows'),userId=currentUser?.id;if(!rows)return;
+ const current=()=>!!userId&&currentUser?.id===userId&&deliveryZoneRestaurantId()===rid;
+ deliveryZoneRows=[];deliveryZonePinRows=[];rows.innerHTML='';
  if(!rid){rows.innerHTML='';document.getElementById('deliveryZoneEmpty').textContent='Restaurant select karein.';return;}
  document.getElementById('deliveryZoneMessage').textContent='Delivery zones load ho rahe hain...';
  try{
   const [zonesRes,pinsRes]=await Promise.all([sb.from('restaurant_delivery_zones').select('*').eq('restaurant_id',rid).order('name'),sb.from('restaurant_delivery_zone_pincodes').select('zone_id,postal_code').eq('restaurant_id',rid).order('postal_code')]);
-  if(zonesRes.error)throw zonesRes.error;if(pinsRes.error)throw pinsRes.error;
+  if(!current())return;if(zonesRes.error)throw zonesRes.error;if(pinsRes.error)throw pinsRes.error;
   deliveryZoneRows=zonesRes.data||[];deliveryZonePinRows=pinsRes.data||[];
   rows.innerHTML=deliveryZoneRows.map(z=>{const pins=deliveryZonePinRows.filter(p=>p.zone_id===z.id).map(p=>p.postal_code);return '<tr><td><strong>'+esc(z.name)+'</strong></td><td>'+esc(pins.join(', ')||'—')+'</td><td>'+money(z.delivery_fee)+'</td><td>'+money(z.minimum_order_amount)+'</td><td><span class="pill">'+(z.is_active?'Active':'Paused')+'</span></td><td><div class="actions"><button class="btn secondary" onclick="editDeliveryZone(\''+esc(z.id)+'\')">Edit</button><button class="btn secondary" onclick="toggleDeliveryZone(\''+esc(z.id)+'\')">'+(z.is_active?'Pause':'Activate')+'</button><button class="btn danger" onclick="deleteDeliveryZone(\''+esc(z.id)+'\')">Delete</button></div></td></tr>'}).join('');
   document.getElementById('deliveryZoneEmpty').style.display=deliveryZoneRows.length?'none':'block';document.getElementById('deliveryZoneMessage').textContent=deliveryZoneRows.length+' delivery zones loaded.';
- }catch(e){document.getElementById('deliveryZoneMessage').textContent='Zones load nahi hue: '+e.message;console.error(e);}
+ }catch(e){if(!current())return;document.getElementById('deliveryZoneMessage').textContent='Zones load nahi hue: '+e.message;console.error(e);}
 }
 function resetDeliveryZoneForm(){document.getElementById('deliveryZoneForm').reset();document.getElementById('deliveryZoneId').value='';document.getElementById('deliveryZoneFee').value='0';document.getElementById('deliveryZoneMinimum').value='0';document.getElementById('deliveryZoneActive').value='true';document.getElementById('deliveryZoneSaveBtn').textContent='Save delivery zone';document.getElementById('deliveryZoneMessage').textContent='';}
 function editDeliveryZone(id){const z=deliveryZoneRows.find(x=>x.id===id);if(!z)return;document.getElementById('deliveryZoneId').value=z.id;document.getElementById('deliveryZoneName').value=z.name;document.getElementById('deliveryZonePincodes').value=deliveryZonePinRows.filter(p=>p.zone_id===id).map(p=>p.postal_code).join(', ');document.getElementById('deliveryZoneFee').value=Number(z.delivery_fee);document.getElementById('deliveryZoneMinimum').value=Number(z.minimum_order_amount);document.getElementById('deliveryZoneActive').value=String(z.is_active);document.getElementById('deliveryZoneSaveBtn').textContent='Update delivery zone';document.getElementById('deliveryZoneMessage').textContent='Editing '+z.name;}
-async function saveDeliveryZone(e){e.preventDefault();const rid=deliveryZoneRestaurantId(),zoneId=document.getElementById('deliveryZoneId').value||null,name=document.getElementById('deliveryZoneName').value.trim(),pins=document.getElementById('deliveryZonePincodes').value.split(',').map(p=>p.trim()).filter(Boolean),fee=Number(document.getElementById('deliveryZoneFee').value),minimum=Number(document.getElementById('deliveryZoneMinimum').value),active=document.getElementById('deliveryZoneActive').value==='true';if(!rid||name.length<2||!pins.length||!Number.isFinite(fee)||fee<0||!Number.isFinite(minimum)||minimum<0){document.getElementById('deliveryZoneMessage').textContent='Area, PIN code, valid fee aur minimum order fill karein.';return;}const btn=document.getElementById('deliveryZoneSaveBtn');btn.disabled=true;btn.textContent='Saving…';try{const {data,error}=await sb.rpc('save_restaurant_delivery_zone',{p_restaurant_id:rid,p_zone_id:zoneId,p_name:name,p_postal_codes:pins,p_delivery_fee:fee,p_minimum_order_amount:minimum,p_is_active:active});if(error)throw error;resetDeliveryZoneForm();document.getElementById('deliveryZoneMessage').textContent='Delivery zone saved.';await loadDeliveryZonesWorkspace();}catch(err){document.getElementById('deliveryZoneMessage').textContent=err.message||'Zone save nahi hua.';console.error(err);}finally{btn.disabled=false;btn.textContent=zoneId?'Update delivery zone':'Save delivery zone';}}
+async function saveDeliveryZone(e){e.preventDefault();const rid=deliveryZoneRestaurantId(),zoneId=document.getElementById('deliveryZoneId').value||null,name=document.getElementById('deliveryZoneName').value.trim(),pins=document.getElementById('deliveryZonePincodes').value.split(',').map(p=>p.trim()).filter(Boolean),fee=Number(document.getElementById('deliveryZoneFee').value),minimum=Number(document.getElementById('deliveryZoneMinimum').value),active=document.getElementById('deliveryZoneActive').value==='true';if(!rid||!currentUser?.id||access.role!=='owner'||rid!==access.restaurantId||name.length<2||!pins.length||pins.some(p=>!/^\d{6}$/.test(p))||new Set(pins).size!==pins.length||!Number.isFinite(fee)||fee<0||Math.abs(fee*100-Math.round(fee*100))>0.00001||!Number.isFinite(minimum)||minimum<0||Math.abs(minimum*100-Math.round(minimum*100))>0.00001){document.getElementById('deliveryZoneMessage').textContent='Area, PIN code, valid fee aur minimum order fill karein.';return;}const btn=document.getElementById('deliveryZoneSaveBtn'),zoneUser=currentUser.id;if(btn.disabled)return;btn.disabled=true;btn.textContent='Saving…';try{const {data,error}=await sb.rpc('save_restaurant_delivery_zone',{p_restaurant_id:rid,p_zone_id:zoneId,p_name:name,p_postal_codes:pins,p_delivery_fee:fee,p_minimum_order_amount:minimum,p_is_active:active});if(error)throw error;if(currentUser?.id!==zoneUser||access.restaurantId!==rid||deliveryZoneRestaurantId()!==rid)return;resetDeliveryZoneForm();document.getElementById('deliveryZoneMessage').textContent='Delivery zone saved.';await loadDeliveryZonesWorkspace();}catch(err){document.getElementById('deliveryZoneMessage').textContent=err.message||'Zone save nahi hua.';console.error(err);}finally{btn.disabled=false;btn.textContent=zoneId?'Update delivery zone':'Save delivery zone';}}
 async function toggleDeliveryZone(id){const z=deliveryZoneRows.find(x=>x.id===id);if(!z)return;const pins=deliveryZonePinRows.filter(p=>p.zone_id===id).map(p=>p.postal_code);try{const {error}=await sb.rpc('save_restaurant_delivery_zone',{p_restaurant_id:z.restaurant_id,p_zone_id:z.id,p_name:z.name,p_postal_codes:pins,p_delivery_fee:Number(z.delivery_fee),p_minimum_order_amount:Number(z.minimum_order_amount),p_is_active:!z.is_active});if(error)throw error;await loadDeliveryZonesWorkspace();}catch(e){alert('Zone status update nahi hua: '+e.message);}}
 async function deleteDeliveryZone(id){const z=deliveryZoneRows.find(x=>x.id===id);if(!z||!confirm(z.name+' delivery zone delete karna hai?'))return;try{const {error}=await sb.rpc('delete_restaurant_delivery_zone',{p_restaurant_id:z.restaurant_id,p_zone_id:z.id});if(error)throw error;resetDeliveryZoneForm();await loadDeliveryZonesWorkspace();}catch(e){alert('Zone delete nahi hua: '+e.message);}}
 document.getElementById('deliveryZoneForm')?.addEventListener('submit',saveDeliveryZone);
-async function loadRestaurantReviewsWorkspace(){const list=document.getElementById('restaurantReviewsList');if(!list||access.role!=='owner'||!access.restaurantId)return;try{const {data,error}=await sb.from('restaurant_reviews').select('id,restaurant_id,order_id,customer_id,rating,review,status,response,created_at').eq('restaurant_id',access.restaurantId).order('created_at',{ascending:false}).limit(100);if(error)throw error;const rows=data||[];if(!rows.length){list.innerHTML='<div class="empty">Abhi customer review nahi aaya.</div>';return;}const ids=[...new Set(rows.map(r=>r.order_id))];const {data:orders,error:oe}=await sb.from('orders').select('id,order_code,customer_name,status').in('id',ids);if(oe)throw oe;const om=new Map((orders||[]).map(o=>[o.id,o]));list.innerHTML=rows.map(r=>{const o=om.get(r.order_id)||{};const buttons=r.status==='Published'?'<button class="btn" onclick="replyRestaurantReview(\''+esc(r.id)+'\')">Reply to customer</button>':'';return '<article class="card" style="margin:12px 0;border:1px solid var(--line)"><div class="section-head"><div><strong>'+esc(o.order_code||'Order')+' · '+esc(o.customer_name||'Customer')+'</strong><div class="muted">'+esc(o.status||'')+' · '+esc(r.created_at)+'</div></div><span class="tag">'+esc(r.rating)+'★ · '+esc(r.status)+'</span></div><p>'+esc(r.review)+'</p>'+(r.response?'<p class="muted"><strong>Restaurant reply:</strong> '+esc(r.response)+'</p>':'')+(buttons?'<div class="actions">'+buttons+'</div>':'')+'</article>';}).join('');}catch(e){list.innerHTML='<div class="empty">Reviews load nahi hue: '+esc(e.message||'Try again.')+'</div>';console.error(e);}}
-async function replyRestaurantReview(id){if(access.role!=='owner'||!access.restaurantId)return;const response=prompt('Customer ko restaurant reply (3-500 characters):');if(response===null)return;try{const {error}=await sb.rpc('respond_restaurant_review',{p_review_id:id,p_response:response.trim(),p_publish:true});if(error)throw error;await loadRestaurantReviewsWorkspace();alert('Restaurant reply successfully save ho gaya.');}catch(e){alert(e.message||'Reply save nahi hua.')}}
+var ownerReviewVersion=0,ownerReviewScope='',ownerReviewRows=[],ownerReviewDrafts=new Map(),ownerReviewBusy=new Set();
+function currentOwnerReviewScope(){return access.role==='owner'&&currentUser?.id&&access.restaurantId?currentUser.id+':'+access.restaurantId:'';}
+function clearOwnerReviews(){ownerReviewVersion++;ownerReviewScope='';ownerReviewRows=[];ownerReviewDrafts=new Map();document.getElementById('restaurantReviewsList')?.replaceChildren();}
+async function loadRestaurantReviewsWorkspace(){const list=document.getElementById('restaurantReviewsList');if(!list)return;const scope=currentOwnerReviewScope(),rid=access.restaurantId;if(!scope){clearOwnerReviews();return;}if(ownerReviewScope!==scope)clearOwnerReviews();ownerReviewScope=scope;const version=++ownerReviewVersion;const current=()=>version===ownerReviewVersion&&currentOwnerReviewScope()===scope;ownerReviewRows=[];list.textContent='Loading reviews…';try{const {data,error}=await sb.from('restaurant_reviews').select('id,restaurant_id,order_id,customer_id,rating,review,status,response,created_at').eq('restaurant_id',rid).order('created_at',{ascending:false}).limit(100);if(!current())return;if(error)throw error;const rows=data||[];if(!Array.isArray(rows)||rows.some(r=>r.restaurant_id!==rid))throw Error('Incomplete review scope.');if(!rows.length){list.innerHTML='<div class="empty">Abhi customer review nahi aaya.</div>';return;}const ids=[...new Set(rows.map(r=>r.order_id))];const {data:orders,error:oe}=await sb.from('orders').select('id,order_code,customer_name,status').eq('restaurant_id',rid).in('id',ids);if(!current())return;if(oe)throw oe;ownerReviewRows=rows;const om=new Map((orders||[]).map(o=>[o.id,o]));list.innerHTML=rows.map(r=>{const o=om.get(r.order_id)||{};const buttons=r.status==='Published'?'<button class="btn" onclick="replyRestaurantReview(\''+esc(r.id)+'\')">Reply to customer</button>':'';return '<article class="card" style="margin:12px 0;border:1px solid var(--line)"><div class="section-head"><div><strong>'+esc(o.order_code||'Order')+' · '+esc(o.customer_name||'Customer')+'</strong><div class="muted">'+esc(o.status||'')+' · '+esc(r.created_at)+'</div></div><span class="tag">'+esc(r.rating)+'★ · '+esc(r.status)+'</span></div><p>'+esc(r.review)+'</p>'+(r.response?'<p class="muted"><strong>Restaurant reply:</strong> '+esc(r.response)+'</p>':'')+(buttons?'<div class="actions">'+buttons+'</div>':'')+'</article>';}).join('');}catch(e){if(!current())return;ownerReviewRows=[];list.innerHTML='<div class="empty">Reviews load nahi hue: '+esc(e.message||'Try again.')+'</div>';console.error(e);}}
+async function replyRestaurantReview(id){
+ const scope=currentOwnerReviewScope(),row=ownerReviewRows.find(x=>x.id===id&&x.status==='Published');
+ if(!scope||scope!==ownerReviewScope||!row||ownerReviewBusy.has(scope+':'+id))return;
+ const key=scope+':'+id;
+ const response=prompt('Customer ko restaurant reply (3-500 characters):',ownerReviewDrafts.get(key)||row.response||'');
+ if(response===null)return;
+ const message=response.trim();
+ if(message.length<3||message.length>500){ownerReviewDrafts.set(key,response);alert('Reply 3–500 characters required. Draft kept.');return;}
+ if(currentOwnerReviewScope()!==scope)return;
+ ownerReviewDrafts.set(key,message);ownerReviewBusy.add(key);
+ try{const {error}=await sb.rpc('respond_restaurant_review',{p_review_id:id,p_response:message,p_publish:true});
+ if(error)throw error;if(currentOwnerReviewScope()!==scope)return;
+ ownerReviewDrafts.delete(key);await loadRestaurantReviewsWorkspace();if(currentOwnerReviewScope()===scope)alert('Restaurant reply save ho gaya.');
+ }catch(e){if(currentOwnerReviewScope()===scope)alert((e.message||'Reply save nahi hua.')+' Draft kept; retry after refresh.');}
+ finally{ownerReviewBusy.delete(key);}
+}
 async function loadCustomerOrderRequestsWorkspace(){
  const list=document.getElementById('customerOrderRequestsList');if(!list)return;
  const canRespond=access.role==='owner'||access.role==='manager';const canDecideCancellation=access.role==='owner';
@@ -5090,7 +5132,7 @@ async function loadCustomerOrderRequestsWorkspace(){
 }
 async function respondCustomerOrderRequest(id,decision){if(!['owner','manager'].includes(access.role)||decision==='Approved'&&access.role!=='owner')return;const requestUser=currentUser?.id,requestRestaurant=access.restaurantId;if(!requestUser||!requestRestaurant)return;const response=prompt(decision==='Approved'?'Cancellation approve karne ka response likhein:':decision==='Resolved'?'Complaint resolve karne ka response likhein:':'Customer ko response likhein (3-500 characters):');if(response===null)return;if(response.trim().length<3||response.trim().length>500){alert('Response 3–500 characters ka hona chahiye.');return;}if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;try{const {error}=await sb.rpc('respond_customer_order_request',{p_request_id:id,p_decision:decision,p_response:response.trim()});if(error)throw error;if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;await loadCustomerOrderRequestsWorkspace();await loadCloudData();if(currentUser?.id!==requestUser||access.restaurantId!==requestRestaurant)return;alert(decision==='Approved'?'Cancellation approved. Order cancelled. Refund is not marked paid: provider confirmation is required.':decision==='Resolved'?'Complaint resolved.':'Request response saved.');}catch(e){alert(e.message||'Request response save nahi hua.');}}
 function renderTenantSwitcher(){const el=document.getElementById('tenantSwitcher');if(!el)return;const options=access.restaurantOptions||[];if(access.isPlatformAdmin||options.length<2){el.style.display='none';return;}el.style.display='';el.innerHTML=options.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');el.value=access.restaurantId||options[0]?.id||'';}
-function switchRestaurant(id){if(access.isPlatformAdmin||!access.memberships.some(m=>m.restaurant_id===id))return;if(access.restaurantId===id)return;access.restaurantId=id;ownerOrderBurstTracker.reset();ownerOrderRefreshRetries=0;ownerLastResumeAt=0;startRealtimeOrderUpdates();startOwnerCancellationAlerts();loadCloudData().then(()=>{const active=document.querySelector('.page.active')?.id;const refresh={menu:loadMenuWorkspace,pos:loadPOSWorkspace,tables:loadTablesWorkspace,refunds:loadRefundWorkspace,khata:loadKhataWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,settings:loadDeliveryZonesWorkspace,orders:loadCustomerOrderRequestsWorkspace};if(active&&refresh[active])return refresh[active]();}).catch(e=>alert('Restaurant data load nahi hua: '+e.message));}
+function switchRestaurant(id){if(access.isPlatformAdmin||!access.memberships.some(m=>m.restaurant_id===id))return;if(access.restaurantId===id)return;clearOwnerReviews();access.restaurantId=id;ownerOrderBurstTracker.reset();ownerOrderRefreshRetries=0;ownerLastResumeAt=0;startRealtimeOrderUpdates();startOwnerCancellationAlerts();loadCloudData().then(()=>{const active=document.querySelector('.page.active')?.id;const refresh={menu:loadMenuWorkspace,pos:loadPOSWorkspace,tables:loadTablesWorkspace,refunds:loadRefundWorkspace,khata:loadKhataWorkspace,hr:loadHRWorkspace,reports:loadReportsWorkspace,cashbook:loadCashbookWorkspace,expenses:loadExpenseWorkspace,purchases:loadPurchaseWorkspace,inventory:loadInventoryWorkspace,settings:loadDeliveryZonesWorkspace,orders:loadCustomerOrderRequestsWorkspace};if(active&&refresh[active])return refresh[active]();}).catch(e=>alert('Restaurant data load nahi hua: '+e.message));}
 document.getElementById('tenantSwitcher')?.addEventListener('change',e=>switchRestaurant(e.target.value));
 function render(){window.BiteSuperAdmin?.refresh();const demoRows=state.orders.filter(o=>o.isDemo);const demoBanner=document.getElementById('biteDemoBanner');if(demoBanner)demoBanner.style.display=demoRows.length?'flex':'none';const demoCount=document.getElementById('biteDemoCount');if(demoCount)demoCount.textContent=demoRows.length+' sample orders';if(access.role==='super_admin')renderPlatformRestaurantDirectory();const platformOrders=state.orders.filter(o=>orderChannelKey(o.channel)==='website');const ownerOrders=access.role==='super_admin'?state.orders.filter(o=>orderChannelKey(o.channel)==='website'):state.orders.filter(o=>orderChannelKey(o.channel)==='website'&&o.restaurant===access.restaurantId);const dashboardOrders=access.role==='super_admin'?platformOrders:ownerOrders;const liveOrders=dashboardOrders.filter(o=>!o.isDemo);const verifiedPaidSales=(state.financials||[]).filter(f=>!f.is_demo&&f.channel==='Own Platform'&&f.payment_status==='paid').reduce((n,f)=>n+Number(f.customer_payable_amount||0),0);
 const nowLocal=new Date();const todayKey=BiteOwner.day(nowLocal);const todaysOrders=ownerOrders.filter(o=>!o.isDemo&&BiteOwner.day(o.createdAt)===todayKey);const cancelledStatuses=['rejected','cancelled','canceled','refunded','void'];const activeToday=todaysOrders.filter(o=>!cancelledStatuses.includes(String(o.status||'').toLowerCase()));const pendingToday=todaysOrders.filter(o=>!['rejected','completed','delivered','cancelled','canceled','refunded','void','closed'].includes(String(o.status||'').toLowerCase()));const onlineToday=activeToday.length;const verifiedPaidOrderIds=new Set((state.financials||[]).filter(f=>!f.is_demo&&f.payment_status==='paid').map(f=>f.order_id));const ots=document.getElementById('ownerTodaySales');if(ots)ots.textContent=money(todaysOrders.filter(o=>verifiedPaidOrderIds.has(o.id)).reduce((sum,o)=>sum+Number(o.amount||0),0));const oto=document.getElementById('ownerTodayOrders');if(oto)oto.textContent=String(todaysOrders.length);const opo=document.getElementById('ownerPendingOrders');if(opo)opo.textContent=String(pendingToday.length);const ooo=document.getElementById('ownerOnlineOrders');if(ooo)ooo.textContent=String(onlineToday);const queueCounts={Received:todaysOrders.filter(o=>o.status==='Received').length,Preparing:todaysOrders.filter(o=>o.status==='Preparing').length,Ready:todaysOrders.filter(o=>o.status==='Ready').length};[['ownerNewOrders',queueCounts.Received],['ownerPreparingOrders',queueCounts.Preparing],['ownerReadyOrders',queueCounts.Ready]].forEach(([id,count])=>{const el=document.getElementById(id);if(el)el.textContent=String(count)});const kitchenActiveCount=ownerOrders.filter(o=>!o.isDemo&&['Received','Accepted','Preparing'].includes(o.status)).length;const kitchenNote=document.getElementById('ownerQueueNote'),kitchenShortcut=document.getElementById('ownerKitchenRushShortcut');if(kitchenNote)kitchenNote.textContent=kitchenActiveCount>=4?kitchenActiveCount+' orders kitchen queue mein hain.':'Naye orders yahan dikhte hain.';if(kitchenShortcut)kitchenShortcut.hidden=access.role!=='owner'||kitchenActiveCount<4;const dateChip=document.getElementById('biteTodayDate');if(dateChip)dateChip.textContent=nowLocal.toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',weekday:'short',day:'2-digit',month:'short',year:'numeric'});const priority=document.getElementById('ownerPriorityOrders');
