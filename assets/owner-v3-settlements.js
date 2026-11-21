@@ -7,12 +7,13 @@
  const digits=s=>String(s||'').replace(/[^0-9a-f]/gi,'');
  const idOK=s=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s||''));
  const cents=v=>{
-  if(v==null||v==='')return null;
+  if(typeof v!=='number'&&!(typeof v==='string'&&v.trim()))return null;
   const n=Number(v),rounded=Math.round(n*100);
   return Number.isFinite(n)&&n>=0&&Number.isSafeInteger(rounded)&&Math.abs(n*100-rounded)<0.001?rounded:null;
  };
  const money=c=>c==null?'—':'₹'+(c/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
  const stamp=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(0,10):'Date unknown';
+ const checkedTime=s=>typeof s==='string'&&s.trim()&&Number.isFinite(Date.parse(s))?Date.parse(s):null;
  const verifiedStatus=s=>['PAID','SUCCESS','CAPTURED','COMPLETED'].includes(String(s||'').toUpperCase());
  const formatStatus=s=>String(s||'not reported').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
  const shortRef=s=>String(s||'').length>6?'••••'+String(s).slice(-6):String(s||'—');
@@ -61,8 +62,11 @@
   const checksByOrder=new Map();
   for(const check of checks){
    if(!idOK(check.order_id))continue;
-   const previous=checksByOrder.get(check.order_id);
-   if(!previous||String(check.checked_at||'')>String(previous.checked_at||''))checksByOrder.set(check.order_id,check);
+   const time=checkedTime(check.checked_at),previous=checksByOrder.get(check.order_id);
+   if(time===null){checksByOrder.set(check.order_id,{invalid:true});continue;}
+   if(previous?.invalid)continue;
+   if(!previous||time>checkedTime(previous.checked_at))checksByOrder.set(check.order_id,check);
+   else if(time===checkedTime(previous.checked_at)&&(check.collection_status!==previous.collection_status||cents(check.collection_amount)!==cents(previous.collection_amount)))checksByOrder.set(check.order_id,{invalid:true});
   }
   const paymentIds=new Set();
   let recordedPaid=0,providerChecked=0,reviewNeeded=0;
@@ -71,7 +75,7 @@
    paymentIds.add(f.order_id);
    const amount=cents(f.customer_payable_amount),paid=f.payment_status==='paid',check=checksByOrder.get(f.order_id);
    if(amount===null)throw Error('Invalid customer payable amount in source financials.');
-   const checked=paid&&!!check?.checked_at&&verifiedStatus(check.collection_status)&&
+   const checked=paid&&checkedTime(check?.checked_at)!==null&&verifiedStatus(check.collection_status)&&
      cents(check.collection_amount)===amount;
    if(paid){recordedPaid+=amount;if(checked)providerChecked+=amount;else reviewNeeded++;}
    const order=orderLookup.get(f.order_id);
@@ -83,11 +87,12 @@
   const refundRows=refunds.slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))
    .map(x=>({...x,displayCode:orderLookup.get(x.order_id)?.code||payments.find(p=>p.order_id===x.order_id)?.displayCode||'Order '+String(x.order_id||'').slice(0,8).toUpperCase()}));
   return {payments,settlements:settlementRows,refunds:refundRows,recordedPaid,providerChecked,
-   reviewNeeded,pendingRefunds:refundRows.filter(x=>!['completed','refunded','failed','cancelled'].includes(String(x.status||'').toLowerCase())).length};
+   reviewNeeded,pendingRefunds:refundRows.filter(x=>!providerRefundConfirmed(x)&&String(x.status||'').toLowerCase()!=='cancelled').length};
  }
+ function providerRefundConfirmed(row){return !!String(row.provider_refund_id||'').trim()&&checkedTime(row.provider_checked_at)!==null&&['SUCCESS','COMPLETED','REFUNDED'].includes(String(row.provider_status||'').toUpperCase());}
  function refundLabel(row){
   const provider=String(row.provider_status||'').toUpperCase();
-  if(row.provider_refund_id&&row.provider_checked_at&&['SUCCESS','COMPLETED','REFUNDED'].includes(provider))
+  if(providerRefundConfirmed(row))
    return 'Provider reports refund processed · bank credit unverified';
   if(['FAILED','ERROR'].includes(provider))return 'Provider reported failure · follow up';
   if(row.status==='approved')return 'Approved in Bite · provider refund unverified';
