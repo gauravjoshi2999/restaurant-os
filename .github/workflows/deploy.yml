@@ -80,6 +80,22 @@ jobs:
         with:
           path: dist/site
           name: github-pages-${{ github.run_attempt }}
+      - name: Verify uploaded Pages artifact is discoverable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ARTIFACT: github-pages-${{ github.run_attempt }}
+        run: |
+          for attempt in $(seq 1 12); do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" |
+              jq -e --arg name "$EXPECTED_ARTIFACT" '[.artifacts[] | select(.name == $name and .expired == false and .size_in_bytes > 0)] | length == 1'; then
+              echo "Expected Pages artifact is available."
+              exit 0
+            fi
+            echo "Waiting for artifact metadata visibility ($attempt/12)"
+            sleep 5
+          done
+          echo "::error::Expected Pages artifact did not become available."
+          exit 1
       - name: Recheck latest main before automatic publication
         if: github.event_name != 'workflow_dispatch'
         env:
