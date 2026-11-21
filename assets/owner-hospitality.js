@@ -556,7 +556,7 @@
   const entry=data.entries.find(e=>e.id===entryId&&e.folio_id===folioId&&e.kind==='charge'&&e.source_order_id);
   if(!entry)throw Error('This food charge is not linked to the open guest bill.');
   const stillCurrent=()=>scope===identity()&&rid===ctx.getAccess().restaurantId&&folioId===selectedFolio&&button.isConnected&&$('folios')?.classList.contains('active')&&canReadLinkedPOS();
-  const orderResult=await ctx.sb.from('orders').select('id,restaurant_id,order_code,channel,is_demo,amount,status,order_date').eq('restaurant_id',rid).eq('id',entry.source_order_id).maybeSingle();
+  const orderResult=await ctx.sb.from('orders').select('id,restaurant_id,order_code,channel,is_demo,amount,waived_off_amount,status,order_date').eq('restaurant_id',rid).eq('id',entry.source_order_id).maybeSingle();
   if(!stillCurrent())return;
   if(orderResult.error)throw orderResult.error;
   const order=orderResult.data;
@@ -567,7 +567,7 @@
   const rows=(result.data||[]).filter(i=>i.order_id===order.id);
   if(!rows.length)throw Error('Original POS items could not be loaded. Please retry.');
   const amount=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?money(Number(value)):'Unavailable';
-  editor('<section class="bh-original-pos" aria-label="Original POS bill"><h2>Original POS bill</h2><p><strong>'+esc(order.order_code||order.id)+'</strong> · '+esc(order.status||'Status unavailable')+'</p><p>'+esc(order.order_date?new Date(order.order_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'Date unavailable')+'</p>'+rows.map(i=>'<div class="bh-guest-bill-line"><div><strong>'+esc(i.item_name)+'</strong><small>'+esc(i.quantity)+' × '+amount(i.unit_price)+'</small></div><strong>'+amount(i.line_total)+'</strong></div>').join('')+'<div class="bh-guest-bill-line"><strong>Original POS total</strong><strong>'+amount(order.amount)+'</strong></div><p class="bh-note">Linked to this guest bill. This is the original food sale, not a new bill or payment. Collect and correct through the guest bill.</p>'+btn('close-editor','Back to guest bill')+'</section>');
+  editor('<section class="bh-original-pos" aria-label="Original POS bill"><h2>Original POS bill</h2><p><strong>'+esc(order.order_code||order.id)+'</strong> · '+esc(order.status||'Status unavailable')+'</p><p>'+esc(order.order_date?new Date(order.order_date).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}):'Date unavailable')+'</p>'+rows.map(i=>'<div class="bh-guest-bill-line"><div><strong>'+esc(i.item_name)+'</strong><small>'+esc(i.quantity)+' × '+amount(i.unit_price)+'</small></div><strong>'+amount(i.line_total)+'</strong></div>').join('')+'<div class="bh-guest-bill-line"><strong>Original POS amount</strong><strong>'+amount(order.amount)+'</strong></div><div class="bh-guest-bill-line"><span>Recorded POS waiver / discount</span><strong>'+amount(order.waived_off_amount??0)+'</strong></div><div class="bh-guest-bill-line"><strong>Linked room food charge</strong><strong>'+amount(entry.amount)+'</strong></div><p class="bh-note">Linked to this guest bill. This is the original food sale, not a new bill or payment. Collect and correct through the guest bill.</p>'+btn('close-editor','Back to guest bill')+'</section>');
  }
  function simpleEntryLabel(e){
   if(e.kind==='charge'&&e.source_order_id)return 'Restaurant food';
