@@ -20,7 +20,7 @@ begin
  r4:=(public.bite_property_command(p,'room_save','{"number":"D104","room_type":"Deluxe","nightly_rate":1200,"adults":2,"children":2}',gen_random_uuid())->>'id')::uuid;
  r5:=(public.bite_property_command(p,'room_save','{"number":"D105","room_type":"Deluxe","nightly_rate":1200,"adults":2,"children":2}',gen_random_uuid())->>'id')::uuid;
  r6:=(public.bite_property_command(p,'room_save','{"number":"D106","room_type":"Deluxe","nightly_rate":1200,"adults":2,"children":2}',gen_random_uuid())->>'id')::uuid;
- payload:=jsonb_build_object('guest_id',g,'room_id',r1,'arrival',day,'departure',day+1,'adults',1,'children',0,'nightly_rate',1200,'booking_mode','reserve','advance_amount',100,'advance_method','Cash','checkin_deposit',jsonb_build_object('amount',500,'method','Cash','verified',false));
+ payload:=jsonb_build_object('guest_id',g,'room_id',r1,'arrival',day,'departure',day+1,'arrival_time','14:00','adults',1,'children',0,'nightly_rate',1200,'booking_mode','reserve','advance_amount',100,'advance_method','Cash','checkin_deposit',jsonb_build_object('amount',500,'method','Cash','verified',false));
  result:=public.bite_booking_with_deposit(p,'single',payload,req);
  again:=public.bite_booking_with_deposit(p,'single',payload,req);
  if result<>again then raise exception 'Single retry returned different result';end if;
@@ -29,7 +29,7 @@ begin
  if (select sum(amount) from public.bite_folio_entries where property_id=p and kind='advance') is distinct from 100::numeric then raise exception 'Deposit contaminated advance';end if;
  denied:=false;begin perform public.bite_booking_with_deposit(p,'single',payload||jsonb_build_object('checkin_deposit',jsonb_build_object('amount',501,'method','Cash')),req);exception when others then denied:=true;end;
  if not denied then raise exception 'Changed amount accepted for same request';end if;
- family:=jsonb_build_object('name','Synthetic Deposit Family','guest_id',g,'mode','reserve','arrival',day,'departure',day+1,'advance_amount',0,'rooms',jsonb_build_array(jsonb_build_object('room_id',r2,'adults',1,'children',0,'nightly_rate',1200),jsonb_build_object('room_id',r3,'adults',1,'children',0,'nightly_rate',1300)),'checkin_deposit',jsonb_build_object('amount',700,'method','UPI','verified',false));
+ family:=jsonb_build_object('name','Synthetic Deposit Family','guest_id',g,'mode','reserve','arrival',day,'departure',day+1,'arrival_time','14:00','advance_amount',0,'rooms',jsonb_build_array(jsonb_build_object('room_id',r2,'adults',1,'children',0,'nightly_rate',1200),jsonb_build_object('room_id',r3,'adults',1,'children',0,'nightly_rate',1300)),'checkin_deposit',jsonb_build_object('amount',700,'method','UPI','verified',false));
  result:=public.bite_booking_with_deposit(p,'family',family,familyreq);
  again:=public.bite_booking_with_deposit(p,'family',family,familyreq);
  if result<>again or jsonb_array_length(result->'stays')<>2 then raise exception 'Family retry/group incorrect';end if;
