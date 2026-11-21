@@ -135,3 +135,11 @@ test('A05 canonical database migration archive matches the isolated PG17 tested 
  assert.match(applied,/record_restaurant_khata_receipt/);
  assert.match(applied,/receipt_request_id=p_request_id/);
 });
+
+test('A05 exact balance and unique source identity required for statement',()=>{
+ for(const balance of [null,'',' ',true,[],1.001,Number.MAX_SAFE_INTEGER])assert.equal(khata.statement({entries,customerId:cid,balance,from:'2026-11-01',to:today}).verified,false);
+ assert.equal(khata.statement({entries:[...entries,entries[0]],customerId:cid,balance:60,from:'2026-11-01',to:today}).verified,false);
+ const customers=[{id:cid,full_name:'Test'}];
+ assert.equal(khata.filterCustomers(customers,[{customer_id:cid,balance:40},{customer_id:cid,balance:40}],'','due').length,0);
+ assert.equal(khata.cents(null),null);
+});
