@@ -36,3 +36,20 @@ test('A08 compensation and payment flows are unchanged in the existing Owner app
  assert.match(html,/restaurant_employee_attendance/);
  assert.match(html,/restaurant_employee_leaves/);
 });
+
+test('A13 reviews are explicitly tenant scoped, stale replies are ignored and failed text is retained',()=>{
+ const code=section('var ownerReviewVersion=0','async function loadCustomerOrderRequestsWorkspace(){');
+ assert.match(code,/currentOwnerReviewScope\(\)===scope/);
+ assert.match(code,/ownerReviewRows=rows/);
+ assert.equal((code.match(/\.eq\('restaurant_id',rid\)/g)||[]).length,2);
+ assert.match(code,/ownerReviewDrafts.set\(key,message\)/);
+ assert.match(code,/message.length<3\|\|message.length>500/);
+ assert.match(html,/async function logout\(\)\{\s*clearOwnerReviews\(\)/);
+});
+test('A14 delivery settings require current owner scope, valid PINs and exact money',()=>{
+ const code=section('async function saveDeliveryZone(e)','async function toggleDeliveryZone(id)');
+ assert.match(code,/access.role!=='owner'\|\|rid!==access.restaurantId/);
+ assert.match(code,/new Set\(pins\).size!==pins.length/);
+ assert.match(code,/Math.abs\(fee\*100-Math.round\(fee\*100\)\)/);
+ assert.match(code,/currentUser\?\.id!==zoneUser/);
+});
