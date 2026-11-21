@@ -109,3 +109,7 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #bhCheckinForm:not([data-ha-step-view="all"]) .ha-step-panel:not([hidden]){display:block}
 #bhCheckinForm:not([data-ha-step-view="all"]) .ha-step-panel>h2{display:none}
 #bhCheckinForm:not([data-ha-step-view="all"]) .bh-form-actions{flex-wrap:wrap}
+
+#bhCheckinForm .ha-checkin-deposit{margin-top:16px;padding:14px;border:1px solid #eed9bd;background:#fffbf3;border-radius:12px}
+#bhCheckinForm .ha-checkin-deposit h3{font-size:15px;margin:0 0 6px}
+#bhCheckinForm .ha-checkin-deposit p{font-size:13px;margin:0 0 12px;color:#76572c}

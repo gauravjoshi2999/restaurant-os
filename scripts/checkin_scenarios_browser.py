@@ -98,6 +98,16 @@ try:
   fill(f);raw_id(f);review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===1&&__BITE_HOTEL_QA.db.folios.length===1'),'Walk-in creates one stay and khata');record('S01','Fresh walk-in and successful check-in');c.close()
 
+  c,p,f=open_case(browser);fill(f);raw_id(f)
+  f.locator('[name=advance_amount]').fill('100')
+  f.locator('[name=deposit_amount]').fill('500');f.locator('[name=deposit_method]').select_option('UPI')
+  f.locator('[name=deposit_reference]').fill('SYNTHETIC-DEPOSIT');f.locator('[name=deposit_verified]').check()
+  f.locator('[name=deposit_amount]').fill('600');check(not f.locator('[name=deposit_verified]').is_checked(),'H10 changing deposit amount clears receipt verification')
+  f.locator('[name=deposit_amount]').fill('500');review(f)
+  check('₹500' in f.locator('.bh-review-deposit').inner_text() and 'Pending verification, not received' in f.locator('.bh-review-deposit').inner_text(),'H10 review distinguishes pending separate deposit')
+  check(p.evaluate('__BITE_HOTEL_QA.db.entries.length===0'),'H10 review does not create a receipt')
+  c.close()
+
   c,p,f=open_case(browser,'draft')
   check(f.locator('[name=full_name]').input_value()=='','Draft is offered without silently filling a guest')
   p.locator('[data-hotel-action=resume-register]').click()

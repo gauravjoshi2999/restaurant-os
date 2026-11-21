@@ -91,3 +91,13 @@ test('H10 changing advance amount or payment method requires fresh verification'
  assert.equal(r.value,'');assert.equal(n.value,'');
  v.checked=true;r.value='NEW-REF';m.fire('change');assert.equal(v.checked,true);assert.equal(r.value,'NEW-REF');
 });
+
+test('H10 deposit is distinct, optional and requires reference for verified online receipts',()=>{
+ assert.equal(A.depositPayload({deposit_amount:''}),null);
+ assert.equal(A.depositPayload({deposit_amount:'0'}),null);
+ assert.deepEqual(A.depositPayload({deposit_amount:'500',deposit_method:'Cash'}),{amount:500,method:'Cash',verified:false,reference:'',account_note:''});
+ assert.equal(A.depositPayload({deposit_amount:'120.25',deposit_method:'UPI'}).verified,false);
+ assert.throws(()=>A.depositPayload({deposit_amount:'500',deposit_method:'UPI',deposit_verified:'on'}),/reference/);
+ assert.equal(A.depositPayload({deposit_amount:'500',deposit_method:'UPI',deposit_verified:'on',deposit_reference:'SYNTHETIC'}).verified,true);
+ for(const deposit_amount of ['-1','1.001','1e4','99999999999'])assert.throws(()=>A.depositPayload({deposit_amount,deposit_method:'Cash'}),/deposit/);
+});

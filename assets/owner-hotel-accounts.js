@@ -77,6 +77,33 @@
    for(const key of ['advance_reference','advance_account'])if(form.elements[key])form.elements[key].value='';
   });
  }
+ function depositPayload(f){
+  const raw=String(f.deposit_amount??'').trim();if(!raw)return null;
+  if(!/^\d+(?:\.\d{1,2})?$/.test(raw)||Number(raw)>9999999999.99)throw fieldError('deposit_amount','Enter a refundable deposit with at most two decimals.');
+  const amount=Number(raw);if(amount===0)return null;
+  const method=f.deposit_method;if(!['Cash','UPI','Card','Bank Transfer'].includes(method))throw fieldError('deposit_method','Choose how the deposit was received.');
+  const online=method!=='Cash',verified=online&&f.deposit_verified==='on',reference=online?String(f.deposit_reference||'').trim():'',account_note=online?String(f.deposit_account||'').trim():'';
+  if(verified&&!reference)throw fieldError('deposit_reference','Enter the verified deposit receipt reference.');
+  if(reference.length>100||account_note.length>80)throw fieldError('deposit_reference','Deposit reference or account note is too long.');
+  return {amount,method,verified,reference,account_note};
+ }
+ function addDepositFields(form,booking,draft){
+  if(draft.stay_id)return; // Earlier bookings use their existing Guest Bill rather than recording twice.
+  const box=document.createElement('section');box.className='ha-checkin-deposit';box.innerHTML='<h3>Refundable security deposit · Optional</h3><p>Separate receipt. Deposit is not room sales or advance. Record only the actual collection; unverified online receipts stay pending.</p><div class="bh-form-grid">'+
+   field('deposit_amount','Refundable deposit (₹)','number',draft.deposit_amount??'','min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0"')+
+   select('deposit_method','Deposit method',['Cash','UPI','Card','Bank Transfer'].map(m=>option(m,m,m===(draft.deposit_method||'Cash'))).join(''))+
+   field('deposit_reference','Verified receipt reference','text',draft.deposit_reference||'','maxlength="100"')+field('deposit_account','Online account note','text',draft.deposit_account||'','maxlength="80"')+'</div>'+
+   (manager()?check('deposit_verified','I verified this deposit in the bank/provider account.',draft.deposit_verified==='on'?'checked':''):'');
+  booking.append(box);wireMoneyFields(form,'deposit_method','deposit_account','deposit_verified','deposit_reference');
+  const amount=form.elements.deposit_amount,method=form.elements.deposit_method,verified=form.elements.deposit_verified;
+  if(!verified)return;
+  let lastAmount=amount.value,lastMethod=method.value;
+  function changedAmount(){if(lastAmount!==amount.value){lastAmount=amount.value;verified.checked=false}}
+  amount.addEventListener('input',changedAmount);amount.addEventListener('change',changedAmount);
+  method.addEventListener('change',()=>{if(lastMethod!==method.value){lastMethod=method.value;verified.checked=false;form.elements.deposit_reference.value='';form.elements.deposit_account.value=''}});
+  form.elements.deposit_reference.addEventListener('input',()=>{verified.checked=false});
+  form.elements.deposit_account.addEventListener('input',()=>{verified.checked=false});
+ }
  function decorateRegister(form,draft={},guest){
   if(!enabled())return;
   const booking=form.querySelector('#biteRegistrationOperations');booking?.remove();
@@ -106,6 +133,7 @@
    form.querySelector('[data-ha-booking]').append(booking);
    wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
    wireAdvanceVerification(form);
+   addDepositFields(form,booking,draft);
   }
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
@@ -200,7 +228,7 @@
   root.BiteCheckinFlow?.prepare(form);
   root.BiteCheckinGuard?.prepare(form,f);
   if(!form.dataset.stayId){
-   const r=validateRegistration(f);f.adults=r.adults;form.elements.adults.value=r.adults;
+   const r=validateRegistration(f);depositPayload(f);f.adults=r.adults;form.elements.adults.value=r.adults;
    if(!form.elements.id_front.files[0]&&!form.elements.id_front_id.value)throw fieldError('id_front','Upload the ID front to continue.');
    if(!form.elements.id_checked.checked)throw fieldError('id_checked','Check the guest ID before continuing.');
    if(f.booking_source==='external_booking'&&!String(f.booking_reference||'').trim())throw fieldError('booking_reference','Enter the external booking reference.');
@@ -599,6 +627,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
