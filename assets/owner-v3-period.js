@@ -8,8 +8,9 @@
  const validMonth=s=>typeof s==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(s);
  const endOfMonth=m=>{
   if(!validMonth(m))throw Error('Choose a valid month.');
-  const [year,part]=m.split('-').map(Number);
-  return new Date(Date.UTC(year,part,0)).toISOString().slice(0,10);
+  const date=new Date(m+'-01T12:00:00Z');
+  date.setUTCMonth(date.getUTCMonth()+1,0);
+  return date.toISOString().slice(0,10);
  };
  function normalize(value,today){
   if(!validDay(today))throw Error('Business date unavailable.');
@@ -32,10 +33,12 @@
   return v.mode==='month'?new Intl.DateTimeFormat('en-IN',{timeZone:'UTC',month:'long',year:'numeric'}).format(new Date(v.from+'T12:00:00Z')):
    v.mode==='day'?fmt(v.from):fmt(v.from)+' — '+fmt(v.to);
  }
+ const mounted=new WeakMap();
  function mount(target,options){
   if(!target||typeof options?.onApply!=='function')return null;
   const today=()=>typeof options.today==='function'?options.today():options.today;
   let selected=normalize(options.value,today()),draft={...selected},editing=false,disposed=false,busy=false;
+  mounted.get(target)?.dispose();
   const visible=()=>!disposed&&target.isConnected&&(!options.isCurrent||options.isCurrent());
   const modes={day:'Day',month:'Month',range:'Range'};
   function draw(){
@@ -57,7 +60,7 @@
      '<p class="bv3-period-help">Only report records change. A new bill or entry keeps its own date.</p>'+
      '<p data-bv3-period-error role="alert"></p></form>':'')+'</section>';
   }
-  target.addEventListener('click',event=>{
+  const onClick=event=>{
    if(!visible()||busy)return;
    const button=event.target.closest?.('button');if(!button||!target.contains(button))return;
    const mode=button.dataset.bv3PeriodMode;
@@ -77,8 +80,8 @@
    if(button.matches('[data-bv3-period-toggle]')){editing=!editing;draft={...selected};draw();return;}
    if(button.matches('[data-bv3-period-cancel]')){draft={...selected};editing=false;draw();return;}
    if(button.matches('[data-bv3-period-today]')){draft={mode:'day',day:today(),from:today(),to:today()};draw();}
-  });
-  target.addEventListener('submit',async event=>{
+  };
+  const onSubmit=async event=>{
    if(!event.target.matches('[data-bv3-period-form]')||!visible())return;
    event.preventDefault();event.stopPropagation();if(busy)return;
    const form=event.target,fields=new FormData(form);
@@ -95,9 +98,13 @@
      const submit=target.querySelector('button[type="submit"]');if(submit)submit.disabled=false;
     }
    }finally{busy=false}
-  });
+  };
+  target.addEventListener('click',onClick);
+  target.addEventListener('submit',onSubmit);
+  const controller={getSelected:()=>({...selected}),dispose(){disposed=true;target.removeEventListener?.('click',onClick);target.removeEventListener?.('submit',onSubmit);if(mounted.get(target)===controller)mounted.set(target,null);}};
+  mounted.set(target,controller);
   draw();
-  return {getSelected:()=>({...selected}),dispose(){disposed=true}};
+  return controller;
  }
  const api={validDay,validMonth,endOfMonth,normalize,label,mount};
  if(typeof module==='object'&&module.exports)module.exports=api;

@@ -534,6 +534,7 @@
  async function renderDailyBook(target){
   if(!target||!p())return;
   const key=scope(),version=++reportVersion;
+  report=null;reportScope='';
   month=month||today().slice(0,7);
   const picker=root.BiteV3Period;
   if(!picker){target.textContent='Date picker unavailable. Reload Bite to view accounts.';return}
@@ -551,6 +552,7 @@
   const r=await ctx.sb.rpc('bite_daily_book',{p_property:p().id,p_from:from,p_to:to});
   if(key!==scope()||version!==reportVersion||!target.isConnected)return;
   const body=target.querySelector('#haBookBody');if(r.error){body.textContent='Daily Book unavailable: '+r.error.message;return}
+  if(r.data?.from!==from||r.data?.to!==to||!Array.isArray(r.data?.days)||!Array.isArray(r.data?.journal)||!root.BiteV3Collections?.validPeriod(r.data)||root.BiteV3Collections.summarize(r.data.journal).error){body.textContent='Daily Book response could not be verified. Refresh selected period.';return;}
   report=r.data;reportScope=key;
   const sum=k=>(report.days||[]).reduce((n,d)=>n+Number(d[k]||0),0),last=report.days?.at(-1)||{};
   body.innerHTML='<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('staff_advance','＋ Staff advance')+button('salary','Staff salary')+button('accounts','Opening / transfer'):'')+'</div>'+
@@ -564,7 +566,7 @@
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
    '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
    '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
-  root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',onOpen:openCollectionSource});
+  root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',isCurrent:()=>key===scope()&&version===reportVersion&&reportScope===key,onOpen:openCollectionSource});
   renderHistoricalRoomCollections(body,{from,to,key,version});
   renderOldPosReconciliation(body,{from,to,key,version});
  }

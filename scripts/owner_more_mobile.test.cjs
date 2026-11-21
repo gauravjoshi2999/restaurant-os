@@ -50,3 +50,10 @@ test('HR activation only toggles visibility attributes and cannot mutate unsaved
  assert.equal(input.value,'Pending input');
  assert.equal(hr.activate(doc,'unknown'),false);
 });
+
+test('A01 More resets back history on property or role change and rejects unavailable back routes',()=>{
+ const source=fs.readFileSync('assets/owner-mobile-navigation.js','utf8');
+ assert.match(source,/navigationScope!==nextScope/);
+ assert.match(source,/history.length=0;moreChildPage=null;moreEntryPage=null;moreRestored=false;pendingBack=false/);
+ assert.match(source,/if\(Array.isArray\(allowed\)&&!allowed.includes\(target\)\)target='overview'/);
+});
