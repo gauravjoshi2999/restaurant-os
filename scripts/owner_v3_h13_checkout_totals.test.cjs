@@ -43,3 +43,11 @@ test('H13 selected checkout excludes unselected rooms and rejects duplicate or s
  assert.deepEqual(B.selectedCheckoutRows(stay,workspace,['f1','f3']).map(r=>r.folio.id),['f1','f3']);
  for(const ids of [[],['f1','f1'],['f1','foreign']])assert.throws(()=>B.selectedCheckoutRows(stay,workspace,ids));
 });
+
+
+test('H13 split tender requires exact positive paise amounts',()=>{
+ const split=globalThis.BiteHotelBilling.splitTender;
+ assert.deepEqual(split('2500','1000','1500'),{cash_amount:1000,upi_amount:1500});
+ assert.deepEqual(split('10.31','0.01','10.30'),{cash_amount:0.01,upi_amount:10.3});
+ for(const args of [[2500,1000,1499],[2500,0,2500],[2500,-1,2501],[2500,'',2500],[2500,'NaN',2500],[2500,1000.001,1499.999]])assert.throws(()=>split(...args));
+});

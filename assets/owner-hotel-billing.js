@@ -107,8 +107,27 @@
   const family=familyBillMarkup(familyBillSummary(stay,db()));if(family)target.querySelector('.bh-guest-bill-summary')?.insertAdjacentHTML('afterend',family);
   if(stay.status==='checked_out'){const done=document.createElement('p');done.className='bh-note';done.innerHTML='Checkout complete. '+(!H().housekeepingVisible()?'Room is available again. ':'')+'<button type="button" class="ha-text-button" data-bill-action="rooms">Back to rooms</button>';target.querySelector('.bh-guest-bill-top')?.after(done)}
  }
- function paymentFields(){return methods+field('account_note','Online account · Short note',p().tax_profile?.primary_account||'','maxlength="80"')+field('reference','Online transaction reference','','maxlength="100"')+'<label class="bh-check" data-online-verify><input type="checkbox" name="verified"> I verified this online receipt in the selected account.</label>'}
- function wireMoney(form){const update=()=>{const online=form.elements.method.value!=='Cash';for(const name of ['account_note','reference','verified']){const el=form.elements[name];el.closest('label').hidden=!online;if(name==='reference')el.required=online;if(!online&&name==='verified')el.checked=false}};form.elements.method.addEventListener('change',update);update()}
+ function splitTender(total,cash,upi){
+  const t=checkoutAmountCents(total),c=checkoutAmountCents(cash),u=checkoutAmountCents(upi);
+  if(t===null||c===null||u===null||c<=0||u<=0||c+u!==t)throw Error('Cash and UPI must equal the amount due, with both amounts positive.');
+  return{cash_amount:c/100,upi_amount:u/100};
+ }
+ function paymentFields(){return (manager()?methods.replace('</select>','<option value="Split">Cash + UPI</option></select>'):methods)+(manager()?'<section data-split-tender hidden>'+field('cash_amount','Cash received','','type="number" min="0.01" step="0.01" inputmode="decimal"')+field('upi_amount','UPI received','','type="number" min="0.01" step="0.01" inputmode="decimal"')+'<p role="status" data-split-status></p></section>':'')+field('account_note','Online account · Short note',p().tax_profile?.primary_account||'','maxlength="80"')+field('reference','Online transaction reference','','maxlength="100"')+'<label class="bh-check" data-online-verify><input type="checkbox" name="verified"> I verified this online receipt in the selected account.</label>'}
+ function wireMoney(form){
+  const section=form.querySelector('[data-split-tender]');
+  const submit=form.querySelector('[type=submit]'),blocked=submit.disabled;
+  const update=()=>{
+   const online=form.elements.method.value!=='Cash',split=form.elements.method.value==='Split';
+   for(const name of ['account_note','reference','verified']){const el=form.elements[name];el.closest('label').hidden=!online;if(name==='reference')el.required=online;if(!online&&name==='verified')el.checked=false}
+   if(section){section.hidden=!split;for(const name of ['cash_amount','upi_amount']){form.elements[name].disabled=!split;form.elements[name].required=split}
+    let valid=true;
+    if(split){const status=section.querySelector('[data-split-status]');try{splitTender(form.elements.amount.value,form.elements.cash_amount.value,form.elements.upi_amount.value);status.textContent='Total matches '+money(form.elements.amount.value)+'. Verify the actual UPI receipt.'}catch(e){valid=false;status.textContent=e.message}}
+    submit.disabled=blocked||(split&&(!valid||!form.elements.verified.checked||!form.elements.reference.value.trim()));
+   }
+  };
+  form.elements.method.addEventListener('change',()=>{form.elements.verified.checked=false;update()});
+  form.addEventListener('input',update);form.elements.verified.addEventListener('change',update);update();
+ }
  async function checkout(id,group=false,selection=null){
   const scope=key(),version=generation;
   let f=getFolio(id),s=(db().stays||[]).find(s=>s.id===f?.stay_id);if(!f||!s)return;
@@ -170,8 +189,8 @@
    if(type==='tax'){if(!form.elements.reviewed.checked)throw Error('Review the registration first.');const gst=values.mode==='gst',series=db().invoice_series||{};await H().command('billing_settings',{prefix:series.prefix||'H',next_number:Number(series.next_number||1),primary_account:p().tax_profile?.primary_account||'',tax_profile:{reviewed:true,gstin:gst?values.gstin.trim().toUpperCase():'',room_rate:gst?5:0,food_rate:gst?Number(values.food_rate):0,incidental_rate:gst?Number(values.incidental_rate):0}});assertScope(scope,version);await H().refreshContext();await H().command('folio_tax',{folio_id:id,mode:values.mode});await H().reload();H().redraw();return}
    if(type==='receipt'){if(!form.elements.received.checked)throw Error('Confirm the actual receipt.');const entry=(db().entries||[]).find(x=>x.id===id);await H().command('payment_confirm',{id,folio_id:entry.folio_id,reference:values.reference,account_note:values.account_note,description:'Receipt verified at checkout'});assertScope(scope,version);await H().reload();await checkout(form.dataset.return,form.dataset.group==='true',selectedIds(form.dataset.selection));return}
    if(type==='deposit'){if(!form.elements.returned.checked)throw Error('Record only money already returned.');await H().command('deposit_return',{folio_id:id,amount:Number(values.amount),method:values.method,reference:values.reference,description:'Security deposit returned at checkout'});assertScope(scope,version);await H().reload();await checkout(form.dataset.return,form.dataset.group==='true',selectedIds(form.dataset.selection));return}
-   if(type==='checkout'){if(values.method&&values.method!=='Cash'&&!form.elements.verified.checked)throw Error('Verify the online receipt first.');const f=getFolio(id),stay=(db().stays||[]).find(s=>s.id===f.stay_id);await H().command(form.dataset.group==='true'?'booking_checkout_collect':'checkout_collect',{folio_id:id,...(form.dataset.group==='true'?{group_id:stay.group_id,folio_ids:JSON.parse(values.folio_ids),...(form.dataset.selection?{selected_only:true}:{})}:{}),amount:Number(values.amount),method:values.method||'Cash',reference:values.reference||'',account_note:values.account_note||'',verified:values.verified==='on'});assertScope(scope,version);await H().reload();H().redraw();return}
+   if(type==='checkout'){if(values.method&&values.method!=='Cash'&&!form.elements.verified.checked)throw Error('Verify the online receipt first.');const tender=values.method==='Split'?(manager()?splitTender(values.amount,values.cash_amount,values.upi_amount):(()=>{throw Error('Owner or manager verification required.')})()):{};const f=getFolio(id),stay=(db().stays||[]).find(s=>s.id===f.stay_id);await H().command(form.dataset.group==='true'?'booking_checkout_collect':'checkout_collect',{folio_id:id,...(form.dataset.group==='true'?{group_id:stay.group_id,folio_ids:JSON.parse(values.folio_ids),...(form.dataset.selection?{selected_only:true}:{})}:{}),amount:Number(values.amount),...tender,method:values.method||'Cash',reference:values.reference||'',account_note:values.account_note||'',verified:values.verified==='on'});assertScope(scope,version);await H().reload();H().redraw();return}
   }catch(err){if(form.isConnected)msg.textContent=err.message||String(err)}finally{active=Math.max(0,active-1);if(b.isConnected)b.disabled=false}
  }
- const api={init,clear,linkedBalanceLabel,familyBillSummary,familyBillMarkup,availableCheckoutRooms,selectedCheckoutRows,checkoutTotalsReady,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
+ const api={init,clear,linkedBalanceLabel,familyBillSummary,familyBillMarkup,availableCheckoutRooms,selectedCheckoutRows,splitTender,checkoutTotalsReady,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
 })(typeof window!=='undefined'?window:globalThis);
