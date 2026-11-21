@@ -121,6 +121,14 @@
   const form=document.querySelector('[data-bill-form=credit-receipt]'),update=()=>{const online=form.elements.method.value!=='Cash';form.elements.reference.required=online;form.elements.reference.closest('label').hidden=!online;form.elements.account_note.closest('label').hidden=!online};
   form.elements.method.addEventListener('change',()=>{form.elements.received.checked=false;update()});update();
  }
+ function issuedInvoice(id){const f=getFolio(id);if(f?.status!=='settled'||!f.invoice_snapshot?.number||String(f.invoice_snapshot.number).startsWith('DRAFT'))throw Error('Final issued invoice unavailable. Refresh the bill.');return H().statement(id)}
+ function shareNumber(raw){const text=String(raw||'').trim();if(!/^\+?[\d\s()-]+$/.test(text))throw Error('Enter a valid WhatsApp number.');const digits=text.replace(/\D/g,'');if(!text.startsWith('+')&&/^[6-9]\d{9}$/.test(digits))return '91'+digits;if(!/^[1-9]\d{9,14}$/.test(digits))throw Error('Enter country code and valid WhatsApp number.');return digits}
+ function invoiceShareForm(id){
+  const s=issuedInvoice(id),f=getFolio(id),stay=(db().stays||[]).find(r=>r.id===f.stay_id),g=(db().guests||[]).find(r=>r.id===stay?.guest_id),outlets=p()?.outlets||[],outlet=outlets.length===1&&typeof outlets[0]==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(outlets[0])?outlets[0]:null;
+  const menu=outlet?new URL('menu-qr.html?restaurant='+encodeURIComponent(outlet),root.location.href).href:'';
+  H().editor('<form class="bh-form" data-bill-form="invoice-share" data-id="'+esc(id)+'"><h2>WhatsApp issued bill</h2><p>Review the authorized guest number and share only with that guest.</p>'+field('phone','WhatsApp number',g?.phone||'','type="tel" required')+'<label class="bh-field"><span>Message · includes menu link when available</span><textarea name="message" readonly>'+esc(s.property?.name+'\nInvoice '+s.number+'\nBill total '+money(s.totals.charges)+'\nReceived at issue '+money(s.totals.paid)+'\nDue at issue '+money(s.totals.balance)+(menu?'\nMenu: '+menu:''))+'</textarea></label><label class="bh-check"><input name="reviewed" type="checkbox" required> I reviewed the guest number and have permission to share this bill.</label><p>Choose the reviewed contact in the device share sheet. If file sharing is unavailable, download and attach the invoice manually in WhatsApp.</p>'+note()+'<div class="bh-actions">'+button('invoice-download','Download PDF',id)+button('invoice-whatsapp','Open WhatsApp message',id)+'<button class="btn" type="submit">Share PDF + message</button></div></form>');
+  const form=document.querySelector('[data-bill-form=invoice-share]');form.elements.phone.addEventListener('input',()=>{form.elements.reviewed.checked=false});
+ }
  function decorateFolio(target,folio,stay){
   if(!stay)return;const entries=(db().entries||[]).filter(e=>e.folio_id===folio.id&&e.status==='confirmed'),gst=entries.reduce((n,e)=>n+(['charge'].includes(e.kind)?1:['reversal','discount'].includes(e.kind)?-1:0)*Number(e.tax_amount||0),0),profile=folio.bill_tax_profile||p().tax_profile||{},registered=!!profile.gstin;
   const groups=A().billTaxGroups(entries.filter(e=>['charge','reversal','discount'].includes(e.kind))),cgst=groups.reduce((n,g)=>n+g.cgst,0),sgst=groups.reduce((n,g)=>n+g.sgst,0);
@@ -130,6 +138,7 @@
   const rows=rowsFor(stay);if(rows.length>1){const box=document.createElement('section');box.className='bh-panel bh-linked-booking';box.innerHTML='<h2>'+(stay.group_id?'One booking':'This guest')+' · '+rows.length+' rooms</h2>'+rows.map(r=>'<div class="bh-room-line"><span>Room '+esc(r.room?.number)+' · '+esc(r.stay.status==='in_house'?'Staying':r.stay.status==='checked_out'?'Checked out':'Reserved')+' · '+esc(linkedBalanceLabel(r.folio))+'</span>'+button('open-room','Open',r.folio.id)+(stay.group_id&&r.stay.status==='in_house'&&r.folio.status==='open'&&H().has('charge_to_room')?button('food-room','＋ Food',r.folio.id):'')+'</div>').join('')+'<div class="bh-actions">'+button('booking-bill','Combined bill',stay.id)+(stay.group_id&&rows.filter(r=>r.stay.status==='in_house'&&r.folio.status==='open').length>1?button('booking-select-checkout','Choose rooms to checkout',stay.id)+button('booking-checkout','Checkout all rooms',stay.id):'')+'</div>';target.querySelector('.bh-guest-bill-top')?.after(box)}
   const family=familyBillMarkup(familyBillSummary(stay,db()));if(family)target.querySelector('.bh-guest-bill-summary')?.insertAdjacentHTML('afterend',family);
   if(manager())target.querySelector('.bh-guest-bill-buttons')?.insertAdjacentHTML('beforeend',creditNav()+(creditEligible(folio,stay)?button('credit-checkout','Checkout on credit',folio.id):''));
+  if(stay.status==='checked_out'&&folio.invoice_snapshot?.number)target.querySelector('.bh-guest-bill-buttons')?.insertAdjacentHTML('beforeend',button('invoice-download','Download PDF',folio.id)+button('invoice-share','WhatsApp PDF + menu',folio.id));
   if(stay.status==='checked_out'){const done=document.createElement('p');done.className='bh-note';done.innerHTML='Checkout complete. '+(!H().housekeepingVisible()?'Room is available again. ':'')+'<button type="button" class="ha-text-button" data-bill-action="rooms">Back to rooms</button>';target.querySelector('.bh-guest-bill-top')?.after(done)}
  }
  function splitTender(total,cash,upi){
@@ -206,6 +215,9 @@
     return;
    }
    if(a==='tax-settings'){taxEditor(id);return}
+   if(a==='invoice-download'){A().downloadInvoice(issuedInvoice(id));return}
+   if(a==='invoice-share'){invoiceShareForm(id);return}
+   if(a==='invoice-whatsapp'){const form=b.closest('form');if(!form?.elements.reviewed.checked)throw Error('Review and confirm the guest number first.');const number=shareNumber(form.elements.phone.value);const url='https://wa.me/'+number+'?text='+encodeURIComponent(form.elements.message.value+'\nPlease find the separately attached bill PDF.');const win=root.open(url,'_blank','noopener');const msg=form.querySelector('.bh-message');msg.textContent='WhatsApp message requested. Attach the downloaded PDF manually; delivery is not verified.';return}
    if(a==='credit-list'){active++;await creditList();return}
    if(a==='credit-checkout'){creditEditor(id);return}
    if(a==='credit-collect'){creditReceiptEditor(id,b.dataset.balance);return}
@@ -223,6 +235,11 @@
  async function submit(e){
   const form=e.target.closest('[data-bill-form]');if(!form)return;e.preventDefault();e.stopImmediatePropagation();if(active)return;const values=Object.fromEntries(new FormData(form)),type=form.dataset.billForm,id=form.dataset.id,msg=form.querySelector('.bh-message'),b=form.querySelector('[type=submit]'),scope=key(),version=generation;active++;b.disabled=true;
   try{
+   if(type==='invoice-share'){
+    if(!form.elements.reviewed.checked)throw Error('Review and confirm guest number.');shareNumber(values.phone);const file=A().invoicePDF(issuedInvoice(id)),data={files:[file],title:'Guest invoice',text:values.message};
+    if(!navigator.share||!navigator.canShare?.({files:[file]})){msg.textContent='File sharing is unavailable. Download PDF and use Open WhatsApp message to attach it manually.';return}
+    try{await navigator.share(data);assertScope(scope,version);if(form.isConnected)msg.textContent='Share sheet completed. Guest delivery is not verified.'}catch(err){if(form.isConnected)msg.textContent=err.name==='AbortError'?'Share cancelled. Retry or download the PDF.':'Share failed. Download PDF and attach manually.'}return;
+   }
    if(type==='credit-checkout'){
     if(!manager()||!form.elements.approved.checked||checkoutAmountCents(values.balance)<=0||!values.due_date||values.reason.trim().length<10)throw Error('Confirm outstanding balance, due date and approval reason.');
     await H().command('hotel_credit_checkout',{folio_id:id,balance:Number(values.balance),due_date:values.due_date,reason:values.reason.trim()});assertScope(scope,version);await H().reload();assertScope(scope,version);H().redraw();return;
