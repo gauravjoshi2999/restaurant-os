@@ -197,3 +197,20 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
  #guests .gr-bottom-actions .btn{min-width:0;padding:8px 5px}
  #guests .gr-stay-card .gr-status{max-width:95px;white-space:normal;text-align:center;flex-shrink:0}
 }
+
+/* H06 approved PDF: compact list and two main actions; don't alter the owner shell. */
+#guests .gr-bottom-actions [data-gr-primary]{background:#e97121;color:#fff;border-color:#e97121;font-weight:700}
+#guests .gr-bottom-actions [data-gr-action="sheet"]{background:#fff5eb;color:#9b440e;border-color:#edc9a9}
+#guests .gr-stay-card [data-gr-status="in_house"]{background:#e2f5e9;color:#17613b}
+#guests .gr-stay-card [data-gr-status="checked_out"]{background:#eef0f3;color:#465261}
+#guests .gr-stay-card [data-gr-status="reserved"]{background:#fff0db;color:#88510d}
+@media(max-width:700px){
+ #guests .gr-register-summary{font-size:12px;gap:5px;margin:6px 0}
+ #guests .gr-tools{gap:9px}
+ #guests .gr-view-tabs{gap:5px;margin:10px 0}
+ #guests .gr-view-tabs .btn{border-color:transparent;border-radius:7px}
+ #guests .gr-view-tabs [aria-pressed="true"]{background:#fff0e5;border-color:#ffe0ca}
+ #guests .gr-stay-card{padding:11px 10px;border-radius:10px;box-shadow:none}
+ #guests .gr-bottom-actions{margin:12px 0 4px}
+ #guests .gr-bottom-actions .btn{font-size:13px}
+}
