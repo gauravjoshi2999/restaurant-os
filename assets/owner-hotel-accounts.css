@@ -96,3 +96,7 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
  #mainApp #guests .gr-tools{grid-template-columns:minmax(0,1fr)}
  #mainApp #guests .gr-tools>.bh-field{grid-column:1/-1}
 }
+
+#bhCheckinForm .ha-checkin-deposit{margin-top:16px;padding:14px;border:1px solid #eed9bd;background:#fffbf3;border-radius:12px}
+#bhCheckinForm .ha-checkin-deposit h3{font-size:15px;margin:0 0 6px}
+#bhCheckinForm .ha-checkin-deposit p{font-size:13px;margin:0 0 12px;color:#76572c}
