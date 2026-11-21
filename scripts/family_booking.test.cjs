@@ -81,3 +81,31 @@ test('Hotel register includes family room occupants and all protected family ID 
  assert.match(src,/Guests staying in this room/);
  assert.match(HTML,/owner-guest-register\.js\?v=20261119-[a-z0-9-]+/);
 });
+
+test('H08 extra rooms require explicit rent and counts, honor zero child capacity and recheck occupancy',()=>{
+ const previousData=globalThis.FormData,previousGuard=globalThis.BiteCheckinGuard,previousHospitality=globalThis.BiteHospitality;
+ globalThis.FormData=class{getAll(name){return name==='family_room_ids'?['B']:[]}};
+ globalThis.BiteCheckinGuard=require('../assets/owner-checkin-guard.js');
+ globalThis.BiteHospitality={prop:()=>({business_type:'hotel'}),housekeepingVisible:()=>true};
+ try{
+  const field=value=>({value});
+  const form={dataset:{},elements:{family_enabled:{checked:true},family_adults_B:field('1'),family_children_B:field('0'),family_female_B:field('0'),family_rate_B:field('1200')},querySelectorAll:()=>[]};
+  const f={full_name:'Synthetic family',room_id:'A',male:'1',female:'0',children:'0',nightly_rate:'1200',mode:'reserve',arrival:'2026-12-01',departure:'2026-12-02'};
+  const db={rooms:[{id:'A',active:true,housekeeping:'ready',adults:2,children:1},{id:'B',active:true,housekeeping:'ready',adults:2,children:0}],stays:[]};
+  const plan=()=>Family.plan(form,f,db);
+  assert.equal(plan().rooms[1].nightly_rate,1200);
+  for(const value of ['', ' ', undefined, '1.001', '-1']){
+   form.elements.family_rate_B.value=value;
+   assert.throws(plan,e=>e.field==='family_rate_B');
+  }
+  form.elements.family_rate_B.value='0';assert.equal(plan().rooms[1].nightly_rate,0);
+  for(const value of ['','1']){
+   form.elements.family_children_B.value=value;assert.throws(plan,e=>e.field==='family_children_B');
+  }
+  form.elements.family_children_B.value='0';form.elements.family_female_B.value='';
+  assert.throws(plan,e=>e.field==='family_female_B');
+  form.elements.family_female_B.value='0';
+  db.stays.push({id:'other',room_id:'B',status:'reserved',arrival:f.arrival,departure:f.departure});
+  assert.throws(plan,e=>e.field==='family_room_ids'&&/Reserved/.test(e.message));
+ }finally{globalThis.FormData=previousData;globalThis.BiteCheckinGuard=previousGuard;globalThis.BiteHospitality=previousHospitality}
+});
