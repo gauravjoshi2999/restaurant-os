@@ -36,7 +36,7 @@
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
   if(!input||input.disabled||!label||label.hidden)return false;
-  root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
+  form.__haSteps?.reveal(input);root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -138,6 +138,60 @@
   root.BiteCheckinGuard?.decorate(form,draft,guest);
   root.BiteHotelBilling?.decorateRegister(form,draft);
   form.querySelector('[data-h07-continue]').addEventListener('click',()=>{const heading=form.querySelector('[data-h07-rooms]');heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'});});
+ }
+ function mountRegisterSteps(form,draft={}){
+  if(form.dataset.enhanced!=='true'||form.__haSteps)return;
+  const heading=form.querySelector('[data-h07-rooms]'),booking=form.querySelector('[data-ha-booking]'),actions=form.querySelector('.bh-form-actions'),ids=form.querySelector('.ha-id-section'),guestActions=form.querySelector('[data-h07-guest-actions]');
+  if(!heading||!booking||!actions||!ids||!guestActions)return;
+  const panel=(name)=>{const el=document.createElement('section');el.dataset.haStep=name;el.className='ha-step-panel';return el};
+  const guest=panel('guest'),rooms=panel('rooms'),payment=panel('payment'),photos=panel('ids');
+  const nodes=Array.from(form.children);
+  form.prepend(guest);guest.append(...nodes.slice(0,nodes.indexOf(heading)));
+  heading.before(photos);photos.append(ids);
+  heading.before(rooms);rooms.append(...nodes.slice(nodes.indexOf(heading),nodes.indexOf(booking)));booking.before(payment);payment.append(booking);
+  const draftButton=guestActions.querySelector('[data-ha-action=draft]');if(draftButton)actions.prepend(draftButton);
+  const header=document.createElement('div');header.className='ha-step-header';header.innerHTML='<div><small data-ha-step-caption></small><strong data-ha-step-title></strong></div><button type="button" class="ha-text-button" data-ha-toggle-view>Full form</button>';form.prepend(header);
+  const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to review</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
+  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
+  const paymentBack=document.createElement('button');paymentBack.type='button';paymentBack.className='btn secondary';paymentBack.dataset.haPaymentBack='';paymentBack.textContent='Back to rooms';actions.prepend(paymentBack);
+  const panels={guest,rooms,ids:photos,payment},labels={guest:['STEP 1 OF 3 · Guest','Guest'],rooms:['STEP 2 OF 3 · Rooms','Multiple rooms'],ids:['STEP 2 OF 3 · Guest ID photos','Guest ID photos'],payment:['STEP 3 OF 3 · Review','Payment & review']};
+  let full=false,step='guest';try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
+  const submit=actions.querySelector('[type=submit]'),toggle=header.querySelector('[data-ha-toggle-view]');
+  function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();submit.textContent='Review check-in'}
+  function show(next,focus=true){
+   if(!panels[next])return;step=next;form.dataset.haStepView=full?'all':step;
+   for(const [key,el] of Object.entries(panels))el.hidden=!full&&key!==step;
+   roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';submit.hidden=!full&&step!=='payment';
+   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
+   const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
+   if(focus&&!full){header.tabIndex=-1;header.focus({preventScroll:true});header.scrollIntoView({block:'start',behavior:'instant'})}
+  }
+  function validate(panelNode){
+   for(const input of form.elements){if(panelNode.contains(input)&&input.willValidate&&!input.validity.valid){showRegisterError(form,fieldError(input.name,input.validationMessage||'Complete this field.'));return false}}
+   return true;
+  }
+  function advance(){
+   if(full)return false;
+   if(step==='guest'){
+    if(!validate(guest))return true;
+    if(!form.dataset.stayId){try{validateRegistration({...Object.fromEntries(new FormData(form)),nightly_rate:'0'})}catch(e){showRegisterError(form,e);return true}}
+    show('rooms');return true;
+   }
+   if(step==='rooms'){
+    if(!validate(rooms))return true;
+    if(form.elements.departure.value<=form.elements.arrival.value){showRegisterError(form,fieldError('departure','Departure must be after arrival.'));return true}
+    try{root.BiteFamilyCheckin?.plan(form,Object.fromEntries(new FormData(form)),H().getWorkspace())}catch(e){if(!showRegisterError(form,e))form.querySelector('.bh-message').textContent=e.message||String(e);return true}
+    show('payment');return true;
+   }
+   if(step==='ids'){show('rooms');return true}return false;
+  }
+  function back(next){invalidate();show(next)}
+  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&id!==step)show(id,false)},back,show};
+  toggle.onclick=()=>{full=!full;try{root.sessionStorage.setItem('bite_checkin_full_form',full?'1':'0')}catch{}show(step)};
+  guestActions.querySelector('[data-h07-continue]').addEventListener('click',e=>{if(!full){e.preventDefault();e.stopImmediatePropagation();advance()}},true);
+  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>show('rooms');paymentBack.onclick=()=>back('rooms');
+  form.addEventListener('input',()=>{submit.textContent='Review check-in'});
+  show(draft.stay_id?'rooms':'guest',false);
  }
  function prepareRegister(form,f){
   if(form.dataset.enhanced!=='true')return;
@@ -548,6 +602,6 @@
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);
