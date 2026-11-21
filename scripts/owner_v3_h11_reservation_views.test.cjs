@@ -44,3 +44,11 @@ test('H11 reservation opens the existing register before any booking write',()=>
  assert.match(js,/This does NOT send or confirm a refund/);
  assert.match(js,/if\(!root.confirm\(\(action==='cancel'/);
 });
+
+
+test('H11 reservation modification separately reviews server quotes before writing',()=>{
+ const js=fs.readFileSync('assets/owner-hospitality.js','utf8');
+ assert.match(js,/oldQuote=await root.BiteOwnerOperations.reservationQuote\(original,stay.id\),newQuote=await root.BiteOwnerOperations.reservationQuote\(proposed,stay.id\)/);
+ assert.match(js,/Quote difference:/);
+ assert.match(js,/action='reservation_edit';payload=\{id:stay.id/);
+});
