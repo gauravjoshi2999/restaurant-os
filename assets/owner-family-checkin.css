@@ -24,3 +24,12 @@
 #bhCheckinForm .bf-family-totals{font-size:13px;font-weight:800;color:#88430c;padding:11px 12px;border-radius:12px;background:#fff7e9}
 @media(max-width:350px){#bhCheckinForm .bf-room-fields{grid-template-columns:repeat(2,minmax(0,1fr))}#bhCheckinForm .bf-room-fields label:nth-child(3){grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){#bhCheckinForm .bf-family{scroll-behavior:auto}}
+
+/* H08 PDF: compact date summary, selected room status and explicit capacity. */
+#bhCheckinForm .bf-stay-dates{font-size:13px;padding:10px 12px;background:white;border:1px solid #e9ded3;border-radius:9px;margin-bottom:12px;overflow-wrap:anywhere}
+#bhCheckinForm .bf-room[data-selected="true"]{border-color:#ed9c5c;background:#fff9f3}
+#bhCheckinForm .bf-room-switch>span:first-of-type{flex:1;min-width:0}
+#bhCheckinForm .bf-selection{font-size:11px;font-weight:750;color:#9b440e;background:#ffead8;border-radius:5px;padding:4px 6px;flex-shrink:0}
+#bhCheckinForm .bf-selection:empty{display:none}
+#bhCheckinForm .bf-room-status{color:#655f59}
+@media(max-width:430px){#bhCheckinForm .bf-family{padding:10px;border-radius:12px}#bhCheckinForm .bf-room{padding:10px;border-radius:9px}#bhCheckinForm .bf-room-switch{gap:8px}}

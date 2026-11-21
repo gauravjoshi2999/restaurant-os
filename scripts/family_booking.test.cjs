@@ -109,3 +109,13 @@ test('H08 extra rooms require explicit rent and counts, honor zero child capacit
   assert.throws(plan,e=>e.field==='family_room_ids'&&/Reserved/.test(e.message));
  }finally{globalThis.FormData=previousData;globalThis.BiteCheckinGuard=previousGuard;globalThis.BiteHospitality=previousHospitality}
 });
+
+test('H08 room estimate uses original stay dates and known rates; blank is not zero',()=>{
+ const est=(rates,arrival='2026-11-18',departure='2026-11-19')=>Family.roomEstimate(arrival,departure,rates);
+ assert.deepEqual(est(['1500','1500']),{nights:1,total:3000});
+ assert.deepEqual(est(['1500','1200.25'],'2026-11-18','2026-11-20'),{nights:2,total:5400.50});
+ assert.deepEqual(est(['0',0]),{nights:1,total:0});
+ for(const v of ['',null,undefined,' ',true,'1.001','-1'])assert.equal(est(['1500',v]).total,null);
+ assert.equal(est(['1500'],'2026-11-31','2026-12-02').total,null);
+ assert.equal(est(['1500'],'2026-11-19','2026-11-18').total,null);
+});
