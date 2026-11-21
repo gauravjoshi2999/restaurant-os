@@ -82,10 +82,14 @@
       }
       return fifo(ready);
     };
-    const reconcile=(before,after,restaurantId,canAnnounce=()=>true)=>{
+    const reconcile=(before,after,restaurantId,canAnnounce=()=>true,beforePaid=null)=>{
       const previous=new Set((before||[]).map(o=>String(o?.id||'')));
       for(const order of after||[]){
-        if(order?.id&&!previous.has(String(order.id))&&isIncoming(order,restaurantId))queue(order.id);
+        if(!order?.id||!isIncoming(order,restaurantId))continue;
+        const id=String(order.id);
+        // An existing unpaid order can become actionable after its payment snapshot arrives.
+        // Treat the transition like a new order, while announced IDs still deduplicate.
+        if(!previous.has(id)||(beforePaid instanceof Set&&!beforePaid.has(id)&&canAnnounce(order)))queue(id);
       }
       return take(after,restaurantId,canAnnounce);
     };
