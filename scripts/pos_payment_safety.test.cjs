@@ -147,3 +147,25 @@ test('reconciliation refuses a mismatched database payment row',async()=>{
  assert.equal(result.status,'conflict');
  assert.equal(payments.getPending(store,identity).id,uuid);
 });
+
+test('R03 bill review reconciles received, credit and waiver in exact paise',()=>{
+ const page=fs.readFileSync('index.html','utf8');
+ const source=page.slice(page.indexOf('function posReviewPayment('),page.indexOf('function renderPosReview('));
+ const calc=vm.runInNewContext(source+';posReviewPayment');
+ const credit=calc(100.25,40.1,'udhar');
+ assert.equal(credit.remaining,60.15);assert.equal(credit.due,60.15);assert.equal(credit.waived,0);
+ const waived=calc(100.25,40.1,'waive_off');
+ assert.equal(waived.due,0);assert.equal(waived.waived,60.15);
+ assert.equal(calc(100.25,100.25,'none').remaining,0);
+ for(const args of [[100,100.01,'udhar'],[100,-1,'udhar'],[100,1.001,'udhar'],[100,0,'invalid'],[100,Infinity,'udhar']])assert.equal(calc(...args),null);
+});
+test('R03 review exists before save and guards pending items and concurrent submission',()=>{
+ const page=fs.readFileSync('index.html','utf8');
+ const submit=page.slice(page.indexOf("document.getElementById('orderForm').addEventListener('submit'"),page.indexOf('async function openDeliveryWhatsAppShare'));
+ assert.ok(page.indexOf('id="posReviewSummary"')<page.indexOf('id="createOrderBtn"'));
+ assert.match(submit,/if\(btn.disabled\)return/);
+ assert.match(submit,/if\(pendingItem\?\.value.trim\(\)\)/);
+ assert.ok(submit.indexOf('if(btn.disabled)return')<submit.indexOf('btn.disabled=true'));
+ assert.match(submit,/posReviewPayment\(Math.round\(billTotal\*100\)\/100,paid,balanceAction\)/);
+ assert.match(page,/Room charge: verify guest folio before saving. No counter payment recorded/);
+});
