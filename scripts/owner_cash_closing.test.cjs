@@ -35,7 +35,7 @@ test('invalid and future dates are blocked; ledger signature is order independen
  assert.equal(closing.fingerprint([entry('a','1'),entry('b','2')]),closing.fingerprint([entry('b','2'),entry('a','1')]));
  assert.notEqual(closing.fingerprint([entry('a','1')]),closing.fingerprint([entry('a','2')]));
 });
-function workspace({rows=[entry('p1','50.00')],rpcMode='success'}={}){
+function workspace({rows=[entry('p1','50.00')],rpcMode='success',countOverride=null}={}){
  const elements=new Map(),calls=[];
  const el=id=>{
   if(!elements.has(id))elements.set(id,{id,value:'',textContent:'',innerHTML:'',style:{},className:'',disabled:false,
@@ -49,7 +49,7 @@ function workspace({rows=[entry('p1','50.00')],rpcMode='success'}={}){
  el('cashbookClosingNote').value='';
  let serverRows=rows,serverClosing=null;
  const from=name=>{
-  const q={select(){return q},eq(){return q},order(){return Promise.resolve({data:name==='restaurant_cashbook_entries'?serverRows:[],error:null})},
+  const q={select(){return q},eq(){return q},order(){return Promise.resolve({data:name==='restaurant_cashbook_entries'?serverRows:[],count:countOverride??serverRows.length,error:null})},
    maybeSingle(){return Promise.resolve({data:name==='restaurant_cashbook_closings'?serverClosing:null,error:null})},
    insert(){return Promise.resolve({error:null})}};
   return q;
@@ -152,4 +152,13 @@ test('closing review is scoped to Owner and does not change customer or POS flow
  assert(index.includes('id="cashbookClosingReview"'));
  assert(index.includes("if(access.role!=='owner'||cashbookClosingBusy||!cashbookReview)return;"));
  assert(index.includes("sb.rpc('close_restaurant_cashbook_day'"));
+});
+
+test('A11/A12 cashbook rejects incomplete and duplicate financial source snapshots',async()=>{
+ for(const config of [{countOverride:2},{rows:[entry('p1','50.00'),entry('p1','50.00')]},{rows:[entry('p1','50.001')]}]){
+  const w=workspace(config);await w.context.loadCashbook();
+  assert.equal(w.el('cashbookReviewBtn').disabled,true);
+  assert.equal(w.el('cashbookStatus').textContent,'Error');
+  assert.equal(w.calls.length,0);
+ }
 });
