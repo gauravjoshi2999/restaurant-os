@@ -2,7 +2,17 @@
 (function(root){
  'use strict';
  const H=()=>root.BiteHospitality,esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const money=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ function verifiedRent(value){
+  if(typeof value!=='number'&&!(typeof value==='string'&&/^\d+(?:\.\d{1,2})?$/.test(value.trim())))return null;
+  const amount=Number(value),cents=Math.round(amount*100);
+  return Number.isFinite(amount)&&amount>=0&&Number.isSafeInteger(cents)&&Math.abs(amount*100-cents)<0.00001?cents/100:null;
+ }
+ const money=n=>{const rent=verifiedRent(n);return rent===null?'—': '₹'+rent.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})};
+ function validEntryDate(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const d=new Date(value+'T12:00:00Z');
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;
+ }
  const stamp=s=>{const d=new Date(s);return Number.isNaN(d.getTime())?'—':d.toLocaleString('en-IN',{timeZone:'Asia/Kolkata',dateStyle:'short',timeStyle:'short'})};
  const day=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'')?s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(0,4):s||'—';
  const button=(a,label,id='',extra='')=>'<button type="button" class="btn secondary" data-gr-action="'+a+'" data-id="'+esc(id)+'" '+extra+'>'+esc(label)+'</button>';
@@ -24,10 +34,10 @@
  function inPeriod(row,value){
   if(!value)return true;
   const d=String(row.entry_date||'');
-  return /^\d{4}-\d{2}-\d{2}$/.test(d)&&d>=value.from&&d<=value.to;
+  return validEntryDate(d)&&validEntryDate(value.from)&&validEntryDate(value.to)&&value.from<=value.to&&d>=value.from&&d<=value.to;
  }
  function filtered(rows){const q=query.trim().toLocaleLowerCase();return rows.filter(r=>inPeriod(r,period)&&(!state||r.status===state)&&(!q||[r.serial,r.name,r.phone,r.address,r.room,r.arrived_from,r.next_destination,r.vehicle_number,r.group_name,r.room_occupants,...r.additional_ids.map(p=>p.name)].join(' ').toLocaleLowerCase().includes(q)))}
- function exportRows(rows){return [['Serial number','Entry date','Guest name','Mobile','Permanent address','Country','Email','ID type','ID last 4','Check-in date','Arrival time','Expected checkout','Actual checkout','Room','Male','Female','Children','Arriving from','Next destination','Transport','Vehicle number','Agreed rent / night','Status','Lead ID front recorded','Lead ID back recorded','Additional guest names',...foreignFields.map(([,label])=>'Foreign guest · '+label),'Additional guest travel details'],...rows.map(r=>[r.serial,r.entry_date,r.name,r.phone,r.address,r.country,r.email,r.id_type,r.id_last4,r.arrival,r.arrival_time,r.departure,r.checkout_at,r.room,r.male,r.female,r.children,r.arrived_from,r.next_destination,r.transport,r.vehicle_number,Number(r.nightly_rate||0),status(r.status),r.id_front?'Yes':'No',r.id_back?'Yes':'No',r.additional_ids.map(p=>p.name).join(', '),...foreignFields.map(([key])=>r.foreign?.[key]||''),r.additional_ids.filter(p=>p.foreign_details).map(p=>p.name+': '+foreignFields.filter(([key])=>p.foreign_details[key]).map(([key,label])=>label+' '+p.foreign_details[key]).join('; ')).join(' | ')])]}
+ function exportRows(rows){return [['Serial number','Entry date','Guest name','Mobile','Permanent address','Country','Email','ID type','ID last 4','Check-in date','Arrival time','Expected checkout','Actual checkout','Room','Male','Female','Children','Arriving from','Next destination','Transport','Vehicle number','Agreed rent / night','Status','Lead ID front recorded','Lead ID back recorded','Additional guest names',...foreignFields.map(([,label])=>'Foreign guest · '+label),'Additional guest travel details'],...rows.map(r=>[r.serial,r.entry_date,r.name,r.phone,r.address,r.country,r.email,r.id_type,r.id_last4,r.arrival,r.arrival_time,r.departure,r.checkout_at,r.room,r.male,r.female,r.children,r.arrived_from,r.next_destination,r.transport,r.vehicle_number,verifiedRent(r.nightly_rate)??'',status(r.status),r.id_front?'Yes':'No',r.id_back?'Yes':'No',r.additional_ids.map(p=>p.name).join(', '),...foreignFields.map(([key])=>r.foreign?.[key]||''),r.additional_ids.filter(p=>p.foreign_details).map(p=>p.name+': '+foreignFields.filter(([key])=>p.foreign_details[key]).map(([key,label])=>label+' '+p.foreign_details[key]).join('; ')).join(' | ')])]}
  function render(target){
   periodControl?.dispose();periodControl=null;
   if(!H().has('guest_register')){target.replaceChildren();return}
@@ -118,5 +128,5 @@
    if(action==='print')printSheet(filtered(records(H().getWorkspace())));
   }catch(error){if(dialog)dialog.querySelector('.gr-record-message')?.replaceChildren(document.createTextNode(error.message||String(error)));else root.alert(error.message||String(error))}
  }
- const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
+ const api={init,clear,busy:()=>!!dialog||active>0,render,records,exportRows,inPeriod,verifiedRent,hasUnsavedCheckinChanges};root.BiteGuestRegister=api;if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

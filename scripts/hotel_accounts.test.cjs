@@ -77,3 +77,17 @@ test('H14: missing invoice totals cannot become a false zero on print or share',
  assert.match(combined,/Booking statement/);
  assert.match(combined,/Combined total/);
 });
+
+test('H10 changing advance amount or payment method requires fresh verification',()=>{
+ const input=value=>({value,checked:false,listeners:{},addEventListener(event,fn){(this.listeners[event]??=[]).push(fn)},fire(event){for(const fn of this.listeners[event]||[])fn()}});
+ const elements={advance_amount:input('100'),advance_method:input('UPI'),advance_verified:input('on'),advance_reference:input('SYNTHETIC-REF'),advance_account:input('Test account')};
+ const {advance_amount:a,advance_method:m,advance_verified:v,advance_reference:r,advance_account:n}=elements;
+ v.checked=true;A.wireAdvanceVerification({elements});
+ assert.equal(v.checked,true,'Existing restored details are not modified just by rendering');
+ a.fire('change');assert.equal(v.checked,true,'Unchanged amount remains verified');
+ a.value='200';a.fire('input');assert.equal(v.checked,false,'New amount requires verification');
+ v.checked=true;a.fire('change');assert.equal(v.checked,true,'Duplicate event does not invalidate a fresh verification');
+ m.value='Card';m.fire('change');assert.equal(v.checked,false,'Switching between online methods invalidates verification');
+ assert.equal(r.value,'');assert.equal(n.value,'');
+ v.checked=true;r.value='NEW-REF';m.fire('change');assert.equal(v.checked,true);assert.equal(r.value,'NEW-REF');
+});
