@@ -368,6 +368,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h13_split_checkout_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_credit_foundation.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h13_credit_foundation_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/hotel_credit_recovery.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_h13_credit_recovery_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h10_checkin_deposit_pg_test.sql
 
   super-admin-postgres-qa:
