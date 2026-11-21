@@ -28,3 +28,26 @@ test('H13 security deposit and pending receipt totals must be known, nonnegative
  assert.equal(checkoutTotalsReady([large,large]),false);
  assert.equal(checkoutTotalsReady([valid({charges:'1500.25',paid:'500.25',balance:'1000.00'})]),true);
 });
+
+
+test('H13 selection includes only open in-house rooms in the exact booking',()=>{
+ const B=globalThis.BiteHotelBilling,stay={id:'s1',group_id:'g',status:'in_house',room_id:'r1'};
+ const snapshot={stays:[stay,{id:'s2',group_id:'g',status:'in_house',room_id:'r2'},{id:'s3',group_id:'g',status:'checked_out'},{id:'s4',group_id:'other',status:'in_house'}],folios:[{id:'f1',stay_id:'s1',status:'open'},{id:'f2',stay_id:'s2',status:'open'},{id:'f3',stay_id:'s3',status:'settled'},{id:'f4',stay_id:'s4',status:'open'}],rooms:[]};
+ const original=JSON.stringify(snapshot);assert.deepEqual(B.availableCheckoutRooms(stay,snapshot).map(x=>x.folio.id),['f1','f2']);assert.equal(JSON.stringify(snapshot),original);
+ assert.throws(()=>B.availableCheckoutRooms(stay,{...snapshot,folios:[snapshot.folios[0]]}),/missing or duplicated/);
+});
+
+
+test('H13 selected checkout excludes unselected rooms and rejects duplicate or stale IDs',()=>{
+ const B=globalThis.BiteHotelBilling,stay={id:'s1',group_id:'g',status:'in_house'},workspace={stays:[stay,{id:'s2',group_id:'g',status:'in_house'},{id:'s3',group_id:'g',status:'in_house'}],folios:[1,2,3].map(n=>({id:'f'+n,stay_id:'s'+n,status:'open'})),rooms:[]};
+ assert.deepEqual(B.selectedCheckoutRows(stay,workspace,['f1','f3']).map(r=>r.folio.id),['f1','f3']);
+ for(const ids of [[],['f1','f1'],['f1','foreign']])assert.throws(()=>B.selectedCheckoutRows(stay,workspace,ids));
+});
+
+
+test('H13 split tender requires exact positive paise amounts',()=>{
+ const split=globalThis.BiteHotelBilling.splitTender;
+ assert.deepEqual(split('2500','1000','1500'),{cash_amount:1000,upi_amount:1500});
+ assert.deepEqual(split('10.31','0.01','10.30'),{cash_amount:0.01,upi_amount:10.3});
+ for(const args of [[2500,1000,1499],[2500,0,2500],[2500,-1,2501],[2500,'',2500],[2500,'NaN',2500],[2500,1000.001,1499.999]])assert.throws(()=>split(...args));
+});
