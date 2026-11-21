@@ -25,6 +25,11 @@ begin
  failed:=false;begin perform public.bite_property_command(p,'booking_checkout_collect',payload||jsonb_build_object('reference',''),gen_random_uuid());exception when others then failed:=true;end;
  if not failed then raise exception 'Missing UPI reference accepted';end if;
  if exists(select 1 from public.bite_folio_entries where property_id=p and kind='payment') then raise exception 'Invalid split created receipts';end if;
+ -- An unpaid checkout must remain blocked until a canonical hotel receivable and recovery path are approved.
+ failed:=false;begin perform public.bite_property_command(p,'checkout',jsonb_build_object('folio_id',f[2]),gen_random_uuid());exception when others then failed:=true;end;
+ if not failed then raise exception 'Unpaid room checkout bypassed ledger';end if;
+ failed:=false;begin perform public.bite_property_command(p,'checkout_collect',jsonb_build_object('folio_id',f[2],'amount',0,'method','Cash','credit_authorized',true),gen_random_uuid());exception when others then failed:=true;end;
+ if not failed or not exists(select 1 from public.bite_stays where id=s[2] and status='in_house') then raise exception 'Unpaid room was incorrectly closed by client flag';end if;
  v:=public.bite_property_command(p,'booking_checkout_collect',payload,req);
  if jsonb_array_length(v->'invoices')<>2 or public.bite_property_command(p,'booking_checkout_collect',payload,req)<>v then raise exception 'Split group invoice or retry failed';end if;
  if (select coalesce(sum(amount),0) from public.bite_folio_entries where property_id=p and kind='payment' and status='confirmed' and method='Cash')<>1500 then raise exception 'Cash allocation incorrect';end if;

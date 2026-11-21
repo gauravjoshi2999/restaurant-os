@@ -144,11 +144,26 @@
    pending.map(e=>'<section class="bh-checkout-blocker"><strong>'+money(e.amount)+' '+esc(e.method)+' · Not yet verified</strong><p>Choose what actually happened to this receipt.</p>'+(manager()?'<div class="bh-actions">'+button('receipt-yes','Received',e.id,'data-return="'+esc(id)+'" data-group="'+group+'"'+selectionAttr)+button('receipt-no','Not received',e.id,'data-return="'+esc(id)+'" data-group="'+group+'"'+selectionAttr)+'</div>':'<p>Ask the owner or manager to verify it.</p>')+'</section>').join('')+
    rows.filter(r=>Number(r.folio.totals?.deposit_held)>0).map(r=>'<section class="bh-checkout-blocker"><strong>Room '+esc(r.room?.number)+' · Deposit held '+money(r.folio.totals.deposit_held)+'</strong><div class="bh-actions">'+(Number(r.folio.totals.balance)>0?button('deposit-apply','Use deposit for bill',r.folio.id,'data-return="'+esc(id)+'" data-group="'+group+'"'+selectionAttr):'')+button('deposit-return','Record deposit returned',r.folio.id,'data-return="'+esc(id)+'" data-group="'+group+'"'+selectionAttr)+'</div></section>').join('')+
    (credit?'<p class="bh-note">A room has an overpayment. Record its actual refund under Bill adjustments before closing this booking.</p>':'')+
-   '<input type="hidden" name="amount" value="'+balance+'"><input type="hidden" name="folio_ids" value="'+esc(JSON.stringify(ids.sort()))+'">'+(balance>0?paymentFields():'')+note()+'<div class="bh-actions">'+button('close','Cancel')+'<button type="submit" class="btn" '+(blocked?'disabled':'')+'>Confirm checkout & bill</button></div></form>');
+   '<input type="hidden" name="amount" value="'+balance+'"><input type="hidden" name="folio_ids" value="'+esc(JSON.stringify(ids.sort()))+'">'+(balance>0?paymentFields():'')+(balance>0?'<p class="bh-note">Unpaid credit checkout is not enabled. Do not record an unpaid amount as received or discount.</p>':'')+note()+'<div class="bh-actions">'+button('checkout-preview','Preview selected invoice',id)+button('close','Cancel')+'<button type="submit" class="btn" '+(blocked?'disabled':'')+'>Confirm checkout & bill</button></div></form>');
   const form=document.querySelector('[data-bill-form=checkout]');if(form.elements.method)wireMoney(form);
  }
  function taxEditor(id){const tax=p().tax_profile||{};H().editor('<form class="bh-form" data-bill-form="tax" data-id="'+esc(id)+'"><h2>Hotel bill & GST</h2><label class="bh-field"><span>Billing type</span><select name="mode"><option value="plain" '+(!tax.gstin?'selected':'')+'>Guest bill · Hotel has no GST registration</option><option value="gst" '+(tax.gstin?'selected':'')+'>GST invoice · Registered hotel</option></select></label><div data-gst-fields>'+field('gstin','Hotel GSTIN',tax.gstin||'','maxlength="15" autocomplete="off"')+'<p class="bh-note">Room GST is 5% up to ₹7,500 per room / day and 18% above it. Each bill shows equal CGST and SGST components.</p><label class="bh-field"><span>Food GST · Total</span><select name="food_rate"><option value="5" '+(Number(tax.food_rate)!==18?'selected':'')+'>5% · 2.5% CGST + 2.5% SGST</option><option value="18" '+(Number(tax.food_rate)===18?'selected':'')+'>18% · 9% CGST + 9% SGST</option></select></label><label class="bh-field"><span>Extra charges GST · Total</span><select name="incidental_rate">'+[0,5,18].map(rate=>'<option value="'+rate+'" '+(rate===(tax.gstin?Number(tax.incidental_rate||0):5)?'selected':'')+'>'+rate+'%</option>').join('')+'</select></label></div><label class="bh-check"><input type="checkbox" name="reviewed" required> I confirm this hotel’s GST registration and applicable food rate.</label>'+note()+'<div class="bh-actions">'+button('close','Cancel')+'<button class="btn" type="submit">Save & update this bill</button></div></form>');const form=document.querySelector('[data-bill-form=tax]'),update=()=>{const on=form.elements.mode.value==='gst';form.querySelector('[data-gst-fields]').hidden=!on;form.elements.gstin.required=on};form.elements.mode.addEventListener('change',update);update()}
  async function preview(id){const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to view the bill.');win.opener=null;const scope=key(),version=generation;try{await ensureTax(id);await H().reload();assertScope(scope,version);win.document.write(A().billHTML(H().statement(id)));win.document.close();H().redraw()}catch(e){win.close();throw e}}
+ async function previewCheckout(form){
+  if(!form||form.dataset.billForm!=='checkout')throw Error('Reopen checkout before preview.');
+  const ids=selectedIds(form.elements.folio_ids.value),id=form.dataset.id,group=form.dataset.group==='true',scope=key(),version=generation;
+  const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to preview the selected invoice.');win.opener=null;
+  try{
+   const fresh=await H().reload(false);assertScope(scope,version);
+   if(!fresh||!form.isConnected)throw Error('Checkout changed. Open the current bill.');
+   const f=getFolio(id),stay=(db().stays||[]).find(s=>s.id===f?.stay_id);
+   const rows=group?selectedCheckoutRows(stay,db(),ids):f&&stay&&f.status==='open'&&stay.status==='in_house'&&ids.length===1&&ids[0]===f.id?[{folio:f,stay}]:[];
+   if(!checkoutTotalsReady(rows)||!ids.includes(id)||rows.some(r=>needsTax(r.folio)))throw Error('Review current room bills and GST before preview.');
+   const snapshots=rows.map(r=>H().statement(r.folio.id));
+   if(snapshots.some(s=>s.number!=='DRAFT — not issued'))throw Error('A bill has already been issued; reopen the booking.');
+   win.document.write(group?A().combinedBillHTML(snapshots):A().billHTML(snapshots[0]));win.document.close();
+  }catch(e){win.close();throw e}
+ }
  async function combined(stayId){const stay=(db().stays||[]).find(s=>s.id===stayId);if(!stay)return;const win=root.open('','_blank');if(!win)throw Error('Allow pop-ups to view the booking bill.');win.opener=null;const scope=key(),version=generation;try{for(const row of rowsFor(stay)){await ensureTax(row.folio.id);assertScope(scope,version)}await H().reload();assertScope(scope,version);const snapshots=rowsFor(stay).map(r=>H().statement(r.folio.id)),html=A().combinedBillHTML(snapshots);win.document.write(html);win.document.close()}catch(e){win.close();throw e}}
  async function click(e){
   const b=e.target.closest('[data-bill-action]');if(!b){const card=e.target.closest('.bh-room-card');if(card&&!e.target.closest('button,a,input,select,details'))card.querySelector('[data-hotel-action=room-guest]')?.click();return}if(active)return;e.preventDefault();const a=b.dataset.billAction,id=b.dataset.id,scope=key(),version=generation;
@@ -166,6 +181,7 @@
     return;
    }
    if(a==='tax-settings'){taxEditor(id);return}
+   if(a==='checkout-preview'){active++;await previewCheckout(b.closest('form'));return}
    if(a==='booking-bill'){active++;await combined(id);return}
    if(a==='booking-select-checkout'){showRoomSelection(id);return}
    if(a==='booking-checkout'){active++;const row=rowsFor((db().stays||[]).find(s=>s.id===id)).find(r=>r.stay.status==='in_house'&&r.folio.status==='open');if(row)await checkout(row.folio.id,true);return}
