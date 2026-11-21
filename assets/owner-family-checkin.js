@@ -15,6 +15,19 @@
   if(!form?.elements?.family_enabled?.checked)return regular;
   return regular+selectedIDs(form).reduce((sum,id)=>sum+Number(form.elements['family_adults_'+id]?.value||0)+Number(form.elements['family_children_'+id]?.value||0),0);
  }
+ function roomEstimate(arrival,departure,rates){
+  const date=s=>{if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const d=new Date(s+'T00:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?d.getTime():null};
+  const from=date(arrival),to=date(departure),nights=from!==null&&to!==null&&to>from?(to-from)/86400000:null;
+  if(nights===null||!Array.isArray(rates)||!rates.length)return {nights,total:null};
+  let cents=0;
+  for(const raw of rates){
+   if(typeof raw!=='number'&&!(typeof raw==='string'&&/^\d+(?:\.\d{1,2})?$/.test(raw.trim())))return {nights,total:null};
+   const n=Number(raw),v=Math.round(n*100);
+   if(!Number.isFinite(n)||n<0||!Number.isSafeInteger(v)||Math.abs(n*100-v)>0.00001)return {nights,total:null};
+   cents+=v;if(!Number.isSafeInteger(cents))return {nights,total:null};
+  }
+  return {nights,total:Number.isSafeInteger(cents*nights)?cents*nights/100:null};
+ }
  function decorate(form,draft={},workspace={}){
   if(!canUse(form)||form.querySelector('#biteFamilyRooms'))return;
   const rooms=(workspace.rooms||[]).filter(r=>r.active&&r.housekeeping!=='blocked');
@@ -23,13 +36,13 @@
   const enabled=draft.family_enabled==='on';
   const holder=root.document.createElement('section');
   holder.id='biteFamilyRooms';holder.className='bf-family';
-  holder.innerHTML='<label class="bf-family-toggle"><input name="family_enabled" type="checkbox" '+(enabled?'checked':'')+'><span><strong>Family / Multiple Rooms</strong><small>One family, several rooms · linked bills and one checkout summary</small></span></label>'+
+  holder.innerHTML='<label class="bf-family-toggle"><input name="family_enabled" type="checkbox" '+(enabled?'checked':'')+'><span><strong>Family / Multiple Rooms</strong><small>One family · One booking</small></span></label>'+
    '<div class="bf-family-body" data-family-fields '+(enabled?'':'hidden')+'>'+
-   '<label class="bh-field"><span>Booking / family name</span><input name="family_name" maxlength="120" value="'+esc(draft.family_name||'')+'" placeholder="e.g. Sharma family"></label>'+
-   '<p class="bf-family-note">First choose the lead room above. Add other rooms below. Each room will keep a separate GST/guest bill; the combined statement summarizes them without doubling food or payments.</p>'+
+   '<div class="bf-stay-dates" data-family-dates aria-live="polite"></div><label class="bh-field"><span>Booking / family name</span><input name="family_name" maxlength="120" value="'+esc(draft.family_name||'')+'" placeholder="e.g. Sharma family"></label>'+
+   '<p class="bf-family-note">Choose the lead room above, then add available rooms here.</p>'+
    '<div data-family-choices>'+rooms.map(r=>{
     const id=String(r.id),checked=previous.includes(id),capAdults=Math.min(20,Math.max(1,Number(r.adults)||20)),capChildren=Math.min(20,Math.max(0,Number(r.children??20)));
-    return '<div class="bf-room" data-family-room="'+esc(id)+'"><label class="bf-room-switch"><input type="checkbox" name="family_room_ids" value="'+esc(id)+'" '+(checked?'checked':'')+'><span><strong>Room '+esc(r.number)+'</strong><small>'+esc(r.room_type||'Room')+' · '+money(r.nightly_rate)+'/night</small></span></label>'+
+    return '<div class="bf-room" data-family-room="'+esc(id)+'"><label class="bf-room-switch"><input type="checkbox" name="family_room_ids" value="'+esc(id)+'" '+(checked?'checked':'')+'><span><strong>Room '+esc(r.number)+'</strong><small>'+esc(r.room_type||'Room')+' · '+money(r.nightly_rate)+'/night · Capacity '+capAdults+' adults, '+capChildren+' children</small></span><span class="bf-selection" data-family-selection></span></label>'+
      '<div class="bf-room-fields" '+(checked?'':'hidden')+'><label>Adults<input name="family_adults_'+esc(id)+'" type="number" min="1" max="'+capAdults+'" step="1" value="'+esc(draft['family_adults_'+id]||1)+'"></label>'+
      '<label>Women (included in adults)<input name="family_female_'+esc(id)+'" type="number" min="0" max="'+capAdults+'" step="1" value="'+esc(draft['family_female_'+id]||0)+'"></label>'+ 
      '<label>Children<input name="family_children_'+esc(id)+'" type="number" min="0" max="'+capChildren+'" step="1" value="'+esc(draft['family_children_'+id]||0)+'"></label>'+
@@ -37,26 +50,27 @@
      '<label class="bf-room-name">Guests staying in this room (optional)<input name="family_note_'+esc(id)+'" type="text" maxlength="120" value="'+esc(draft['family_note_'+id]||'')+'" placeholder="e.g. Parents and children"></label></div>'+
      '<p class="bf-room-status" data-family-room-status></p></div>';
    }).join('')+'</div><p class="bf-family-totals" data-family-total aria-live="polite"></p>'+
-   '<p class="bf-family-note">Before Check in now, verify 2 guest IDs for this family (front and back). More IDs are optional. Any advance entered here is allocated once across the room folios. Food can be charged to the selected room from Restaurant POS; the combined statement includes each linked room bill once.</p></div>';
+   '<p class="bf-family-note">Two guest IDs for family check-in. Room bills remain separate; payments are allocated once.</p></div>';
   const mode=form.elements.mode;
   mode?.closest('label')?.before(holder);
   const update=()=>{
    const on=form.elements.family_enabled.checked;
    holder.querySelector('[data-family-fields]').hidden=!on;
    const primary=form.elements.room_id.value,arrival=form.elements.arrival.value,departure=form.elements.departure.value;
-   const d=workspace.stays||[],guard=root.BiteCheckinGuard?.roomAvailability,checkoutMode=form.elements.mode.value;
-   let count=1,base=Number(form.elements.nightly_rate?.value??rooms.find(r=>String(r.id)===primary)?.nightly_rate??0),adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0)||Number(form.elements.adults?.value||0),children=Number(form.elements.children?.value||0);
+   const d=root.BiteHospitality?.getWorkspace?.()?.stays||workspace.stays||[],guard=root.BiteCheckinGuard?.roomAvailability,checkoutMode=form.elements.mode.value;
+   let count=primary?1:0,rates=primary?[form.elements.nightly_rate?.value]:[],adult=Number(form.elements.male?.value||0)+Number(form.elements.female?.value||0)||Number(form.elements.adults?.value||0),children=Number(form.elements.children?.value||0);
    for(const row of holder.querySelectorAll('[data-family-room]')){
     const id=row.dataset.familyRoom,room=rooms.find(x=>String(x.id)===id),box=row.querySelector('input[type=checkbox]'),fields=row.querySelector('.bf-room-fields');
     const reason=id===primary?'Lead room already selected':(guard&&arrival&&departure?guard(room,d,arrival,departure,checkoutMode,'',today(),{...prop(),housekeeping_enabled:root.BiteHospitality?.housekeepingVisible?.()}):'');
     const unavailable=!!reason;
     if(unavailable&&box.checked)box.checked=false;
-    box.disabled=unavailable;row.querySelector('[data-family-room-status]').textContent=reason||'';
+    box.disabled=unavailable;row.querySelector('[data-family-room-status]').textContent=reason||'Ready for these dates';row.dataset.selected=String(box.checked);row.querySelector('[data-family-selection]').textContent=box.checked?'Selected':'';
     fields.hidden=!box.checked;
-    if(on&&box.checked){count++;base+=Number(form.elements['family_rate_'+id]?.value||0);adult+=Number(form.elements['family_adults_'+id]?.value||0);children+=Number(form.elements['family_children_'+id]?.value||0);}
+    if(on&&box.checked){count++;rates.push(form.elements['family_rate_'+id]?.value);adult+=Number(form.elements['family_adults_'+id]?.value||0);children+=Number(form.elements['family_children_'+id]?.value||0);}
    }
-   const nights=Math.max(0,Math.round((Date.parse(departure)-Date.parse(arrival))/86400000)||0);
-   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · '+children+' children · '+(adult+children)+' guests · Estimated room rent '+money(base*nights)+(nights>0?' for '+nights+' night(s)':'')+' (tax/fees shown at review)':'';
+   const estimate=roomEstimate(arrival,departure,rates);
+   holder.querySelector('[data-family-dates]').textContent=estimate.nights===null?'Choose valid stay dates above':arrival+' → '+departure+' · '+estimate.nights+(estimate.nights===1?' night':' nights');
+   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · '+children+' children · '+(adult+children)+' guests · '+(estimate.total===null||!primary?'Enter dates, lead room and agreed rates to see estimated rent':'Estimated room rent '+money(estimate.total)+' (tax/fees at review)'):'';
    if(form.elements.additional_ids&&form.querySelector('[data-ha-id-card]'))root.BiteCheckinFlow?.sync?.(form);
   };
   holder.addEventListener('change',e=>{
@@ -157,7 +171,7 @@
   return {booking:result.data,requestKey:key};
  }
  function clearAttempt(key){if(key)root.localStorage?.removeItem(key);}
- const api={decorate,saveDraft,plan,commit,clearAttempt,totalPeople,canonical,withRoomRegistrations};
+ const api={decorate,saveDraft,plan,commit,clearAttempt,totalPeople,canonical,withRoomRegistrations,roomEstimate};
  root.BiteFamilyCheckin=api;
  if(typeof module==='object'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

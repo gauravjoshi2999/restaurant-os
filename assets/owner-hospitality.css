@@ -214,3 +214,15 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
  #guests .gr-bottom-actions{margin:12px 0 4px}
  #guests .gr-bottom-actions .btn{font-size:13px}
 }
+
+/* H10: approved payment review hierarchy, within existing check-in form. */
+#bhCheckinForm .bh-payment-review{display:grid;gap:10px;padding:16px;background:#fff;border:1px solid #e5ded7;border-radius:12px}
+#bhCheckinForm .bh-payment-review h2,#bhCheckinForm .bh-payment-review p{margin:0}
+#bhCheckinForm .bh-review-step{font-size:11px;font-weight:700;color:#98572e;letter-spacing:.04em}
+#bhCheckinForm .bh-review-guest{padding:12px;border-radius:8px;background:#f5f6f7;overflow-wrap:anywhere}
+#bhCheckinForm .bh-review-guest p{font-size:12px;margin-top:4px;color:#69615c}
+#bhCheckinForm .bh-review-line{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #ebe5df;padding:10px 0;font-size:14px}
+#bhCheckinForm .bh-review-line strong{flex-shrink:0;font-variant-numeric:tabular-nums}
+#bhCheckinForm .bh-review-deposit{background:#fff5e7;padding:12px;border-radius:8px;font-size:13px;color:#704819}
+#bhCheckinForm .bh-review-deposit p{margin-top:5px}
+@media(max-width:430px){#bhCheckinForm .bh-payment-review{padding:12px}#bhCheckinForm .bh-review-line{font-size:13px}}

@@ -38,14 +38,16 @@ try:
  with sync_playwright()as pw:
   browser=pw.chromium.launch()
   for width in [360,390,1440]:
-   c,p,f=new_case(browser,width);fill(f);d=capture(p,f)
+   c,p,f=new_case(browser,width);fill(f)
+   check(f.locator('[data-id-side=front]').is_visible() and f.locator('[data-id-side=back]').is_visible(),'H09 both empty photo slots are visible before capture')
+   d=capture(p,f)
    check(d.locator('[data-select-side=front] img').count()==1 and d.locator('[data-select-side=back] img').count()==1,'Both photo previews are visible together at '+str(width)+'px')
    check('Add the ID back'in d.inner_text(),'Back capture remains in the same ID screen')
    d.locator('[data-view-large]').click();v=p.locator('.ha-photo-viewer');v.wait_for();check(v.locator('img').is_visible(),'Back photo opens in a larger private viewer')
    v.locator('[data-photo-zoom]').click();check(v.locator('[data-photo-zoom]').get_attribute('aria-pressed')=='true','Photo can be enlarged and panned')
    v.locator('[data-viewer-close]').click();d.locator('[data-select-side=front]').click();d.locator('[data-view-large]').click();check('Front photo'in p.locator('.ha-photo-viewer').inner_text(),'Front photo can be inspected separately');p.locator('[data-viewer-close]').click()
    d.locator('[data-select-side=back]').click();d.locator('[data-next]').click();check(f.locator('[data-id-thumbnails] img').count()==2,'Form keeps both reviewable thumbnails')
-   p.evaluate('window.__correctBack=document.querySelector("[name=id_back]").files[0]');f.locator('[data-id-side=front]').click();d=p.locator('.ha-id-dialog');photo(p,d.locator('[data-capture]'),None)
+   p.evaluate('window.__correctBack=document.querySelector("[name=id_back]").files[0]');f.locator('[data-id-retake-side=front]').click();d=p.locator('.ha-id-dialog');check(d.locator('[data-select-side=front]').get_attribute('aria-pressed')=='true','H09 retake front opens the correct side');photo(p,d.locator('[data-capture]'),None)
    check(f.locator('[name=id_front]').evaluate('(e)=>e.files.length')==1,'Cancelling a retake preserves the current photo')
    photo(p,d.locator('[data-upload]'),file(buffer=b'<html>invalid</html>'));check('Choose a valid'in d.locator('.ha-camera-error').inner_text(),'Invalid replacement explains the problem without losing the good photo')
    photo(p,d.locator('[data-upload]'),file());check(p.evaluate('document.querySelector("[name=id_back]").files[0]===__correctBack'),'Replacing front preserves the correct back')
