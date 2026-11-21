@@ -9,7 +9,7 @@ const UUID_B='22222222-2222-4222-8222-222222222222';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function harness({deletionError=false,storageFail=false,delayedUpsert=false,delayedRead=false,delayedOpen=false}={}){
  const map=new Map(),remote=new Map(),listeners={},elements={};
- const stats={upserts:0,deletes:0,opens:0};
+ const stats={upserts:0,deletes:0,opens:0};let modalOpen=true;
  const localStorage={
   getItem:key=>map.get(key)||null,
   setItem(key,value){if(storageFail&&key.startsWith('bite_pos_draft_deletions_v1:'))throw Error('Storage full');map.set(key,value)},
@@ -18,7 +18,7 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false,dela
  function el(id){
   if(!elements[id]){
    elements[id]={value:'',checked:false,innerHTML:'',textContent:'',dataset:{},
-    classList:{contains:()=>id==='orderModal'},addEventListener:()=>{},querySelector:()=>null};
+    classList:{contains:()=>id==='orderModal'&&modalOpen},addEventListener:()=>{},querySelector:()=>null};
   }
   return elements[id];
  }
@@ -100,7 +100,7 @@ function harness({deletionError=false,storageFail=false,delayedUpsert=false,dela
  api.init({sb,getUser:()=>({id:uid}),getAccess:()=>({role:'owner',restaurantId}),getState:()=>({})});
  function setTenant(u,r){uid=u;restaurantId=r}
  return {api,localStorage,map,remote,stats,elements,uid:()=>uid,rest:()=>restaurantId,
-  setTenant,resolveGate,resolveRead,resolveOpen,upsertStarted,goOnline:()=>listeners.online?.(),
+  setTenant,setModalOpen:v=>modalOpen=v,resolveGate,resolveRead,resolveOpen,upsertStarted,goOnline:()=>listeners.online?.(),
   setDeletionError:value=>deletionError=value};
 }
 function drafts(h,uid='owner1',rid='rest1'){
@@ -193,6 +193,7 @@ test('POS draft recovery retains existing safe edit and void guards',()=>{
 test('a delayed saved draft open never fills a different signed-in Owner form',async()=>{
  const h=harness({delayedOpen:true});
  h.api.newBill();h.api.touch();await h.api.saveNow();
+ h.setModalOpen(false);
  const opening=h.api.openDraft(UUID_A);
  await tick();
  assert.equal(h.stats.opens,1);
@@ -207,6 +208,7 @@ test('an account switch during remote draft fetch prevents opening another Owner
  const h=harness({delayedRead:true});
  h.remote.set(UUID_B,{id:UUID_B,created_by:'owner1',restaurant_id:'rest1',
   payload:{customerName:'Private customer',items:[]},updated_at:'2026-11-14T09:00:00Z'});
+ h.setModalOpen(false);
  const opening=h.api.openDraft(UUID_B);
  h.setTenant('owner2','rest2');
  h.resolveRead();
@@ -248,4 +250,14 @@ test('completed bill tombstone belongs to originating Owner after session switch
  await h.api.finishOrder();
  assert.equal(tombstones(h,'owner1','rest1').find(x=>x.id===UUID_A)?.pending!==undefined,true);
  assert.equal(tombstones(h,'owner2','rest2').length,0);
+});
+
+test('R08 a current modal is not overwritten by a different saved draft',async()=>{
+ const h=harness();h.api.newBill();h.api.touch();await h.api.saveNow();
+ await h.api.openDraft(UUID_A);assert.equal(h.stats.opens,0);
+});
+test('R08 local edits during delayed cloud refresh survive stale response',async()=>{
+ const h=harness({delayedRead:true});h.api.newBill();h.api.touch();
+ const refresh=h.api.refreshDrafts();h.elements.orderCustomerName.value='Latest edit';h.api.touch();
+ h.resolveRead();await refresh;assert.equal(drafts(h)[0].payload.customerName,'Latest edit');
 });
