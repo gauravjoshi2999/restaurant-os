@@ -70,7 +70,7 @@
    }
    const estimate=roomEstimate(arrival,departure,rates);
    holder.querySelector('[data-family-dates]').textContent=estimate.nights===null?'Choose valid stay dates above':arrival+' → '+departure+' · '+estimate.nights+(estimate.nights===1?' night':' nights');
-   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · '+children+' children · '+(estimate.total===null||!primary?'Enter dates, lead room and agreed rates to see estimated rent':'Estimated room rent '+money(estimate.total)+' (tax/fees at review)'):'';
+   holder.querySelector('[data-family-total]').textContent=on?count+' rooms · '+adult+' adults · '+children+' children · '+(adult+children)+' guests · '+(estimate.total===null||!primary?'Enter dates, lead room and agreed rates to see estimated rent':'Estimated room rent '+money(estimate.total)+' (tax/fees at review)'):'';
    if(form.elements.additional_ids&&form.querySelector('[data-ha-id-card]'))root.BiteCheckinFlow?.sync?.(form);
   };
   holder.addEventListener('change',e=>{
