@@ -115,8 +115,10 @@ try:
   c,p,f=open_case(browser);fill(f,{'nightly_rate':'875','male':'2','female':'1','children':'2'});raw_id(f);review(f);confirm(p,f)
   check(p.evaluate('__BITE_HOTEL_QA.db.stays[0].nightly_rate===875&&__BITE_HOTEL_QA.db.stays[0].adults===3&&__BITE_HOTEL_QA.db.stays[0].children===2'),'Current party and rent override old master presets');record('S10','Negotiated rent and family counts');c.close()
 
-  c,p,f=open_case(browser,width=360);f.locator('button[type=submit]').click();focused(p,'full_name')
-  check(f.locator('[name=full_name]').get_attribute('aria-invalid')=='true','Missing field receives inline error and focus')
+  c,p,f=open_case(browser,width=360);f.locator('button[type=submit]').click();focused(p,'phone')
+  check(f.locator('[name=phone]').get_attribute('aria-invalid')=='true','H07 first missing mobile field receives inline error and focus')
+  f.locator('[name=phone]').fill('7777777777');f.locator('button[type=submit]').click();focused(p,'full_name')
+  check(f.locator('[name=full_name]').get_attribute('aria-invalid')=='true','Missing lead guest name receives inline error and focus')
   fill(f);raw_id(f);f.locator('[name=departure]').fill(f.locator('[name=arrival]').input_value());f.locator('button[type=submit]').click();focused(p,'departure')
   check('after arrival'in f.locator('[name=departure]').locator('..').inner_text(),'Invalid departure points beside the date')
   p.screenshot(path=str(OUT/'ui-checkin-scenarios-validation-360.png'));record('S11','Missing fields and wrong dates scroll to correction');c.close()
