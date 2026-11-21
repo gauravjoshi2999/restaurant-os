@@ -226,3 +226,6 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
 #bhCheckinForm .bh-review-deposit{background:#fff5e7;padding:12px;border-radius:8px;font-size:13px;color:#704819}
 #bhCheckinForm .bh-review-deposit p{margin-top:5px}
 @media(max-width:430px){#bhCheckinForm .bh-payment-review{padding:12px}#bhCheckinForm .bh-review-line{font-size:13px}}
+
+/* H11 approved PDF availability period and compact results */
+#reservations .bh-h11-period{margin:12px 0;padding:14px}#reservations .bh-h11-period h2,#reservations .bh-h11-results h2{font-size:16px;margin:0 0 10px}#reservations .bh-h11-period .bh-actions>*{flex:1 1 130px;white-space:normal}#reservations .bh-h11-results .bh-record{min-width:0;gap:8px;overflow-wrap:anywhere}#reservations .bh-h11-results .bh-chip{flex-shrink:0}

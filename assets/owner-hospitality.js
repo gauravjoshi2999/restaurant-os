@@ -5,7 +5,7 @@
  const titles={'hotel-register':'Check-in','reservations':'Reservations','rooms':'Rooms','guests':'Guest register','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service','daily-book':'Daily Book','checkouts':'Checkouts'};
  let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='',hotelReportPeriod=null;
  let foodFolio=null,foodMenu=[],foodCart=new Map(),foodQuery='';
- let roomFilters={floor:'',type:''},reservationView='upcoming';
+ let roomFilters={floor:'',type:''},reservationView='upcoming',reservationPeriod=null;
  let housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''},housekeepingRequest=0;
  function empty(){return {rooms:[],guests:[],stays:[],groups:[],folios:[],entries:[],audit:[],members:[],expenses:[]}}
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -276,6 +276,17 @@
   }[view]||(()=>false);
   return [...(stays||[])].filter(match).sort((a,b)=>String(a.arrival||'').localeCompare(String(b.arrival||'')));
  }
+ function reservationAvailability(rooms,stays,from,to,now,property={},type=''){
+  const guard=root.BiteCheckinGuard;if(!guard?.validDate(from)||!guard.validDate(to)||from<now||to<=from)throw Error('Choose an arrival today or later and a checkout after arrival.');
+  return (rooms||[]).filter(r=>r.active&&(!type||String(r.room_type||'Unspecified')===type)).map(r=>({room:r,reason:guard.roomAvailability(r,stays||[],from,to,'reserve','',now,property)}));
+ }
+ function renderReservationAvailability(target){
+  const mount=target.querySelector('[data-h11-availability]');if(!mount||!reservationPeriod?.opened)return;
+  try{
+   const rows=reservationAvailability(data.rooms,data.stays,reservationPeriod.from,reservationPeriod.to,today(),prop(),reservationPeriod.type);
+   mount.innerHTML='<section class="bh-panel bh-h11-results"><h2>Availability · '+esc(shortDate(reservationPeriod.from))+' – '+esc(shortDate(reservationPeriod.to))+'</h2><p>'+rows.filter(x=>!x.reason).length+' of '+rows.length+' rooms available for reservation. Availability is checked again on confirmation.</p>'+rows.map(({room,reason})=>'<article class="bh-record"><div><strong>Room '+esc(room.number)+' · '+esc(room.room_type||'Room')+'</strong><p>'+esc(reason||'Available for these dates')+'</p></div><span class="bh-chip '+(reason?'reserved':'ready')+'">'+(reason?'Unavailable':'Available')+'</span></article>').join('')+(!rows.length?stateCard('No rooms match that type.'):'' )+'</section>';
+  }catch(e){mount.textContent=e.message||String(e)}
+ }
  function roomState(room){
   if(!room.active)return 'inactive';
   if(room.occupied||data.stays.some(s=>s.room_id===room.id&&s.status==='in_house'))return 'occupied';
@@ -405,10 +416,14 @@
   if(id==='reservations'){
    const rows=reservationRows(data.stays,reservationView,today());
    const tabs=[['upcoming','Upcoming'],['arrivals','Arrivals'],['cancelled','Cancelled / No-show'],['all','All records']].map(([value,label])=>btn('reservation-filter',label,value,'aria-pressed="'+(reservationView===value)+'"')).join('');
-   target.innerHTML=header('Reservations','Review bookings and arrivals. All records keeps historical stays available.',btn('register','＋ New reservation')+btn('group-booking','Group booking'))+notice()+
+   const period=reservationPeriod||{from:today(),to:datePlus(7),type:'',opened:false};
+   const types=[...new Set(data.rooms.filter(r=>r.active).map(r=>String(r.room_type||'Unspecified')))].sort();
+   target.innerHTML=header('Reservations','Upcoming bookings and available rooms.')+notice()+
+    '<form data-hotel-form="reservation-availability" class="bh-panel bh-form bh-h11-period"><h2>Availability period</h2><div class="bh-form-grid">'+field('availability_from','Arrival','date',period.from,'required min="'+esc(today())+'"')+field('availability_to','Checkout','date',period.to,'required')+select('availability_type','Room type',option('','All room types',!period.type)+types.map(t=>option(t,t,t===period.type)).join(''))+'</div><div class="bh-actions"><button type="submit" class="btn secondary">Open availability</button>'+btn('reservation-new','＋ New reservation')+'</div>'+notice()+'</form><div data-h11-availability></div>'+
     '<nav class="bh-actions bh-reservation-filters" aria-label="Reservation views">'+tabs+'</nav>'+
     searchBox('Search guest, room or status')+rows.map(s=>stayCard(s)).join('')+
-    (!rows.length?stateCard(reservationView==='upcoming'?'No upcoming reservations. Choose Arrivals or All records to review other stays.':reservationView==='arrivals'?'No arrivals awaiting check-in.':reservationView==='cancelled'?'No cancelled or no-show reservations.':'No stays saved for this property.'):'' );
+    (!rows.length?stateCard(reservationView==='upcoming'?'No upcoming reservations. Choose Arrivals or All records to review other stays.':reservationView==='arrivals'?'No arrivals awaiting check-in.':reservationView==='cancelled'?'No cancelled or no-show reservations.':'No stays saved for this property.'):'' )+'<details class="bh-panel"><summary>Group bookings</summary><p>Reserve multiple rooms together using existing group booking.</p>'+btn('group-booking','Group booking')+'</details>';
+   renderReservationAvailability(target);
    return;
   }
   if(id==='guests'&&root.BiteGuestRegister){root.BiteGuestRegister.render(target);return}
@@ -770,6 +785,15 @@
    else if(action==='group-booking'){
     editor(`<form class="bh-form" data-hotel-form="group"><h2>Group reservation</h2>${field('name','Group name *','text','','required maxlength="120"')}${select('guest_id','Shared payer / lead guest',option('','New lead guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone)).join(''))}<div class="bh-form-grid">${field('full_name','New lead guest name','text','','maxlength="120"')}${field('phone','New lead guest phone','tel','','maxlength="20"')}${field('arrival','Arrival *','date',today(),'required')}${field('departure','Departure *','date',datePlus(1),'required')}</div><h3>Rooms & occupancy</h3>${data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>`<div class="bh-panel"><label class="bh-check"><input type="checkbox" name="room_ids" value="${esc(r.id)}"> Room ${esc(r.number)}</label><div class="bh-form-grid">${field('adults_'+r.id,'Adults in this room','number',1,'min="1" max="20"')}${field('children_'+r.id,'Children in this room','number',0,'min="0" max="20"')}${field('rate_'+r.id,'Agreed room rent / night (₹)','number','','min="0" step="0.01"')}</div></div>`).join('')}<p class="bh-note">All rooms reserve together, or none do. Each room keeps its own folio and invoice linked to this shared payer. Check rooms in individually after readiness inspection.</p>${notice()}<div class="bh-actions">${btn('close-editor','Cancel')}<button type="submit" class="btn">Reserve selected rooms</button></div></form>`);
    }
+   else if(action==='reservation-new'){
+    if(!has('guest_register'))throw Error('Check-in permission is required.');
+    const filter=$('reservations')?.querySelector('[data-hotel-form="reservation-availability"]');
+    const from=filter?.elements.availability_from.value||today(),to=filter?.elements.availability_to.value||datePlus(1);
+    if(!root.BiteCheckinGuard?.validDate(from)||!root.BiteCheckinGuard.validDate(to)||from<today()||to<=from)throw Error('Choose valid future stay dates first.');
+    const before=identity();await ctx.navigate('hotel-register');if(before!==identity())return;
+    const form=$('bhCheckinForm');if(!form||form.inert||form.dataset.stayId||$('hotel-register').querySelector('.ha-draft-choice')){if(form)form.querySelector('.bh-message').textContent='An existing draft needs your decision before starting a reservation.';return}
+    if(form.elements.mode){form.elements.mode.value='reserve';form.elements.arrival.value=from;form.elements.departure.value=to;root.BiteCheckinGuard?.rooms(form);form.querySelector('.bh-message').textContent='Reservation for '+from+' to '+to+'. No room is booked until confirmation.';}
+   }
    else if(action==='reservation-filter'){
     if(!['upcoming','arrivals','cancelled','all'].includes(id))throw Error('Choose a valid reservation view.');
     reservationView=id;renderPage('reservations');
@@ -853,7 +877,12 @@
   const f=Object.fromEntries(new FormData(form)),type=form.dataset.hotelForm;const message=form.querySelector('.bh-message');if(message)message.textContent='Saving…';
   if(type==='register'){form.inert=true;form.setAttribute('aria-busy','true');if(message)message.textContent=form.dataset.reviewed==='true'?'Checking booking status…':'Checking room availability…'}
   try{
-   if(type==='audit-search'){auditQuery=f.query||'';auditBefore=null;await searchAudit(false)}else if(type==='report-filter'){root.BiteOwner.range(f.from,f.to);reportFrom=f.from;reportTo=f.to;const mount=$('biteHotelReports')||$('reports');renderReports(mount)}else if(type==='setup'){
+   if(type==='reservation-availability'){
+    const before=identity(),from=f.availability_from,to=f.availability_to,type=f.availability_type||'';
+    reservationAvailability(data.rooms,data.stays,from,to,today(),prop(),type);
+    await reload();if(before!==identity()||!form.isConnected)return;
+    reservationPeriod={from,to,type,opened:true};renderPage('reservations');return;
+   }else if(type==='audit-search'){auditQuery=f.query||'';auditBefore=null;await searchAudit(false)}else if(type==='report-filter'){root.BiteOwner.range(f.from,f.to);reportFrom=f.from;reportTo=f.to;const mount=$('biteHotelReports')||$('reports');renderReports(mount)}else if(type==='setup'){
     const step=Number(form.dataset.step);
     if(step===1){if(setupDraft.business_type!==f.business_type)setupDraft.capabilities=[...C.defaults[f.business_type]];setupDraft.business_type=f.business_type}
     if(step===2)Object.assign(setupDraft,{name:f.name,address:f.address,phone:f.phone});
@@ -1029,8 +1058,8 @@
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){roomFilters={floor:'',type:''};reservationView='upcoming';root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={header,reservationRows,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
+ root.BiteHospitality={header,reservationRows,reservationAvailability,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

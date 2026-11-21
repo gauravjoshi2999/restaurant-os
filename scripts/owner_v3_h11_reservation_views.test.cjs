@@ -22,3 +22,16 @@ test('H11 reservation tabs include only intended status/date groups without data
 test('H11 empty status views are safe',()=>{assert.deepEqual(rows([], 'upcoming','2026-11-19'),[]);assert.deepEqual(rows(null,'all','2026-11-19'),[])});
 
 test('H11 serves updated hotel code rather than a stale cache URL',()=>assert.match(html,/owner-hospitality\.js\?v=20261119-h11-reservation-filter1/));
+
+require('../assets/owner-checkin-guard.js');
+const availability=globalThis.BiteHospitality.reservationAvailability;
+test('H11 availability uses actual reservation overlap and room type, never mutates records',()=>{
+ const rooms=[{id:'a',active:true,room_type:'Deluxe',housekeeping:'ready'},{id:'b',active:true,room_type:'Suite',housekeeping:'ready'},{id:'c',active:true,room_type:'Suite',housekeeping:'blocked'},{id:'d',active:false,room_type:'Suite'}];
+ const stays=[{room_id:'a',status:'reserved',arrival:'2026-11-20',departure:'2026-11-22'},{room_id:'b',status:'cancelled',arrival:'2026-11-20',departure:'2026-11-22'}];
+ const snapshot=JSON.stringify({rooms,stays});
+ assert.deepEqual(availability(rooms,stays,'2026-11-21','2026-11-23','2026-11-19').map(x=>[x.room.id,x.reason]),[['a','Reserved for these dates'],['b',''],['c','Unavailable']]);
+ assert.deepEqual(availability(rooms,stays,'2026-11-22','2026-11-23','2026-11-19','', 'Deluxe').map(x=>x.reason),['']);
+ assert.throws(()=>availability(rooms,stays,'2026-11-18','2026-11-23','2026-11-19'));
+ assert.throws(()=>availability(rooms,stays,'2026-11-22','2026-11-22','2026-11-19'));
+ assert.equal(JSON.stringify({rooms,stays}),snapshot);
+});
