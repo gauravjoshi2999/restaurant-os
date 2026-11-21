@@ -6,14 +6,15 @@ const fs = require('node:fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const match = html.match(/async function deleteMenuItem\(id\)\{[\s\S]*?\n\}/);
 assert.ok(match, 'Owner menu delete implementation must be present');
-async function run({agree = true, typed = 'Dal Fry', data = [{id:'item-a'}], error=null, rid='hotel-1'}={}) {
+async function run({agree = true, typed = 'Dal Fry', data = [{id:'item-a'}], error=null, rid='hotel-1',itemRid=rid,activeRid=rid,allowed=true}={}) {
   const calls = []; const notices = [];
   const query = {
     eq: (col,val)=>{calls.push(['eq',col,val]);return query;},
     select: async cols=>{calls.push(['select',cols]);return {data,error}},
   };
   const sandbox = {
-    menuItems:[{id:'item-a',name:'Dal Fry'}],
+    menuItems:[{id:'item-a',name:'Dal Fry',restaurant_id:itemRid}],
+    activeMenuRestaurant:activeRid,menuEditScope:r=>allowed&&r===rid,
     menuRestaurantId:()=>rid,
     confirm: warning=>{calls.push(['confirm',warning]);return agree;},
     prompt: message=>{calls.push(['prompt',message]);return typed;},
@@ -52,4 +53,10 @@ test('RLS-denied or zero-row delete is not displayed as success',async()=>{
   const failure=await run({data:null,error:{message:'blocked'}});
   assert.ok(failure.notices[0].includes('blocked'));
   assert.equal(failure.calls.some(c=>c[0]==='refresh'),false);
+});
+
+test('R14 menu delete fails closed for another tenant, stale workspace or missing permission',async()=>{
+ for(const options of [{itemRid:'hotel-2'},{activeRid:'hotel-2'},{allowed:false}]){
+  const result=await run(options);assert.equal(result.calls.length,0);
+ }
 });
