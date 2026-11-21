@@ -85,3 +85,42 @@ test('stale payment errors never appear in a different owner session',async()=>{
  await work;
  assert.equal(h.elements.paymentMessage.textContent,'');
 });
+
+test('R04 impossible receipt dates are rejected before new insert',()=>{
+ const payments=require('../assets/bite-pos-payment-safety.js');
+ for(const date of ['2026-02-30','2026-04-31','2026-13-01','2026-00-10','2025-02-29'])
+  assert.throws(()=>payments.normalize({amount:50,method:'Cash',date}),/Valid payment date/);
+ assert.equal(payments.normalize({amount:50,method:'Cash',date:'2024-02-29'}).date,'2024-02-29');
+});
+test('R04 receipt recovery requires matching creator and notes',async()=>{
+ const payments=require('../assets/bite-pos-payment-safety.js');
+ const m=new Map(),storage={getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};
+ const identity={uid:'owner-a',restaurantId:'rest-a',orderId:'order-a'};
+ const details={amount:50,method:'UPI',date:'2026-11-14',notes:'counter',reference:'ref'};
+ const id='12345678-1234-4123-8123-123456789abc';
+ payments.begin(storage,identity,details,()=>id);
+ let row={id,order_id:identity.orderId,restaurant_id:identity.restaurantId,amount:50,payment_method:'UPI',payment_date:details.date,reference:'ref',notes:'wrong',created_by:identity.uid};
+ const sb={from(){const q={select:()=>q,eq:()=>q,maybeSingle:async()=>({data:row,error:null})};return q;}};
+ assert.equal((await payments.reconcile({sb,storage,identity})).status,'conflict');
+ row={...row,notes:'counter',created_by:'other'};
+ assert.equal((await payments.reconcile({sb,storage,identity})).status,'conflict');
+ row={...row,created_by:identity.uid};
+ assert.equal((await payments.reconcile({sb,storage,identity})).status,'confirmed');
+ assert.equal(payments.getPending(storage,identity),null);
+});
+test('R04 unknown balance, future date and room-linked order cannot submit a new receipt',async()=>{
+ const h=setup('save');
+ h.ctx.paymentSummaryFor=()=>({balance_amount:null});
+ await h.api.save(h.ctx);
+ assert.match(h.elements.paymentMessage.textContent,/balance unavailable/);
+ assert.equal(h.elements.paymentSaveBtn.disabled,false);
+ h.ctx.paymentSummaryFor=()=>({balance_amount:100});
+ h.ctx.today=()=> '2026-11-13';
+ await h.api.save(h.ctx);
+ assert.match(h.elements.paymentMessage.textContent,/Future payment date/);
+ h.ctx.today=()=> '2026-11-21';
+ h.ctx.order.roomLinked=true;
+ await h.api.save(h.ctx);
+ assert.equal(h.elements.paymentSaveBtn.disabled,false);
+ assert.equal(h.counts.closed,0);
+});
