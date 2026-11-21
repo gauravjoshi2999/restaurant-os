@@ -721,7 +721,9 @@
   if(!attempt){attempt={id:crypto.randomUUID(),signature};try{localStorage.setItem(key,JSON.stringify(attempt))}catch{throw Error('Safe retry storage unavailable. Action was not sent.')}}
   try{
    activeWrites++;
-   const response=await ctx.sb.rpc('bite_property_command',{p_property:prop().id,p_action:action,p_payload:payload,p_request:attempt.id});
+   const response=action==='reserve'&&payload.checkin_deposit?
+    await ctx.sb.rpc('bite_booking_with_deposit',{p_property:prop().id,p_booking_kind:'single',p_payload:payload,p_request:attempt.id}):
+    await ctx.sb.rpc('bite_property_command',{p_property:prop().id,p_action:action,p_payload:payload,p_request:attempt.id});
    if(response.error){if(['P0001','42501','P0002'].includes(response.error.code)||/^(22|23)/.test(response.error.code||''))localStorage.removeItem(key);throw response.error}
    localStorage.removeItem(key);return response.data;
   }catch(error){const failure=Error(error.message||'Response unknown. Same details ke saath retry karein; action dobara na banayein.');if(error.details)failure.details=error.details;throw failure}finally{activeWrites=Math.max(0,activeWrites-1)}
@@ -877,7 +879,7 @@
     await command('reserve_group',{name:f.name,guest_id,arrival:f.arrival,departure:f.departure,rooms:ids.map(id=>({room_id:id,adults:Number(f['adults_'+id]),children:Number(f['children_'+id]),nightly_rate:f['rate_'+id]?.trim()!==''?Number(f['rate_'+id]):null}))});await reload();renderPage('reservations');
    }else if(type==='register'){
     root.BiteHotelAccounts?.prepareRegister(form,f);
-    const family=root.BiteFamilyCheckin?.plan(form,f,data)||null;
+    const family=root.BiteFamilyCheckin?.plan(form,f,data)||null,deposit=form.dataset.stayId?null:root.BiteHotelAccounts?.depositPayload(f)||null;
     if(form.dataset.stayId){
      await reload();
      const existing=data.stays.find(s=>s.id===form.dataset.stayId);
@@ -895,7 +897,7 @@
        const room=data.rooms.find(r=>r.id===unit.room_id);
        familyReview+='<p>Room '+esc(room?.number||'?')+' · '+unit.adults+' adults · '+unit.children+' children · rent '+money(quoted.room)+' · tax '+money(quoted.room_tax)+' · early/other '+money(Number(quoted.early_fee||0)+Number(quoted.early_tax||0))+' · <strong>'+money(quoted.total)+'</strong></p>';
       }
-      familyPayload={...family,rooms:details};
+      familyPayload={...family,rooms:details,...(deposit?{checkin_deposit:deposit}:{})};
       form.dataset.familyPayload=JSON.stringify(familyPayload);
       familyReview='<h3>Family booking · '+details.length+' rooms</h3>'+familyReview+
         '<p>One atomic '+(f.mode==='reserve'?'reservation':'check-in')+'. Each room has its own Guest Bill; a combined statement totals them. Assign food to a selected room via POS only once.</p>';
@@ -915,7 +917,7 @@
       '<div class="bh-review-line"><span>Advance received'+(form.dataset.stayId?'':' (on confirmation)')+'</span><strong>'+sumMoney(confirmed)+'</strong></div>'+
       '<div class="bh-review-line"><span>Pending receipt verification</span><strong>'+sumMoney(pending)+'</strong></div>'+
       (!form.dataset.stayId&&advance>0?'<p>'+esc(f.advance_method||'Cash')+' · '+(paidStatus?(online?'Verified receipt':'Cash reported received'):'Not counted as received')+'</p>':'')+
-      '<section class="bh-review-deposit"><strong>Refundable security deposit</strong><p>Record separately in Guest Bill after booking confirmation. Deposit is not room sales or advance.</p></section>'+
+      '<section class="bh-review-deposit"><strong>Refundable security deposit</strong><p>'+(deposit?sumMoney([deposit.amount])+' · '+esc(deposit.method)+' · '+(deposit.method==='Cash'||deposit.verified?'Separate held receipt on confirmation':'Pending verification, not received'):'No new refundable deposit entered. Existing deposits remain in Guest Bill.')+'</p><p>Deposit is not room sales or advance.</p></section>'+
       '<p class="bh-note">Received date is recorded by the server when the receipt is saved. Arrival time is not receipt time.</p><details><summary>Guest ID review</summary><p>'+people.map(esc).join(', ')+'</p></details>'+
       '<button type="button" class="btn secondary" data-review-back>Back to rooms</button>';
      review.querySelector('[data-review-back]').addEventListener('click',()=>{const heading=form.querySelector('[data-h07-rooms]');if(heading){heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'})}else form.elements.room_id.focus()});
@@ -940,10 +942,10 @@
      await ctx.navigate('folios');
      return;
     }
-    let stayId=form.dataset.stayId,folioId;
-    if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash,...(root.BiteHotelAccounts?.registration(form,f,savedDocs)||{})});stayId=s.id;folioId=s.folio_id;form.dataset.stayId=stayId;persistDraft(form)}
+    let stayId=form.dataset.stayId,folioId,checkinDone=false;
+    if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash,...(deposit?{checkin_deposit:deposit}:{}),...(root.BiteHotelAccounts?.registration(form,f,savedDocs)||{})});stayId=s.id;folioId=s.folio_id;checkinDone=s.checkin_completed===true;form.dataset.stayId=stayId;persistDraft(form)}
     else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),...(f.arrival_time!==undefined?{arrival_time:f.arrival_time,terms_at_checkin:true}:{})})}
-    if(f.mode==='checkin'){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
+    if(f.mode==='checkin'&&!checkinDone){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
     localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=folioId||null;await ctx.navigate('folios');
    }else{
     let action,payload;
