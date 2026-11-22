@@ -50,7 +50,11 @@ test('A13 reviews are explicitly tenant scoped, stale replies are ignored and fa
  assert.match(code,/currentOwnerReviewScope\(\)===scope/);
  assert.match(code,/ownerReviewRows=rows/);
  assert.equal((code.match(/\.eq\('restaurant_id',rid\)/g)||[]).length,2);
- assert.match(code,/ownerReviewDrafts.set\(key,message\)/);
+ assert.match(code,/drafts=ownerReviewDrafts/);
+ assert.match(code,/drafts.set\(key,raw\)/);
+ assert.match(code,/ownerReviewDrafts===drafts/);
+ assert.match(code,/data!==true/);
+ assert.match(code,/Draft kept/);
  assert.match(code,/message.length<3\|\|message.length>500/);
  assert.match(html,/async function logout\(\)\{\s*clearOwnerReviews\(\)/);
 });
