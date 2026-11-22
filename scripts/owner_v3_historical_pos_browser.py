@@ -27,7 +27,7 @@ fixtures="""async () => {
   amount:160,received_amount:160,payment_method:'Cash',visit_type:'dine_in',guest_count:2}];
  const builder={
   select(){return this},eq(){return this},gte(){return this},lte(){return this},order(){return this},
-  range(a,b){return Promise.resolve({data:rows.slice(a,b+1),error:null})}
+  range(a,b){return Promise.resolve({data:rows.slice(a,b+1),error:null,count:rows.length})}
  };
  window.__opened=[];window.__scope=true;
  window.__oldResult=await BiteV3HistoricalReconcile.mount(
