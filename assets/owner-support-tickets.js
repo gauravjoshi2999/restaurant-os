@@ -50,6 +50,11 @@
   if(lookup.error||!matching(lookup.data,request,userId))throw Error('Ticket not confirmed. Keep this form and retry the same request.');
   return lookup.data;
  }
+ async function readHistory(client,ticketId){
+  const {data,error,count}=await client.from('owner_support_ticket_events').select('id,ticket_id,event_kind,previous_status,status,response,occurred_at',{count:'exact'}).eq('ticket_id',ticketId).order('id',{ascending:false}).limit(100);
+  if(error||!Array.isArray(data)||data.some(e=>e.ticket_id!==ticketId))throw Error('Ticket history could not be verified.');
+  return {events:data,count:count??data.length};
+ }
  async function updateTicket(client,row,status,response){
   const reply=String(response||'').trim();
   if(!statuses.includes(status)||reply.length>2000||!row.updated_at)throw Error('Invalid reply or ticket revision. Refresh first.');
@@ -111,6 +116,28 @@
      const card=node('article');card.style.cssText='display:grid;gap:8px;border:1px solid #ddd;border-radius:12px;padding:12px;min-width:0;white-space:pre-wrap';
      const meta=node('small',row.category+' · '+row.status+' · '+row.created_at),answered=node('p',row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response');
      card.append(node('strong',row.subject),meta,node('small','Ticket '+row.id),node('p',row.message),answered);
+     const history=node('details'),summary=node('summary','Case history'),timeline=node('div');
+     summary.style.cssText='cursor:pointer;min-height:44px;padding:10px 0';timeline.style.cssText='display:grid;gap:8px';
+     const historyNotice=node('p');historyNotice.setAttribute('role','status');timeline.append(historyNotice);
+     history.append(summary,timeline);
+     let historyVersion=0;
+     async function openHistory(){
+      const sequence=++historyVersion,live=()=>valid()&&card.isConnected&&history.open&&sequence===historyVersion;
+      if(!live())return;
+      timeline.replaceChildren(historyNotice);historyNotice.textContent='Loading case history…';
+      try{
+       const {events,count}=await readHistory(ctx.sb,row.id);if(!live())return;
+       historyNotice.textContent=events.length?'Showing '+events.length+' of '+count+' recorded events.':'No recorded history yet; earlier events may predate history tracking.';
+       for(const event of events){
+        const entry=node('div');entry.style.cssText='border-left:2px solid #ddd;padding-left:10px';
+        entry.append(node('strong',event.event_kind==='Opened'?'Ticket opened':(event.previous_status===event.status?'Reply updated':event.previous_status+' → '+event.status)),node('small',' · '+new Date(event.occurred_at).toLocaleString('en-IN')));
+        if(event.response)entry.append(node('p',event.response));
+        timeline.append(entry);
+       }
+      }catch(e){if(live())historyNotice.textContent='History unavailable. Close and reopen to retry.';}
+     }
+     history.ontoggle=()=>{if(history.open)void openHistory();else{historyVersion++;timeline.replaceChildren(historyNotice);historyNotice.textContent='';}};
+     card.append(history);
      if(admin){
       card.append(node('small','Restaurant '+row.restaurant_id));
       const st=control('select','status','Status',statuses),reply=control('textarea','response','Bite response');
@@ -119,7 +146,7 @@
       const save=button('Save status & reply',async()=>{
        if(!valid()||saving||!card.isConnected)return;
        saving=true;save.disabled=true;result.textContent='Saving…';
-       try{const saved=await updateTicket(ctx.sb,row,st.input.value,reply.input.value);if(valid()&&card.isConnected){Object.assign(row,saved);meta.textContent=row.category+' · '+row.status+' · '+row.created_at;answered.textContent=row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response';result.textContent='Update confirmed.';}}
+       try{const saved=await updateTicket(ctx.sb,row,st.input.value,reply.input.value);if(valid()&&card.isConnected){Object.assign(row,saved);meta.textContent=row.category+' · '+row.status+' · '+row.created_at;answered.textContent=row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response';result.textContent='Update confirmed.';if(history.open)void openHistory();}}
        catch(e){if(valid()&&card.isConnected)result.textContent=e.message;}
        finally{saving=false;if(valid()&&card.isConnected)save.disabled=false;}
       });
@@ -134,5 +161,5 @@
   }
   void load();
  }
- return {init,mount,clear,sync,identity,normalize,matching,createOrRecover,updateTicket};
+ return {init,mount,clear,sync,identity,normalize,matching,createOrRecover,updateTicket,readHistory};
 });
