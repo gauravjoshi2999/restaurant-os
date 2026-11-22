@@ -40,22 +40,26 @@
   if(!client?.from||!restaurantId||!validPeriod(from,to,today))throw Error('Choose a valid past/current date and restaurant.');
   if(!Number.isInteger(pageSize)||pageSize<1||pageSize>500||!Number.isInteger(maxRows)||maxRows<pageSize||maxRows%pageSize)
    throw Error('Historical query bounds are invalid.');
-  const rows=[];
+  const rows=[];let expected=null;
   for(let start=0;start<maxRows;start+=pageSize){
    if(isCurrent?.()===false)throw Error('Scope changed before historical register read.');
-   const {data,error}=await client.from('bite_owner_historical_entries')
-    .select('id,restaurant_id,record_date,recorded_at,customer_name,amount,received_amount,payment_method,guest_count,visit_type')
+   const {data,error,count}=await client.from('bite_owner_historical_entries')
+    .select('id,restaurant_id,record_date,recorded_at,customer_name,amount,received_amount,payment_method,guest_count,visit_type',{count:'exact'})
     .eq('restaurant_id',restaurantId).eq('entry_kind','pos')
     .gte('record_date',from).lte('record_date',to)
     .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false})
     .range(start,start+pageSize-1);
    if(isCurrent?.()===false)throw Error('Scope changed during historical register read.');
    if(error)throw error;
-   if(!Array.isArray(data))throw Error('Old register returned incomplete data.');
+   if(!Number.isSafeInteger(count)||count<0)throw Error('Old register count could not be verified.');
+   if(expected===null)expected=count;
+   if(count!==expected)throw Error('Old register changed while loading; refresh before using its totals.');
+   if(expected>maxRows)throw Error('Old register exceeds the verified page limit; totals are hidden until a complete export is available.');
+   if(!Array.isArray(data)||data.length!==Math.min(pageSize,expected-start))throw Error('Old register returned incomplete data.');
    rows.push(...data);
-   if(data.length<pageSize)return summarize(rows,{restaurantId,from,to});
+   if(rows.length===expected)return summarize(rows,{restaurantId,from,to});
   }
-  throw Error('Old register exceeds the verified page limit; totals are hidden until a complete export is available.');
+  throw Error('Old register returned incomplete data.');
  }
  function postedPosSummary(journal,from,to){
   if(!Array.isArray(journal)||!validPeriod(from,to,to))return {verified:false};
