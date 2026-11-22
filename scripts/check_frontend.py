@@ -159,8 +159,19 @@ check('id="pos">' in owner and 'id="posNewSaleBtn"' in owner
       "Owner POS page provides an enabled, role-guarded sales form with optional WhatsApp bill")
 check("deliveryType:x.delivery_type" in owner and "shareDeliveryHandoff" in owner,
       "Owner order model carries delivery type for delivery handoff actions")
-check(handover_share.index("sb.rpc('create_delivery_handoff'") < handover_share.index("update({status:'Handed Over'") < handover_share.index("openDeliveryWhatsAppShare(message,waUrl)") and ".eq('status','Ready')" in handover_share and "if(statusError||!changed)throw" in handover_share and "window.open('about:blank'" not in handover_share and "BiteDeliveryShare" in owner,
-      "Delivery orders require link sharing and physical handover confirmation")
+# Sharing alone must not mark an order physically handed over.
+handover_guard = re.search(r"if\(commitHandover\)\{\s*const \{data:changed,error:statusError\}=await sb\.from\('orders'\)\.update\(\{status:'Handed Over'", handover_share)
+check(handover_guard is not None
+      and "commitHandover=false" in owner
+      and handover_share.find("sb.rpc('create_delivery_handoff'") >= 0
+      and handover_share.find("sb.rpc('create_delivery_handoff'") < handover_guard.start()
+      and handover_share.find("openDeliveryWhatsAppShare(message,waUrl,shareCurrent,commitHandover)") > handover_guard.end()
+      and ".eq('restaurant_id',shareRestaurant).eq('status','Ready')" in handover_share
+      and "if(statusError||!changed)throw" in handover_share
+      and handover_share.count("update({status:'Handed Over'") == 1
+      and handover_share.count("if(!shareCurrent())return false;") >= 2
+      and "window.open('about:blank'" not in handover_share and "BiteDeliveryShare" in owner,
+      "Delivery sharing is session-scoped; physical handover requires explicit confirmation and a guarded Ready transition")
 owner_order_step = Path("assets/owner-orders-workspace.js").read_text(encoding="utf-8")
 old_order_guard = ("o.status==='Handed Over'&&a[0]==='Completed'" in owner and "o.status==='Ready'&&a[0]==='Handed Over'" in owner)
 new_order_guard = (

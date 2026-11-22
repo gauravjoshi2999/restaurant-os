@@ -61,3 +61,10 @@ test('A14 delivery settings require current owner scope, valid PINs and exact mo
  assert.match(code,/Math.abs\(fee\*100-Math.round\(fee\*100\)\)/);
  assert.match(code,/currentUser\?\.id!==zoneUser/);
 });
+
+test('PDF A13 review has original tenant-scoped saved order context, not a payment confirmation',()=>{
+ const code=section('var ownerReviewVersion=0','async function loadCustomerOrderRequestsWorkspace(){');
+ assert.match(code,/Open linked order/);
+ assert.match(code,/order_code,customer_name,status,amount,order_date/);
+ assert.match(code,/Saved order record · not payment or refund verification/);
+});
