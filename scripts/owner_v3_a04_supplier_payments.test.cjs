@@ -52,7 +52,7 @@ test('A04 same canonical Purchases screen uses only verified append-only server 
  assert.match(index,/version!==purchaseRequestVersion/);
  assert.match(index,/purchasePaid'\)\.readOnly=hasLaterPayment/);
  assert.match(index,/supplierPaymentRecords\.some\(x=>x\.purchase_id===id\)/);
- assert.match(index,/owner-supplier-dues\.js\?v=20261119-a04-dues1/);
+ assert.match(index,/owner-supplier-dues\.js\?v=20261122-a04-retry1/);
  assert.match(index,/owner-supplier-dues\.css\?v=20261119-a04-dues1/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-supplier-dues.js','utf8'),/\.(?:insert|upsert|update|delete|rpc)\(/);
 });
@@ -94,4 +94,16 @@ test('A04 supplier balances reject duplicate receipts, unknown money and impossi
  assert.throws(()=>due.validate({purchase,payments:[...pays,pays[0]],amount:1,date:'2026-11-19',today:'2026-11-19',method:'Cash'}));
  assert.match(index,/pay.count===pay.data.length/);
  assert.match(index,/count!==data.length/);
+});
+
+test('Supplier payment cannot coerce boolean inputs or use an invalid today date',()=>{
+ const base={purchase,payments:pays,today:'2026-11-19',amount:100,date:'2026-11-19',method:'Cash',reference:'42'};
+ for(const amount of [true,false,[],{},null,' ',Infinity,'1.001'])assert.throws(()=>due.validate({...base,amount}));
+ assert.throws(()=>due.validate({...base,today:'2026-02-30'}));
+});
+test('Supplier payment retry preserves the exact first submitted payload',()=>{
+ const js=fs.readFileSync('assets/owner-supplier-dues.js','utf8');
+ assert.match(js,/attempt=Object\.freeze\(\{purchaseId:purchase.id,\.\.\.data,requestId\}\)/);
+ assert.match(js,/await onSave\(\{\.\.\.attempt\}\)/);
+ assert.match(js,/if\(!attempt\)form.elements.confirmed.checked=false/);
 });

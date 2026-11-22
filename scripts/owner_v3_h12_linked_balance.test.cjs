@@ -29,3 +29,10 @@ test('H12 family summary uses explicit group only and source folio totals withou
  assert.equal(Billing.familyBillSummary(stay,{...workspace,folios:[workspace.folios[0]]}).totals,null);
  assert.equal(Billing.familyBillSummary(stay,{...workspace,entries:[...workspace.entries,workspace.entries[0]]}).totals,null);
 });
+
+test('Linked balance does not coerce blank, boolean or fractional-paise values to a verified balance',()=>{
+ for(const balance of ['  ',true,false,[],{},'0x10',0.001])assert.equal(Billing.linkedBalanceLabel({totals:{balance}}),'Balance unavailable');
+ const stay={id:'s1',group_id:'g',status:'in_house'};
+ const workspace={stays:[stay,{id:'s2',group_id:'g',status:'in_house'}],folios:[{id:'f1',stay_id:'s1',totals:{charges:100,paid:40,balance:50,pending:0,deposit_held:0}},{id:'f2',stay_id:'s2',totals:{charges:10,paid:0,balance:10,pending:0,deposit_held:0}}]};
+ assert.equal(Billing.familyBillSummary(stay,workspace).totals,null);
+});

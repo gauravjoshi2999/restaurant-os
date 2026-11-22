@@ -51,3 +51,22 @@ test('H13 split tender requires exact positive paise amounts',()=>{
  assert.deepEqual(split('10.31','0.01','10.30'),{cash_amount:0.01,upi_amount:10.3});
  for(const args of [[2500,1000,1499],[2500,0,2500],[2500,-1,2501],[2500,'',2500],[2500,'NaN',2500],[2500,1000.001,1499.999]])assert.throws(()=>split(...args));
 });
+
+test('Checkout blocks internally inconsistent balances even if each amount is valid',()=>{
+ const good=valid({charges:'100.20',paid:'40.10',balance:'60.10'});
+ assert.equal(checkoutTotalsReady([good]),true);
+ assert.equal(checkoutTotalsReady([valid({charges:100,paid:40,balance:59.99})]),false);
+ assert.equal(checkoutTotalsReady([valid({charges:100,paid:110,balance:-10})]),true);
+ const identified={folio:{...good.folio,id:'same-folio'}};
+ assert.equal(checkoutTotalsReady([identified,identified]),false);
+});
+
+test('Guest Khata rejects duplicate accounts, impossible balances and unsafe aggregate totals',()=>{
+ const check=globalThis.BiteHotelBilling.verifiedCreditAccounts;
+ const good={folio_id:'folio-a',approved_balance:'100.20',balance:'60.10'};
+ assert.equal(check({accounts:[good]}).due,6010);
+ assert.equal(check({accounts:[]}).due,0);
+ assert.equal(check({accounts:[{...good,balance:0}]}).due,0);
+ for(const accounts of [null,[good,good],[{...good,balance:101}],[{...good,approved_balance:null}],[{...good,balance:-1}],[{...good,balance:true}],[{...good,folio_id:' '}],[{...good,balance:0.001}]])assert.throws(()=>check({accounts}));
+ assert.throws(()=>check({accounts:[{folio_id:'a',approved_balance:50000000000000,balance:50000000000000},{folio_id:'b',approved_balance:50000000000000,balance:50000000000000}]}));
+});
