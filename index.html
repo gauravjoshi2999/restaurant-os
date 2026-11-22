@@ -729,9 +729,9 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/owner-v3-attendance.js?v=20261119-a08-1" defer></script>
 <script src="assets/owner-v3-staff-payments.js?v=20261119-a09-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-staff-payments.css?v=20261119-a09-1">
-<script src="assets/owner-v3-salary-closing.js?v=20261119-a10-1" defer></script>
+<script src="assets/owner-v3-salary-closing.js?v=20261122-salary-source-count1" defer></script>
 <script src="assets/owner-v3-salary-closing-ui.js?v=20261119-a13-1" defer></script>
-<script src="assets/owner-v3-salary-status.js?v=20261119-a13-1" defer></script>
+<script src="assets/owner-v3-salary-status.js?v=20261122-salary-source-count1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-salary-status.css?v=20261119-a13-1">
 <script src="assets/owner-v3-staff-payment-safe-save.js?v=20261119-a12-1" defer></script>
 <link rel="stylesheet" href="assets/owner-v3-salary-closing.css?v=20261119-a10-1">
@@ -1483,8 +1483,8 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261120-h13-checkout-guard1-pending1-h12family1-h13select1-h13multi1-h13split1-h13preview1-h13credit1-h14pdf1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261119-a04-paid1"></script><script src="assets/owner-supplier-dues.js?v=20261119-a04-dues1-safety2"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
-<script src="assets/owner-v3-settlements.js?v=20261119-a06-1-verify2"></script><script src="assets/owner-hotel-accounts.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261119-a07-1-verify2"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-guest-register.js?v=20261121-h06pdf4"></script><script src="assets/owner-hotel-billing.js?v=20261122-h13-deposit-review1"></script><script src="assets/owner-checkin-guard.js?v=20261118-guest-controls1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261122-a04-verified1"></script><script src="assets/owner-supplier-dues.js?v=20261122-a04-retry1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
+<script src="assets/owner-v3-settlements.js?v=20261119-a06-1-verify2"></script><script src="assets/owner-hotel-accounts.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261122-a07-verified1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-h05balance1-h10review2-steps1-deposit1-h11availability1-h11fix2-h11review1-h11modify1-h12pos1-h12qa1-h13credit1-r05r08"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261120-h15-r08-scope1-h15release1"></script>
 <script>
@@ -1650,19 +1650,22 @@ async function loadExpenses(){
   document.getElementById('expenseV3Cards')?.replaceChildren();
  }
  try{
-  const {data,error}=await sb.from('restaurant_expenses').select('*').eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});
+  const {data,error,count}=await sb.from('restaurant_expenses').select('*',{count:'exact'}).eq('restaurant_id',rid).order('expense_date',{ascending:false}).order('created_at',{ascending:false});
   if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
   if(error)throw error;
-  expenseRecords=data||[];state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses();
+  if(!Array.isArray(data)||count!==data.length||!window.BiteV3ExpenseView?.verifiedRecords(data,rid,'restaurant_id'))throw Error('Expense records incomplete or invalid; refresh before relying on totals.');
+  expenseRecords=data;state.expenses=(state.expenses||[]).filter(x=>x.restaurant_id!==rid).concat(expenseRecords);renderExpenses();
  }catch(e){
   if(version!==expenseRequestVersion||expenseRestaurantId()!==rid||currentUser?.id!==userId)return;
+  expenseRecords=[];editingExpenseId=null;document.getElementById('expenseRows').replaceChildren();document.getElementById('expenseV3Cards')?.replaceChildren();document.getElementById('expenseTotal').textContent='—';document.getElementById('expenseCount').textContent='—';empty.style.display='block';
   empty.textContent='Expenses load nahi hue: '+e.message;console.error(e);
  }
 }
 function renderExpenses(){
  const rid=expenseRestaurantId(),key=(currentUser?.id||'')+':'+rid;
  const visible=window.BiteV3ExpenseView?.filter(expenseRecords,key,localDateInput())||expenseRecords;
- const total=visible.reduce((s,x)=>s+Number(x.amount||0),0);
+ const total=window.BiteV3ExpenseView?.total(visible);
+ if(total==null){document.getElementById('expenseTotal').textContent='—';document.getElementById('expenseCount').textContent='—';return;}
  document.getElementById('expenseTotal').textContent=money(total);document.getElementById('expenseCount').textContent=String(visible.length);
  document.getElementById('expenseRows').innerHTML=visible.map(x=>'<tr><td>'+esc(x.expense_date)+'</td><td>'+esc(x.category)+'</td><td><strong>'+esc(x.title)+'</strong></td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(x.description||'—')+'</td><td>'+(access.role==='owner'?'<div class="actions"><button class="btn secondary" onclick="editExpense(\''+esc(x.id)+'\')">Edit</button><button class="btn danger" onclick="deleteExpense(\''+esc(x.id)+'\')">Delete</button></div>':'<span class="small">View only</span>')+'</td></tr>').join('');
  document.getElementById('expenseEmpty').style.display=visible.length?'none':'block';
@@ -1676,7 +1679,7 @@ function editExpense(id){if(access.role!=='owner')return;const x=expenseRecords.
 async function saveExpense(){
  if(access.role!=='owner'){alert('Expense sirf Restaurant Owner save kar sakta hai.');return}
  const rid=expenseRestaurantId(),date=document.getElementById('expenseDate').value,category=document.getElementById('expenseCategory').value,title=document.getElementById('expenseTitle').value.trim(),amount=Number(document.getElementById('expenseAmount').value),payment_method=document.getElementById('expensePayment').value,description=document.getElementById('expenseDescription').value.trim();
- if(!rid||!date||!window.BiteV3Period?.validDay(date)||date>localDateInput()||!category||!title||!Number.isFinite(amount)||amount<=0){document.getElementById('expenseMessage').textContent='Date, category, name aur valid amount bharna zaroori hai.';return}
+ if(!rid||!date||!window.BiteV3Period?.validDay(date)||date>localDateInput()||!category||!title||window.BiteV3ExpenseView?.cents(amount)==null||amount<=0){document.getElementById('expenseMessage').textContent='Date, category, name aur valid amount bharna zaroori hai.';return}
  const btn=document.getElementById('expenseSaveBtn');btn.disabled=true;
  try{const payload={restaurant_id:rid,expense_date:date,category,title,amount,payment_method,description:description||null};
  let result;if(editingExpenseId)result=await sb.from('restaurant_expenses').update(payload).eq('id',editingExpenseId).eq('restaurant_id',rid);else result=await sb.from('restaurant_expenses').insert({...payload,created_by:currentUser.id});
@@ -1881,13 +1884,14 @@ async function loadInventory(){
  const rid=inventoryRestaurantId(),userId=currentUser?.id,seq=++inventoryLoadSeq;if(!rid||!userId)return;
  try{
   const [items,balances,moves]=await Promise.all([
-   sb.from('restaurant_inventory_items').select('*').eq('restaurant_id',rid).eq('is_active',true).order('name'),
-   sb.from('restaurant_inventory_balances').select('inventory_item_id,current_stock').eq('restaurant_id',rid),
+   sb.from('restaurant_inventory_items').select('*',{count:'exact'}).eq('restaurant_id',rid).eq('is_active',true).order('name'),
+   sb.from('restaurant_inventory_balances').select('restaurant_id,inventory_item_id,current_stock',{count:'exact'}).eq('restaurant_id',rid),
    sb.from('restaurant_stock_movements').select('*').eq('restaurant_id',rid).order('movement_date',{ascending:false}).order('created_at',{ascending:false}).limit(100)
   ]);
   if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id||!['owner','manager'].includes(access.role))return;
   if(items.error)throw items.error;if(balances.error)throw balances.error;if(moves.error)throw moves.error;
-  inventoryItems=items.data||[];inventoryBalances=Object.fromEntries((balances.data||[]).map(b=>[b.inventory_item_id,b.current_stock]));stockMovements=moves.data||[];renderInventory();
+  if(!window.BiteV3Inventory?.verifySnapshot(items,balances,rid))throw Error('Stock snapshot incomplete or invalid. Refresh Inventory.');
+  inventoryItems=items.data;inventoryBalances=Object.fromEntries(balances.data.map(b=>[b.inventory_item_id,b.current_stock]));stockMovements=moves.data||[];renderInventory();
  }catch(e){if(seq!==inventoryLoadSeq||rid!==inventoryRestaurantId()||userId!==currentUser?.id)return;
   document.getElementById('inventoryEmpty').textContent='Inventory load nahi hua: '+e.message;
   inventoryItems=[];inventoryBalances={};stockMovements=[];

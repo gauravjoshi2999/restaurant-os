@@ -30,7 +30,7 @@ test('A04 historical expense date is not confused with receipt/payment date',()=
  ],'hotel:u1:p1',today);
  assert.equal(q.length,1);
  assert.equal(exp.total(q),80);
- assert.equal(exp.total([{amount:null},{amount:'NaN'},{amount:-20},{amount:35.51}]),35.51);
+ assert.equal(exp.total([{amount:null},{amount:'NaN'},{amount:-20},{amount:35.51}]),null);
 });
 test('A04 existing restaurant table remains canonical write source',()=>{
  assert.match(html,/id="expenseV3Period"/);
@@ -43,7 +43,7 @@ test('A04 existing restaurant table remains canonical write source',()=>{
  assert.match(html,/BiteV3Period\?\.validDay\(date\)/);
  assert.match(html,/expenseDate'\)\.max=localDateInput\(\)/);
  assert.match(html,/owner-v3-expenses\.css\?v=20261119-a04-paid1/);
- assert.match(html,/owner-v3-expenses\.js\?v=20261119-a04-paid1/);
+ assert.match(html,/owner-v3-expenses\.js\?v=20261122-a04-verified1/);
 });
 test('A04 Hotel reuses real property expense command without copying cashbook receipts',()=>{
  assert.match(hotel,/root\.BiteV3ExpenseView\?\.renderHotel/);
@@ -61,4 +61,14 @@ test('A04 does not fake credit/pay-later or invent settlement movement',()=>{
  assert.match(source,/Supplier credit \/ Pay later cannot be posted here/);
  assert.match(css,/@media\(max-width:760px\)/);
  assert.match(css,/@media\(max-width:430px\)/);
+});
+
+test('Expense totals validate exact paise and source identity before displaying or saving',()=>{
+ assert.equal(exp.total([{amount:'0.10'},{amount:'0.20'}]),0.3);
+ assert.equal(exp.total([]),0);
+ for(const amount of [null,true,false,[],{},'',' ',Infinity,-10,1.001,'0x10'])assert.equal(exp.total([{amount}]),null);
+ const scoped=rows.map(row=>({...row,restaurant_id:'r'}));
+ assert.equal(exp.verifiedRecords(scoped,'r','restaurant_id'),true);
+ for(const bad of [[...scoped,scoped[0]],[{...scoped[0],restaurant_id:'other'}],[{...scoped[0],expense_date:'2026-02-30'}],[{...scoped[0],amount:null}]])assert.equal(exp.verifiedRecords(bad,'r','restaurant_id'),false);
+ assert.match(html,/count!==data.length\|\|!window.BiteV3ExpenseView\?\.verifiedRecords/);
 });

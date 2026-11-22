@@ -10,7 +10,7 @@
  const nextMonth=m=>{if(!monthOK(m))throw Error('Invalid salary month');
    const [y,mo]=m.split('-').map(Number);
    return mo===12?(y+1)+'-01-01':y+'-'+String(mo+1).padStart(2,'0')+'-01';};
- const cents=n=>{if(n===null||n===undefined||n===''||!Number.isFinite(Number(n)))return null;
+ const cents=n=>{if(!(typeof n==='number'||typeof n==='string'&&/^\d+(?:\.\d{1,2})?$/.test(n.trim()))||!Number.isFinite(Number(n)))return null;
    const v=Number(n);if(v<0||v>99999999.99||Math.abs(v*100-Math.round(v*100))>1e-6)return null;
    return Math.round(v*100);};
  const money=c=>'₹'+(c/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -21,17 +21,21 @@
  async function pageAll({client,table,fields,restaurantId,filters=[],isCurrent,pageSize=250,maxRows=10000}){
   if(!client?.from||!restaurantId||!Number.isInteger(pageSize)||pageSize<1||pageSize>500||
      !Number.isInteger(maxRows)||maxRows<pageSize||maxRows%pageSize)throw Error('Invalid salary status query');
-  const rows=[];
+  const rows=[];let expected=null;
   for(let offset=0;offset<maxRows;offset+=pageSize){
    if(isCurrent?.()===false)throw Error('Salary status scope changed');
-   let q=client.from(table).select(fields).eq('restaurant_id',restaurantId);
+   let q=client.from(table).select(fields,{count:'exact'}).eq('restaurant_id',restaurantId);
    for(const [method,...args] of filters)q=q[method](...args);
-   const {data,error}=await q.order('id',{ascending:true}).range(offset,offset+pageSize-1);
+   const {data,error,count}=await q.order('id',{ascending:true}).range(offset,offset+pageSize-1);
    if(isCurrent?.()===false)throw Error('Salary status scope changed');
    if(error)throw error;
-   if(!Array.isArray(data))throw Error('Salary status returned incomplete records');
+   if(!Number.isSafeInteger(count)||count<0)throw Error('Salary source count unavailable');
+   if(expected===null)expected=count;
+   if(count!==expected)throw Error('Salary source changed during load. Refresh and review.');
+   if(expected>maxRows)throw Error('Salary status source limit reached; no partial totals shown');
+   if(!Array.isArray(data)||data.length!==Math.min(pageSize,expected-offset))throw Error('Incomplete salary source data');
    rows.push(...data);
-   if(data.length<pageSize)return rows;
+   if(rows.length===expected)return rows;
   }
   throw Error('Salary status source limit reached; no partial totals shown');
  }
