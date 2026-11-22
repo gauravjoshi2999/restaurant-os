@@ -51,3 +51,12 @@ test('H13 split tender requires exact positive paise amounts',()=>{
  assert.deepEqual(split('10.31','0.01','10.30'),{cash_amount:0.01,upi_amount:10.3});
  for(const args of [[2500,1000,1499],[2500,0,2500],[2500,-1,2501],[2500,'',2500],[2500,'NaN',2500],[2500,1000.001,1499.999]])assert.throws(()=>split(...args));
 });
+
+test('Checkout blocks internally inconsistent balances even if each amount is valid',()=>{
+ const good=valid({charges:'100.20',paid:'40.10',balance:'60.10'});
+ assert.equal(checkoutTotalsReady([good]),true);
+ assert.equal(checkoutTotalsReady([valid({charges:100,paid:40,balance:59.99})]),false);
+ assert.equal(checkoutTotalsReady([valid({charges:100,paid:110,balance:-10})]),true);
+ const identified={folio:{...good.folio,id:'same-folio'}};
+ assert.equal(checkoutTotalsReady([identified,identified]),false);
+});
