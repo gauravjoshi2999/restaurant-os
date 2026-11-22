@@ -51,7 +51,7 @@ fixtures="""() => {
  const client={
   from(table){const source=table==='restaurant_employee_payments'?rows:saved;
    return {select(){return this},eq(){return this},order(){return this},
-    range(a,b){return Promise.resolve({data:source.slice(a,b+1),error:null})}} },
+    range(a,b){return Promise.resolve({data:source.slice(a,b+1),error:null,count:source.length})}} },
   rpc(name,args){if(name!=='owner_close_employee_salary_month')throw Error('Wrong RPC');
    window.__rpcCount++;window.__submitted=args;
    saved.push({id:'closed-1',restaurant_id:restaurant,employee_id:emp,period_month:args.p_period_month,

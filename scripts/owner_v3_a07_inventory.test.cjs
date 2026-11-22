@@ -62,3 +62,16 @@ test('A07 missing stock is unverified and outward quantities are exact to three 
  const host={innerHTML:''};api.render(host,{items:[items[0]],balances:{}});
  assert.match(host.innerHTML,/Stock unverified/);assert.match(host.innerHTML,/disabled/);
 });
+
+test('A07 verifies exact snapshot count, tenant ownership, unique ids and balance coverage',()=>{
+ const list=items.filter(x=>x.is_active),b=list.map(x=>({restaurant_id:'r1',inventory_item_id:x.id,current_stock:balances[x.id]}));
+ const snapshot=(data)=>({data,count:data.length});
+ assert.equal(api.verifySnapshot(snapshot(list),snapshot(b),'r1'),true);
+ assert.equal(api.verifySnapshot({data:list,count:3},snapshot(b),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot(list),snapshot(b.slice(0,1)),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot(list),snapshot([...b,b[0]]),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot(list),snapshot([{...b[0],restaurant_id:'other'},b[1]]),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot(list),snapshot([{...b[0],current_stock:null},b[1]]),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot([...list,list[0]]),snapshot(b),'r1'),false);
+ assert.equal(api.verifySnapshot(snapshot([]),snapshot([]),'r1'),true);
+});

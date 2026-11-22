@@ -7,7 +7,7 @@
  const dayOk=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
    !Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
  const cents=value=>{
-   if(value===null||value===undefined||value===''||!Number.isFinite(Number(value)))return null;
+   if(!(typeof value==='number'||typeof value==='string'&&/^\d+(?:\.\d{1,2})?$/.test(value.trim()))||!Number.isFinite(Number(value)))return null;
    const n=Number(value);
    if(n<0||n>99999999.99||Math.abs(n*100-Math.round(n*100))>1e-6)return null;
    return Math.round(n*100);
@@ -74,17 +74,21 @@
  async function fullTable(client,table,restaurantId,employeeId,sortField,isCurrent,pageSize=250,maxRows=10000){
   if(!client?.from||!restaurantId||!employeeId||maxRows%pageSize!==0||pageSize<1||pageSize>500)
    throw Error('Invalid salary closing query scope');
-  const all=[];
+  const all=[];let expected=null;
   for(let offset=0;offset<maxRows;offset+=pageSize){
    if(isCurrent?.()===false)throw Error('Closing view changed while loading sources');
-   const {data,error}=await client.from(table).select('*').eq('restaurant_id',restaurantId)
+   const {data,error,count}=await client.from(table).select('*',{count:'exact'}).eq('restaurant_id',restaurantId)
      .eq('employee_id',employeeId).order(sortField,{ascending:true}).order('id',{ascending:true})
      .range(offset,offset+pageSize-1);
    if(isCurrent?.()===false)throw Error('Closing view changed while loading sources');
    if(error)throw error;
-   if(!Array.isArray(data))throw Error('Incomplete salary closing data');
+   if(!Number.isSafeInteger(count)||count<0)throw Error('Salary source count unavailable');
+   if(expected===null)expected=count;
+   if(count!==expected)throw Error('Salary source changed during load. Refresh and review.');
+   if(expected>maxRows)throw Error('Too many source records; no partial totals shown');
+   if(!Array.isArray(data)||data.length!==Math.min(pageSize,expected-offset))throw Error('Incomplete salary source data');
    all.push(...data);
-   if(data.length<pageSize)return all;
+   if(all.length===expected)return all;
   }
   throw Error('Too many source records: salary preview hidden until full data can be verified');
  }

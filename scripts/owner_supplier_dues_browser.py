@@ -31,7 +31,7 @@ with sync_playwright() as pw:
    const x=window.__A04_QA;
    const show=id=>window.BiteSupplierDues.open({
     purchase:x.purchase,payments:x.payments,today:'2026-11-19',owner:true,
-    onSave:async p=>{x.calls.push(p)},
+    onSave:async p=>{x.calls.push(p);if(x.calls.length===1)throw Error('Synthetic response lost')},
     onSuccess:async()=>{x.success+=1}
    });
    window.BiteSupplierDues.renderSummary(document.getElementById('supplierDueSummary'),{
@@ -49,7 +49,13 @@ with sync_playwright() as pw:
   page.locator('[name=date]').fill('2026-11-19')
   page.locator('[name=confirmed]').check()
   page.locator('.bsp-form [type=submit]').click()
-  page.wait_for_function("__A04_QA.calls.length===1 && __A04_QA.success===1")
+  page.get_by_role('button',name='Retry same payment').wait_for()
+  assert page.locator('[name=amount]').is_disabled()
+  assert page.locator('[name=date]').is_disabled()
+  assert page.locator('[name=method]').is_disabled()
+  page.get_by_role('button',name='Retry same payment').click()
+  page.wait_for_function("__A04_QA.calls.length===2 && __A04_QA.success===1")
+  assert page.evaluate('JSON.stringify(__A04_QA.calls[0])===JSON.stringify(__A04_QA.calls[1])')
   call=page.evaluate('__A04_QA.calls[0]')
   assert call['amount']==200 and call['date']=='2026-11-19' and call['method']=='Cash'
   assert len(call['requestId'])==36

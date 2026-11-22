@@ -4,7 +4,11 @@
  'use strict';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
- const validMoney=n=>n!==null&&n!==''&&Number.isFinite(Number(n))&&Number(n)>=0;
+ const cents=n=>{
+  if(!(typeof n==='number'||typeof n==='string'&&/^\d+(?:\.\d{1,2})?$/.test(n.trim())))return null;
+  const amount=Number(n),c=Math.round(amount*100);
+  return Number.isFinite(amount)&&amount>=0&&Number.isSafeInteger(c)&&Math.abs(amount*100-c)<0.00001?c:null;
+ };
  let activeKey='',selected=null;
  const P=()=>root.BiteV3Period;
  function period(key,today){
@@ -25,7 +29,17 @@
    return date>=selectedPeriod.from&&date<=selectedPeriod.to;
   });
  }
- function total(rows){return rows.reduce((n,x)=>n+(validMoney(x.amount)?Number(x.amount):0),0)}
+ function total(rows){
+  if(!Array.isArray(rows))return null;
+  let sum=0;for(const row of rows){const c=cents(row?.amount);if(c===null)return null;sum+=c;if(!Number.isSafeInteger(sum))return null;}
+  return sum/100;
+ }
+ function verifiedRecords(rows,scope,field){
+  if(!Array.isArray(rows)||!scope||!P()||total(rows)===null)return false;
+  const ids=new Set();
+  for(const row of rows){if(!row||typeof row.id!=='string'||!row.id||ids.has(row.id)||row[field]!==scope||!P().validDay(row.expense_date))return false;ids.add(row.id);}
+  return true;
+ }
  function mountPicker(host,{key,today,onChange,basis}){
   if(!host||!P())return;
   // New container eliminates stale event handlers when the canonical page redraws.
@@ -85,6 +99,9 @@
  function renderHotel(target,{records,key,today,onChange,canWrite,propertyLabel}){
   const view=period(key,today);
   if(!target||!view)return false;
+  if(!verifiedRecords(records,key.split(':').at(-1),'property_id')){
+   target.textContent='Property expense records could not be verified. Refresh Expenses before relying on the total.';return true;
+  }
   const displayed=filter(records,key,today);
   target.innerHTML='<section class="bv3-hotel-expense-head"><small>OWNER V3 · A04</small>'+
    '<h1>Expenses</h1><p>'+esc(propertyLabel||'Property')+' · Property expenses are separate from guest payments</p></section>'+
@@ -108,7 +125,7 @@
   return true;
  }
  function reset(){activeKey='';selected=null}
- const api={filter,period,total,renderRestaurant,renderHotel,reset};
+ const api={filter,period,total,cents,verifiedRecords,renderRestaurant,renderHotel,reset};
  if(typeof module==='object'&&module.exports)module.exports=api;
  else root.BiteV3ExpenseView=api;
 })(typeof window!=='undefined'?window:globalThis);

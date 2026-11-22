@@ -87,7 +87,7 @@ test('A13: server-side restaurant and month filters and full source pagination a
      if(op==='gte')rows=rows.filter(x=>x[k]>=v);
      if(op==='lt')rows=rows.filter(x=>x[k]<v);
     }
-    return Promise.resolve({data:rows.slice(from,to+1),error:null});
+    return Promise.resolve({data:rows.slice(from,to+1),error:null,count:rows.length});
    }};
  }};
  const report=await api.load({client,restaurantId:rid,month:'2026-10',today:'2026-11-19'});
@@ -99,7 +99,7 @@ test('A13: server-side restaurant and month filters and full source pagination a
 test('A13: oversized/incomplete source and stale requests expose no fabricated money',async()=>{
  const row={...paid('z','a',1000)};
  const fake={from(){return{select(){return this},eq(){return this},order(){return this},
-    range(){return Promise.resolve({data:[row],error:null})}}}};
+    range(){return Promise.resolve({data:[row],error:null,count:3})}}}};
  await assert.rejects(()=>api.pageAll({client:fake,table:'x',fields:'*',restaurantId:rid,
   isCurrent:()=>true,pageSize:1,maxRows:2}),/limit reached/);
 });
@@ -112,4 +112,10 @@ test('A13: Owner UI, selected month, post-approval refresh and 320px layout wire
  assert.match(fs.readFileSync('assets/owner-v3-salary-closing-ui.js','utf8'),/refreshSalaryStatus\?\.\(/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.doesNotMatch(src,/\.(?:insert|update|upsert|delete|rpc)\s*\(/);
+});
+
+test('A13 rejects incomplete source pages, missing counts and invalid salary amounts',async()=>{
+ for(const value of [true,false,[],{},' ','0x10',null,0.001])assert.equal(api.cents(value),null);
+ const fake=count=>({from(){return{select(){return this},eq(){return this},order(){return this},range(){return Promise.resolve({data:[payments[0]],count})}}}});
+ for(const count of [null,2])await assert.rejects(()=>api.pageAll({client:fake(count),table:'x',fields:'*',restaurantId:rid}));
 });

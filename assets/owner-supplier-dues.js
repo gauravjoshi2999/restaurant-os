@@ -44,14 +44,14 @@
  }
  function validate({purchase,payments,amount,date,method,reference,today}){
   if(!purchase||!purchase.id)throw Error('Select a saved supplier purchase.');
-  const n=Number(amount);
-  if(amount===''||!Number.isFinite(n)||n<=0||n!==Math.round(n*100)/100)
+  const amountCents=cents(amount),n=amountCents===null?NaN:amountCents/100;
+  if(amountCents===null||amountCents<=0)
    throw Error('Enter a positive payment amount with at most two decimals.');
   const due=outstanding(purchase,payments);
   if(due===null)throw Error('Supplier due could not be verified. Refresh Purchases.');
-  if(n>due)
+  if(amountCents>Math.round(due*100))
    throw Error('Payment is higher than the current supplier due. Refresh Purchases.');
-  if(!validDay(date)||date>today||date<purchase.purchase_date)
+  if(!validDay(today)||!validDay(date)||date>today||date<purchase.purchase_date)
    throw Error('Payment date must be between purchase date and today.');
   if(!['Cash','UPI','Card','Bank Transfer'].includes(method))
    throw Error('Choose how money was actually paid.');
@@ -84,7 +84,11 @@
    '<div class="bsp-actions"><button type="button" data-bsp-close>Cancel</button><button type="submit" class="primary">Save payment</button></div></form></div>';
   root.document.body.append(el);panel=el;
   const form=el.querySelector('form'),submit=form.querySelector('[type=submit]');
-  let saving=false;
+  let saving=false,attempt=null;
+  for(const name of ['amount','date','method','reference']){
+   const input=form.elements[name],reset=()=>{if(!attempt)form.elements.confirmed.checked=false;};
+   input.addEventListener('input',reset);input.addEventListener('change',reset);
+  }
   el.addEventListener('click',e=>{if(!saving&&(e.target===el||e.target.closest?.('[data-bsp-close]')))close()});
   el.addEventListener('keydown',e=>{if(e.key==='Escape'&&!saving){e.preventDefault();close()}});
   el.querySelector('.bsp-dialog').focus();
@@ -93,17 +97,21 @@
    const fields=new FormData(form);
    const error=el.querySelector('.bsp-error');error.textContent='';
    try{
-    if(fields.get('confirmed')!=='on')throw Error('Confirm the payment before saving.');
-    const data=validate({purchase,payments,today,
-     amount:fields.get('amount'),date:fields.get('date'),method:fields.get('method'),reference:fields.get('reference')});
+    if(!attempt){
+     if(fields.get('confirmed')!=='on')throw Error('Confirm the payment before saving.');
+     const data=validate({purchase,payments,today,
+      amount:fields.get('amount'),date:fields.get('date'),method:fields.get('method'),reference:fields.get('reference')});
+     attempt=Object.freeze({purchaseId:purchase.id,...data,requestId});
+     for(const name of ['amount','date','method','reference','confirmed'])form.elements[name].disabled=true;
+    }
     saving=true;submit.disabled=true;submit.textContent='Recording…';
-    await onSave({purchaseId:purchase.id,...data,requestId});
+    await onSave({...attempt});
     close();
     await onSuccess?.();
    }catch(err){
     if(panel===el){
-     error.textContent=err.message||'Payment could not be saved. Review this purchase before retrying.';
-     saving=false;submit.disabled=false;submit.textContent='Retry same payment';
+     error.textContent=attempt?'Payment status not confirmed. Retry the exact same request, or close and refresh Purchases before taking further action. '+(err.message||''):(err.message||'Review the payment details.');
+     saving=false;submit.disabled=false;submit.textContent=attempt?'Retry same payment':'Save payment';
     }
    }
   });
@@ -112,6 +120,7 @@
  function renderSummary(target,{purchases,payments,available,owner,onOpen}){
   if(!target)return;
   if(!available){
+   target.onclick=null;
    target.innerHTML='<div class="bsp-unavailable"><strong>Supplier due payment service unavailable</strong><p>Existing purchases still work. Do not re-enter a purchase as an expense or record a second Cashbook payment.</p></div>';
    return;
   }

@@ -6,6 +6,19 @@
  const numeric=n=>{if(typeof n!=='number'&&!(typeof n==='string'&&n.trim()))return null;const value=Number(n);return Number.isFinite(value)?value:null;};
  const decimal=n=>n===null?'Unverified':Number(n).toLocaleString('en-IN',{maximumFractionDigits:3});
  const dayValid=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
+ function verifySnapshot(items,balances,restaurantId){
+  if(!restaurantId||!Array.isArray(items?.data)||!Array.isArray(balances?.data)||items.count!==items.data.length||balances.count!==balances.data.length)return false;
+  const ids=new Set(),seen=new Set();
+  for(const item of items.data){
+   if(!item||typeof item.id!=='string'||!item.id||ids.has(item.id)||item.restaurant_id!==restaurantId||item.is_active!==true||numeric(item.reorder_level)===null||numeric(item.reorder_level)<0)return false;
+   ids.add(item.id);
+  }
+  for(const row of balances.data){
+   if(!row||typeof row.inventory_item_id!=='string'||!row.inventory_item_id||row.restaurant_id!==restaurantId||seen.has(row.inventory_item_id)||numeric(row.current_stock)===null)return false;
+   seen.add(row.inventory_item_id);
+  }
+  return [...ids].every(id=>seen.has(id));
+ }
  function stockView(items,balances,query=''){
   const find=String(query||'').trim().toLocaleLowerCase();
   const list=(Array.isArray(items)?items:[]).filter(i=>i&&i.is_active!==false).map(i=>{
@@ -55,6 +68,6 @@
   if(same)return {ok:false,message:'Bilkul same stock movement pehle se saved hai. History check karein.'};
   return {ok:true};
  }
- const api={stockView,render,reviewMovement,dayValid};
+ const api={stockView,render,reviewMovement,dayValid,verifySnapshot};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteV3Inventory=api;
 })(typeof window!=='undefined'?window:globalThis);
