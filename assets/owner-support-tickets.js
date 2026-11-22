@@ -62,6 +62,7 @@
   if(!key||page!==(admin?'support':'settings'))return;
   const target=document.getElementById(page);if(!target||!target.classList.contains('active'))return;
   if(host?.isConnected){return;}
+  if(busy)return; // Wait for the in-flight request instead of mounting a second disabled form.
   const version=epoch,access=ctx.getAccess(),userId=ctx.getUser().id,rid=access.restaurantId;
   host=node('section');host.id='biteOwnerSupportPanel';host.className='card';host.style.cssText='display:grid;gap:12px;min-width:0;overflow-wrap:anywhere;margin:16px 0';
   const panel=host;
@@ -84,11 +85,13 @@
      if(!pending)pending={id:crypto.randomUUID(),restaurant_id:rid,...normalize(...controls.map(c=>c.input.value))};
      busy=true;lock();info.textContent='Checking ticket confirmation…';
      const ticket=await createOrRecover(ctx.sb,pending,userId);
+     if(version!==epoch||current()!==key)return;
+     pending=null;
      if(!valid())return;
-     pending=null;form.reset();info.textContent='Ticket confirmed: '+ticket.id;
+     form.reset();info.textContent='Ticket confirmed: '+ticket.id;
      await load(true);
     }catch(e){if(valid())info.textContent=e.message||'Ticket not confirmed. Retry.';}
-    finally{if(version===epoch){busy=false;if(valid())lock();}}
+    finally{if(version===epoch){busy=false;if(valid())lock();else if(current()===key)mount(page);}}
    };
    panel.append(form);
   }
@@ -106,7 +109,8 @@
     if(error||!Array.isArray(data)||(!admin&&data.some(t=>t.restaurant_id!==rid||t.owner_id!==userId)))throw Error('Ticket list unavailable.');
     for(const row of data){
      const card=node('article');card.style.cssText='display:grid;gap:8px;border:1px solid #ddd;border-radius:12px;padding:12px;min-width:0;white-space:pre-wrap';
-     card.append(node('strong',row.subject),node('small',row.category+' · '+row.status+' · '+row.created_at),node('small','Ticket '+row.id),node('p',row.message),node('p',row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response'));
+     const meta=node('small',row.category+' · '+row.status+' · '+row.created_at),answered=node('p',row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response');
+     card.append(node('strong',row.subject),meta,node('small','Ticket '+row.id),node('p',row.message),answered);
      if(admin){
       card.append(node('small','Restaurant '+row.restaurant_id));
       const st=control('select','status','Status',statuses),reply=control('textarea','response','Bite response');
@@ -115,7 +119,7 @@
       const save=button('Save status & reply',async()=>{
        if(!valid()||saving||!card.isConnected)return;
        saving=true;save.disabled=true;result.textContent='Saving…';
-       try{const saved=await updateTicket(ctx.sb,row,st.input.value,reply.input.value);if(valid()&&card.isConnected){Object.assign(row,saved);result.textContent='Update confirmed.';}}
+       try{const saved=await updateTicket(ctx.sb,row,st.input.value,reply.input.value);if(valid()&&card.isConnected){Object.assign(row,saved);meta.textContent=row.category+' · '+row.status+' · '+row.created_at;answered.textContent=row.admin_response?'Bite: '+row.admin_response:'Awaiting Bite response';result.textContent='Update confirmed.';}}
        catch(e){if(valid()&&card.isConnected)result.textContent=e.message;}
        finally{saving=false;if(valid()&&card.isConnected)save.disabled=false;}
       });
