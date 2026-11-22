@@ -17,14 +17,22 @@
  function booking(stay){return stay?.group_id?(db().stays||[]).filter(s=>s.group_id===stay.group_id&&!['cancelled','no_show'].includes(s.status)):(db().stays||[]).filter(s=>s.guest_id===stay?.guest_id&&!s.group_id&&!['cancelled','no_show'].includes(s.status)&&s.arrival<stay.departure&&stay.arrival<s.departure)}
  function getFolio(id){return(db().folios||[]).find(f=>f.id===id)}
  function rowsFor(stay){return booking(stay).map(s=>({stay:s,folio:(db().folios||[]).find(f=>f.stay_id===s.id),room:(db().rooms||[]).find(r=>r.id===s.room_id)})).filter(r=>r.folio)}
- function linkedBalanceLabel(folio){const raw=folio?.totals?.balance;if(raw===null||raw===undefined||raw===''||!Number.isFinite(Number(raw)))return 'Balance unavailable';const amount=Number(raw);return amount>0?'Due '+money(amount):amount<0?'Credit to review '+money(Math.abs(amount)):'No balance due';}
+ function linkedBalanceLabel(folio){const cents=checkoutAmountCents(folio?.totals?.balance);if(cents===null)return 'Balance unavailable';const amount=cents/100;return amount>0?'Due '+money(amount):amount<0?'Credit to review '+money(Math.abs(amount)):'No balance due';}
  function checkoutAmountCents(raw){
   if(typeof raw!=='number'&&!(typeof raw==='string'&&/^-?\d+(?:\.\d{1,2})?$/.test(raw.trim())))return null;
   const n=Number(raw),cents=Math.round(n*100);
   return Number.isFinite(n)&&Number.isSafeInteger(cents)&&Math.abs(n*100-cents)<0.00001?cents:null;
  }
+ function verifiedFolioTotals(folio){
+  const t=folio?.totals,fields=['charges','paid','balance','deposit_held','pending'];
+  const values=Object.fromEntries(fields.map(k=>[k,checkoutAmountCents(t?.[k])]));
+  if(fields.some(k=>values[k]===null)||values.deposit_held<0||values.pending<0)return false;
+  const due=values.charges-values.paid;
+  return Number.isSafeInteger(due)&&due===values.balance;
+ }
  function checkoutTotalsReady(rows){
   if(!Array.isArray(rows)||!rows.length)return false;
+  const ids=new Set();for(const row of rows){if(!verifiedFolioTotals(row?.folio))return false;const id=row.folio.id;if(id){if(ids.has(id))return false;ids.add(id);}}
   for(const field of ['charges','paid','balance','deposit_held','pending']){
    let sum=0;
    for(const r of rows){
@@ -45,6 +53,7 @@
    const room=(workspace.rooms||[]).find(r=>r.id===s.room_id);
    if(!folio||!folio.id||seenFolios.has(folio.id)){ready=false;return{stay:s,room,folio:null,entries:[]}}
    seenFolios.add(folio.id);
+   if(!verifiedFolioTotals(folio))ready=false;
    for(const k of fields){const c=checkoutAmountCents(folio.totals?.[k]);if(c===null||(['deposit_held','pending'].includes(k)&&c<0)||!Number.isSafeInteger(totals[k]+c)){ready=false;continue}totals[k]+=c}
    const entries=(workspace.entries||[]).filter(e=>e.folio_id===folio.id).filter(e=>{if(!e.id||seenEntries.has(e.id)){ready=false;return false}seenEntries.add(e.id);return true});
    return{stay:s,room,folio,entries};
