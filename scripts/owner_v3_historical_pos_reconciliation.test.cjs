@@ -20,7 +20,7 @@ function clientFor(rows,options={}){
   lte(...args){calls.push(['lte',...args]);return this},
   order(...args){calls.push(['order',...args]);return this},
   range(start,end){calls.push(['range',start,end]);if(options.error)return Promise.resolve({data:null,error:Error('RLS denied')});
-   return Promise.resolve({data:rows.slice(start,end+1),error:null});}
+   return Promise.resolve({data:options.short?rows.slice(start,end):rows.slice(start,end+1),error:null,count:options.countMissing?null:options.changing&&start>0?rows.length+1:rows.length});}
  };
  return {client:{from(name){calls.push(['from',name]);return q}},calls};
 }
@@ -61,7 +61,7 @@ test('Mismatched tenant, duplicated row, impossible date and broken money rows f
 });
 test('Unverified, over-limit and stale historical results never expose invented totals',async()=>{
  await assert.rejects(()=>api.load({client:clientFor([row],{error:true}).client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19'}));
- await assert.rejects(()=>api.load({client:clientFor([row]).client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19',pageSize:1,maxRows:1}));
+ await assert.rejects(()=>api.load({client:clientFor([row,{...row,id:'old-2'}]).client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19',pageSize:1,maxRows:1}));
  await assert.rejects(()=>api.load({client:clientFor([row]).client,restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19',isCurrent:()=>false}));
 });
 test('Daily Book view is read-only, mobile responsive and keeps original live KPI journal untouched',()=>{
@@ -115,4 +115,13 @@ test('A12 missing journal does not render misleading verified zero comparison',a
  assert.equal(result.ok,true);
  assert.match(host.innerHTML,/could not be verified/);
  assert.doesNotMatch(host.innerHTML,/independent, not matched/);
+});
+
+test('Historical POS requires exact stable count, rejects missing and short pages, accepts exact limits',async()=>{
+ const args={restaurantId:r,from:'2026-10-01',to:'2026-10-31',today:'2026-11-19',pageSize:1,maxRows:2};
+ const rows=[row,{...row,id:'old-2'}];
+ const fixture=clientFor(rows);assert.equal((await api.load({...args,client:fixture.client})).count,2);
+ assert.ok(fixture.calls.some(c=>c[0]==='select'&&c[2]?.count==='exact'));
+ for(const options of [{countMissing:true},{short:true},{changing:true}])await assert.rejects(api.load({...args,client:clientFor(rows,options).client}));
+ assert.equal((await api.load({...args,client:clientFor([]).client})).count,0);
 });

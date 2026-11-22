@@ -48,22 +48,29 @@ function completePeriod(data,period,day){
 function selectedRow(){return (report?.days||[]).find(x=>x.date===selected)||null;}
 // Historical POS snapshots are read-only register entries, not new orders or cash movements.
 // RLS on bite_owner_historical_entries scopes every page to the authenticated outlet.
-async function historicalRowsForMonth(client,scope,period){
- const out=[],size=500,end=shiftMonth(period,1)+'-01';
- if(typeof client.from!=='function')throw Error('Historical register access is unavailable');
- for(let start=0;start<25000;start+=size){
-  const {data,error}=await client.from('bite_owner_historical_entries')
-   .select('id,record_date,recorded_at,customer_name,amount,received_amount,guest_count,visit_type')
+async function historicalRowsForMonth(client,scope,period,isCurrent=()=>true){
+ const out=[],size=500,maxRows=25000,end=shiftMonth(period,1)+'-01';
+ if(typeof client.from!=='function'||!scope||!/^\d{4}-(0[1-9]|1[0-2])$/.test(period))throw Error('Historical register access is unavailable');
+ let expected=null;
+ for(let start=0;start<maxRows;start+=size){
+  if(!isCurrent())throw Error('Historical report scope changed');
+  const {data,error,count}=await client.from('bite_owner_historical_entries')
+   .select('id,restaurant_id,record_date,recorded_at,customer_name,amount,received_amount,guest_count,visit_type',{count:'exact'})
    .eq('restaurant_id',scope).eq('entry_kind','pos')
    .gte('record_date',period+'-01').lt('record_date',end)
    .order('record_date',{ascending:false}).order('recorded_at',{ascending:false}).order('id',{ascending:false})
    .range(start,start+size-1);
+  if(!isCurrent())throw Error('Historical report scope changed');
   if(error)throw error;
-  if(!Array.isArray(data))throw Error('Incomplete historical register response');
+  if(!Number.isSafeInteger(count)||count<0)throw Error('Historical record count unavailable');
+  if(expected===null)expected=count;
+  if(count!==expected)throw Error('Historical register changed while loading; refresh report');
+  if(expected>maxRows)throw Error('Too many historical entries in this month; request a complete export');
+  if(!Array.isArray(data)||data.length!==Math.min(size,expected-start)||data.some(x=>x?.restaurant_id!==scope||typeof x.record_date!=='string'||x.record_date<period+'-01'||x.record_date>=end))throw Error('Incomplete or unrelated historical register response');
   out.push(...data);
-  if(data.length<size)return out;
+  if(out.length===expected)return out;
  }
- throw Error('Too many historical entries in this month; request a complete export');
+ throw Error('Incomplete historical register response');
 }
 function historicalMoney(value){
  if(!(typeof value==='number'||typeof value==='string'&&value.trim()!=='')||!Number.isFinite(Number(value))||Number(value)<0)throw Error('Historical money is unavailable');
@@ -198,7 +205,7 @@ async function refresh(force=false){
   if(!completePeriod(res.data,period,day))
    throw new Error('Incomplete report response');
   let historical=[],historyError='';
-  try{historical=await historicalRowsForMonth(sb,scope,period);}
+  try{historical=await historicalRowsForMonth(sb,scope,period,()=>epoch===request&&scope===restaurantId&&authUser===userId&&container!=null);}
   catch(e){historyError=e?.message||'Network error';}
   if(epoch!==request||scope!==restaurantId||authUser!==userId||container==null)return;
   try{report=mergeHistorical(res.data,historical);}

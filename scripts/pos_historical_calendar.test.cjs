@@ -36,14 +36,14 @@ test('Monthly reporting includes existing live sales plus explicitly labelled ol
  assert.equal(m.historical_received,300);
 });
 test('Historical month lookup explicitly binds restaurant and entry kind, not creation date',async()=>{
- const calls=[],outRows=[{id:'synthetic-1',record_date:'2026-10-01'}];
+ const calls=[],outRows=[{id:'synthetic-1',restaurant_id:'restaurant-scope',record_date:'2026-10-01'}];
  const builder={
   select(...x){calls.push(['select',...x]);return this},
   eq(...x){calls.push(['eq',...x]);return this},
   gte(...x){calls.push(['gte',...x]);return this},
   lt(...x){calls.push(['lt',...x]);return this},
   order(...x){calls.push(['order',...x]);return this},
-  range(...x){calls.push(['range',...x]);return Promise.resolve({data:outRows,error:null})}
+  range(...x){calls.push(['range',...x]);return Promise.resolve({data:outRows,error:null,count:outRows.length})}
  };
  const client={from:t=>{calls.push(['from',t]);return builder}};
  const rows=await api().historicalRowsForMonth(client,'restaurant-scope','2026-10');
@@ -90,4 +90,16 @@ test('R07 history failure keeps the existing genuine live report with explicit w
  assert.match(source,/order\('id',\{ascending:false\}\)/);
  assert.match(source,/catch\(e\)\{historyError=e\?\.message\|\|'Historical register validation failed';report=mergeHistorical\(res.data,\[\]\);\}/);
  assert.match(source,/Live bills only dikh rahe hain/);
+});
+
+test('Historical calendar never treats truncated, wrong-outlet or stale pages as a complete report',async()=>{
+ const a=api(),scope='restaurant-scope',period='2026-10';
+ const makeClient=(result)=>({from(){const q={select(){return q},eq(){return q},gte(){return q},lt(){return q},order(){return q},range(){return Promise.resolve(result)}};return q}});
+ const row={id:'x',restaurant_id:scope,record_date:'2026-10-01'};
+ assert.equal((await a.historicalRowsForMonth(makeClient({data:[row],count:1}),scope,period)).length,1);
+ assert.equal((await a.historicalRowsForMonth(makeClient({data:[],count:0}),scope,period)).length,0);
+ for(const response of [{data:[row]},{data:[row],count:2},{data:[{...row,restaurant_id:'other'}],count:1},{data:[{...row,record_date:'2026-11-01'}],count:1}]){
+  await assert.rejects(a.historicalRowsForMonth(makeClient(response),scope,period));
+ }
+ await assert.rejects(a.historicalRowsForMonth(makeClient({data:[row],count:1}),scope,period,()=>false),/scope changed/);
 });
