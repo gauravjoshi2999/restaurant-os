@@ -73,7 +73,7 @@ test('A03 integrates existing Daily Book instead of creating any payments',()=>{
  assert.match(accounts,/root\.printOwnerInvoice/);
  assert.match(accounts,/customer_ledger_payment/);
  assert.match(accounts,/Original ledger and account notes/);
- assert.match(html,/owner-v3-collections\.js\?v=20261120-a03-identity1/);
+ assert.match(html,/owner-v3-collections\.js\?v=20261122-a03-daily-coverage1/);
  assert.match(html,/owner-v3-collections\.css\?v=20261118-a03-collections1/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.doesNotMatch(fs.readFileSync('assets/owner-v3-collections.js','utf8'),/\.(?:insert|update|upsert|delete|rpc)\s*\(/);
@@ -109,4 +109,15 @@ test('A03 out-of-period or invalid receipt dates fail closed and stale scope can
  assert.equal(opened.length,0);
  assert.match(accounts,/report=null;reportScope='';/);
  assert.match(accounts,/r.data\?\.from!==from\|\|r.data\?\.to!==to/);
+});
+
+test('Daily Book rejects incomplete, out-of-order or duplicate days and malformed money before totals',()=>{
+ const row={day:'2026-10-01',gross_sales:100,expenses:20,staff_advance:0,cash_balance:-20,online_balance:0,profit:80};
+ const next={...row,day:'2026-10-02',gross_sales:'12.34',profit:-5};
+ const report={from:'2026-10-01',to:'2026-10-02',days:[row,next],journal:[]};
+ assert.equal(collections.validDailyTotals(report),true);
+ for(const days of [[],[row],[row,row],[next,row],[row,{...next,day:'2026-10-03'}]])assert.equal(collections.validDailyTotals({...report,days}),false);
+ for(const value of [null,undefined,'','  ',true,'NaN',Infinity,0.001,Number.MAX_SAFE_INTEGER])assert.equal(collections.validDailyTotals({...report,days:[{...row,gross_sales:value},next]}),false);
+ assert.equal(collections.validDailyTotals({...report,days:[{...row,gross_sales:90071992547409},{...next,gross_sales:1}]}),false);
+ assert.match(accounts,/BiteV3Collections\?\.validDailyTotals\(r.data\)/);
 });

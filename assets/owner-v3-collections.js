@@ -60,6 +60,26 @@
  }
  const validDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
  function validPeriod(report){return !!report&&validDay(report.from)&&validDay(report.to)&&report.from<=report.to&&Array.isArray(report.journal)&&report.journal.every(x=>x&&validDay(x.day)&&x.day>=report.from&&x.day<=report.to);}
+ // The backend emits a dense, chronological day series, including zero-activity days.
+ function validDailyTotals(report){
+  if(!validPeriod(report)||!Array.isArray(report.days)||!report.days.length)return false;
+  const start=Date.parse(report.from+'T12:00:00Z'),end=Date.parse(report.to+'T12:00:00Z'),count=(end-start)/86400000+1;
+  if(!Number.isSafeInteger(count)||report.days.length!==count)return false;
+  const fields=['gross_sales','expenses','staff_advance','cash_balance','online_balance','profit'];
+  const totals={gross_sales:0,expenses:0,staff_advance:0,profit:0};
+  for(let i=0;i<count;i++){
+   const row=report.days[i],day=new Date(start+i*86400000).toISOString().slice(0,10);
+   if(!row||row.day!==day)return false;
+   for(const field of fields){
+    const value=row[field];
+    if(!(typeof value==='number'||typeof value==='string'&&value.trim()!==''))return false;
+    const amount=Number(value),cents=Math.round(amount*100);
+    if(!Number.isFinite(amount)||!Number.isSafeInteger(cents)||Math.abs(amount*100-cents)>0.00001)return false;
+    if(Object.hasOwn(totals,field)){totals[field]+=cents;if(!Number.isSafeInteger(totals[field]))return false;}
+   }
+  }
+  return true;
+ }
  function render(target,report,options={}){
   if(!target)return false;
   if(!validPeriod(report)){target.textContent='Collections period could not be verified. Refresh Daily Book.';return false;}
@@ -126,7 +146,7 @@
   draw();
   return {dispose(){active=false},draw};
  }
- const api={type,group,summarize,validPeriod,render};
+ const api={type,group,summarize,validPeriod,validDailyTotals,render};
  if(typeof module==='object'&&module.exports)module.exports=api;
  else root.BiteV3Collections=api;
 })(typeof window!=='undefined'?window:globalThis);
