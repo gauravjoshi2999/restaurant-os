@@ -20,17 +20,24 @@
       throw new Error('Valid closing date select karein.');
     if(today&&date>today)throw new Error('Future date ka cashbook close nahi ho sakta.');
   }
+  function totals(entries){
+    if(!Array.isArray(entries))throw Error('Cashbook entries could not be verified.');
+    const result={in:0,out:0,methods:Object.create(null)};
+    for(const entry of entries){
+      if(!entry||!['in','out'].includes(entry.direction)||typeof entry.payment_method!=='string'||!entry.payment_method.trim())throw Error('Cashbook entry direction or method invalid.');
+      const amount=paise(entry.amount,'Cashbook entry'),dir=entry.direction,method=entry.payment_method;
+      const bucket=result.methods[method]||{in:0,out:0,count:0};
+      result[dir]+=amount;bucket[dir]+=amount;bucket.count++;
+      if(!Number.isSafeInteger(result[dir])||!Number.isSafeInteger(bucket[dir]))throw Error('Cash total bahut bada hai.');
+      result.methods[method]=bucket;
+    }
+    return result;
+  }
   function preview(entries,openingValue,countedValue,notes){
     const opening=paise(openingValue,'Opening cash'),counted=paise(countedValue,'Counted cash');
-    let cashIn=0,cashOut=0,cashCount=0;
-    for(const entry of entries||[]){
-      if(entry.payment_method!=='Cash')continue;
-      const amount=paise(entry.amount,'Cashbook entry');
-      if(entry.direction==='in')cashIn+=amount;
-      else if(entry.direction==='out')cashOut+=amount;
-      else throw new Error('Cashbook entry direction galat hai.');
-      cashCount++;
-    }
+    const cash=totals(entries).methods.Cash||{in:0,out:0,count:0};
+    const cashIn=cash.in,cashOut=cash.out,cashCount=cash.count;
+    if(!Number.isSafeInteger(opening+cashIn))throw Error('Cash total bahut bada hai.');
     const expected=opening+cashIn-cashOut,difference=counted-expected;
     if(!Number.isSafeInteger(expected)||!Number.isSafeInteger(difference))
       throw new Error('Cash total bahut bada hai.');
@@ -49,7 +56,7 @@
       String(e.amount??'')
     ]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
   }
-  const api={paise,validateDate,preview,fingerprint};
+  const api={paise,validateDate,totals,preview,fingerprint};
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.BiteCashClosing=api;
 })(typeof window!=='undefined'?window:globalThis);
