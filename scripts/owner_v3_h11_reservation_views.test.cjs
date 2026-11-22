@@ -52,3 +52,10 @@ test('H11 reservation modification separately reviews server quotes before writi
  assert.match(js,/Quote difference:/);
  assert.match(js,/action='reservation_edit';payload=\{id:stay.id/);
 });
+
+test('H11 same-day reservation cannot advertise an overdue in-house room as available',()=>{
+ const rooms=[{id:'a',active:true,room_type:'Deluxe',housekeeping:'ready'}],stays=[{id:'stay',room_id:'a',status:'in_house',arrival:'2026-11-17',departure:'2026-11-18'}];
+ assert.equal(availability(rooms,stays,'2026-11-19','2026-11-20','2026-11-19')[0].reason,'Occupied');
+ assert.equal(availability(rooms,stays,'2026-11-20','2026-11-21','2026-11-19')[0].reason,'');
+ for(const departure of [null,'2026-02-30','2026-11-16'])assert.equal(availability(rooms,[{...stays[0],departure}], '2026-11-19','2026-11-20','2026-11-19')[0].reason,'Stay dates need review');
+});
