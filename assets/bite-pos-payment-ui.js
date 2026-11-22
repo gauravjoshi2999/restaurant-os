@@ -35,11 +35,11 @@
   try{pending=core().getPending(localStorage,id)}
   catch(err){alert(err.message);return}
   if(!validBalance(summary?.balance_amount)&&!pending){alert('Bill balance unavailable. Refresh karke dobara check karein.');return;}
-  if(Number(summary.balance_amount)<=0&&!pending){alert('Is order ka balance zero hai.');return}
+  if(!pending&&Number(summary?.balance_amount)<=0){alert('Is order ka balance zero hai.');return}
   el('paymentOrderId').value=ctx.orderId;
   el('paymentOrderLabel').textContent=(ctx.order.code||ctx.orderId.slice(0,8))+
-   ' · Total '+ctx.money(ctx.order.amount)+' · Paid '+ctx.money(summary.paid_amount)+
-   ' · Due '+ctx.money(summary.balance_amount);
+   ' · Total '+ctx.money(ctx.order.amount)+' · Paid '+(validBalance(summary?.paid_amount)?ctx.money(summary.paid_amount):'Unverified')+
+   ' · Due '+(validBalance(summary?.balance_amount)?ctx.money(summary.balance_amount):'Unverified');
   el('paymentAmount').value=pending?pending.details.amount:Number(summary.balance_amount).toFixed(2);
   el('paymentAmount').max=validBalance(summary?.balance_amount)?Number(summary.balance_amount).toFixed(2):'';
   el('paymentDate').max=ctx.today();
