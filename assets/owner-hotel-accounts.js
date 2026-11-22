@@ -552,7 +552,7 @@
   const r=await ctx.sb.rpc('bite_daily_book',{p_property:p().id,p_from:from,p_to:to});
   if(key!==scope()||version!==reportVersion||!target.isConnected)return;
   const body=target.querySelector('#haBookBody');if(r.error){body.textContent='Daily Book unavailable: '+r.error.message;return}
-  if(r.data?.from!==from||r.data?.to!==to||!Array.isArray(r.data?.days)||!Array.isArray(r.data?.journal)||!root.BiteV3Collections?.validPeriod(r.data)||root.BiteV3Collections.summarize(r.data.journal).error){body.textContent='Daily Book response could not be verified. Refresh selected period.';return;}
+  if(r.data?.from!==from||r.data?.to!==to||!Array.isArray(r.data?.days)||!Array.isArray(r.data?.journal)||!root.BiteV3Collections?.validDailyTotals(r.data)||root.BiteV3Collections.summarize(r.data.journal).error){body.textContent='Daily Book response could not be verified. Refresh selected period.';return;}
   report=r.data;reportScope=key;
   const sum=k=>(report.days||[]).reduce((n,d)=>n+Number(d[k]||0),0),last=report.days?.at(-1)||{};
   body.innerHTML='<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('staff_advance','＋ Staff advance')+button('salary','Staff salary')+button('accounts','Opening / transfer'):'')+'</div>'+

@@ -23,7 +23,8 @@ extra=r"""
    if(name==='bite_daily_book'){
     (window.__BITE_A02_DAILY_CALLS ||= []).push({...a});
     const day=window.BiteOwner.day(),d={day,pos_sales:100,hotel_sales:1575,other_income:50,gross_sales:1725,tax:75,net_sales:1650,expenses:100,staff_advance:200,cash_in:300,cash_out:100,cash_balance:1200,online_in:250,online_out:50,online_balance:200,profit:1550};
-    return{data:{from:a.p_from,to:a.p_to,days:[d],journal:[],accounts:[{account:'Second account',method:'UPI',balance:200}],staff:[],gst_invoices:[{date:day,number:'H/26-27/000042',guest:'Synthetic Guest',gstin:'08ABCDE1234F1Z5',total:1575,tax_lines:[{category:'room',sac:'996311',rate:5,taxable:1200,cgst:30,sgst:30},{category:'food',sac:'996331',rate:5,taxable:300,cgst:7.5,sgst:7.5}]}]},error:null};
+    const days=[];for(let t=Date.parse(a.p_from+'T12:00:00Z');t<=Date.parse(a.p_to+'T12:00:00Z');t+=86400000){const date=new Date(t).toISOString().slice(0,10);days.push(date===day?d:{...Object.fromEntries(Object.keys(d).filter(k=>k!=='day').map(k=>[k,0])),day:date});}
+    return{data:{from:a.p_from,to:a.p_to,days,journal:[],accounts:[{account:'Second account',method:'UPI',balance:200}],staff:[],gst_invoices:[{date:day,number:'H/26-27/000042',guest:'Synthetic Guest',gstin:'08ABCDE1234F1Z5',total:1575,tax_lines:[{category:'room',sac:'996311',rate:5,taxable:1200,cgst:30,sgst:30},{category:'food',sac:'996331',rate:5,taxable:300,cgst:7.5,sgst:7.5}]}]},error:null};
    }
    if(name==='bite_property_command'&&a.p_action==='checkout_collect'){
     const v=a.p_payload;
