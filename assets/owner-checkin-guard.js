@@ -15,7 +15,8 @@
   if(!room.active)return'Inactive';if(room.housekeeping==='blocked')return'Unavailable';
   if(!validDate(arrival)||!validDate(departure)||departure<=arrival)return'Choose valid dates';
   const active=stays.filter(s=>s.room_id===room.id&&s.id!==ignore&&['reserved','in_house'].includes(s.status));
-  if(mode==='checkin'&&active.some(s=>s.status==='in_house'))return'Occupied';
+  if(active.some(s=>!validDate(s.arrival)||!validDate(s.departure)||s.departure<=s.arrival))return'Stay dates need review';
+  if((mode==='checkin'||arrival<=today)&&active.some(s=>s.status==='in_house'))return'Occupied';
   if(active.some(s=>s.arrival<departure&&arrival<s.departure))return'Reserved for these dates';
   if(mode==='checkin'&&arrival>today)return'Choose Reserve for a future date';
   if(mode==='checkin'&&property.housekeeping_enabled!==false&&room.housekeeping!=='ready')return'Not released for check-in';
