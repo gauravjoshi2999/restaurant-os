@@ -33,6 +33,14 @@ Reference: user-approved `Bite Owner — Complete Editable Dashboard & Workflows
 - Next gate: #256 H10 exact-head QA, main QA and Pages before #257 H13 and #258 H14. Preserve both accounting patches.
 - H01–H15 remain P: authenticated Owner session and applicable device/printer/share acceptance unavailable in this execution; individual remaining checks listed below. No verified-screen count change.
 
+### Restaurant release evidence — 2026-11-21
+- R01–R08: PRs #272–#276 merged after individual QA; combined main commit `04f7ec8090482c85dbde4927a8f40bdbcfab35c4`, main QA [44924780797](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44924780797) and Pages [44925538487](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44925538487) passed.
+- Deployment reliability #277 merged at `20247bbafb45f02ad6d999e5c644beb25c2360e1`; main QA 44926295113 and Pages [44926988327](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44926988327) passed, including artifact discovery, exact SHA public file verification and guest browser flows. This confirms deployment, not authenticated screen acceptance.
+- R09 #278: branch QA [44926323081](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44926323081) passed; merged `a68ab067c9b4a59d82c8f6148166226c85d3060c`; combined main QA 44927539249 pending at this checkpoint.
+- R10–R15 #279: current head `18b5383c916ea61c28df17cd06754d8b73d5661d`, QA [44927563038](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/44927563038), nine DB jobs and frontend checks passed; browser QA pending at checkpoint. Previous run had four menu-delete fixture failures; scope-aware fixtures and denial tests added.
+- Supabase read-only R01–R08 checks returned zero invalid receipt links/amounts, duplicate posted folio sources, invalid folio links, invalid historical POS amounts and drafts matching saved orders. No production financial transactions performed.
+- R01–R15 remain P under the strict acceptance rules. Actual signed-in owner workflow, device notification, physical QR scan, printer/share and relevant financial acceptance are not established by guest-browser or synthetic tests.
+
 ## Screen register
 
 | ID | Approved screen | Status | Existing code/test/PR evidence locator | Remaining acceptance |
