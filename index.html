@@ -5102,22 +5102,40 @@ document.getElementById('deliveryZoneForm')?.addEventListener('submit',saveDeliv
 var ownerReviewVersion=0,ownerReviewScope='',ownerReviewRows=[],ownerReviewDrafts=new Map(),ownerReviewBusy=new Set();
 function currentOwnerReviewScope(){return access.role==='owner'&&currentUser?.id&&access.restaurantId?currentUser.id+':'+access.restaurantId:'';}
 function clearOwnerReviews(){ownerReviewVersion++;ownerReviewScope='';ownerReviewRows=[];ownerReviewDrafts=new Map();document.getElementById('restaurantReviewsList')?.replaceChildren();}
-async function loadRestaurantReviewsWorkspace(){const list=document.getElementById('restaurantReviewsList');if(!list)return;const scope=currentOwnerReviewScope(),rid=access.restaurantId;if(!scope){clearOwnerReviews();return;}if(ownerReviewScope!==scope)clearOwnerReviews();ownerReviewScope=scope;const version=++ownerReviewVersion;const current=()=>version===ownerReviewVersion&&currentOwnerReviewScope()===scope;ownerReviewRows=[];list.textContent='Loading reviews…';try{const {data,error}=await sb.from('restaurant_reviews').select('id,restaurant_id,order_id,customer_id,rating,review,status,response,created_at').eq('restaurant_id',rid).order('created_at',{ascending:false}).limit(100);if(!current())return;if(error)throw error;const rows=data||[];if(!Array.isArray(rows)||rows.some(r=>r.restaurant_id!==rid))throw Error('Incomplete review scope.');if(!rows.length){list.innerHTML='<div class="empty">Abhi customer review nahi aaya.</div>';return;}const ids=[...new Set(rows.map(r=>r.order_id))];const {data:orders,error:oe}=await sb.from('orders').select('id,order_code,customer_name,status,amount,order_date').eq('restaurant_id',rid).in('id',ids);if(!current())return;if(oe)throw oe;ownerReviewRows=rows;const om=new Map((orders||[]).map(o=>[o.id,o]));list.innerHTML=rows.map(r=>{const o=om.get(r.order_id)||{};const replyButton=r.status==='Published'?'<button class="btn" onclick="replyRestaurantReview(\''+esc(r.id)+'\')">Reply to customer</button>':'';const buttons=(o.id?'<details class="owner-review-order"><summary>Open linked order</summary><p><strong>'+esc(o.order_code||'Order')+'</strong> · '+esc(o.status||'Unverified')+'</p><p>Order date: '+esc(o.order_date||'—')+' · Total: '+(o.amount!==null&&o.amount!==undefined&&Number.isFinite(Number(o.amount))?money(o.amount):'Unverified')+'</p><small>Saved order record · not payment or refund verification.</small></details>':'<p class="muted">Linked order unavailable.</p>')+replyButton;return '<article class="card" style="margin:12px 0;border:1px solid var(--line)"><div class="section-head"><div><strong>'+esc(o.order_code||'Order')+' · '+esc(o.customer_name||'Customer')+'</strong><div class="muted">'+esc(o.status||'')+' · '+esc(r.created_at)+'</div></div><span class="tag">'+esc(r.rating)+'★ · '+esc(r.status)+'</span></div><p>'+esc(r.review)+'</p>'+(r.response?'<p class="muted"><strong>Restaurant reply:</strong> '+esc(r.response)+'</p>':'')+(buttons?'<div class="actions">'+buttons+'</div>':'')+'</article>';}).join('');}catch(e){if(!current())return;ownerReviewRows=[];list.innerHTML='<div class="empty">Reviews load nahi hue: '+esc(e.message||'Try again.')+'</div>';console.error(e);}}
-async function replyRestaurantReview(id){
- const scope=currentOwnerReviewScope(),row=ownerReviewRows.find(x=>x.id===id&&x.status==='Published');
- if(!scope||scope!==ownerReviewScope||!row||ownerReviewBusy.has(scope+':'+id))return;
- const key=scope+':'+id;
- const response=prompt('Customer ko restaurant reply (3-500 characters):',ownerReviewDrafts.get(key)||row.response||'');
- if(response===null)return;
- const message=response.trim();
- if(message.length<3||message.length>500){ownerReviewDrafts.set(key,response);alert('Reply 3–500 characters required. Draft kept.');return;}
- if(currentOwnerReviewScope()!==scope)return;
- ownerReviewDrafts.set(key,message);ownerReviewBusy.add(key);
- try{const {error}=await sb.rpc('respond_restaurant_review',{p_review_id:id,p_response:message,p_publish:true});
- if(error)throw error;if(currentOwnerReviewScope()!==scope)return;
- ownerReviewDrafts.delete(key);await loadRestaurantReviewsWorkspace();if(currentOwnerReviewScope()===scope)alert('Restaurant reply save ho gaya.');
- }catch(e){if(currentOwnerReviewScope()===scope)alert((e.message||'Reply save nahi hua.')+' Draft kept; retry after refresh.');}
- finally{ownerReviewBusy.delete(key);}
+async function loadRestaurantReviewsWorkspace(){const list=document.getElementById('restaurantReviewsList');if(!list)return;const scope=currentOwnerReviewScope(),rid=access.restaurantId;if(!scope){clearOwnerReviews();return;}if(ownerReviewScope!==scope)clearOwnerReviews();ownerReviewScope=scope;const version=++ownerReviewVersion;const current=()=>version===ownerReviewVersion&&currentOwnerReviewScope()===scope;ownerReviewRows=[];list.textContent='Loading reviews…';try{const {data,error}=await sb.from('restaurant_reviews').select('id,restaurant_id,order_id,customer_id,rating,review,status,response,created_at').eq('restaurant_id',rid).order('created_at',{ascending:false}).limit(100);if(!current())return;if(error)throw error;const rows=data||[];if(!Array.isArray(rows)||rows.some(r=>r.restaurant_id!==rid))throw Error('Incomplete review scope.');if(!rows.length){list.innerHTML='<div class="empty">Abhi customer review nahi aaya.</div>';return;}const ids=[...new Set(rows.map(r=>r.order_id))];const {data:orders,error:oe}=await sb.from('orders').select('id,order_code,customer_name,status,amount,order_date').eq('restaurant_id',rid).in('id',ids);if(!current())return;if(oe)throw oe;ownerReviewRows=rows;const om=new Map((orders||[]).map(o=>[o.id,o]));list.innerHTML=rows.map(r=>{const o=om.get(r.order_id)||{};const key=scope+':'+r.id,hasDraft=ownerReviewDrafts.has(key),busy=ownerReviewBusy.has(key);const replyButton=r.status==='Published'?'<details class="owner-review-reply" style="width:100%;min-width:0" '+(hasDraft?'open':'')+'><summary style="cursor:pointer;min-height:44px;padding:10px 0;font-weight:700">Reply to customer</summary><form data-owner-review-id="'+esc(r.id)+'" onsubmit="replyRestaurantReview(event)" style="display:grid;gap:8px;width:100%;min-width:0"><label>Public reply (3–500 characters)<textarea name="response" rows="4" minlength="3" maxlength="500" required oninput="saveOwnerReviewDraft(event)" style="display:block;width:100%;box-sizing:border-box;resize:vertical" '+(busy?'disabled':'')+'>'+esc(ownerReviewDrafts.get(key)??r.response??'')+'</textarea></label><small>Visible to customers. Do not include guest IDs, phone numbers or payment details.</small><p data-review-reply-status class="muted" role="status">'+(busy?'Saving…':'')+'</p><button class="btn" type="submit" '+(busy?'disabled':'')+'>Publish reply</button></form></details>':'';const buttons=(o.id?'<details class="owner-review-order"><summary>Open linked order</summary><p><strong>'+esc(o.order_code||'Order')+'</strong> · '+esc(o.status||'Unverified')+'</p><p>Order date: '+esc(o.order_date||'—')+' · Total: '+(o.amount!==null&&o.amount!==undefined&&Number.isFinite(Number(o.amount))?money(o.amount):'Unverified')+'</p><small>Saved order record · not payment or refund verification.</small></details>':'<p class="muted">Linked order unavailable.</p>')+replyButton;return '<article class="card" style="margin:12px 0;border:1px solid var(--line)"><div class="section-head"><div><strong>'+esc(o.order_code||'Order')+' · '+esc(o.customer_name||'Customer')+'</strong><div class="muted">'+esc(o.status||'')+' · '+esc(r.created_at)+'</div></div><span class="tag">'+esc(r.rating)+'★ · '+esc(r.status)+'</span></div><p>'+esc(r.review)+'</p>'+(r.response?'<p class="muted"><strong>Restaurant reply:</strong> '+esc(r.response)+'</p>':'')+(buttons?'<div class="actions">'+buttons+'</div>':'')+'</article>';}).join('');}catch(e){if(!current())return;ownerReviewRows=[];list.innerHTML='<div class="empty">Reviews load nahi hue: '+esc(e.message||'Try again.')+'</div>';console.error(e);}}
+function saveOwnerReviewDraft(event){
+ const form=event.currentTarget?.form,scope=currentOwnerReviewScope(),id=form?.dataset.ownerReviewId;
+ if(!scope||scope!==ownerReviewScope||!id||!ownerReviewRows.some(x=>x.id===id&&x.status==='Published')||ownerReviewBusy.has(scope+':'+id))return;
+ ownerReviewDrafts.set(scope+':'+id,event.currentTarget.value);
+}
+async function replyRestaurantReview(event){
+ event.preventDefault();
+ const form=event.currentTarget,scope=currentOwnerReviewScope(),id=form?.dataset.ownerReviewId;
+ const row=ownerReviewRows.find(x=>x.id===id&&x.status==='Published');
+ if(!scope||scope!==ownerReviewScope||!row||!form.isConnected||ownerReviewBusy.has(scope+':'+id))return;
+ const key=scope+':'+id,drafts=ownerReviewDrafts,field=form.elements.response;
+ const current=()=>currentOwnerReviewScope()===scope&&ownerReviewScope===scope&&ownerReviewDrafts===drafts;
+ const raw=field.value,message=raw.trim();
+ drafts.set(key,raw);
+ const status=form.querySelector('[data-review-reply-status]');
+ if(message.length<3||message.length>500){status.textContent='Reply 3–500 characters required. Draft kept.';return;}
+ ownerReviewBusy.add(key);field.disabled=true;form.querySelector('button[type="submit"]').disabled=true;status.textContent='Saving…';
+ try{
+  const {data,error}=await sb.rpc('respond_restaurant_review',{p_review_id:id,p_response:message,p_publish:true});
+  if(error)throw error;if(data!==true)throw Error('Reply not confirmed by server.');
+  if(!current())return;
+  drafts.delete(key);ownerReviewBusy.delete(key);
+  await loadRestaurantReviewsWorkspace();
+  if(current())alert('Restaurant reply save ho gaya.');
+ }catch(e){
+  if(current()){
+   const active=[...document.querySelectorAll('#restaurantReviewsList form[data-owner-review-id]')].find(f=>f.dataset.ownerReviewId===id);
+   if(active){active.elements.response.value=drafts.get(key)??raw;active.querySelector('[data-review-reply-status]').textContent='Reply not confirmed. Draft kept; retry when ready.';}
+  }
+ }finally{
+  ownerReviewBusy.delete(key);
+  if(current())for(const active of document.querySelectorAll('#restaurantReviewsList form[data-owner-review-id]'))if(active.dataset.ownerReviewId===id){active.elements.response.disabled=false;active.querySelector('button[type="submit"]').disabled=false;}
+ }
 }
 async function loadCustomerOrderRequestsWorkspace(){
  const list=document.getElementById('customerOrderRequestsList');if(!list)return;
