@@ -60,3 +60,13 @@ test('Checkout blocks internally inconsistent balances even if each amount is va
  const identified={folio:{...good.folio,id:'same-folio'}};
  assert.equal(checkoutTotalsReady([identified,identified]),false);
 });
+
+test('Guest Khata rejects duplicate accounts, impossible balances and unsafe aggregate totals',()=>{
+ const check=globalThis.BiteHotelBilling.verifiedCreditAccounts;
+ const good={folio_id:'folio-a',approved_balance:'100.20',balance:'60.10'};
+ assert.equal(check({accounts:[good]}).due,6010);
+ assert.equal(check({accounts:[]}).due,0);
+ assert.equal(check({accounts:[{...good,balance:0}]}).due,0);
+ for(const accounts of [null,[good,good],[{...good,balance:101}],[{...good,approved_balance:null}],[{...good,balance:-1}],[{...good,balance:true}],[{...good,folio_id:' '}],[{...good,balance:0.001}]])assert.throws(()=>check({accounts}));
+ assert.throws(()=>check({accounts:[{folio_id:'a',approved_balance:50000000000000,balance:50000000000000},{folio_id:'b',approved_balance:50000000000000,balance:50000000000000}]}));
+});
