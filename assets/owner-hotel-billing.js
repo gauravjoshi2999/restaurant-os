@@ -113,22 +113,31 @@
   if(!creditEligible(f,stay))throw Error('Review the active room, balance, pending receipts and deposit first.');
   H().editor('<form class="bh-form" data-bill-form="credit-checkout" data-id="'+esc(id)+'"><h2>Checkout on credit</h2><p>Only the already recorded unpaid balance will carry forward. Record any money actually received on the Guest Bill first.</p><div class="ha-checkout-summary"><span>Outstanding <strong>'+money(f.totals.balance)+'</strong></span></div><input type="hidden" name="balance" value="'+esc(f.totals.balance)+'">'+field('due_date','Payment due date','','type="date" required')+field('reason','Reason for credit approval','','required minlength="10" maxlength="250"')+'<label class="bh-check"><input type="checkbox" name="approved" required> I authorize this unpaid amount and understand no payment is being recorded.</label>'+note()+'<div class="bh-actions">'+button('close','Cancel')+'<button type="submit" class="btn">Authorize credit &amp; checkout</button></div></form>');
  }
+ function verifiedCreditAccounts(data){
+  if(!Array.isArray(data?.accounts))throw Error('Guest Khata could not be loaded.');
+  const rows=data.accounts,seen=new Set();let due=0;
+  for(const row of rows){
+   const id=row?.folio_id,approved=checkoutAmountCents(row?.approved_balance),balance=checkoutAmountCents(row?.balance);
+   if(typeof id!=='string'||!id.trim()||seen.has(id)||approved===null||approved<=0||balance===null||balance<0||balance>approved)throw Error('Guest Khata balances unavailable. Refresh before collecting.');
+   seen.add(id);due+=balance;
+   if(!Number.isSafeInteger(due))throw Error('Guest Khata total unavailable.');
+  }
+  return {rows,due};
+ }
  async function creditList(){
   if(!manager())throw Error('Owner or manager access required.');
   const scope=key(),version=generation;
   const data=await H().command('hotel_credit_list',{});assertScope(scope,version);
-  if(!Array.isArray(data?.accounts))throw Error('Guest Khata could not be loaded.');
-  const rows=data.accounts,valid=rows.every(r=>!!r.folio_id&&checkoutAmountCents(r.balance)!==null&&checkoutAmountCents(r.balance)>=0);
-  if(!valid)throw Error('Guest Khata balances unavailable. Refresh before collecting.');
-  const due=rows.reduce((n,r)=>n+checkoutAmountCents(r.balance),0);
-  if(!Number.isSafeInteger(due))throw Error('Guest Khata total unavailable.');
+  const {rows,due}=verifiedCreditAccounts(data);
   H().editor('<section class="bh-form" data-credit-list><h2>Guest Khata</h2><div class="ha-checkout-summary"><span>Total outstanding <strong>'+money(due/100)+'</strong></span></div><p>Original invoices remain unchanged. Only actual receipts reduce the live balance.</p>'+rows.map(r=>'<article class="bh-panel"><strong>'+esc(r.guest_name||'Guest')+' · Room '+esc(r.room||'—')+'</strong><p>'+esc(r.invoice_number||'Invoice')+' · Due '+esc(r.due_date)+'</p><p>Outstanding <strong>'+money(r.balance)+'</strong></p><div class="bh-actions">'+button('open-room','View bill',r.folio_id)+(Number(r.balance)>0?button('credit-collect','Collect due',r.folio_id,'data-balance="'+esc(r.balance)+'"'):'<span>Recovered</span>')+'</div></article>').join('')+(!rows.length?'<p>No approved hotel credit accounts.</p>':'')+note()+button('close','Close')+'</section>');
  }
  function creditReceiptEditor(id,balance){
   const cents=checkoutAmountCents(balance);if(!manager()||cents===null||cents<=0)throw Error('Verified outstanding balance required.');
   H().editor('<form class="bh-form" data-bill-form="credit-receipt" data-id="'+esc(id)+'"><h2>Collect guest due</h2><p>Record only money actually received. Outstanding '+money(cents/100)+'.</p>'+field('amount','Amount received (₹)',cents/100,'type="number" min="0.01" max="'+cents/100+'" step="0.01" required inputmode="decimal"')+methods+field('reference','Bank / UPI reference','','maxlength="100"')+field('account_note','Account note','','maxlength="80"')+'<label class="bh-check"><input type="checkbox" name="received" required> I have actually received this money and verified the bank receipt if online.</label>'+note()+'<div class="bh-actions">'+button('credit-list','Back to Khata')+'<button type="submit" class="btn">Record receipt</button></div></form>');
   const form=document.querySelector('[data-bill-form=credit-receipt]'),update=()=>{const online=form.elements.method.value!=='Cash';form.elements.reference.required=online;form.elements.reference.closest('label').hidden=!online;form.elements.account_note.closest('label').hidden=!online};
-  form.elements.method.addEventListener('change',()=>{form.elements.received.checked=false;update()});update();
+  form.elements.method.addEventListener('change',()=>{form.elements.received.checked=false;update()});
+  for(const name of ['amount','reference','account_note'])form.elements[name].addEventListener('input',()=>{form.elements.received.checked=false});
+  update();
  }
  function issuedInvoice(id){const f=getFolio(id);if(f?.status!=='settled'||!f.invoice_snapshot?.number||String(f.invoice_snapshot.number).startsWith('DRAFT'))throw Error('Final issued invoice unavailable. Refresh the bill.');return H().statement(id)}
  function shareNumber(raw){const text=String(raw||'').trim();if(!/^\+?[\d\s()-]+$/.test(text))throw Error('Enter a valid WhatsApp number.');const digits=text.replace(/\D/g,'');if(!text.startsWith('+')&&/^[6-9]\d{9}$/.test(digits))return '91'+digits;if(!/^[1-9]\d{9,14}$/.test(digits))throw Error('Enter country code and valid WhatsApp number.');return digits}
@@ -256,6 +265,10 @@
    if(type==='credit-receipt'){
     const cents=checkoutAmountCents(values.amount),cap=checkoutAmountCents(form.elements.amount.max),online=values.method!=='Cash';
     if(!manager()||!form.elements.received.checked||cents===null||cap===null||cents<=0||cents>cap||(online&&!values.reference.trim()))throw Error('Enter the actual verified receipt within the outstanding balance.');
+    if(!['Cash','UPI','Card','Bank Transfer'].includes(values.method))throw Error('Choose a valid payment method.');
+    const fresh=verifiedCreditAccounts(await H().command('hotel_credit_list',{}));assertScope(scope,version);
+    const current=fresh.rows.find(row=>row.folio_id===id);
+    if(!form.isConnected||!form.elements.received.checked||!current||checkoutAmountCents(current.balance)!==cap)throw Error('Outstanding balance or receipt review changed. Reopen Guest Khata before collecting.');
     await H().command('hotel_credit_receipt',{folio_id:id,amount:cents/100,method:values.method,reference:online?values.reference.trim():'',account_note:online?values.account_note.trim():'',verified:online});assertScope(scope,version);await H().reload();assertScope(scope,version);H().redraw();await creditList();return;
    }
    if(type==='select-rooms'){
@@ -271,5 +284,5 @@
    if(type==='checkout'){if(values.method&&values.method!=='Cash'&&!form.elements.verified.checked)throw Error('Verify the online receipt first.');const tender=values.method==='Split'?(manager()?splitTender(values.amount,values.cash_amount,values.upi_amount):(()=>{throw Error('Owner or manager verification required.')})()):{};const f=getFolio(id),stay=(db().stays||[]).find(s=>s.id===f.stay_id);await H().command(form.dataset.group==='true'?'booking_checkout_collect':'checkout_collect',{folio_id:id,...(form.dataset.group==='true'?{group_id:stay.group_id,folio_ids:JSON.parse(values.folio_ids),...(form.dataset.selection?{selected_only:true}:{})}:{}),amount:Number(values.amount),...tender,method:values.method||'Cash',reference:values.reference||'',account_note:values.account_note||'',verified:values.verified==='on'});assertScope(scope,version);await H().reload();H().redraw();return}
   }catch(err){if(form.isConnected)msg.textContent=err.message||String(err)}finally{active=Math.max(0,active-1);if(b.isConnected)b.disabled=false}
  }
- const api={init,clear,linkedBalanceLabel,familyBillSummary,familyBillMarkup,availableCheckoutRooms,selectedCheckoutRows,splitTender,checkoutTotalsReady,creditNav,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
+ const api={init,clear,linkedBalanceLabel,familyBillSummary,familyBillMarkup,availableCheckoutRooms,selectedCheckoutRows,splitTender,checkoutTotalsReady,verifiedCreditAccounts,creditNav,busy:()=>active>0,decorateRegister,decorateFolio,linkRoom,checkout:async(id,group=false)=>{if(active)return;active++;try{return await checkout(id,group)}finally{active--}},preview:async id=>{if(active)return;active++;try{return await preview(id)}finally{active--}}};root.BiteHotelBilling=api;
 })(typeof window!=='undefined'?window:globalThis);
