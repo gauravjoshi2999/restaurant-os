@@ -66,7 +66,7 @@ test('A10: complete source pagination, owner-only scoped load and missing pages 
  function fake(){
   return {from(name){calls.push(['from',name]);const data=name==='restaurant_employee_payments'?payments:old;
    return {select(){return this},eq(key,val){calls.push(['eq',key,val]);return this},order(){return this},
-    range(a,b){return Promise.resolve({data:data.slice(a,b+1),error:null})}}}};
+    range(a,b){return Promise.resolve({data:data.slice(a,b+1),error:null,count:data.length})}}}};
  }
  const x=await api.load({client:fake(),...Object.fromEntries(['restaurantId','employeeId','month','today','employee'].map(k=>[k,scope[k]]))});
  assert.equal(x.taggedPaid,325000);
@@ -88,4 +88,10 @@ test('A10: zero direct payroll payments, tenant guard, confirmation, responsive 
  assert.match(sql,/salary_closings_owner_read/);
  assert.match(sql,/revoke all on public\.restaurant_employee_salary_closings/);
  assert.match(css,/@media\(max-width:430px\)/);
+});
+
+test('A10 exact salary source rejects missing count and invalid amounts',async()=>{
+ for(const value of [true,false,[],{},' ','0x10',null,0.001])assert.equal(api.cents(value),null);
+ const fake={from(){return{select(){return this},eq(){return this},order(){return this},range(){return Promise.resolve({data:[payments[0]],count:2})}}}};
+ await assert.rejects(()=>api.fullTable(fake,'restaurant_employee_payments',r,e,'payment_date',()=>true),/Incomplete/);
 });
