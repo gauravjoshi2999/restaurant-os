@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync('index.html','utf8');
-const a=source.indexOf('async function openDeliveryWhatsAppShare(message,waUrl)');
+const a=source.indexOf('async function openDeliveryWhatsAppShare(message,waUrl,');
 const b=source.indexOf('async function advanceOrder(id,next)',a);
 assert(a>=0&&b>a,'Production delivery share function must exist');
 const js=source.slice(a,b);
@@ -62,7 +62,7 @@ test('Rapid repeat clicks cannot create two delivery links',async()=>{
 });
 test('Owner handover never pre-opens an empty browser tab',()=>{
  assert.doesNotMatch(js,/window\.open\(['"]about:blank/);
- assert.match(js,/await openDeliveryWhatsAppShare\(message,waUrl\)/);
+ assert.match(js,/await openDeliveryWhatsAppShare\(message,waUrl,shareCurrent,commitHandover\)/);
  assert.match(js,/BiteDeliveryShare/);
  assert.doesNotMatch(js,/prompt\('WhatsApp share/);
 });
@@ -76,4 +76,17 @@ test('R11 cannot share an order belonging to another restaurant',async()=>{
  const t=setup();t.ctx.access.restaurantId='restaurant-b';
  assert.equal(await t.ctx.shareDeliveryHandoff('order-1',false),false);
  assert.equal(t.rpcCalls.length,0);
+});
+
+test('PDF R11: fallback never labels sharing as physical handover and checks scope at click time',async()=>{
+ assert.match(js,/Sharing does not confirm physical handover or delivery/);
+ const t=setup();const nodes=[];
+ const make=()=>({children:[],textContent:'',style:{},setAttribute(){},append(...xs){this.children.push(...xs)},addEventListener(k,fn){this[k]=fn},remove(){this.removed=true},focus(){}});
+ t.ctx.window.Capacitor={};t.ctx.document={getElementById:()=>null,createElement(){const n=make();nodes.push(n);return n},body:{append(){}}};
+ t.ctx.navigator={clipboard:{writeText:async()=>{throw Error('must not copy stale data')}}};
+ assert.equal(await t.ctx.shareDeliveryHandoff('order-1',false),true);
+ const share=nodes.find(n=>n.textContent==='WhatsApp par bhejein'),copy=nodes.find(n=>n.textContent==='Copy message');
+ t.ctx.access.restaurantId='restaurant-other';
+ await share.click();await copy.click();
+ assert.equal(t.navigations.length,0);assert.equal(t.alerts.length,0);
 });
