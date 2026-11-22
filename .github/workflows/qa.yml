@@ -8,6 +8,37 @@ on:
 permissions:
   contents: read
 jobs:
+  owner-support-postgres-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: bite_owner_support_qa
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bite_owner_support_qa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: bite_owner_support_qa
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Owner Support role isolation and revision checks
+        run: |
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_support_pg_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/owner_support_ticket_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_support_pg_test.sql
+
   customer-reorder-postgres-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 5
