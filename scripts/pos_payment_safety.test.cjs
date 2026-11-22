@@ -169,3 +169,13 @@ test('R03 review exists before save and guards pending items and concurrent subm
  assert.match(submit,/posReviewPayment\(Math.round\(billTotal\*100\)\/100,paid,balanceAction\)/);
  assert.match(page,/Room charge: verify guest folio before saving. No counter payment recorded/);
 });
+
+test('PDF R04 pending receipt opens even when balance read failed',()=>{
+ const elements=new Map(),reconciles=[];
+ const doc={getElementById(id){if(!elements.has(id))elements.set(id,{value:'',style:{},classList:{add(){}},textContent:''});return elements.get(id)}};
+ const sandbox={document:doc,localStorage:{},console,alert:()=>assert.fail('pending receipt must open'),BitePOSPayment:{getPending:()=>({details}),reconcile:async x=>{reconciles.push(x);return {status:'unknown'}}}};
+ vm.createContext(sandbox);vm.runInContext(fs.readFileSync('assets/bite-pos-payment-ui.js','utf8'),sandbox);
+ sandbox.BitePOSPaymentUI.open({role:'owner',userId:identity.uid,restaurantId:identity.restaurantId,orderId:identity.orderId,order:{restaurant:identity.restaurantId,channel:'POS - Counter',status:'Completed',amount:500},paymentSummaryFor:()=>null,today:()=>details.date,money:n=>'₹'+n,isCurrent:()=>true});
+ assert.match(doc.getElementById('paymentOrderLabel').textContent,/Paid Unverified · Due Unverified/);
+ assert.equal(reconciles.length,1);
+});
