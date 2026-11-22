@@ -162,3 +162,27 @@ test('A11/A12 cashbook rejects incomplete and duplicate financial source snapsho
   assert.equal(w.calls.length,0);
  }
 });
+
+test('Cashbook exact paise totals handle all methods and reject invalid or oversized inputs',()=>{
+ const result=closing.totals([entry('a','0.10'),entry('b','0.20'),entry('c','2.00','Cashfree'),entry('d','0.01','Cash','out')]);
+ assert.equal(result.in,230);assert.equal(result.out,1);assert.equal(result.methods.Cash.in,30);assert.equal(result.methods.Cashfree.in,200);
+ assert.throws(()=>closing.totals(null),/verified/);
+ assert.throws(()=>closing.totals([entry('a','1','UPI','invalid')]),/invalid/);
+ assert.throws(()=>closing.totals(Array.from({length:100},(_,i)=>entry(String(i),'999999999999.99'))),/bada/);
+ assert.throws(()=>closing.preview(undefined,'0','0',''),/verified/);
+});
+test('An unverified cashbook never renders a zero balance as a confirmed result',async()=>{
+ const w=workspace({countOverride:2});await w.context.loadCashbook();
+ assert.equal(w.el('cashbookIncome').textContent,'—');
+ assert.equal(w.el('cashbookOutflow').textContent,'—');
+ assert.equal(w.el('cashbookExpectedCash').textContent,'—');
+ assert.equal(w.el('cashbookEntryCount').textContent,'Not verified');
+ assert.equal(w.el('cashbookReviewBtn').disabled,true);
+});
+test('Cashbook exact verified totals are restored after a successful load',async()=>{
+ const w=workspace({rows:[entry('a','0.10'),entry('b','0.20'),entry('c','1.00','Cashfree')]});
+ await w.context.loadCashbook();
+ assert.equal(w.el('cashbookIncome').textContent,'₹1.30');
+ assert.match(w.el('cashbookModeRows').innerHTML,/Cashfree/);
+ assert.equal(w.el('cashbookExpectedCash').textContent,'₹0.30');
+});
