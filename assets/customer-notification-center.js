@@ -35,22 +35,35 @@
  }
  async function fetchVerifiedOrderHistory(client,userId){
   if(!client||typeof userId!=='string'||!userId.trim())return [];
-  // Customer-specific query plus server-side orders and history RLS.
-  const own=await client.from('orders').select('id,order_code')
+  // Verify the returned tenant as well as querying under authenticated RLS.
+  const own=await client.from('orders').select('id,customer_id,order_code')
    .eq('customer_id',userId).order('created_at',{ascending:false}).limit(30);
   if(own.error)throw own.error;
-  const orderCodes=new Map((own.data||[])
-   .filter(row=>typeof row.id==='string'&&/^[0-9a-f-]{36}$/i.test(row.id))
-   .map(row=>[row.id,String(row.order_code||'Order').slice(0,40)]));
+  if(!Array.isArray(own.data))throw Error('Customer order history could not be verified.');
+  const orderCodes=new Map();
+  for(const row of own.data){
+   if(!row||row.customer_id!==userId||typeof row.id!=='string'||
+      !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(row.id)||
+      typeof row.order_code!=='string'||!row.order_code.trim()||orderCodes.has(row.id))
+    throw Error('Customer order scope could not be verified.');
+   orderCodes.set(row.id,row.order_code.slice(0,40));
+  }
   if(!orderCodes.size)return [];
   const history=await client.from('order_status_history')
    .select('id,order_id,to_status,changed_at')
    .in('order_id',[...orderCodes.keys()]).order('changed_at',{ascending:false}).limit(60);
   if(history.error)throw history.error;
-  return (history.data||[]).filter(row=>orderCodes.has(row.order_id)).map(row=>({
-   id:row.id,orderId:row.order_id,orderCode:orderCodes.get(row.order_id),
-   status:String(row.to_status||'Updated').slice(0,60),changedAt:row.changed_at||null
-  }));
+  if(!Array.isArray(history.data))throw Error('Order status history could not be verified.');
+  const seen=new Set();
+  return history.data.map(row=>{
+   if(!row||!orderCodes.has(row.order_id)||typeof row.id!=='string'||seen.has(row.id)||
+      typeof row.to_status!=='string'||!row.to_status.trim()||
+      typeof row.changed_at!=='string'||!Number.isFinite(Date.parse(row.changed_at)))
+    throw Error('Order status history scope could not be verified.');
+   seen.add(row.id);
+   return {id:row.id,orderId:row.order_id,orderCode:orderCodes.get(row.order_id),
+    status:row.to_status.slice(0,60),changedAt:row.changed_at};
+  });
  }
  function attachBrowser(win){
   const doc=win?.document;
