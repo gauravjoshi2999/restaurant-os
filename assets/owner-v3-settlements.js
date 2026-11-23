@@ -73,7 +73,9 @@
   const payments=financials.map(f=>{
    if(!idOK(f.order_id)||paymentIds.has(f.order_id))throw Error('Duplicate or invalid online payment source.');
    paymentIds.add(f.order_id);
-   const amount=cents(f.customer_payable_amount),paid=f.payment_status==='paid',check=checksByOrder.get(f.order_id);
+   // A provider-confirmed refund does not erase the historical collection.
+   // Track original paid value and the refund as separate financial facts.
+   const amount=cents(f.customer_payable_amount),paid=['paid','partially_refunded','refunded'].includes(f.payment_status),check=checksByOrder.get(f.order_id);
    if(amount===null)throw Error('Invalid customer payable amount in source financials.');
    const checked=paid&&checkedTime(check?.checked_at)!==null&&verifiedStatus(check.collection_status)&&
      cents(check.collection_amount)===amount;
@@ -117,7 +119,7 @@
   if(!summary.payments.length)return '<p class="a06-empty">No own-platform order financial records for this outlet.</p>';
   return '<div class="a06-list">'+summary.payments.map(f=>{
    const matched=summary.refunds.filter(x=>x.order_id===f.order_id);
-   return '<details class="a06-record"><summary><span class="a06-main"><strong>'+esc(f.displayCode)+'</strong><small>'+esc(stamp(f.created_at))+' · '+esc(f.providerChecked?'Cashfree check recorded':f.paid?'Bite paid · verification pending':formatStatus(f.payment_status))+'</small></span><span class="a06-amount">'+esc(money(f.amountCents))+'</span></summary>'+
+   return '<details class="a06-record"><summary><span class="a06-main"><strong>'+esc(f.displayCode)+'</strong><small>'+esc(stamp(f.created_at))+' · '+esc(['partially_refunded','refunded'].includes(f.payment_status)?'Refund recorded; original payment retained':f.providerChecked?'Cashfree check recorded':f.paid?'Bite paid · verification pending':formatStatus(f.payment_status))+'</small></span><span class="a06-amount">'+esc(money(f.amountCents))+'</span></summary>'+
     '<div class="a06-detail"><p>Customer paid in Bite: <strong>'+esc(f.paid?'Recorded':'Not confirmed')+'</strong></p>'+
     '<p>Provider evidence: <strong>'+esc(f.providerChecked?'Matching recorded Cashfree check':'Not independently verified')+'</strong></p>'+
     '<p>Commission: '+esc(money(cents(f.commission_amount)))+' · Actual provider fee: '+esc(money(cents(f.provider_fee_actual)))+'</p>'+
