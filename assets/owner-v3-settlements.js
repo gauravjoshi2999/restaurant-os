@@ -163,25 +163,28 @@
    '<p class="a06-footnote">Payment and refund status comes from existing Bite and provider-check records. A reference, screenshot or approval alone never proves bank credit. For unresolved money, quote the order code when contacting Bite support.</p>'+
    (notice?'<p class="a06-notice" role="status">'+esc(notice)+'</p>':'');
  }
- let host=null,token=0,ctx=null,summary=null,selected='payments',busy=false;
+ let host=null,token=0,ctx=null,summary=null,selected='payments',busy=false,watchTimer=null,lastDigest=null;
  function validSession(c){
   const current=c?.getSession?.()||{};
   return !!c?.restaurantId&&idOK(c.restaurantId)&&!!c.userId&&current.userId===c.userId&&
    current.restaurantId===c.restaurantId&&current.role==='owner';
  }
  function active(c,n){return token===n&&host===c.el&&validSession(c);}
- async function refresh(){
-  if(!ctx||!host)return;
-  const c=ctx,n=++token;summary=null;busy=true;
+ async function refresh(silent=false){
+  if(!ctx||!host||(silent&&busy))return;
+  const c=ctx,n=++token;if(!silent)summary=null;busy=true;
   if(!validSession(c)){host.innerHTML='<p role="alert">Owner settlement access is unavailable.</p>';busy=false;return;}
-  host.innerHTML='<p class="a06-loading" role="status">Loading this outlet’s recorded payments, settlements and refunds…</p>';
+  if(!silent)host.innerHTML='<p class="a06-loading" role="status">Loading this outlet’s recorded payments, settlements and refunds…</p>';
   try{
    const data=await load(c.client,c.restaurantId,()=>active(c,n));
    if(!active(c,n))return;
+   const digest=JSON.stringify([data.financials,data.settlements,data.refunds,data.checks]);
+   if(silent&&lastDigest===digest)return;
    summary=reconcile(data,c.restaurantId,c.getOrders?.()||[]);
-   render(host,summary,selected);
+   lastDigest=digest;render(host,summary,selected);
   }catch(e){
    if(!active(c,n))return;
+   if(silent&&summary){render(host,summary,selected,'Auto-refresh unavailable. Showing the last verified Bite records.');return;}
    summary=null;
    host.innerHTML='<div class="a06-error" role="alert"><h2>Settlement records unavailable</h2><p>'+
      esc(e?.message||'Network error')+'</p><p>No amount or payout status was guessed.</p>'+
@@ -203,15 +206,29 @@
    }else copy.textContent='Select the order reference above';
   }
  }
+ function watchRefresh(){
+  if(ctx&&host&&host.isConnected&&validSession(ctx)&&root.document?.visibilityState==='visible')
+   void refresh(true);
+ }
+ function stopWatch(){
+  if(watchTimer!==null){root.clearInterval?.(watchTimer);watchTimer=null;}
+  root.removeEventListener?.('focus',watchRefresh);
+ }
  function open(input){
   if(!input?.el)return;
+  stopWatch();
   if(host&&host!==input.el)host.removeEventListener('click',click);
   if(host!==input.el)input.el.addEventListener('click',click);
-  host=input.el;ctx=input;selected='payments';return refresh();
+  host=input.el;ctx=input;selected='payments';lastDigest=null;
+  if(root.document&&typeof root.setInterval==='function'){
+   watchTimer=root.setInterval(watchRefresh,30000);
+   root.addEventListener?.('focus',watchRefresh);
+  }
+  return refresh();
  }
  function clear(){
-  token++;if(host){host.removeEventListener('click',click);host.replaceChildren();}
-  host=null;ctx=null;summary=null;selected='payments';busy=false;
+  stopWatch();token++;if(host){host.removeEventListener('click',click);host.replaceChildren();}
+  host=null;ctx=null;summary=null;selected='payments';busy=false;lastDigest=null;
  }
  const api={open,refresh,clear,cents,load,reconcile,refundLabel,render,timeline,validSession};
  if(typeof module==='object'&&module.exports)module.exports=api;
