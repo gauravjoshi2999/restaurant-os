@@ -143,7 +143,7 @@
    const providerConfirmed=!!row.providerCheckedAt&&row.providerStatus==='SUCCESS';
    const providerLabel=providerConfirmed?'Cashfree reports refund processed; bank credit not independently confirmed':
     row.providerCheckedAt?'Cashfree check: '+String(row.providerStatus||'UNKNOWN').slice(0,24):
-    'Provider status not independently verified';
+    'Provider status not checked · provider verification pending';
    tr.append(cell(row.code),cell(money(row.amount)),
     cell(row.status),
     cell((result?.message||providerLabel)+' · '+route),action);
