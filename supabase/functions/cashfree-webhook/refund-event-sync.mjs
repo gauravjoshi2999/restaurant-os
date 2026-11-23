@@ -13,7 +13,7 @@ const money=v=>{
  const n=Number(v),c=Math.round(n*100);
  return n>=0&&Number.isSafeInteger(c)&&Math.abs(n*100-c)<0.001?c:null;
 };
-const supported=new Set(['SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','REJECTED']);
+const supported=new Set(['SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','FAILED','REJECTED']);
 export function eventHint(event){
  if(!REFUND_EVENTS.has(event?.type))return null;
  const r=event?.data?.refund||event?.data?.refund_details||{};
