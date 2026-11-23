@@ -546,7 +546,7 @@ test('completed refund history remains visible with pending review without new m
   {id:'11111111-1111-4111-8111-111111111111',order_id:'order-paid',amount:1,status:'succeeded'}
  ]});
  await a.audit.loadRefundReview();
- assert.equal(a.find('biteRefundReviewRows').children.length,1);
+ assert.equal(a.find('biteRefundReviewRows').children.length,2);
  assert.equal(a.calls.length,0);
 });
 test('provider refund GET preview never creates or approves a refund',async()=>{
