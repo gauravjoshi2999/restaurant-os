@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-const {createStore}=require('../assets/customer-notification-center.js');
+const {createStore,fetchVerifiedOrderHistory}=require('../assets/customer-notification-center.js');
 const {createController}=require('../assets/customer-inapp-order-alerts.js');
 const html=fs.readFileSync('customer.html','utf8');
 const styles=fs.readFileSync('assets/customer-notification-center.css','utf8');
@@ -84,4 +84,78 @@ test('customer loads notification center and remains explicit about unsupported 
  assert.match(center,/bite:verified-order-update/);
  assert.match(styles,/body\[data-bite-app="customer"\]/);
  assert.match(styles,/@media\(max-width:360px\)/);
+});
+
+const historyOrderId='00000000-0000-4000-8000-000000000011';
+const otherOrderId='00000000-0000-4000-8000-000000000099';
+function historyFixture({orders=[{id:historyOrderId,order_code:'BITE-TEST'}],events=[
+ {id:'event-1',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'}
+],orderError=null,eventError=null}={}){
+ const calls=[];
+ const client={from(table){
+  const request={table,where:[],selected:'',limit:0};
+  const chain={
+   select(fields){request.selected=fields;return chain;},
+   eq(field,value){request.where.push([field,value]);return chain;},
+   in(field,value){request.where.push([field,value]);return chain;},
+   order(){return chain;},
+   limit(limit){
+    request.limit=limit;calls.push(request);
+    if(table==='orders')return Promise.resolve({data:orders,error:orderError});
+    if(table==='order_status_history')return Promise.resolve({data:events,error:eventError});
+    throw Error('Unexpected table '+table);
+   }
+  };return chain;
+ }};
+ return {client,calls};
+}
+test('historical order updates are fetched read-only for only the signed-in customer',async()=>{
+ const x=historyFixture({events:[
+  {id:'owned',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'},
+  {id:'other',order_id:otherOrderId,to_status:'Completed',changed_at:'2026-11-19T00:00:00Z'}
+ ]});
+ const rows=await fetchVerifiedOrderHistory(x.client,'customer-A');
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].orderCode,'BITE-TEST');
+ assert.equal(rows[0].status,'Ready');
+ assert.deepEqual(x.calls.map(x=>x.table),['orders','order_status_history']);
+ assert.deepEqual(x.calls[0].where,[['customer_id','customer-A']]);
+ assert.equal(x.calls[0].limit,30);
+ assert.equal(x.calls[1].limit,60);
+ assert.deepEqual(x.calls[1].where,[['order_id',[historyOrderId]]]);
+});
+test('history never makes a cross-account query without a customer ID',async()=>{
+ const x=historyFixture();
+ assert.deepEqual(await fetchVerifiedOrderHistory(x.client,null),[]);
+ assert.equal(x.calls.length,0);
+});
+test('history without owned orders makes no broad order-status query',async()=>{
+ const x=historyFixture({orders:[]});
+ assert.deepEqual(await fetchVerifiedOrderHistory(x.client,'customer-A'),[]);
+ assert.deepEqual(x.calls.map(x=>x.table),['orders']);
+});
+test('failed database reads cannot be displayed as verified history',async()=>{
+ const x=historyFixture({eventError:new Error('Network failed')});
+ await assert.rejects(fetchVerifiedOrderHistory(x.client,'customer-A'),/Network failed/);
+ const y=historyFixture({orderError:new Error('Orders inaccessible')});
+ await assert.rejects(fetchVerifiedOrderHistory(y.client,'customer-A'),/Orders inaccessible/);
+ assert.equal(y.calls.length,1);
+});
+test('read-only historical activity stays separate from visit-only unread and resists account switching',()=>{
+ assert.match(center,/historyPanel\.id='biteVerifiedOrderHistory'/);
+ assert.match(center,/Past verified order activity/);
+ assert.match(center,/read-only server history/i);
+ assert.match(center,/\+\+historyRequest;historyList\.replaceChildren\(\)/);
+ assert.match(center,/request!==historyRequest\|\|store\.snapshot\(\)\.userId!==userId/);
+ assert.doesNotMatch(center,/\.from\('order_status_history'\)[\s\S]*?\.insert\(/);
+ assert.doesNotMatch(center,/localStorage|sessionStorage|PushManager|Notification\.requestPermission/);
+});
+
+
+test('history assets are cache-versioned and every account switch clears old activity',()=>{
+ const center=fs.readFileSync('assets/customer-notification-center.js','utf8');
+ assert.match(html,/customer-notification-center\.js\?v=20261119-feed1-history2/);
+ assert.match(html,/customer-notification-center\.css\?v=20261119-feed1-history2/);
+ assert.match(center,/syncUser:id=>\{revision\+\+;useSession/);
+ assert.match(center,/win\.setTimeout\(\(\)=>\{if\(store\.snapshot\(\)\.userId===next/);
 });

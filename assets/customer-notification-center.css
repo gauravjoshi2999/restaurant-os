@@ -96,3 +96,37 @@ body[data-bite-app="customer"] #biteNotificationBadge:not([hidden]){
  box-sizing:border-box;
 }
 body[data-bite-app="customer"] #biteNotificationBadge[hidden]{display:none!important}
+
+
+/* Saved order status activity is read-only and separate from visit-only unread alerts. */
+body[data-bite-app="customer"] .bite-verified-order-history{
+ margin-top:16px;padding:12px;border:1px solid #E7D8CB;
+ border-radius:14px;background:#FFF;color:#273345;
+}
+body[data-bite-app="customer"] .bite-verified-order-history summary{
+ min-height:44px;display:flex;align-items:center;cursor:pointer;
+ font-size:13px;font-weight:800;color:#99400C;
+}
+body[data-bite-app="customer"] .bite-verified-order-history summary:focus-visible{
+ outline:3px solid #B7420B;outline-offset:3px;border-radius:6px;
+}
+body[data-bite-app="customer"] .bite-verified-order-history p{
+ font-size:12px;line-height:1.5;color:#5C6473;margin:4px 0 10px;
+}
+body[data-bite-app="customer"] .bite-order-history-entries{
+ list-style:none;margin:0;padding:0;display:grid;gap:8px;
+ max-height:360px;overflow-y:auto;overscroll-behavior:contain;
+}
+body[data-bite-app="customer"] .bite-order-history-entries li{
+ min-width:0;padding:10px;border-radius:10px;background:#FFF8F1;
+ border:1px solid #EDE1D5;display:grid;gap:5px;
+}
+body[data-bite-app="customer"] .bite-order-history-entries strong{
+ font-size:12px;line-height:1.4;overflow-wrap:anywhere;
+}
+body[data-bite-app="customer"] .bite-order-history-entries small{
+ font-size:11px;color:#5C6473;
+}
+@media(max-width:360px){
+ body[data-bite-app="customer"] .bite-verified-order-history{padding:10px 8px;}
+}
