@@ -71,7 +71,7 @@ begin
                            then 'refunded' else 'partially_refunded' end
    where id=f.id;
    v_next_status:='succeeded';
- elsif p_status in ('CANCELLED','REJECTED') then
+ elsif p_status in ('FAILED','CANCELLED','REJECTED') then
    -- Provider-declined attempts do not create an authorization for new money.
    v_next_status:=case when j.status in ('processing','submitted')
                       then 'failed' else j.status end;
