@@ -775,7 +775,8 @@
   });
  }
  function clear(){
-  if(refundWatchTimer!==null){root.clearInterval?.(refundWatchTimer);refundWatchTimer=null;}
+  // Keep one dormant page-level watcher across auth transitions. It cannot
+  // fetch while authorized() is false, and active user data is wiped below.
   refundReviewSeen=false;requestToken++;activeUser=null;working=false;wipe();
   setStatus('Super Admin login required.');
  }
