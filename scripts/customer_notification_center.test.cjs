@@ -78,7 +78,7 @@ test('customer loads notification center and remains explicit about unsupported 
  assert.match(html,/id="biteNotificationAll"/);
  assert.match(html,/id="biteNotificationUnread"/);
  assert.match(styles,/\.bite-notification-tabs button\[aria-pressed="true"\]/);
- assert.match(html,/assets\/customer-notification-center\.js\?v=20261119-feed1/);
+ assert.match(html,/assets\/customer-notification-center\.js\?v=20261123-verified-scope1/);
  assert.match(html,/assets\/customer-notification-center\.css\?v=20261119-feed1/);
  assert.match(html,/not saved notification history or phone push/i);
  assert.match(center,/bite:verified-order-update/);
@@ -88,7 +88,7 @@ test('customer loads notification center and remains explicit about unsupported 
 
 const historyOrderId='00000000-0000-4000-8000-000000000011';
 const otherOrderId='00000000-0000-4000-8000-000000000099';
-function historyFixture({orders=[{id:historyOrderId,order_code:'BITE-TEST'}],events=[
+function historyFixture({orders=[{id:historyOrderId,customer_id:'customer-A',order_code:'BITE-TEST'}],events=[
  {id:'event-1',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'}
 ],orderError=null,eventError=null}={}){
  const calls=[];
@@ -111,8 +111,7 @@ function historyFixture({orders=[{id:historyOrderId,order_code:'BITE-TEST'}],eve
 }
 test('historical order updates are fetched read-only for only the signed-in customer',async()=>{
  const x=historyFixture({events:[
-  {id:'owned',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'},
-  {id:'other',order_id:otherOrderId,to_status:'Completed',changed_at:'2026-11-19T00:00:00Z'}
+  {id:'owned',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'}
  ]});
  const rows=await fetchVerifiedOrderHistory(x.client,'customer-A');
  assert.equal(rows.length,1);
@@ -154,8 +153,32 @@ test('read-only historical activity stays separate from visit-only unread and re
 
 test('history assets are cache-versioned and every account switch clears old activity',()=>{
  const center=fs.readFileSync('assets/customer-notification-center.js','utf8');
- assert.match(html,/customer-notification-center\.js\?v=20261119-feed1-history2/);
+ assert.match(html,/customer-notification-center\.js\?v=20261123-verified-scope1/);
  assert.match(html,/customer-notification-center\.css\?v=20261119-feed1-history2/);
  assert.match(center,/syncUser:id=>\{revision\+\+;useSession/);
  assert.match(center,/win\.setTimeout\(\(\)=>\{if\(store\.snapshot\(\)\.userId===next/);
+});
+
+
+test('saved history rejects mismatched customers and duplicated returned orders even when query was scoped',async()=>{
+ for(const orders of [
+  [{id:historyOrderId,customer_id:'customer-B',order_code:'PRIVATE'}],
+  [{id:historyOrderId,customer_id:'customer-A',order_code:'OK'},{id:historyOrderId,customer_id:'customer-A',order_code:'DUP'}],
+  null,
+  [{id:historyOrderId,customer_id:'customer-A',order_code:''}]
+ ]) {
+  const x=historyFixture({orders});
+  await assert.rejects(fetchVerifiedOrderHistory(x.client,'customer-A'),/could not be verified/);
+  assert.deepEqual(x.calls.map(c=>c.table),['orders'],'do not query event history for unverified orders');
+ }
+});
+test('saved history rejects cross-account, duplicate, missing and malformed event responses',async()=>{
+ const base={id:'event-1',order_id:historyOrderId,to_status:'Ready',changed_at:'2026-11-19T00:00:00Z'};
+ for(const events of [
+  [{...base,order_id:otherOrderId}],
+  [base,base],
+  null,
+  [{...base,to_status:''}],
+  [{...base,changed_at:'invalid'}]
+ ]) await assert.rejects(fetchVerifiedOrderHistory(historyFixture({events}).client,'customer-A'),/could not be verified/);
 });
