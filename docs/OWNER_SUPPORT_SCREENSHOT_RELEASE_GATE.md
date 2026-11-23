@@ -19,3 +19,32 @@ After successful API tests, confirm current Main and exact candidate QA; apply t
 
 ## Current preflight
 Production SQL read-only preflight: support bucket absent, support policies absent, storage RLS enabled. Existing PostgreSQL fixture tests passed on earlier candidate. No signed-in Storage API test has been performed. A fresh integration QA and the API permission matrix remain mandatory.
+
+## Running the real isolated Storage API gate
+
+Use `node scripts/owner_support_storage_api_gate.mjs` **only** on a separate,
+synthetic, non-production Supabase project with the reviewed candidate bucket,
+ticket tables, access policies, and four pre-created synthetic accounts
+(`OWNER_A`, `OWNER_B`, `STAFF`, `ADMIN`), plus one open and one closed
+ticket belonging to `OWNER_A`. Supply all credentials through private
+environment variables, never through GitHub/ChatGPT tickets or commits.
+
+Required variables: `BITE_STORAGE_QA_URL`, `BITE_STORAGE_QA_ANON_KEY`,
+`BITE_STORAGE_QA_OWNER_A_EMAIL`, `BITE_STORAGE_QA_OWNER_A_PASSWORD`,
+`BITE_STORAGE_QA_OWNER_B_EMAIL`, `BITE_STORAGE_QA_OWNER_B_PASSWORD`,
+`BITE_STORAGE_QA_STAFF_EMAIL`, `BITE_STORAGE_QA_STAFF_PASSWORD`,
+`BITE_STORAGE_QA_ADMIN_EMAIL`, `BITE_STORAGE_QA_ADMIN_PASSWORD`,
+`BITE_STORAGE_QA_OPEN_TICKET_ID`, `BITE_STORAGE_QA_CLOSED_TICKET_ID`.
+Also set `BITE_STORAGE_QA_APPROVAL=SYNTHETIC_ISOLATED_PROJECT_ONLY`.
+
+The script **refuses Bite production** and performs real Storage API upload,
+list, download, cross-owner/staff/anonymous checks, MIME/size rejection,
+closed-ticket/alternate-name rejection, no-overwrite and no-delete checks.
+It intentionally leaves a synthetic image in the isolated environment for
+authorized cleanup using Storage API. It never issues payments or reads real
+guest documents.
+
+**Do not claim the API gate passed merely because `node --check` or the
+existing PostgreSQL fixture suite passed.** The separate live isolated API
+matrix remains unverified until this command is run successfully, documented,
+and reviewed alongside a screenshot retention/deletion policy.
