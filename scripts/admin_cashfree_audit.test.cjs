@@ -540,7 +540,7 @@ test('processing refund stays visible for independent Cashfree record inspection
  assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'processing');
  assert.equal(a.calls.length,0);
 });
-test('unrelated completed or rejected refund rows are not shown in active refund review',async()=>{
+test('completed refund history remains visible with pending review without new money action',async()=>{
  const a=setup({refunds:[
   {id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved'},
   {id:'11111111-1111-4111-8111-111111111111',order_id:'order-paid',amount:1,status:'succeeded'}
