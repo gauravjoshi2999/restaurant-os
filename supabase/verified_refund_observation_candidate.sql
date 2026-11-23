@@ -19,7 +19,7 @@ begin
    raise exception 'Service role required';
  end if;
  if p_status is null or p_provider_refund_id is null
-    or p_status not in ('SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','REJECTED')
+    or p_status not in ('SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','FAILED','REJECTED')
     or p_amount is null or p_amount::text in ('NaN','Infinity','-Infinity')
     or p_amount<=0 or p_currency is distinct from 'INR' then
    raise exception 'Untrusted provider evidence';
