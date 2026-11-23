@@ -30,7 +30,7 @@
   if(confirmed&&['PENDING','PENDING_APPROVAL','ONHOLD'].includes(provider))
    return {kind:'processing',title:'Refund initiated',
     note:'Provider refund recorded. Processing to the original payment method.',stage:1};
-  if(confirmed&&['CANCELLED','REJECTED'].includes(provider))
+  if(confirmed&&['FAILED','CANCELLED','REJECTED'].includes(provider))
    return {kind:'failed',title:'Refund needs attention',
     note:'Cashfree did not complete this refund. Please contact support.',stage:0};
   if(status==='pending_approval')return {kind:'waiting',title:'Refund under review',
