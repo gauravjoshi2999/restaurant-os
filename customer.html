@@ -1339,17 +1339,25 @@ async function loadOrderDetail(orderId,force=false){
  if(biteOrderDetailCache.size>30)biteOrderDetailCache.delete(biteOrderDetailCache.keys().next().value);
  biteBindRefundRefresh(target,orderId,requestedCustomerId);
  }catch(e){if(!target.isConnected||activeCustomerId!==requestedCustomerId||expandedOrderId!==orderId||detailRequestId!==biteOrderDetailSequence)return;target.textContent='Details load nahi ho paaye: '+(e.message||'Please refresh karein.');}}
-// Provider status may change without an order status change.
-setInterval(()=>{
- if(activeCustomerId&&document.visibilityState==='visible'&&document.body.dataset.view==='order-details'&&biteFullOrderId){
-  void biteOpenFullOrderDetails(biteFullOrderId,true);return;
- }
- if(activeCustomerId&&document.visibilityState==='visible'&&!$('ordersView').classList.contains('hidden')&&
-  (customerOrders.some(o=>['Received','Accepted','Preparing','Ready','Handed Over','Out for Delivery'].includes(o.status))||
-   [...biteRefundByOrder.values()].some(job=>!['succeeded','failed','rejected'].includes(job.status))||
-   [...biteCancellationByOrder.values()].some(request=>request.status==='Pending')))
+// Provider refund status may change after the order is completed.
+// Refresh all visible owned orders, even when the last known refund job was
+// absent or final. RLS and the customer/session guard protect each fetch.
+let lastBiteFinancialRefreshAt=0;
+function biteRefreshVisibleFinancialStatus(){
+ if(!activeCustomerId||document.visibilityState!=='visible'||Date.now()-lastBiteFinancialRefreshAt<8000)return;
+ if(document.body.dataset.view==='order-details'&&biteFullOrderId){
+  lastBiteFinancialRefreshAt=Date.now();
+  void biteOpenFullOrderDetails(biteFullOrderId,true);
+ }else if(!$('ordersView').classList.contains('hidden')){
+  lastBiteFinancialRefreshAt=Date.now();
   void loadMyOrders();
-},45000);
+ }
+}
+setInterval(biteRefreshVisibleFinancialStatus,30000);
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible')biteRefreshVisibleFinancialStatus();
+});
+window.addEventListener('focus',biteRefreshVisibleFinancialStatus);
 function setupOrderRealtime(userId){if(orderChannel){sb.removeChannel(orderChannel);orderChannel=null;}if(!userId)return;orderChannel=sb.channel('customer-orders-'+userId).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:'customer_id=eq.'+userId},payload=>{
  window.BiteCustomerOrderAlerts?.onOrderUpdate?.(payload,userId);
  if(!$('ordersView').classList.contains('hidden')){void loadMyOrders();return;}
