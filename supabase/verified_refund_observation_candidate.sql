@@ -3,6 +3,7 @@
 -- Cashfree first. This service-only RPC records external financial facts;
 -- local approval is not a prerequisite for observing an already-refunded sum.
 -- It never marks bank credit / restaurant vendor settlement.
+begin;
 create or replace function public.bite_record_verified_refund_observation(
  p_job_id uuid,p_provider_refund_id text,p_status text,p_amount numeric,p_currency text)
 returns text language plpgsql security definer set search_path='' as $$
@@ -90,3 +91,4 @@ revoke all on function public.bite_record_verified_refund_observation(uuid,text,
  from public,anon,authenticated;
 grant execute on function public.bite_record_verified_refund_observation(uuid,text,text,numeric,text)
  to service_role;
+commit;
