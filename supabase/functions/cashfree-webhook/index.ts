@@ -18,6 +18,12 @@ Deno.serve(async req=>{
  const expected=btoa(String.fromCharCode(...digest));
  if(!safeEqual(expected,signature))return json({error:"Invalid signature"},401);
  let event;try{event=JSON.parse(raw)}catch{return json({error:"Invalid JSON"},400)}
+ // This event kind is recorded ONLY after timestamp, raw-body HMAC and JSON verification.
+ // Never log webhook bodies, provider IDs, customer data, signatures or credentials.
+ // Unknown signed events are bucketed; their untrusted type is not logged.
+ const observedKind=REFUND_EVENTS.has(event?.type)?event.type:
+  event?.type==="PAYMENT_SUCCESS_WEBHOOK"?"PAYMENT_SUCCESS_WEBHOOK":"OTHER_SIGNED_EVENT";
+ console.info("BITE_CASHFREE_SIGNED_WEBHOOK_RECEIVED",observedKind);
  if(REFUND_EVENTS.has(event?.type)){
   // Signed webhook is only a notification. Never trust its refund amount or status;
   // fetch the matching PAID Cashfree order and exact refund using GET only.
