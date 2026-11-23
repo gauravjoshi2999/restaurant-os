@@ -29,7 +29,7 @@
    return {kind:'success',title:'Refund processed',note:'Cashfree confirmed success; bank credit may take longer.',stage:2};
   if(confirmed&&['PENDING','PENDING_APPROVAL','ONHOLD'].includes(provider))
    return {kind:'processing',title:'Refund initiated',
-    note:'Cashfree has a refund record. Processing to the original payment method.',stage:1};
+    note:'Provider refund recorded. Processing to the original payment method.',stage:1};
   if(confirmed&&['CANCELLED','REJECTED'].includes(provider))
    return {kind:'failed',title:'Refund needs attention',
     note:'Cashfree did not complete this refund. Please contact support.',stage:0};
