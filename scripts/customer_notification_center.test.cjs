@@ -78,7 +78,7 @@ test('customer loads notification center and remains explicit about unsupported 
  assert.match(html,/id="biteNotificationAll"/);
  assert.match(html,/id="biteNotificationUnread"/);
  assert.match(styles,/\.bite-notification-tabs button\[aria-pressed="true"\]/);
- assert.match(html,/assets\/customer-notification-center\.js\?v=20261119-feed1/);
+ assert.match(html,/assets\/customer-notification-center\.js\?v=20261123-verified-scope1/);
  assert.match(html,/assets\/customer-notification-center\.css\?v=20261119-feed1/);
  assert.match(html,/not saved notification history or phone push/i);
  assert.match(center,/bite:verified-order-update/);
@@ -153,7 +153,7 @@ test('read-only historical activity stays separate from visit-only unread and re
 
 test('history assets are cache-versioned and every account switch clears old activity',()=>{
  const center=fs.readFileSync('assets/customer-notification-center.js','utf8');
- assert.match(html,/customer-notification-center\\.js\\?v=20261123-verified-scope1/);
+ assert.match(html,/customer-notification-center\.js\?v=20261123-verified-scope1/);
  assert.match(html,/customer-notification-center\.css\?v=20261119-feed1-history2/);
  assert.match(center,/syncUser:id=>\{revision\+\+;useSession/);
  assert.match(center,/win\.setTimeout\(\(\)=>\{if\(store\.snapshot\(\)\.userId===next/);
