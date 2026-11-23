@@ -104,7 +104,7 @@ test('A06: explicit loading failure does not quietly show zero/paid or corrupt s
 });
 test('A06: existing Owner V3 shell, More, responsive layout and Super Admin separation',()=>{
  assert.match(html,/id="owner-settlements"/);
- assert.match(html,/assets\/owner-v3-settlements\.js\?v=20261119-a06-1/);
+ assert.match(html,/assets\/owner-v3-settlements\.js\?v=20261123-refund-auto-sync1/);
  assert.match(html,/assets\/owner-v3-settlements\.css\?v=20261119-a06-1/);
  assert.match(nav,/\['owner-settlements','Settlements & Refunds'/);
  assert.match(caps,/\['owner-settlements','Settlements & Refunds','online_food_orders'\]/);
