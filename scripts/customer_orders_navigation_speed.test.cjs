@@ -123,11 +123,13 @@ test('history uses compact cards, separate details and discreet overflow actions
  assert.doesNotMatch(html,/showCustomerView\('orders'\);\$\('ordersList'\)\.innerHTML/);
  assert.match(html,/biteOrdersSkeletonMarkup|bite-orders-skeleton/);
 });
-test('polls only actionable active/refund work, not all historical cancellations',()=>{
- const start=html.indexOf('// Provider status may change without an order status change.');
+test('visible completed orders also refresh when an external refund arrives',()=>{
+ const start=html.indexOf('function biteRefreshVisibleFinancialStatus()');
  const end=html.indexOf('function setupOrderRealtime(',start);
  const poll=html.slice(start,end);
- assert.match(poll,/\['Received','Accepted','Preparing','Ready','Handed Over','Out for Delivery'\]/);
- assert.doesNotMatch(poll,/\['Cancelled','Rejected'\]\.includes\(o\.status\)/);
- assert.match(poll,/\[\.\.\.biteRefundByOrder\.values\(\)\]/);
+ assert.match(poll,/setInterval\(biteRefreshVisibleFinancialStatus,30000\)/);
+ assert.match(poll,/document\.visibilityState==='visible'/);
+ assert.match(poll,/Date\.now\(\)-lastBiteFinancialRefreshAt<8000/);
+ assert.match(poll,/void loadMyOrders\(\)/);
+ assert.doesNotMatch(poll,/customerOrders\.some\(/);
 });

@@ -322,7 +322,7 @@ test('owner cannot compare candidate or expose another restaurant vendor details
 });
 
 test('candidate UI is cache-busted and never persists, transfers or marks restaurant payout paid',()=>{
- assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261123-refund-auto-sync1/);
  assert.match(code,/function compareVendorCandidate\(/);
  assert.doesNotMatch(code,/localStorage|sessionStorage|create_transfer|create_vendor|bank_account_number|account_number|\.upsert\(/);
  assert.match(html,/Vendor ID compare/);
@@ -498,7 +498,7 @@ test('restaurant Owner and signed-out users see no Super Admin payment mismatch 
 test('Admin financial mismatch UI is non-mutating and explicitly warns paid status is unverified',()=>{
  assert.match(html,/id="bitePaymentMismatchRows"/);
  assert.match(html,/id="bitePaymentMismatchCount"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261123-refund-auto-sync1/);
  assert.match(html,/require independent Cashfree and bank reconciliation/i);
  assert.match(code,/function buildPaymentExceptions\(/);
  assert.doesNotMatch(code,/\.insert\(|\.update\(|\.upsert\(|execute_refund|create_transfer/);
@@ -540,13 +540,13 @@ test('processing refund stays visible for independent Cashfree record inspection
  assert.equal(a.find('biteRefundReviewRows').children[0].children[2].textContent,'processing');
  assert.equal(a.calls.length,0);
 });
-test('unrelated completed or rejected refund rows are not shown in active refund review',async()=>{
+test('completed refund history remains visible with pending review without new money action',async()=>{
  const a=setup({refunds:[
   {id:REFUND_ID,order_id:'order-paid',amount:1,status:'approved'},
   {id:'11111111-1111-4111-8111-111111111111',order_id:'order-paid',amount:1,status:'succeeded'}
  ]});
  await a.audit.loadRefundReview();
- assert.equal(a.find('biteRefundReviewRows').children.length,1);
+ assert.equal(a.find('biteRefundReviewRows').children.length,2);
  assert.equal(a.calls.length,0);
 });
 test('provider refund GET preview never creates or approves a refund',async()=>{
@@ -585,7 +585,7 @@ test('account switch, owner role and sign out cannot expose saved refund evidenc
 test('provider refund preview has no client-side mutation controls or sensitive fields',()=>{
  assert.match(html,/id="biteRefundReviewRows"/);
  assert.match(html,/id="biteRefundReviewLoad"/);
- assert.match(html,/admin-cashfree-audit\.js\?v=20261116-auto-refund-center1/);
+ assert.match(html,/admin-cashfree-audit\.js\?v=20261123-refund-auto-sync1/);
  assert.match(code,/action:'inspect_refund'/);
  assert.doesNotMatch(code,/action:'execute_refund'|BITE_PROVIDER_REFUNDS_ENABLED|\.update\(|\.insert\(|\.upsert\(/);
  assert.doesNotMatch(html,/SUPABASE_SERVICE_ROLE_KEY|CASHFREE_SECRET_KEY/);

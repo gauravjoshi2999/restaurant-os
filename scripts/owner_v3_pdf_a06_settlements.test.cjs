@@ -36,6 +36,19 @@ test('A06: paid in Bite is not verified with Cashfree and not bank-settled',()=>
  assert.match(host.innerHTML,/Commission/);
  assert.doesNotMatch(host.innerHTML,/Transfer now|Send refund|Approve refund/);
 });
+test('A06: verified refunds preserve gross original collection and report refund separately',()=>{
+ const partial=summarize({...fixture,financials:[{...f,payment_status:'partially_refunded',refund_amount_actual:50}],
+ refunds:[{...r,status:'succeeded',provider_status:'SUCCESS',provider_refund_id:'bite_rf_1',provider_checked_at:'2026-11-23T00:00:00Z',amount:50}]});
+ assert.equal(partial.recordedPaid,17400);
+ assert.equal(partial.payments[0].paid,true);
+ assert.equal(partial.pendingRefunds,0);
+ const full=summarize({...fixture,financials:[{...f,payment_status:'refunded',refund_amount_actual:174}],
+ refunds:[{...r,status:'succeeded',provider_status:'SUCCESS',provider_refund_id:'bite_rf_1',provider_checked_at:'2026-11-23T00:00:00Z'}]});
+ assert.equal(full.recordedPaid,17400);
+ const host={innerHTML:''};api.render(host,full,'payments');
+ assert.match(host.innerHTML,/Refund recorded; original payment retained/);
+ assert.doesNotMatch(host.innerHTML,/Bank credited/);
+});
 test('A06: only independently matching provider check gives recorded evidence, still not bank arrival',()=>{
  const checked=summarize({...fixture,checks:[p]});
  assert.equal(checked.providerChecked,17400);assert.equal(checked.reviewNeeded,0);
@@ -104,7 +117,7 @@ test('A06: explicit loading failure does not quietly show zero/paid or corrupt s
 });
 test('A06: existing Owner V3 shell, More, responsive layout and Super Admin separation',()=>{
  assert.match(html,/id="owner-settlements"/);
- assert.match(html,/assets\/owner-v3-settlements\.js\?v=20261119-a06-1/);
+ assert.match(html,/assets\/owner-v3-settlements\.js\?v=20261123-refund-auto-sync1/);
  assert.match(html,/assets\/owner-v3-settlements\.css\?v=20261119-a06-1/);
  assert.match(nav,/\['owner-settlements','Settlements & Refunds'/);
  assert.match(caps,/\['owner-settlements','Settlements & Refunds','online_food_orders'\]/);

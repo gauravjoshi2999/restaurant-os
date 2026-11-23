@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.49.8";
+import {REFUND_EVENTS,syncVerifiedRefund} from "./refund-event-sync.mjs";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","cache-control":"no-store"}});
 const enc=new TextEncoder();
 function safeEqual(a:string,b:string){const x=enc.encode(a),y=enc.encode(b);if(x.length!==y.length)return false;let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];return diff===0}
@@ -17,6 +18,25 @@ Deno.serve(async req=>{
  const expected=btoa(String.fromCharCode(...digest));
  if(!safeEqual(expected,signature))return json({error:"Invalid signature"},401);
  let event;try{event=JSON.parse(raw)}catch{return json({error:"Invalid JSON"},400)}
+ if(REFUND_EVENTS.has(event?.type)){
+  // Signed webhook is only a notification. Never trust its refund amount or status;
+  // fetch the matching PAID Cashfree order and exact refund using GET only.
+  const url=Deno.env.get("SUPABASE_URL"),service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if(!url||!service)return json({error:"Refund service unavailable"},503);
+  try{
+   const result=await syncVerifiedRefund({
+    event,db:createClient(url,service),providerFetch:fetch,appId,secret
+   });
+   if(result.needs_reconciliation){
+    console.error("Cashfree refund event needs manual matching to a Bite job; no payment action taken.");
+    return json({ok:true,needs_reconciliation:true});
+   }
+   return json(result);
+  }catch(error){
+   console.error("Cashfree refund status synchronization failed; no refund was initiated.");
+   return json({error:"Refund verification pending retry"},503);
+  }
+ }
  if(event?.type!=="PAYMENT_SUCCESS_WEBHOOK")return json({ok:true,ignored:true});
  const cfId=String(event?.data?.order?.order_id||"");
  if(/^bite_live_[0-9a-f]{32}$/i.test(cfId)){

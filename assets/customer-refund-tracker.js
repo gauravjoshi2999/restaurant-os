@@ -23,6 +23,16 @@
    return null;
   }
   if(unavailable)return {kind:'unknown',title:'Checking refund status',note:'Please try again shortly.',stage:0};
+  // A fresh exact-refund provider check outranks a stale internal review label.
+  // It must never be treated as evidence of credit to the customer's bank.
+  if(confirmed&&status==='succeeded'&&provider==='SUCCESS')
+   return {kind:'success',title:'Refund processed',note:'Cashfree confirmed success; bank credit may take longer.',stage:2};
+  if(confirmed&&['PENDING','PENDING_APPROVAL','ONHOLD'].includes(provider))
+   return {kind:'processing',title:'Refund initiated',
+    note:'Provider refund recorded. Processing to the original payment method.',stage:1};
+  if(confirmed&&['FAILED','CANCELLED','REJECTED'].includes(provider))
+   return {kind:'failed',title:'Refund needs attention',
+    note:'Cashfree did not complete this refund. Please contact support.',stage:0};
   if(status==='pending_approval')return {kind:'waiting',title:'Refund under review',
    note:'We’ve received your refund request.',stage:0};
   if(status==='approved')return {kind:'waiting',title:'Refund request approved',
@@ -62,7 +72,7 @@
   const provider=String(refund?.provider_status||'').toUpperCase();
   const checked=!!refund?.provider_checked_at;
   const initiated=checked&&['PENDING','PENDING_APPROVAL','ONHOLD','SUCCESS'].includes(provider)&&
-   ['submitted','succeeded'].includes(refund?.status);
+   (['submitted','succeeded'].includes(refund?.status)||info.stage>=1);
   const complete=info.kind==='success'&&initiated;
   const stage=complete?2:initiated?1:0;
   // The bank is never marked credited merely because Cashfree returned SUCCESS.

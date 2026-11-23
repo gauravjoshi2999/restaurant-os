@@ -101,7 +101,7 @@ test('customer details put compact refund first, order items next, and full hist
  assert.match(detail,/target\.innerHTML=refundCard\+itemCard\+activity/);
  assert.match(detail,/<details class="bite-order-activity">/);
  assert.doesNotMatch(detail,/Order cancelled\. Refund is not shown as completed/);
- assert.match(customer,/customer-refund-tracker\.js\?v=20261115-compact2/);
+ assert.match(customer,/customer-refund-tracker\.js\?v=20261123-verified-status1/);
  assert.match(customer,/customer-refund-tracker\.css\?v=20261115-compact2/);
 });
 test('customer status is read with existing customer RLS plus customer session scope, never a platform-wide query',()=>{
