@@ -44,6 +44,14 @@ begin
  if s<>'succeeded' then raise exception 'Late event reverted confirmed refund';end if;
  if (select refund_amount_actual from public.order_financials where order_id='10000000-0000-0000-0000-000000000001')<>174
  then raise exception 'Duplicate counted refund twice';end if;
+ -- Cashfree FAILED is an observed external status, not a new debit.
+ update public.bite_refund_jobs set status='submitted' where id=second;
+ s:=public.bite_record_verified_refund_observation(
+  second,'bite_rf_60000000000000000000000000000002','FAILED',50,'INR');
+ if s<>'failed' then raise exception 'Provider FAILED status was not recorded';end if;
+ if (select refund_amount_actual from public.order_financials
+    where order_id='10000000-0000-0000-0000-000000000002')<>0
+ then raise exception 'Failed refund changed financial totals';end if;
  -- Suspicious preexisting ledger balance never receives a guessed second refund.
  update public.order_financials set refund_amount_actual=1
  where order_id='10000000-0000-0000-0000-000000000002';
