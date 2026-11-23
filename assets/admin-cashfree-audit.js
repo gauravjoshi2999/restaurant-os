@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  let deps=null,requestToken=0,loadedOrders=[],lastChecks=[],working=false,activeUser=null;
- let refundLoadToken=0,refundBusy=false,refundRows=[];
+ let refundLoadToken=0,refundBusy=false,refundRows=[],refundReviewSeen=false,refundWatchTimer=null;
  let autoPolicyRequest=0;
  const refundEvidence=new Map();
  const splitResults=new Map(),vendorComparisons=new Map(),vendorBankChecks=new Map(),vendorReconResults=new Map();
@@ -137,11 +137,16 @@
    preflight.disabled=refundBusy;
    preflight.dataset.biteAutoRefundPreflight=row.id;
    preflight.setAttribute('aria-label','Check Cashfree payment and competing refunds for '+row.code+' without sending money');
-   action.append(btn,preflight);
+   action.append(btn);
+   if(!['succeeded','failed','rejected'].includes(row.status))action.append(preflight);
    const route=row.autoEligible?'Trusted auto rule recorded':'Manual review required (not auto-authorized)';
+   const providerConfirmed=!!row.providerCheckedAt&&row.providerStatus==='SUCCESS';
+   const providerLabel=providerConfirmed?'Cashfree reports refund processed; bank credit not independently confirmed':
+    row.providerCheckedAt?'Cashfree check: '+String(row.providerStatus||'UNKNOWN').slice(0,24):
+    'Provider status not independently verified';
    tr.append(cell(row.code),cell(money(row.amount)),
     cell(row.status),
-    cell((result?.message||'Provider status not checked; no refund initiated')+' · '+route),action);
+    cell((result?.message||providerLabel)+' · '+route),action);
    body.append(tr);
   }
  }
@@ -156,14 +161,15 @@
   if(status)status.textContent='Loading pending and approved refunds from your admin RLS view…';
   try{
    const {data,error}=await deps.sb.from('bite_refund_jobs')
-    .select('id,order_id,amount,status,created_at,auto_authorized_at,auto_rule').in('status',['pending_approval','approved','processing'])
+    .select('id,order_id,amount,status,provider_status,provider_checked_at,created_at,auto_authorized_at,auto_rule')
+    .in('status',['pending_approval','approved','processing','submitted','succeeded','failed','rejected'])
     .order('created_at',{ascending:false}).limit(50);
    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
    if(error)throw error;
    const orders=new Map((deps.getState()?.orders||[]).map(o=>[o.id,o]));
    const uuid=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
    const eligible=(data||[]).filter(r=>uuid.test(r?.id)&&
-    ['pending_approval','approved','processing'].includes(r.status)&&
+    ['pending_approval','approved','processing','submitted','succeeded','failed','rejected'].includes(r.status)&&
     Number.isFinite(Number(r.amount))&&Number(r.amount)>0);
    // A refund can reference an order absent from the paginated dashboard state.
    // Look up only its code through the authenticated Super Admin RLS view.
@@ -182,13 +188,15 @@
    }
    refundRows=eligible.map(r=>({
     id:r.id,orderId:r.order_id,amount:Number(r.amount),status:r.status,
+    providerStatus:String(r.provider_status||'').toUpperCase(),providerCheckedAt:r.provider_checked_at,
     autoEligible:!!r.auto_authorized_at&&
       ['CUSTOMER_BEFORE_ACCEPTANCE','RESTAURANT_REJECTED','OWNER_ACCEPTED_CANCELLATION'].includes(r.auto_rule),
     code:String(orders.get(r.order_id)?.order_code||
       ('Order …'+String(r.order_id||'unknown').slice(-8))).slice(0,45)
    }));
+   refundReviewSeen=true;
    if(status)status.textContent=refundRows.length+
-    ' pending/approved/processing refund(s) for review. Checking Cashfree requires a separate click. No refund was initiated.';
+    ' recent refund record(s), including completed outcomes. Provider checks are read-only; no refund was initiated.';
   }catch(error){
    if(token!==refundLoadToken||!authorized()||deps.getUser()?.id!==userId)return;
    refundRows=[];if(status)status.textContent='Refund review could not be loaded. No refund started.';
@@ -729,6 +737,13 @@
   button.dataset.auditWired='1';
   button.addEventListener('click',()=>{void load();});
   byId('biteRefundReviewLoad')?.addEventListener('click',()=>{void loadRefundReview();});
+  // Keep open Super Admin refund history current without executing provider actions.
+  // Account changes wipe data; hidden browser tabs do not poll.
+  if(refundWatchTimer===null&&typeof root.setInterval==='function')
+   refundWatchTimer=root.setInterval(()=>{
+    if(refundReviewSeen&&authorized()&&document.visibilityState==='visible'&&!refundBusy)
+     void loadRefundReview();
+   },45000);
   byId('biteRefundAutoCheck')?.addEventListener('click',()=>{void loadAutoRefundPolicy();});
   byId('biteRefundReviewRows')?.addEventListener('click',event=>{
    const target=event.target.closest('[data-bite-inspect-refund]');
@@ -759,6 +774,10 @@
    }
   });
  }
- function clear(){requestToken++;activeUser=null;working=false;wipe();setStatus('Super Admin login required.');}
+ function clear(){
+  if(refundWatchTimer!==null){root.clearInterval?.(refundWatchTimer);refundWatchTimer=null;}
+  refundReviewSeen=false;requestToken++;activeUser=null;working=false;wipe();
+  setStatus('Super Admin login required.');
+ }
  root.BiteCashfreeAudit={init,load,reconcile,preflightRefund,inspectSplit,compareVendor,inspectVendor,inspectVendorRecon,loadRefundReview,inspectRefund,loadAutoRefundPolicy,preflightRefundJob,compareVendorCandidate,clear,classify,buildRows,buildPaymentExceptions};
 })(window);
