@@ -46,6 +46,20 @@ try:
             page.wait_for_function('window.__bootReads===1')
             page.clock.fast_forward(11000)
             page.locator('#authSessionRetry').wait_for(state='visible')
+            # Recovery renders the message/button before the current layout pass
+            # settles. Assert the real fields/guard with Playwright's waiter.
+            try:
+                page.locator('#authEmail').wait_for(state='visible')
+                page.locator('#mainApp').wait_for(state='hidden')
+            except Exception as exc:
+                diagnostic = page.evaluate('''() => ({
+                    body:document.body.className,
+                    authForm:getComputedStyle(document.querySelector('#authForm')).display,
+                    authInput:getComputedStyle(document.querySelector('#authEmail')).visibility,
+                    appDisplay:getComputedStyle(document.querySelector('#mainApp')).display,
+                    error:document.querySelector('#authError').textContent
+                })''')
+                raise AssertionError(f'{width}px recovery state: {diagnostic}') from exc
             check(page.locator('#authEmail').is_visible() and page.locator('#mainApp').is_hidden(), f'{width}px stalled session reveals login/reconnect with private workspace hidden')
             page.locator('#authSessionRetry').click()
             check(page.locator('#authSessionRetry').is_disabled(), f'{width}px reconnect blocks repeated taps')

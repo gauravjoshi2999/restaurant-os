@@ -439,7 +439,7 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 - Local Chromium blocked by execution environment: browser process could not create its process-singleton socket (`Operation not permitted`). No relaxation/escalation attempted. Actual Chromium runs on GitHub CI; local result is not presented as browser PASS.
 - New browser contract: actual Owner markup with frozen synthetic auth at 320/360/390/430/1440px; timeout/retry/late result/storage preservation and dependency-stall guard. External requests blocked. Fixture traffic and tests are not real-account acceptance.
 - PostgreSQL: no SQL changed; required existing isolated PostgreSQL suites must still pass in full CI before merge.
-- PR / tested commit: PENDING.
+- PR [#315](https://github.com/gauravjoshi2999/restaurant-os/pull/315), initial head `3ba45e0f12084d4310d2e4e03e28035877a9060c`. Initial QA [45410826945](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45410826945): 11 PostgreSQL jobs passed; static/Node checks passed; new Chromium test passed 320/360/390px then failed the immediate 430px login visibility assertion. Added explicit field/guard wait and diagnostic output; exact updated-head QA required. Do not merge initial failed candidate.
 - Exact deployment SHA / live verification: PENDING.
 - Acceptance: NOT ACCEPTED; production signed-in owner/Android checks remain OPEN after automated release.
 - Rollback: revert B001 commit/PR to the known B0 code; no data rollback or money action required. Keep #314 refund behavior.
