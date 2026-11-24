@@ -18,14 +18,31 @@ test('paid cancelled refund awaiting approval is compact and does not claim an i
  assert.match(card,/₹1/);
  assert.doesNotMatch(card,/View details for refund tracking|Bank.*not independently|Cashfree/);
  const details=refund.details(old(),job,{status:'Approved'});
- assert.match(details,/<ol class="bite-refund-steps"/);
- assert.equal((details.match(/class="bite-refund-step-marker"/g)||[]).length,3);
- assert.match(details,/<span>Requested<\/span>/);
- assert.match(details,/<span>Initiated<\/span>/);
- assert.match(details,/<span>Processed<\/span>/);
+ assert.match(details,/bite-refund-requested-only/);
+ assert.match(details,/Refund request recorded/);
+ assert.doesNotMatch(details,/<ol class="bite-refund-steps"|bite-refund-step-marker|<span>Initiated<\/span>|<span>Processed<\/span>/);
  assert.match(details,/timeframe starts after initiation/);
  assert.doesNotMatch(details,/5–7 working days of initiation/);
  assert.doesNotMatch(details,/Refund processed/);
+});
+test('refund steps are only displayed after provider-verified initiation, never for unpaid/no-refund history',()=>{
+ const order=old({payment_status:'unpaid'});
+ assert.equal(refund.details(order,null,null),'','unpaid order without a refund job has no refund tracker');
+ assert.equal(refund.summary(order,null,null),'','unpaid order without a refund job has no refund badge');
+ const notStarted={amount:1,status:'pending_approval',provider_status:'NOT_INITIATED',
+  provider_checked_at:'2026-11-24T13:00:00Z'};
+ const noSteps=refund.details(old(),notStarted);
+ assert.match(noSteps,/Refund not initiated|Refund request recorded/);
+ assert.doesNotMatch(noSteps,/<ol class="bite-refund-steps"|<span>Initiated<\/span>|<span>Processed<\/span>/);
+ const initiated={...notStarted,provider_status:'PENDING',status:'submitted'};
+ const steps=refund.details(old(),initiated);
+ assert.match(steps,/<ol class="bite-refund-steps"/);
+ assert.match(steps,/<span>Initiated<\/span>/);
+ assert.match(steps,/<span>Processed<\/span>/);
+ assert.doesNotMatch(steps,/bite-refund-requested-only/);
+ const completed={...initiated,provider_status:'SUCCESS',status:'succeeded'};
+ assert.match(refund.details(old(),completed),/Refund processed/);
+ assert.match(refund.details(old(),completed),/<span>Processed<\/span>/);
 });
 test('pending customer cancellation is distinct from refund submission',()=>{
  const info=refund.classify({id:'a',status:'Accepted'},null,{status:'Pending'});
@@ -39,7 +56,8 @@ test('approved but not initiated is still a waiting state',()=>{
  assert.match(info.note,/initiation is not confirmed yet/);
  assert.equal(info.stage,0);
  const detail=refund.details(old(),{amount:1,status:'approved'});
- assert.match(detail, /<li class="is-upcoming"><span class="bite-refund-step-marker"[^>]*>2<\/span><span>Initiated<\/span>/);
+ assert.match(detail,/bite-refund-requested-only/);
+ assert.doesNotMatch(detail,/<span>Initiated<\/span>|<span>Processed<\/span>/);
 });
 test('approval or processing without Cashfree confirmation cannot claim initiation',()=>{
  const approved={amount:1,status:'approved',provider_refund_id:'allocated-only',provider_checked_at:null};
@@ -101,8 +119,8 @@ test('customer details put compact refund first, order items next, and full hist
  assert.match(detail,/target\.innerHTML=refundCard\+itemCard\+activity/);
  assert.match(detail,/<details class="bite-order-activity">/);
  assert.doesNotMatch(detail,/Order cancelled\. Refund is not shown as completed/);
- assert.match(customer,/customer-refund-tracker\.js\?v=20261124-cashfree-not-initiated1/);
- assert.match(customer,/customer-refund-tracker\.css\?v=20261115-compact2/);
+ assert.match(customer,/customer-refund-tracker\.js\?v=20261124-progress-only-after-initiation1/);
+ assert.match(customer,/customer-refund-tracker\.css\?v=20261124-progress-only-after-initiation1/);
 });
 test('customer status is read with existing customer RLS plus customer session scope, never a platform-wide query',()=>{
  assert.match(customer,/sb\.from\('bite_refund_jobs'\)/);
