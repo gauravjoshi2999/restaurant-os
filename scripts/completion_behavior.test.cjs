@@ -103,3 +103,78 @@ test('restored pickup uses the saved fulfillment mode and note rather than stale
 test('sandbox recovery never reads or consumes a saved production checkout',async()=>{
  const source=fs.readFileSync('assets/customer-completion.js','utf8'),fn=source.slice(source.indexOf('async function restorePendingCheckout('),source.indexOf('async function loadFavourites('));let reads=0;const context={BITE_SANDBOX_CHECKOUT:true,readPending(){reads++;throw Error('Production pending state must stay untouched');}};vm.createContext(context);vm.runInContext(fn+';this.restore=restorePendingCheckout',context);await context.restore('customer');assert.equal(reads,0);
 });
+
+
+function refundStatusSweep(options={}){
+ const calls=[],rpcCalls=[],getOps=[];
+ const rest='44444444-4444-4444-8444-444444444444',cust='55555555-5555-4555-8555-555555555555';
+ const refundId='bite_rf_0123456789abcdef0123456789abcdef';
+ const job={id:jid,order_id:oid,restaurant_id:rest,customer_id:cust,
+  amount:190,provider_refund_id:refundId,status:'pending_approval',...options.job};
+ const order={id:oid,restaurant_id:rest,customer_id:cust,amount:190,channel:'Own Platform',is_demo:false};
+ const intent={id,activated_order_id:oid,restaurant_id:rest,customer_id:cust,amount:190,
+  currency:'INR',status:'activated',provider_order_id:cfId};
+ const financial={order_id:oid,restaurant_id:rest,customer_payable_amount:190,
+  currency:'INR',payment_status:'paid'};
+ const from=(table)=>{
+  const q={select:()=>q,eq:()=>q,in:()=>q,not:()=>q,gte:()=>q,order:()=>q,
+   limit:async()=>({data:[job],error:null}),
+   maybeSingle:async()=>({data:table==='orders'?order:
+    table==='bite_live_checkout_intents'?intent:
+    table==='order_financials'?financial:
+    {auto_refunds_enabled:false,auto_refund_max_amount:0},error:null})};
+  return q;
+ };
+ const client=()=>({from,rpc:async(name,args)=>{
+  rpcCalls.push({name,args});return{data:'succeeded',error:null};
+ }});
+ const fetch=async(url,request={})=>{
+  calls.push({url,request});
+  if(options.httpDown)return new Response('{}',{status:503});
+  if(url.includes('/refunds/')){
+   if(options.noExactRefund)return new Response('{}',{status:404});
+   return new Response(JSON.stringify({order_id:cfId,refund_id:refundId,
+    refund_amount:options.refundAmount??190,refund_currency:'INR',
+    refund_status:options.refundStatus||'SUCCESS'}));
+  }
+  return new Response(JSON.stringify({order_id:cfId,order_currency:'INR',
+   order_amount:190,order_status:'PAID'}));
+ };
+ const t=edge('supabase/functions/bite-auto-refund/index.ts',{
+  client,fetch,env:{BITE_MAINTENANCE_SECRET:'scheduler-only-secret',
+   BITE_MAINTENANCE_ENABLED:'false',...options.env}});
+ return {...t,calls,rpcCalls,getOps};
+}
+test('Vault-authenticated refund status backfill observes external Cashfree SUCCESS with zero money POSTs even when issuance disabled',async()=>{
+ const t=refundStatusSweep();
+ const r=await t.request({action:'drain',mode:'reconcile'},'Bearer scheduler-only-secret');
+ assert.equal(r.status,200);assert.equal(r.body.status,'refund_status_checked');
+ assert.equal(r.body.observed,1);assert.equal(r.body.refund_sent,false);
+ assert.deepEqual(t.rpcCalls.map(x=>x.name),['bite_record_verified_refund_observation']);
+ assert.equal(t.rpcCalls[0].args.p_status,'SUCCESS');
+ assert.equal(t.calls.length,2);
+ assert.ok(t.calls.every(c=>c.request.method==='GET'));
+});
+test('refund status backfill never marks money returned when provider exact refund is missing',async()=>{
+ const t=refundStatusSweep({noExactRefund:true});
+ const r=await t.request({action:'drain',mode:'reconcile'},'Bearer scheduler-only-secret');
+ assert.equal(r.status,200);assert.equal(r.body.missing_exact_refund,1);
+ assert.equal(r.body.observed,0);assert.equal(t.rpcCalls.length,0);
+ assert.ok(t.calls.every(c=>c.request.method==='GET'));
+});
+test('refund status backfill rejects provider mismatch and does not write financial evidence',async()=>{
+ for(const opts of [{refundAmount:189},{job:{customer_id:'66666666-6666-4666-8666-666666666666'}},{httpDown:true}]){
+  const t=refundStatusSweep(opts);
+  const r=await t.request({action:'drain',mode:'reconcile'},'Bearer scheduler-only-secret');
+  assert.equal(r.status,200);assert.equal(r.body.unresolved,1);
+  assert.equal(t.rpcCalls.length,0);assert.equal(t.calls.some(c=>c.request.method==='POST'),false);
+ }
+});
+test('refund reconciler cannot be triggered by anonymous caller or customer mode changes',async()=>{
+ const t=refundStatusSweep();
+ const unauthorized=await t.request({action:'drain',mode:'reconcile'},'Bearer invalid');
+ assert.equal(unauthorized.status,401);
+ const invalidMode=await t.request({action:'run',mode:'reconcile',order_id:oid},'Bearer invalid');
+ assert.equal(invalidMode.status,400);
+ assert.equal(t.calls.length,0);assert.equal(t.rpcCalls.length,0);
+});
