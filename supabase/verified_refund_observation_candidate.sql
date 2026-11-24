@@ -19,7 +19,7 @@ begin
    raise exception 'Service role required';
  end if;
  if p_status is null or p_provider_refund_id is null
-    or p_status not in ('SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','FAILED','REJECTED')
+    or p_status not in ('SUCCESS','PENDING','PENDING_APPROVAL','CANCELLED','ONHOLD','FAILED','REJECTED','NOT_INITIATED')
     or p_amount is null or p_amount::text in ('NaN','Infinity','-Infinity')
     or p_amount<=0 or p_currency is distinct from 'INR' then
    raise exception 'Untrusted provider evidence';
@@ -34,6 +34,11 @@ begin
    if j.provider_status='SUCCESS' then return 'succeeded'; end if;
    raise exception 'Inconsistent previously recorded refund';
  end if;
+ -- A provider-verified *empty order refund list* can be recorded without
+ -- converting an internal approval to a cash transfer or overriding an
+ -- already observed real Cashfree refund lifecycle.
+ if p_status='NOT_INITIATED' and j.provider_status is not null
+    and j.provider_status<>'NOT_INITIATED' then return 'provider_status_unchanged'; end if;
  select * into o from public.orders where id=j.order_id;
  select * into i from public.bite_live_checkout_intents where activated_order_id=j.order_id;
  select * into f from public.order_financials where order_id=j.order_id for update;
@@ -53,6 +58,9 @@ begin
     or f.payment_status not in ('paid','partially_refunded','refunded')
     or p_amount>i.amount then
    raise exception 'Original paid order and refund scope mismatch';
+ end if;
+ if p_status='NOT_INITIATED' and coalesce(f.refund_amount_actual,0)<>0 then
+   raise exception 'Previously recorded refund requires reconciliation';
  end if;
  v_next_status:=j.status;
  if p_status='SUCCESS' then
@@ -75,7 +83,7 @@ begin
    -- Provider-declined attempts do not create an authorization for new money.
    v_next_status:=case when j.status in ('processing','submitted')
                       then 'failed' else j.status end;
- elsif j.status in ('processing','submitted') then
+ elsif p_status<>'NOT_INITIATED' and j.status in ('processing','submitted') then
    v_next_status:='submitted';
  end if;
  update public.bite_refund_jobs

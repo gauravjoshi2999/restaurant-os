@@ -96,6 +96,8 @@
   const provider=String(row.provider_status||'').toUpperCase();
   if(providerRefundConfirmed(row))
    return 'Provider reports refund processed · bank credit unverified';
+  if(provider==='NOT_INITIATED'&&checkedTime(row.provider_checked_at)!==null)
+   return 'Cashfree: refund not initiated as of '+stamp(row.provider_checked_at)+' · '+(row.status==='approved'?'Bite approved':'Bite review pending');
   if(['FAILED','ERROR'].includes(provider))return 'Provider reported failure · follow up';
   if(row.status==='approved')return 'Approved in Bite · provider refund unverified';
   if(row.status==='pending_approval')return 'Awaiting approval in Bite';

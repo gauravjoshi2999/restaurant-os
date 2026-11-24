@@ -43,6 +43,19 @@ test('Customer sees provider-confirmed initiated stage while internal approval v
  const unverified={...job,provider_checked_at:null};
  assert.equal(refund.classify(order,unverified).title,'Refund under review');
 });
+test('Customer shows a real verified no-refund state instead of endless generic under review',()=>{
+ const order={id:'a',status:'Cancelled'};
+ const job={amount:1,status:'pending_approval',provider_status:'NOT_INITIATED',
+  provider_refund_id:'bite_rf_abc',provider_checked_at:'2026-11-24T12:30:00Z'};
+ assert.equal(refund.classify(order,job).title,'Refund not initiated');
+ assert.match(refund.summary(order,job),/Cashfree has no refund/);
+ assert.match(refund.details(order,job),/Not initiated at Cashfree/);
+ assert.match(refund.details(order,job),/Last checked/);
+ assert.doesNotMatch(refund.details(order,job),/Cashfree refund ID \(not bank UTR\)|Refund processed|5–7 working days/);
+ assert.notEqual(refund.classify(order,{...job,provider_checked_at:null}).title,'Refund not initiated');
+ assert.match(owner,/Cashfree: refund not initiated as of/);
+ assert.match(admin,/Cashfree verified: refund not initiated/);
+});
 test('Confirmed SUCCESS remains provider processed and never asserts bank credit',()=>{
  const order={id:'a'};
  const job={amount:174,status:'succeeded',provider_status:'SUCCESS',provider_checked_at:'2026-11-23T04:00:00Z'};

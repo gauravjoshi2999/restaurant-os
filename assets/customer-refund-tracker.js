@@ -30,6 +30,9 @@
   if(confirmed&&['PENDING','PENDING_APPROVAL','ONHOLD'].includes(provider))
    return {kind:'processing',title:'Refund initiated',
     note:'Provider refund recorded. Processing to the original payment method.',stage:1};
+  if(confirmed&&provider==='NOT_INITIATED')
+   return {kind:'waiting',title:'Refund not initiated',
+    note:'Cashfree has no refund for this order as of the last check. Your Bite refund request is '+(status==='approved'?'approved':'under review')+'.',stage:0};
   if(confirmed&&['FAILED','CANCELLED','REJECTED'].includes(provider))
    return {kind:'failed',title:'Refund needs attention',
     note:'Cashfree did not complete this refund. Please contact support.',stage:0};
@@ -93,12 +96,12 @@
    '<details class="bite-refund-help"><summary>Payment details &amp; help</summary>'+
    '<div class="bite-refund-help-body">'+
    '<div><span>Refund to</span><strong>Original payment method</strong></div>'+
-   '<div><span>Provider status</span><strong>'+esc(checked?provider:'Awaiting verification')+'</strong></div>'+
+   '<div><span>Provider status</span><strong>'+esc(checked?(provider==='NOT_INITIATED'?'Not initiated at Cashfree':provider):'Awaiting verification')+'</strong></div>'+
    ((checked&&refund?.provider_refund_id)?
-    '<div><span>Cashfree refund ID (not bank UTR)</span><strong>'+esc(refund.provider_refund_id)+'</strong></div>':'')+
+    '<div><span>'+(provider==='NOT_INITIATED'?'Bite refund tracking reference':'Cashfree refund ID (not bank UTR)')+'</span><strong>'+esc(refund.provider_refund_id)+'</strong></div>':'')+
    ((checked&&refund?.provider_checked_at)?
     '<div><span>Last checked</span><strong>'+esc(date(refund.provider_checked_at))+'</strong></div>':'')+
-   '<p>Refunds return to the original payment method. For a missing credit, contact Bite support using this order ID.</p>'+
+   '<p>'+(provider==='NOT_INITIATED'?'No refund has been started at Cashfree for this order as of the checked date. There is no refund credit in progress.':'Refunds return to the original payment method. For a missing credit, contact Bite support using this order ID.')+'</p>'+
    '</div></details>');
   return '<section class="bite-refund-details" aria-label="Refund tracking">'+
    '<div class="bite-refund-details-head"><div><span class="bite-refund-eyebrow">REFUND STATUS</span>'+

@@ -142,6 +142,7 @@
    const route=row.autoEligible?'Trusted auto rule recorded':'Manual review required (not auto-authorized)';
    const providerConfirmed=!!row.providerCheckedAt&&row.providerStatus==='SUCCESS';
    const providerLabel=providerConfirmed?'Cashfree reports refund processed; bank credit not independently confirmed':
+    row.providerCheckedAt&&row.providerStatus==='NOT_INITIATED'?'Cashfree verified: refund not initiated; Bite request '+row.status:
     row.providerCheckedAt?'Cashfree check: '+String(row.providerStatus||'UNKNOWN').slice(0,24):
     'Provider status not checked · provider verification pending';
    tr.append(cell(row.code),cell(money(row.amount)),
