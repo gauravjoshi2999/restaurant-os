@@ -25,6 +25,15 @@ begin
  begin perform public.bite_record_verified_refund_observation(rid,ref,'UNKNOWN',174,'INR');
  exception when raise_exception then blocked:=true;end;
  if not blocked then raise exception 'Unknown refund status accepted';end if;
+ -- An independently verified empty Cashfree refund list is NOT a refund,
+ -- and must retain the internal request/approval status and zero money.
+ s:=public.bite_record_verified_refund_observation(rid,ref,'NOT_INITIATED',174,'INR');
+ if s<>'pending_approval' then raise exception 'Not initiated changed internal request state';end if;
+ if not exists(select 1 from public.bite_refund_jobs
+               where id=rid and provider_status='NOT_INITIATED' and provider_checked_at is not null)
+ then raise exception 'No-refund provider evidence was not recorded';end if;
+ if (select refund_amount_actual from public.order_financials where order_id='10000000-0000-0000-0000-000000000001')<>0
+ then raise exception 'Not initiated incorrectly changed financials';end if;
  s:=public.bite_record_verified_refund_observation(rid,ref,'PENDING',174,'INR');
  if s<>'pending_approval' then raise exception 'Observed pending wrong state';end if;
  if not exists(select 1 from public.bite_refund_jobs
@@ -42,6 +51,8 @@ begin
  if s<>'succeeded' then raise exception 'Retry not idempotent';end if;
  s:=public.bite_record_verified_refund_observation(rid,ref,'PENDING',174,'INR');
  if s<>'succeeded' then raise exception 'Late event reverted confirmed refund';end if;
+ s:=public.bite_record_verified_refund_observation(rid,ref,'NOT_INITIATED',174,'INR');
+ if s<>'succeeded' then raise exception 'Late no-refund event reverted SUCCESS';end if;
  if (select refund_amount_actual from public.order_financials where order_id='10000000-0000-0000-0000-000000000001')<>174
  then raise exception 'Duplicate counted refund twice';end if;
  -- Cashfree FAILED is an observed external status, not a new debit.
