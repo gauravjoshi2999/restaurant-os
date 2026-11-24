@@ -42,7 +42,7 @@ Deno.serve(async(req:Request)=>{
   if(!body||!["run","drain","preflight"].includes(body.action))return json({error:"Invalid action"},400);
   // Signed diagnostic is read-only and valid even while the refund rollout is
   // OFF. This is not available through the customer's authenticated "run".
-  if(body.mode!==undefined&&!(body.action==="drain"&&body.mode==="preflight"))
+  if(body.mode!==undefined&&!(body.action==="drain"&&["preflight","reconcile"].includes(body.mode)))
    return json({error:"Invalid mode"},400);
   const auth=req.headers.get("authorization")||"";
   const db=createClient(url,service);
@@ -79,6 +79,97 @@ Deno.serve(async(req:Request)=>{
   const {data:config,error:configError}=await db.from("bite_operations_config")
     .select("auto_refunds_enabled,auto_refund_max_amount").eq("id",true).maybeSingle();
   if(configError||!config)return json({error:"Refund policy unavailable"},503);
+  // Independent status sync for an already-issued Cashfree refund. This route
+  // uses the existing Vault-signed scheduler authentication, but deliberately
+  // ignores the money-issuance switch: only provider GETs and the narrowly
+  // granted bite_record_verified_refund_observation RPC are permitted.
+  // It never calls processOne(), claim_auto_refund or POST /orders/.../refunds.
+  if(body.action==="drain"&&body.mode==="reconcile"){
+   const app=Deno.env.get("CASHFREE_APP_ID"),providerSecret=Deno.env.get("CASHFREE_SECRET_KEY");
+   if(!app||!providerSecret)return json({error:"Provider status lookup unavailable",refund_sent:false},503);
+   const {data:jobs,error:queueError}=await db.from("bite_refund_jobs")
+    .select("id,order_id,restaurant_id,customer_id,amount,provider_refund_id,status")
+    .in("status",["pending_approval","approved","processing","submitted","failed","rejected"])
+    .not("provider_refund_id","is",null)
+    .gte("created_at",new Date(Date.now()-90*86400000).toISOString())
+    .order("created_at",{ascending:false}).limit(6);
+   if(queueError)return json({error:"Refund status queue unavailable",refund_sent:false},503);
+   const stats={examined:0,observed:0,missing_exact_refund:0,unresolved:0};
+   const allowed=new Set(["SUCCESS","PENDING","PENDING_APPROVAL","CANCELLED","ONHOLD","FAILED","REJECTED"]);
+   async function inspectOne(job:any){
+    stats.examined++;
+    try{
+     if(!uuid(job?.id)||!uuid(job?.order_id)||!uuid(job?.restaurant_id)||!uuid(job?.customer_id)||
+        typeof job.provider_refund_id!=="string"||
+        !/^[A-Za-z0-9_-]{1,80}$/.test(job.provider_refund_id)||
+        !Number.isFinite(Number(job.amount))||Number(job.amount)<=0)return "unresolved";
+     const [o,i,f]=await Promise.all([
+      db.from("orders").select("id,restaurant_id,customer_id,amount,channel,is_demo")
+       .eq("id",job.order_id).maybeSingle(),
+      db.from("bite_live_checkout_intents")
+       .select("id,activated_order_id,restaurant_id,customer_id,amount,currency,status,provider_order_id")
+       .eq("activated_order_id",job.order_id).maybeSingle(),
+      db.from("order_financials")
+       .select("order_id,restaurant_id,customer_payable_amount,currency,payment_status")
+       .eq("order_id",job.order_id).maybeSingle()
+     ]);
+     if(o.error||i.error||f.error)return "unresolved";
+     const order=o.data,intent=i.data,fin=f.data;
+     if(!order||!intent||!fin||order.id!==job.order_id||
+        order.channel!=="Own Platform"||order.is_demo===true||
+        order.restaurant_id!==job.restaurant_id||order.customer_id!==job.customer_id||
+        intent.activated_order_id!==job.order_id||
+        intent.restaurant_id!==job.restaurant_id||intent.customer_id!==job.customer_id||
+        intent.status!=="activated"||intent.currency!=="INR"||!uuid(intent.id)||
+        intent.provider_order_id!=="bite_live_"+intent.id.replaceAll("-","")||
+        fin.order_id!==job.order_id||fin.restaurant_id!==job.restaurant_id||
+        fin.currency!=="INR"||
+        !["paid","partially_refunded","refunded"].includes(fin.payment_status)||
+        !exactMoney(order.amount,intent.amount)||
+        !exactMoney(fin.customer_payable_amount,intent.amount)||
+        Number(job.amount)>Number(intent.amount))return "unresolved";
+     const headers={"x-api-version":"2023-08-01","x-client-id":app,"x-client-secret":providerSecret};
+     const get=async(path:string)=>{
+      const r=await fetch("https://api.cashfree.com/pg"+path,{method:"GET",
+       headers,signal:AbortSignal.timeout(9000)});
+      return {status:r.status,ok:r.ok,data:r.ok?await r.json():null};
+     };
+     const id=encodeURIComponent(intent.provider_order_id);
+     const payment=await get("/orders/"+id);
+     if(!payment.ok||payment.data?.order_id!==intent.provider_order_id||
+        payment.data?.order_status!=="PAID"||payment.data?.order_currency!=="INR"||
+        !exactMoney(payment.data?.order_amount,intent.amount))return "unresolved";
+     const refund=await get("/orders/"+id+"/refunds/"+encodeURIComponent(job.provider_refund_id));
+     if(refund.status===404)return "missing";
+     if(!refund.ok)return "unresolved";
+     const record=Array.isArray(refund.data)?
+      refund.data.find((x:any)=>x?.refund_id===job.provider_refund_id):refund.data;
+     if(!record||record.order_id!==intent.provider_order_id||
+        record.refund_id!==job.provider_refund_id||
+        record.refund_currency!=="INR"||
+        !exactMoney(record.refund_amount,job.amount)||
+        !allowed.has(record.refund_status))return "unresolved";
+     const result=await db.rpc("bite_record_verified_refund_observation",{
+      p_job_id:job.id,p_provider_refund_id:job.provider_refund_id,
+      p_status:record.refund_status,p_amount:Number(job.amount),p_currency:"INR"
+     });
+     if(result.error||!["succeeded","submitted","failed","pending_approval","approved","rejected"].includes(result.data))
+      return "unresolved";
+     return "observed";
+    }catch{return "unresolved";}
+   }
+   for(let offset=0;offset<(jobs||[]).length;offset+=2){
+    const results=await Promise.all(jobs.slice(offset,offset+2).map(inspectOne));
+    for(const result of results){
+     if(result==="observed")stats.observed++;
+     else if(result==="missing")stats.missing_exact_refund++;
+     else stats.unresolved++;
+    }
+   }
+   // Aggregate-only diagnostics: never expose customer/order IDs or credentials.
+   return json({status:"refund_status_checked",...stats,refund_sent:false,
+    provider_bank_credit_independently_verified:false});
+  }
   // Do not contact Cashfree unless the switch is enabled OR this is a
   // separately authenticated, explicitly read-only production preflight.
   const preflight=body.action==="preflight"||(body.action==="drain"&&body.mode==="preflight");
