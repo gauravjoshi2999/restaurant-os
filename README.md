@@ -1,5 +1,7 @@
 # Bite — Eat. Repeat.
 
+Current execution and acceptance evidence: [Bite master completion tracker](docs/BITE_MASTER_COMPLETION_TRACKER.md). Older phase descriptions below are historical and do not override the latest approved Owner/Customer requirements.
+
 Bite is an India-focused, full-stack restaurant marketplace connecting Customers, Restaurants and Platform Admins.
 
 ## Authoritative product requirements
