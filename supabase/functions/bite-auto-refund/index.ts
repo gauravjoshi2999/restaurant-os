@@ -88,13 +88,13 @@ Deno.serve(async(req:Request)=>{
    const app=Deno.env.get("CASHFREE_APP_ID"),providerSecret=Deno.env.get("CASHFREE_SECRET_KEY");
    if(!app||!providerSecret)return json({error:"Provider status lookup unavailable",refund_sent:false},503);
    const {data:jobs,error:queueError}=await db.from("bite_refund_jobs")
-    .select("id,order_id,restaurant_id,customer_id,amount,provider_refund_id,status")
+    .select("id,order_id,restaurant_id,customer_id,amount,provider_refund_id,status,attempts")
     .in("status",["pending_approval","approved","processing","submitted","failed","rejected"])
     .not("provider_refund_id","is",null)
     .gte("created_at",new Date(Date.now()-90*86400000).toISOString())
     .order("created_at",{ascending:false}).limit(6);
    if(queueError)return json({error:"Refund status queue unavailable",refund_sent:false},503);
-   const stats={examined:0,observed:0,missing_exact_refund:0,unresolved:0};
+   const stats={examined:0,observed:0,verified_not_initiated:0,missing_exact_refund:0,unresolved:0};
    const allowed=new Set(["SUCCESS","PENDING","PENDING_APPROVAL","CANCELLED","ONHOLD","FAILED","REJECTED"]);
    async function inspectOne(job:any){
     stats.examined++;
@@ -140,7 +140,23 @@ Deno.serve(async(req:Request)=>{
         payment.data?.order_status!=="PAID"||payment.data?.order_currency!=="INR"||
         !exactMoney(payment.data?.order_amount,intent.amount))return "unresolved";
      const refund=await get("/orders/"+id+"/refunds/"+encodeURIComponent(job.provider_refund_id));
-     if(refund.status===404)return "missing";
+     if(refund.status===404){
+      // Exact-refund 404 alone does NOT mean no refund happened: it could
+      // exist with another reference. Only a verified empty provider list
+      // proves that no refund has yet been initiated for this order.
+      // Don't claim absence after an uncertain prior POST attempt.
+      const all=await get("/orders/"+id+"/refunds");
+      if(!all.ok||!Array.isArray(all.data))return "unresolved";
+      if(all.data.length!==0)return "missing";
+      if(Number(job.attempts)!==0)return "unresolved";
+      const noRefund=await db.rpc("bite_record_verified_refund_observation",{
+       p_job_id:job.id,p_provider_refund_id:job.provider_refund_id,
+       p_status:"NOT_INITIATED",p_amount:Number(job.amount),p_currency:"INR"
+      });
+      if(noRefund.error||!["pending_approval","approved","processing","submitted","failed","rejected"].includes(noRefund.data))
+       return "unresolved";
+      return "not_initiated";
+     }
      if(!refund.ok)return "unresolved";
      const record=Array.isArray(refund.data)?
       refund.data.find((x:any)=>x?.refund_id===job.provider_refund_id):refund.data;
@@ -162,6 +178,7 @@ Deno.serve(async(req:Request)=>{
     const results=await Promise.all(jobs.slice(offset,offset+2).map(inspectOne));
     for(const result of results){
      if(result==="observed")stats.observed++;
+     else if(result==="not_initiated")stats.verified_not_initiated++;
      else if(result==="missing")stats.missing_exact_refund++;
      else stats.unresolved++;
     }
