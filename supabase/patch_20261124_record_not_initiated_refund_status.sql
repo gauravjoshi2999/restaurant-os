@@ -38,7 +38,7 @@ begin
  -- converting an internal approval to a cash transfer or overriding an
  -- already observed real Cashfree refund lifecycle.
  if p_status='NOT_INITIATED' and j.provider_status is not null
-    and j.provider_status<>'NOT_INITIATED' then return j.status; end if;
+    and j.provider_status<>'NOT_INITIATED' then return 'provider_status_unchanged'; end if;
  select * into o from public.orders where id=j.order_id;
  select * into i from public.bite_live_checkout_intents where activated_order_id=j.order_id;
  select * into f from public.order_financials where order_id=j.order_id for update;
@@ -58,6 +58,9 @@ begin
     or f.payment_status not in ('paid','partially_refunded','refunded')
     or p_amount>i.amount then
    raise exception 'Original paid order and refund scope mismatch';
+ end if;
+ if p_status='NOT_INITIATED' and coalesce(f.refund_amount_actual,0)<>0 then
+   raise exception 'Previously recorded refund requires reconciliation';
  end if;
  v_next_status:=j.status;
  if p_status='SUCCESS' then
