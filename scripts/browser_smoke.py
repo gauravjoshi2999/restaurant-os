@@ -412,9 +412,14 @@ try:
               'Dish cooking request previews without affecting the item price')
         check(page.evaluate("(id) => JSON.parse(localStorage.getItem('restaurantos_customer_cart_v1')).itemNotes[id]", item_id) == 'Less spicy, no onion',
               'Dish cooking request persists in the restaurant-scoped saved cart')
+        page.once('dialog', lambda dialog: dialog.dismiss())
+        page.locator('#emptyCartBtn').click()
+        check(page.locator('#cartCount').inner_text() == '(2)' and page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
+              'Cancelling Clear cart preserves both items and cooking instructions')
+        page.once('dialog', lambda dialog: dialog.accept())
         page.locator('#emptyCartBtn').click()
         check(page.locator('#cartCount').inner_text() == '(0)' and page.locator('#undoClearCartBtn').is_visible(),
-              'Clear cart offers an immediate Undo without losing the order')
+              'Explicitly confirmed Clear cart still offers Undo')
         page.locator('#undoClearCartBtn').click()
         check(page.locator('#cartCount').inner_text() == '(2)', 'Undo restores both cart items')
         check(page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',

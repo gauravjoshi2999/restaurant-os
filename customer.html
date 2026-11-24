@@ -2504,6 +2504,7 @@ $('cartModalLines').addEventListener('click',e=>{
 });
 $('emptyCartBtn').addEventListener('click',()=>{
  if(!cartEntries().length)return;
+ if(!confirm('Clear all unplaced items from this cart? Choose Cancel to keep your items.'))return;
  hideCartUndo();
  biteCartUndoSnapshot={restaurantId:activeRestaurant?.id,items:{...cart},itemNotes:{...itemNotes},note:$('cartOrderNote').value};
  clearCustomerCart();renderCart();

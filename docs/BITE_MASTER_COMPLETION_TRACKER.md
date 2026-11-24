@@ -4,9 +4,9 @@ Last audited: 24 November 2026 (IST). Existing repository only: `gauravjoshi2999
 
 ## NEXT ACTION
 
-1. Release batch B001: bounded Owner saved-session recovery and pre-dependency boot recovery. Local Node/static checks passed; exact PR Chromium/PostgreSQL QA, merge and Pages verification are pending. Do not claim LIVE yet.
-2. After B001 release, audit the 13 stale awaiting-payment intents through the existing read-only provider inspection pathway. Verify capability/authorization before calling any Edge endpoint; do not call charge/refund/payout actions. If service credentials or a signed-in admin are unavailable, record the blocker and move to R04 split receipt/UPI evidence and Customer cart/checkout acceptance.
-3. Resume from this section and the batch evidence below; never repeat PRs #310–#314 or merge legacy #11 blindly.
+1. Read the B001/B002 release journals linked below before doing new work. They hold the exact tested head, merged SHA, main QA, Pages SHA and observed live outcome recorded after publishing; absent LIVE evidence means finish that release gate first. Do not redo #310–#315 or merge legacy #11.
+2. Next independent P0: inspect the 13 awaiting-payment intents using the existing read-only Cashfree inspection route. `bite-cashfree-operations` requires a verified signed-in platform-admin session; do not bypass that guard or use a money action. If no authorized provider read session/export is available, record that external blocker and continue R04 split receipt/UPI acceptance or a reproducible Customer checkout gap.
+3. Remaining scope is the individual 45 Owner units, 158 Customer controls and acceptance checklists below. Exact signed-in visual/functional parity is still OPEN, even after the two fixes are LIVE.
 
 ## How statuses work
 
@@ -64,7 +64,7 @@ Repository evidence: README (older exclusions are historical), docs/OWNER_V3_45_
 | #291 | Open draft screenshot attachments | EXTERNALLY BLOCKED for privacy/retention decision and actual Storage role API proof; do not expose upload UI |
 | #280, #264 | Open drafts (release note / review candidate) | Compare current main before reuse; later owner support/review code already exists |
 | #166, #33, #23, #20, #18, #14, #10 | Older open feature branches | UNRECONCILED at behavior level; do not merge stale changes |
-| #11 | Open, mergeable=false, head c6550ea4; many cart/checkout protections now present on main | NOT TESTED for remaining unique delta; compare only unique hunks on fresh main |
+| #11 | Open, mergeable=false, head c6550ea4; fresh compare against B0: diverged, 2 ahead / 682 behind / 20 files from its merge base | NOT TESTED for remaining unique delta; compare only unique hunks on fresh main |
 
 Open/closed/merged inventories and recent Git history were examined. This is not a claim that every historical PR hunk has been exhaustively reviewed.
 
@@ -419,7 +419,7 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 | SEC-03 | 67 authenticated-definer advisor warnings; 0 policies containing user_metadata | NOT TESTED for full privileged-code audit | Audit auth.uid/property/restaurant predicates and current revocation, not only string checks |
 | SEC-04 | Guest documents private; cashier restrictions exist | PARTIALLY IMPLEMENTED | Actual Storage upload/list/download/replace/delete role matrix and retention; never publish IDs |
 | SEC-05 | Owner support screenshots not on main, bucket absent, #291 draft | EXTERNALLY BLOCKED for attachment release | Privacy/retention/deletion/access decision plus real Storage API role tests; keep UI off |
-| SEC-06 | Leaked-password protection advisor WARN | EXTERNALLY BLOCKED for paid feature if Free remains | #309 recorded Free-plan limitation; current billing/Auth configuration not changed; no paid upgrade authorized. [Supabase remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) |
+| SEC-06 | Leaked-password protection advisor WARN | EXTERNALLY BLOCKED for paid feature if Free remains | #309 recorded Free-plan limitation; organization plan reverified Free on 24 Nov; Auth configuration not changed; no paid upgrade authorized. [Supabase remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) |
 | SEC-07 | Current credentials server-side; public clients use publishable key | PARTIALLY IMPLEMENTED | Full secrets scanning/rate-limit/abuse/log minimization review and key rotation only if needed |
 | SEC-08 | Boot/session recovery B001 preserves stored login and private app guard | TESTED locally, release pending | Current PR Chromium + production signed-out smoke; actual owner device still OPEN |
 | SEC-09 | Backup/rollback, monitoring and restore evidence | NOT TESTED | Verify actual backup/restore capability and retention without destructive production test |
@@ -440,9 +440,27 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 - New browser contract: actual Owner markup with frozen synthetic auth at 320/360/390/430/1440px; timeout/retry/late result/storage preservation and dependency-stall guard. External requests blocked. Fixture traffic and tests are not real-account acceptance.
 - PostgreSQL: no SQL changed; required existing isolated PostgreSQL suites must still pass in full CI before merge.
 - PR [#315](https://github.com/gauravjoshi2999/restaurant-os/pull/315), initial head `3ba45e0f12084d4310d2e4e03e28035877a9060c`. Initial QA [45410826945](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45410826945): 11 PostgreSQL jobs passed; static/Node checks passed; new Chromium test passed 320/360/390px then failed the immediate 430px login visibility assertion. Added explicit field/guard wait and diagnostic output; exact updated-head QA required. Do not merge initial failed candidate.
-- Exact deployment SHA / live verification: PENDING.
+- Branch QA [45411231738](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45411231738) **12/12 passed** at `a7837dcd6b5e01f2bfc6bafe8a23423fae6c2f33`, including all new Chromium cases. Merged as `ffe8f505da83e26c596c4db0793ec18d1e655411`.
+- Exact main QA, deployment SHA and live verification: authoritative post-publish [B001 release journal](https://github.com/gauravjoshi2999/restaurant-os/pull/315). See the PR Conversation release entry; until it records LIVE these gates remain PENDING. The journal avoids self-certifying a commit's future deployment.
 - Acceptance: NOT ACCEPTED; production signed-in owner/Android checks remain OPEN after automated release.
 - Rollback: revert B001 commit/PR to the known B0 code; no data rollback or money action required. Keep #314 refund behavior.
+
+### B002 — confirm full-cart clearing before removing items
+
+- Source: C49 CART-06 / CART-07 / CART-08 and CART-QA-03. P0 cart-preservation gap. The full cart used to clear immediately and offer an eight-second Undo; it did not ask first. Live cloud-browser observation reproduced this on B0; no checkout/payment/order was created.
+- Fix: a synchronous clear confirmation runs before any cart/notes/undo mutation. Cancel leaves the complete current cart intact. Confirm preserves the existing full Undo snapshot. Empty/repeated clicks do not clear twice. Existing payment-intent state is untouched.
+- Files: `customer.html`, `scripts/customer_cart_clear_confirmation.test.cjs`, `scripts/browser_smoke.py`, this tracker.
+- Deterministic reproduction: 2/3 new tests failed before the fix; all 3 passed after it. Whole local Node suite **1215/1215 passed**; frontend checks, browser-script syntax and public packaging passed. The existing actual-Chromium cart regression now tests Cancel, Confirm and Undo including cooking instructions. Full exact-head CI and release are required.
+- Source baseline: #315 merge `ffe8f505da83e26c596c4db0793ec18d1e655411`; isolated branch `fix/customer-cart-clear-confirmation-20261124`. PR/head/main/deployment evidence is recorded in this branch's PR Conversation release journal after each event. No LIVE state is claimed before that evidence exists.
+- Lifecycle at this source checkpoint: IMPLEMENTED → TESTED locally; PR browser/PostgreSQL/release gates PENDING. The release journal advances this lifecycle to LIVE; ACCEPTED remains OPEN for signed-in/mobile native use.
+- Rollback: revert the B002 PR. No schema/data rollback or money operation.
+
+### Additional recovered evidence (24 November)
+
+- Cloud browser, signed out at B0: Owner login visible/private workspace hidden. Customer Explore → Maharani menu → add a ₹120 Veg Sandwich → full cart → quantity 2/₹240 → return to Explore preserved items. Pure Vegetarian label and 67 available dishes displayed. This is an actual desktop cloud-browser check, not a phone or authenticated account certificate. Only local unplaced test cart selection changed.
+- Public discovery also displayed two explicitly named Demo restaurants. Do not silently alter production publication/data; review pilot listing eligibility separately before launch.
+- The original `Bite Hotel Maharani Palace Menu(2).png` was found and read. It is a partial UI reference showing “112 items” and a few sample dishes/prices, not an approved complete 112-row catalog. It does not establish which 20 records are missing or authorize changed live prices. Menu discrepancy remains OPEN.
+- Existing [120-scenario register](universal-owner/scenarios.csv) was preserved. Its historical 114 PASS / 3 PARTIAL / 3 BLOCKED_EXTERNAL refer to recorded isolated scopes, not current real-device or full-platform acceptance. Do not duplicate or silently promote those statuses.
 
 ## Continuation safeguards
 
