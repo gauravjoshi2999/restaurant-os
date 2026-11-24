@@ -41,6 +41,10 @@ begin
  then raise exception 'Provider pending evidence not saved';end if;
  if (select refund_amount_actual from public.order_financials where order_id='10000000-0000-0000-0000-000000000001')<>0
  then raise exception 'Provider pending incorrectly moved ledger';end if;
+ s:=public.bite_record_verified_refund_observation(rid,ref,'NOT_INITIATED',174,'INR');
+ if s<>'provider_status_unchanged' then raise exception 'Late no-refund changed previously observed provider pending';end if;
+ if (select provider_status from public.bite_refund_jobs where id=rid)<>'PENDING'
+ then raise exception 'Previously recorded provider status was lost';end if;
  s:=public.bite_record_verified_refund_observation(rid,ref,'SUCCESS',174,'INR');
  if s<>'succeeded' then raise exception 'Successful externally observed refund failed';end if;
  if not exists(select 1 from public.order_financials where order_id='10000000-0000-0000-0000-000000000001'
