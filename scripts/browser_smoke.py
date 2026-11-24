@@ -422,6 +422,8 @@ try:
               'Explicitly confirmed Clear cart still offers Undo')
         page.locator('#undoClearCartBtn').click()
         check(page.locator('#cartCount').inner_text() == '(2)', 'Undo restores both cart items')
+        check(page.locator('#menuItems [data-menu-item-id="' + item_id + '"] .item-quantity span').inner_text() == '2',
+              'Full-cart Undo also restores the menu quantity control')
         check(page.locator('#cartModalLines .cart-item-note-preview').inner_text() == 'Less spicy, no onion',
               'Clear-cart Undo restores cooking instructions too')
         page.locator('#cartModalLines [data-cart-dec="' + item_id + '"]').click()

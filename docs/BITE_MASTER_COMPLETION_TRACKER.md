@@ -1,12 +1,13 @@
 # Bite master completion tracker
 
-Last audited: 24 November 2026 (IST). Existing repository only: `gauravjoshi2999/restaurant-os`; production Supabase `wedbgpybbgsszcmffoha`.
+Last audited: 24 November 2026, 20:14 IST. Functional deployment at this source checkpoint: `5727c352494f33b3abc6fb1ac79381b8a8cf9231`; Undo/menu follow-up #317 is not yet released here. Existing repository only: `gauravjoshi2999/restaurant-os`; production Supabase `wedbgpybbgsszcmffoha`.
 
 ## NEXT ACTION
 
-1. Read the B001/B002 release journals linked below before doing new work. They hold the exact tested head, merged SHA, main QA, Pages SHA and observed live outcome recorded after publishing; absent LIVE evidence means finish that release gate first. Do not redo #310–#315 or merge legacy #11.
-2. Next independent P0: inspect the 13 awaiting-payment intents using the existing read-only Cashfree inspection route. `bite-cashfree-operations` requires a verified signed-in platform-admin session; do not bypass that guard or use a money action. If no authorized provider read session/export is available, record that external blocker and continue R04 split receipt/UPI acceptance or a reproducible Customer checkout gap.
-3. Remaining scope is the individual 45 Owner units, 158 Customer controls and acceptance checklists below. Exact signed-in visual/functional parity is still OPEN, even after the two fixes are LIVE.
+1. Finish the exact-head release of [#317](https://github.com/gauravjoshi2999/restaurant-os/pull/317) (B002b: menu quantity after cart Undo): full PR QA → fresh-main comparison → safe merge → exact-main QA → Pages source parity → live cart/menu check. Its PR Conversation release journal is the authoritative post-publish SHA/outcome. If that journal already records LIVE when resuming, do not repeat this fix.
+2. Next independent P0: inspect the 13 awaiting-payment intents through existing read-only Cashfree inspection. `bite-cashfree-operations` requires a verified signed-in platform-admin session; never bypass it or call a money action. If no authorized admin read session/export is available, document that dependency and audit a safe signed, GET-only reconciliation worker using the existing internal HMAC/Vault pattern, with no activation, charge, refund or payout in the observation path.
+3. Continue safe P1 work: verified Pure Veg/Egg metadata and filters (do not infer restaurant type from one dish); reconcile Maharani's 92 items/one missing available-item image and 7 configured rooms against actual approved business inventory. No invented items, prices or room numbers.
+4. Current real Owner/customer login, installed Android, camera/print/share/physical QR and financial provider/bank acceptance remain OPEN. All 45 units and 158 controls below still require their applicable full acceptance. Do not merge stale #11 or repeat #310–#316.
 
 ## How statuses work
 
@@ -76,7 +77,7 @@ Source O45 = Owner PDF, page number shown per unit. All rows inherit B0 source/P
 |---|---|---|---|---|---|---|---|
 | H01 / p1 | One adaptive workspace; hybrid Home/Hotel/Orders/POS/More; one property hides selector; correct parent Back | `assets/owner-mobile-navigation.js`, `assets/owner-hospitality.js` | bite_properties, bite_property_members, bite_property_outlets | IMPLEMENTED / PARTIALLY IMPLEMENTED | P0 | scripts/owner_v3_pdf_h01_more.test.cjs | Current per-role/device navigation and route/API denial acceptance; Owner acceptance pending |
 | H02 / p2 | Selected-day Sales/Received/Due/Expenses distinct; alerts link correct source; loading never fabricates zero | `assets/owner-reference-v3.js`, `index.html` | orders, order_financials, bite_stays, bite_folio_entries | IMPLEMENTED / PARTIALLY IMPLEMENTED | P0 | scripts/owner_v3_pdf_h02_finance.test.cjs | Signed-in date/source metrics and immediate live alert drilldown; Owner acceptance pending |
-| H03 / p3 | Desktop same sources/filters, one Reports/Staff/Settings, list/detail responsive | `assets/owner-reference-v3.js`, `assets/owner-hospitality.js` | Same H02 property/outlet sources | IMPLEMENTED / PARTIALLY IMPLEMENTED | P1 | scripts/universal_owner_browser.py | 1440px signed-in visual parity and attention state; Owner acceptance pending |
+| H03 / p3 | Actionable attention overview for new orders/arrivals/due checkouts, source-linked next actions; desktop shares the same sources/filters and single Reports/Staff/Settings | `assets/owner-reference-v3.js`, `assets/owner-hospitality.js` | Same H02 property/outlet sources | IMPLEMENTED / PARTIALLY IMPLEMENTED | P1 | scripts/universal_owner_browser.py | Latest mission H03 attention mapping supersedes the older PDF desktop-only title; verify current attention events/actions plus 1440px signed-in parity; Owner acceptance pending |
 | H04 / p4 | Floor/type rooms; Ready check-in, occupied stay detail, blocked/dirty unavailable | `assets/owner-hospitality.js`, `assets/owner-checkin-guard.js` | bite_rooms, bite_stays, bite_service_tasks | IMPLEMENTED / PARTIALLY IMPLEMENTED | P1 | scripts/owner_v3_h04_h05_room_details.test.cjs; PR #229 | Configured inventory, overdue stays, concurrency and filters; preserve #303; Owner acceptance pending |
 | H05 / p5 | Active stay detail; food preselects stay; extras/move/extend preserve linked folio | `assets/owner-hospitality.js`, `assets/owner-hotel-billing.js` | bite_stays, bite_folios, bite_folio_entries | IMPLEMENTED / PARTIALLY IMPLEMENTED | P0 | scripts/owner_v3_h04_h05_room_details_browser.py; PR #224 | Actual authorized food preselection/move/extend and stale-room conflict; Owner acceptance pending |
 | H06 / p6 | Dated searchable register, repeat profile visits, protected ID, history/drafts separate | `assets/owner-guest-register.js`, `assets/owner-historical-entries.js` | bite_guests, bite_stays, bite_guest_documents, bite_owner_historical_entries | IMPLEMENTED / PARTIALLY IMPLEMENTED | P0 | docs/qa/guest-register-history.md; PR #228 | Real owner search/export, ID authorization and historical date ranges; Owner acceptance pending |
@@ -441,7 +442,7 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 - PostgreSQL: no SQL changed; required existing isolated PostgreSQL suites must still pass in full CI before merge.
 - PR [#315](https://github.com/gauravjoshi2999/restaurant-os/pull/315), initial head `3ba45e0f12084d4310d2e4e03e28035877a9060c`. Initial QA [45410826945](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45410826945): 11 PostgreSQL jobs passed; static/Node checks passed; new Chromium test passed 320/360/390px then failed the immediate 430px login visibility assertion. Added explicit field/guard wait and diagnostic output; exact updated-head QA required. Do not merge initial failed candidate.
 - Branch QA [45411231738](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45411231738) **12/12 passed** at `a7837dcd6b5e01f2bfc6bafe8a23423fae6c2f33`, including all new Chromium cases. Merged as `ffe8f505da83e26c596c4db0793ec18d1e655411`.
-- Exact main QA, deployment SHA and live verification: authoritative post-publish [B001 release journal](https://github.com/gauravjoshi2999/restaurant-os/pull/315). See the PR Conversation release entry; until it records LIVE these gates remain PENDING. The journal avoids self-certifying a commit's future deployment.
+- **LIVE:** merge/deployment `ffe8f505da83e26c596c4db0793ec18d1e655411`; exact-main [QA 45412894801](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45412894801) and [Pages 45414287660](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45414287660) both SUCCESS. Independent live cloud-browser reload observed exact Owner meta SHA, new versioned recovery asset, visible login inputs and private mainApp hidden. [B001 release journal](https://github.com/gauravjoshi2999/restaurant-os/pull/315) records the post-publish outcome. Lifecycle LIVE; authenticated/device ACCEPTED remains OPEN.
 - Acceptance: NOT ACCEPTED; production signed-in owner/Android checks remain OPEN after automated release.
 - Rollback: revert B001 commit/PR to the known B0 code; no data rollback or money action required. Keep #314 refund behavior.
 
@@ -451,9 +452,20 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 - Fix: a synchronous clear confirmation runs before any cart/notes/undo mutation. Cancel leaves the complete current cart intact. Confirm preserves the existing full Undo snapshot. Empty/repeated clicks do not clear twice. Existing payment-intent state is untouched.
 - Files: `customer.html`, `scripts/customer_cart_clear_confirmation.test.cjs`, `scripts/browser_smoke.py`, this tracker.
 - Deterministic reproduction: 2/3 new tests failed before the fix; all 3 passed after it. Whole local Node suite **1215/1215 passed**; frontend checks, browser-script syntax and public packaging passed. The existing actual-Chromium cart regression now tests Cancel, Confirm and Undo including cooking instructions. Full exact-head CI and release are required.
-- Source baseline: #315 merge `ffe8f505da83e26c596c4db0793ec18d1e655411`; isolated branch `fix/customer-cart-clear-confirmation-20261124`. PR/head/main/deployment evidence is recorded in this branch's PR Conversation release journal after each event. No LIVE state is claimed before that evidence exists.
-- Lifecycle at this source checkpoint: IMPLEMENTED → TESTED locally; PR browser/PostgreSQL/release gates PENDING. The release journal advances this lifecycle to LIVE; ACCEPTED remains OPEN for signed-in/mobile native use.
+- Source baseline: #315 merge `ffe8f505da83e26c596c4db0793ec18d1e655411`. [PR #316](https://github.com/gauravjoshi2999/restaurant-os/pull/316) tested head `5f25edb2747917e194551f098cd737c1286b6021`; [PR QA 45413403812](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45413403812) 12/12 SUCCESS. Merge/deployment `5727c352494f33b3abc6fb1ac79381b8a8cf9231`; exact-main [QA 45414913369](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45414913369) and [Pages 45416485163](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45416485163) SUCCESS.
+- **LIVE component:** independent cloud-browser on published source confirmed native clear prompt, Cancel retained 1 item/₹120, Confirm cleared to 0 and Undo restored 1 item/₹120. No checkout/payment/order created. Full linked journey remains PARTIALLY IMPLEMENTED because B002b below identified an older menu-quantity repaint defect. ACCEPTED remains OPEN for signed-in/native use.
 - Rollback: revert the B002 PR. No schema/data rollback or money operation.
+
+
+### B002b — complete Undo by restoring the menu control too
+
+- Source: C49 CART-02/03, MENU-07/08 and RULE-02; same Clear/Cancel/Undo workstream. Actual live #316 verification showed cart restored to 1 item/₹120 while the underlying Veg Sandwich menu card still showed Add instead of the quantity control. This was an existing full-cart Undo gap, not a second order or a failed payment.
+- Fix: after restoring the full cart and notes, call the existing menu renderer once so menu controls use the restored cart and existing category/search filters. Existing single-item Undo, restaurant fence and already-edited-cart fence stay intact.
+- Files: `customer.html`, `scripts/customer_cart_undo_menu.test.cjs`, `scripts/browser_smoke.py`, this tracker.
+- Deterministic reproduction: menu repaint test failed before the fix; all 3 new tests passed after it, including different-restaurant and stale-Undo denial. Entire local Node suite **1218/1218** passed; frontend/build/Python syntax checks passed. Chromium assertion checks the restored actual menu quantity after full-cart Undo.
+- [PR #317](https://github.com/gauravjoshi2999/restaurant-os/pull/317), code commit `807500511ed61564efa91beb50578ca6458e0f6c`, branch `fix/customer-cart-undo-menu-checkpoint-20261124`. This documentation checkpoint is part of the final reviewed head; full exact-head PR/main QA and deployment must pass after it.
+- Lifecycle at this source checkpoint: IMPLEMENTED → TESTED locally; release PENDING. Exact final tested head, merged/deployed SHA, Pages run and live result will be written to the [B002b release journal](https://github.com/gauravjoshi2999/restaurant-os/pull/317) after they actually occur. That record advances LIVE; it cannot certify signed-in/physical-device ACCEPTED.
+- Rollback: revert #317; no data rollback or financial operation.
 
 ### Additional recovered evidence (24 November)
 
@@ -461,6 +473,22 @@ Current active platform role: Super Admin in the existing index.html?bite_app=ad
 - Public discovery also displayed two explicitly named Demo restaurants. Do not silently alter production publication/data; review pilot listing eligibility separately before launch.
 - The original `Bite Hotel Maharani Palace Menu(2).png` was found and read. It is a partial UI reference showing “112 items” and a few sample dishes/prices, not an approved complete 112-row catalog. It does not establish which 20 records are missing or authorize changed live prices. Menu discrepancy remains OPEN.
 - Existing [120-scenario register](universal-owner/scenarios.csv) was preserved. Its historical 114 PASS / 3 PARTIAL / 3 BLOCKED_EXTERNAL refer to recorded isolated scopes, not current real-device or full-platform acceptance. Do not duplicate or silently promote those statuses.
+
+- Additional read-only production integrity: 14 activated intents; 0 missing orders/financial snapshots, 0 amount/customer/restaurant/currency mismatches, 0 orphan folio→POS links, 0 duplicate financial snapshots, 0 multi-owner restaurant mapping conflicts, 0 room/stay property mismatches. These are scoped database checks, not bank/provider settlement acceptance.
+- Maharani inventory: one linked property and **7 configured rooms**. The physical room inventory must be verified rather than copying the PDF's illustrative 11-room display. Menu: 92 vegetarian=true, 0 unknown diet flags, 0 missing/nonpositive prices, 0 category/restaurant mismatches; one available item has no image URL. No records were created or changed.
+- Provider observation at 20:00 IST still showed all 3 refund jobs NOT_INITIATED, attempts unchanged, total recorded refunded ₹0, auto issuance OFF; 13 awaiting-payment intents remain.
+- Additional live public UI: manual PIN 313324 produced configured delivery fee/service labels; QR menu showed current rates, 100% Pure Vegetarian for Maharani and zero ordering/checkout controls. Physical QR scan remains untested. Dietary filter currently offers vegetarian/nonvegetarian item options, with separate verified Pure Veg/Egg classification still incomplete.
+- Supabase health advisor: no findings. Performance advisor: 40 unindexed FK INFO, 33 unused-index INFO and 22 multiple-permissive-policy WARN findings. Do not automatically delete indexes or alter policies; scope/performance/security review remains OPEN.
+
+### Remaining older-master operations requirements
+
+| ID / source | Existing locator | Current acceptance / next action |
+|---|---|---|
+| OPS-01 / master §§11–12 | docs/launch/LEGAL_DRAFTS.md, OWNER_INPUTS.md, SECURITY_AND_RELEASE.md | NOT TESTED: current business identity, GST/FSSAI/privacy/consent/account-deletion-retention obligations and merchant onboarding; verify official requirements and actual documents, never invent compliance |
+| OPS-02 / master §13 | docs/launch/OPERATIONS.md, RISK_REGISTER.md | NOT TESTED: fulfillment/support/incident/refund/chargeback/payout playbooks and accountable operator readiness |
+| OPS-03 / master §14 | docs/launch/BUSINESS_PLAN.md; existing reports | NOT TESTED: real conversion/retention/unit economics source definitions; no invented metrics or paid acquisition |
+| OPS-04 / master §§15–16 | robots.txt, sitemap.xml, deployment workflows and existing static metadata | NOT TESTED: current SEO/canonical/private indexing, uptime/backups/restore and staging-only 10/100/1000 concurrency; 10000 orders/day is a planning target, not measured capacity |
+
 
 ## Continuation safeguards
 

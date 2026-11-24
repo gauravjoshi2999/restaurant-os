@@ -2532,6 +2532,7 @@ $('undoClearCartBtn').addEventListener('click',()=>{
  $('cartOrderNote').value=saved.note;
  if($('customerNote'))$('customerNote').value=saved.note;
  renderCart();
+ if(menuItems.length)renderMenuItems();
  $('emptyCartBtn').focus({preventScroll:true});
 });
 document.addEventListener('visibilitychange',()=>{
