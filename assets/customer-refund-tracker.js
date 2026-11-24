@@ -84,10 +84,14 @@
    {label:'Initiated',done:initiated},
    {label:'Processed',done:complete}
   ];
-  const stepMarkup=phases.map((p,i)=>
-   '<li class="'+(p.done?'is-done':i===stage?'is-current':'is-upcoming')+'"'+
-   (i===stage?' aria-current="step"':'')+'><span class="bite-refund-step-marker" aria-hidden="true">'+
-   (p.done?'✓':String(i+1))+'</span><span>'+esc(p.label)+'</span></li>').join('');
+  // Don't show stages 2/3 as if a refund is moving when Cashfree has not
+  // verified initiation. Display only a compact, factual requested state.
+  const stepMarkup=initiated?
+   '<ol class="bite-refund-steps" aria-label="Refund progress">'+phases.map((p,i)=>
+    '<li class="'+(p.done?'is-done':i===stage?'is-current':'is-upcoming')+'"'+
+    (i===stage?' aria-current="step"':'')+'><span class="bite-refund-step-marker" aria-hidden="true">'+
+    (p.done?'✓':String(i+1))+'</span><span>'+esc(p.label)+'</span></li>').join('')+'</ol>':
+   '<p class="bite-refund-requested-only"><span aria-hidden="true">✓</span>Refund request recorded</p>';
   const expected=complete?
    'Cashfree has confirmed SUCCESS. The credit may still take time to appear in your account.':
    initiated?'Refunds generally reflect within 5–7 working days of initiation, depending on your bank.':
@@ -107,7 +111,7 @@
    '<div class="bite-refund-details-head"><div><span class="bite-refund-eyebrow">REFUND STATUS</span>'+
    '<strong>'+esc(info.title)+'</strong></div>'+(amount?'<strong class="bite-refund-amount">'+esc(amount)+'</strong>':'')+'</div>'+
    '<p class="bite-refund-details-note">'+esc(info.note)+'</p>'+
-   '<ol class="bite-refund-steps" aria-label="Refund progress">'+stepMarkup+'</ol>'+
+   stepMarkup+
    '<p class="bite-refund-eta">'+esc(expected)+'</p>'+
    help+
    '<button type="button" class="bite-refund-refresh" data-refresh-refund-id="'+esc(order?.id)+'">Refresh status</button>'+
