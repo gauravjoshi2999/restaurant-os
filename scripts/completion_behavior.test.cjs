@@ -15,12 +15,7 @@ function operations(options={}){
  const t=edge('supabase/functions/bite-cashfree-operations/index.ts',{env:options.env,client:(url,key)=>key==='anon'?{auth:{getUser:async()=>({data:{user:options.invalidUser?null:{id:'admin'}}})},rpc:async()=>({data:options.admin!==false})}:{from:query,rpc:async(name,args)=>{records.push({name,args});return{data:args.p_status==='SUCCESS'?'succeeded':'submitted'};}},fetch:async(url,request={})=>{calls.push({url,request});const response=(x,status=200)=>new Response(JSON.stringify(x),{status});if(url.endsWith('/settlements'))return response(options.settlement||{order_details:{order_id:cfId,order_amount:190,order_currency:'INR'},settlement_details:{status:'PENDING',customer_phone:'private'}});if(url.endsWith('/refunds')){
   if(request.method==='POST')return response({refund_id:'bite_rf_test'});
   return response(options.competingRefund?[{refund_id:'other_refund'}]:[]);
- }if(url.endsWith('/refunds')){
-   if(options.listFails)return new Response('{}',{status:503});
-   return new Response(JSON.stringify(options.competingRefund?
-    [{refund_id:'different_refund',order_id:cfId,refund_status:'PENDING'}]:[]));
-  }
-  if(url.includes('/refunds/')){refundGets++;if(options.notCreated&&refundGets===1)return response({},404);return response({order_id:cfId,refund_id:'bite_rf_test',refund_currency:'INR',refund_amount:options.refundAmount??190,refund_status:options.refundStatus||'SUCCESS'});}return response({order_id:cfId,order_amount:options.orderAmount??190,order_currency:'INR',order_status:'PAID'});}});return{...t,calls,writes,records,job};
+ }if(url.includes('/refunds/')){refundGets++;if(options.notCreated&&refundGets===1)return response({},404);return response({order_id:cfId,refund_id:'bite_rf_test',refund_currency:'INR',refund_amount:options.refundAmount??190,refund_status:options.refundStatus||'SUCCESS'});}return response({order_id:cfId,order_amount:options.orderAmount??190,order_currency:'INR',order_status:'PAID'});}});return{...t,calls,writes,records,job};
 }
 test('PIN discovery excludes unserved delivery restaurants while explicit pickup remains available',()=>{const rows=[{id:'a',serviceable:true,accepts_delivery:true,accepts_pickup:true},{id:'b',serviceable:false,accepts_delivery:true,accepts_pickup:true}];assert.equal(discovery.selectRestaurants(rows,[],{pin:'313324'}).length,1);assert.equal(discovery.selectRestaurants(rows,[],{pin:'313324',service:'pickup'}).length,2);});
 test('food/rating/favourite filters combine and explicit price/delivery sorts preserve zero values',()=>{const rows=[{id:'a',has_veg:true,average_rating:4.5,price_from:10,default_delivery_fee:30},{id:'b',has_veg:true,average_rating:4,price_from:0,zone_delivery_fee:0},{id:'c',has_veg:false,average_rating:5,price_from:20,default_delivery_fee:10}];assert.deepEqual(discovery.selectRestaurants(rows,[],{diet:'veg',minRating:4,favourites:new Set(['a','b']),sort:'price'}).map(x=>x.restaurant.id),['b','a']);assert.equal(discovery.selectRestaurants(rows,[],{sort:'delivery_fee'})[0].restaurant.id,'b');});
@@ -136,6 +131,11 @@ function refundStatusSweep(options={}){
  const fetch=async(url,request={})=>{
   calls.push({url,request});
   if(options.httpDown)return new Response('{}',{status:503});
+  if(url.endsWith('/refunds')){
+   if(options.listFails)return new Response('{}',{status:503});
+   return new Response(JSON.stringify(options.competingRefund?
+    [{refund_id:'different_refund',order_id:cfId,refund_status:'PENDING'}]:[]));
+  }
   if(url.includes('/refunds/')){
    if(options.noExactRefund)return new Response('{}',{status:404});
    return new Response(JSON.stringify({order_id:cfId,refund_id:refundId,
