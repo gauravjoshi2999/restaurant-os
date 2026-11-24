@@ -70,6 +70,15 @@ body[data-bite-app="customer"] .bite-refund-steps li.is-current{color:#6e591e}
 body[data-bite-app="customer"] .bite-refund-steps li.is-current .bite-refund-step-marker{
  background:#fff2d6;border-color:#d8af5c;color:#79591e
 }
+body[data-bite-app="customer"] .bite-refund-requested-only{
+ display:inline-flex;align-items:center;gap:9px;margin:0 0 12px;
+ padding:8px 11px;border:1px solid #d0e8d9;border-radius:999px;
+ background:#edf8f1;color:#176d45;font-size:11px;font-weight:800
+}
+body[data-bite-app="customer"] .bite-refund-requested-only span{
+ display:grid;place-items:center;flex:none;width:21px;height:21px;
+ border-radius:50%;background:#087c4e;color:white
+}
 body[data-bite-app="customer"] .bite-refund-eta{
  font-size:11px;line-height:1.5;color:#687a6d;
  margin:10px 0;padding:8px 10px;background:#f0f5f1;border-radius:9px
