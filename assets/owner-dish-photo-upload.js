@@ -46,7 +46,7 @@
   if(!allowed(c)){status('Reopen a saved dish with Owner access.',true);return;}
   if(api.isDirty()){status('Save or discard pending menu edits before uploading a photo.',true);return;}
   if(!rights.checked){status('Confirm you have rights to publish this dish photo.',true);return;}
-  const request=++serial;busy=true;get('menuDishUploadPick').disabled=true;get('menuDishUploadButton').disabled=true;
+  const request=++serial;busy=true;const editorToken=root.BiteOwnerMenuEditor?.saving(true);get('menuDishUploadPick').disabled=true;get('menuDishUploadButton').disabled=true;
   let path='',confirmed=false;
   try{
    const ext=await checkFile(file);if(!allowed(c)||api.isDirty()||request!==serial)throw Error('Dish changed or has unsaved edits.');
@@ -76,7 +76,7 @@
     api.restartEditor();status('Photo published. Refreshing menu…');await api.refresh();
    }
   }catch(e){status('Photo not published: '+(e.message||'Upload failed'),true);}
-  finally{if(path&&!confirmed)await cleanup(path);busy=false;get('menuDishUploadPick').disabled=false;get('menuDishUploadButton').disabled=false;get('menuDishUploadPick').value='';rights.checked=false;}
+  finally{if(path&&!confirmed)await cleanup(path);root.BiteOwnerMenuEditor?.saving(false,editorToken);busy=false;get('menuDishUploadPick').disabled=false;get('menuDishUploadButton').disabled=false;get('menuDishUploadPick').value='';rights.checked=false;}
  }
  root.BiteOwnerDishPhoto={
   init(settings){api=settings;get('menuDishUploadButton')?.addEventListener('click',upload);get('menuDishUploadPick')?.addEventListener('change',()=>status('Photo selected. Confirm rights, then Upload & Publish.'));},
