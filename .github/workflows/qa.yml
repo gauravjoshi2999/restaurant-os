@@ -157,6 +157,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Run Chromium customer journey smoke tests
         run: |
+          python scripts/owner_menu_editor_browser.py
           python scripts/food_types_browser.py
           python scripts/owner_session_recovery_browser.py
           python scripts/super_admin_browser.py
