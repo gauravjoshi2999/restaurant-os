@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "npm:@supabase/supabase-js@2.49.8";
+import {observePendingCheckouts} from "./checkout-observation.mjs";
 
 // Automatic refund processing is strictly opt-in through bite_operations_config.
 // All eligibility is created by a trusted DB order transition, NEVER by a client.
@@ -42,7 +43,7 @@ Deno.serve(async(req:Request)=>{
   if(!body||!["run","drain","preflight"].includes(body.action))return json({error:"Invalid action"},400);
   // Signed diagnostic is read-only and valid even while the refund rollout is
   // OFF. This is not available through the customer's authenticated "run".
-  if(body.mode!==undefined&&!(body.action==="drain"&&["preflight","reconcile"].includes(body.mode)))
+  if(body.mode!==undefined&&!(body.action==="drain"&&["preflight","reconcile","checkout_inspect"].includes(body.mode)))
    return json({error:"Invalid mode"},400);
   const auth=req.headers.get("authorization")||"";
   const db=createClient(url,service);
@@ -75,6 +76,16 @@ Deno.serve(async(req:Request)=>{
     const {data:admin,error:roleError}=await client.rpc("is_platform_admin");
     if(roleError||admin!==true)return json({error:"Super Admin required"},403);
    }
+  }
+  // Internal observation only, under the existing Vault-signed drain auth.
+  // It returns before every refund-policy, issuance and activation branch.
+  // Browser/customer "run" and Super Admin preflight cannot select this mode.
+  if(body.action==="drain"&&body.mode==="checkout_inspect"){
+   if(!Number.isInteger(body.offset)||body.offset<0||body.offset>10000)
+    return json({error:"Invalid observation offset"},400);
+   try{return json(await observePendingCheckouts({db,providerFetch:fetch,
+    appId:Deno.env.get("CASHFREE_APP_ID"),secret:Deno.env.get("CASHFREE_SECRET_KEY"),offset:body.offset}));}
+   catch{return json({error:"Checkout observation unavailable",no_action_taken:true},503);}
   }
   const {data:config,error:configError}=await db.from("bite_operations_config")
     .select("auto_refunds_enabled,auto_refund_max_amount").eq("id",true).maybeSingle();
