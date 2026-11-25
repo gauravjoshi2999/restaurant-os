@@ -47,7 +47,7 @@
   if(api.isDirty()){status('Save or discard pending menu edits before uploading a photo.',true);return;}
   if(!rights.checked){status('Confirm you have rights to publish this dish photo.',true);return;}
   const request=++serial;busy=true;const editorToken=root.BiteOwnerMenuEditor?.saving(true);get('menuDishUploadPick').disabled=true;get('menuDishUploadButton').disabled=true;
-  let path='',confirmed=false;
+  let path='',confirmed=false,saveAttempted=false,photoUrl='';
   try{
    const ext=await checkFile(file);if(!allowed(c)||api.isDirty()||request!==serial)throw Error('Dish changed or has unsaved edits.');
    await verifyOwner(c);
@@ -64,7 +64,9 @@
    await verifyOwner(c);
    const url=storage.getPublicUrl(path)?.data?.publicUrl;
    if(!url||!url.startsWith('https://'))throw Error('Public photo URL unavailable.');
+   photoUrl=url;
    status('Publishing photo to this dish…');
+   saveAttempted=true;
    let query=api.sb.from('menu_items').update({image_url:url,updated_at:new Date().toISOString()}).eq('id',c.id).eq('restaurant_id',c.rid);
    query=oldUrl===null?query.is('image_url',null):query.eq('image_url',oldUrl);
    const saved=await query.select('id,image_url');
@@ -75,7 +77,16 @@
     get('menuItemForm').elements.image_url.value=url;
     api.restartEditor();status('Photo published. Refreshing menu…');await api.refresh();
    }
-  }catch(e){status('Photo not published: '+(e.message||'Upload failed'),true);}
+  }catch(e){
+   if(path&&saveAttempted&&photoUrl){
+    // A network timeout can hide a successful commit. Never delete a possibly referenced object.
+    try{const check=await api.sb.from('menu_items').select('image_url').eq('id',c.id).eq('restaurant_id',c.rid).single();
+     if(check.error){confirmed=true;status('Save confirmation unknown. Photo retained; reopen this dish and verify.',true);return;}
+     if(check.data?.image_url===photoUrl){confirmed=true;status('Photo saved; reopen the dish to see the latest image.');return;}
+    }catch{confirmed=true;status('Save confirmation unknown. Photo retained; reopen this dish and verify.',true);return;}
+   }
+   status('Photo not published: '+(e.message||'Upload failed'),true);
+  }
   finally{if(path&&!confirmed)await cleanup(path);root.BiteOwnerMenuEditor?.saving(false,editorToken);busy=false;get('menuDishUploadPick').disabled=false;get('menuDishUploadButton').disabled=false;get('menuDishUploadPick').value='';rights.checked=false;}
  }
  root.BiteOwnerDishPhoto={
