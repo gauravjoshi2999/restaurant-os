@@ -44,11 +44,12 @@
   if(busy||!api)return;
   const c=context(),file=get('menuDishUploadPick').files?.[0],rights=get('menuDishPhotoRights');
   if(!allowed(c)){status('Reopen a saved dish with Owner access.',true);return;}
+  if(api.isDirty()){status('Save or discard pending menu edits before uploading a photo.',true);return;}
   if(!rights.checked){status('Confirm you have rights to publish this dish photo.',true);return;}
   const request=++serial;busy=true;get('menuDishUploadPick').disabled=true;get('menuDishUploadButton').disabled=true;
   let path='',confirmed=false;
   try{
-   const ext=await checkFile(file);if(!allowed(c)||request!==serial)throw Error('Dish changed.');
+   const ext=await checkFile(file);if(!allowed(c)||api.isDirty()||request!==serial)throw Error('Dish changed or has unsaved edits.');
    await verifyOwner(c);
    const old=api.getSavedItem(c.rid,c.id);
    if(!old||old.restaurant_id!==c.rid)throw Error('Saved dish not found; refresh menu.');
@@ -59,7 +60,7 @@
    const storage=api.sb.storage.from('bite-menu');
    const result=await storage.upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
    if(result.error)throw result.error;
-   if(!allowed(c)||request!==serial)throw Error('Owner session or dish changed after upload.');
+   if(!allowed(c)||api.isDirty()||request!==serial)throw Error('Owner session or dish changed after upload.');
    await verifyOwner(c);
    const url=storage.getPublicUrl(path)?.data?.publicUrl;
    if(!url||!url.startsWith('https://'))throw Error('Public photo URL unavailable.');
