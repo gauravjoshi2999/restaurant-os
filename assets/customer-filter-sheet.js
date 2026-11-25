@@ -4,7 +4,7 @@
  'use strict';
  const SORTS=['recommended','rating','price','delivery_fee','fast'];
  const RATINGS=['0','3.5','4','4.5'];
- const DIETS=['all','veg','nonveg'];
+ const DIETS=['all','veg','nonveg','egg','pureveg'];
  const SERVICES=['all','delivery','pickup'];
  const defaults=()=>({sort:'recommended',rating:'0',diet:'all',service:'all',openNow:false,scheduleOnly:false,category:'all',favourites:false});
  const valid=(value,choices,fallback)=>choices.includes(String(value))?String(value):fallback;
@@ -136,7 +136,9 @@
    panel.innerHTML='<h3>Food preference</h3><p class="bite-filter-help">Filter by the restaurant’s published menu options.</p>'+
     selection('All food','all',draft.diet==='all','diet')+
     selection('Vegetarian options','veg',draft.diet==='veg','diet')+
-    selection('Non-vegetarian options','nonveg',draft.diet==='nonveg','diet');
+    selection('Non-vegetarian options','nonveg',draft.diet==='nonveg','diet')+
+    selection('Egg options','egg',draft.diet==='egg','diet')+
+    selection('100% Pure Veg restaurants','pureveg',draft.diet==='pureveg','diet');
   }else{
    panel.innerHTML='<h3>Order type</h3><p class="bite-filter-help">Delivery is shown only for your confirmed service area.</p>'+
     selection('All restaurants','all',draft.service==='all','service')+

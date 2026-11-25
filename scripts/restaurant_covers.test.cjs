@@ -53,7 +53,7 @@ test('Customer uses cover module for homepage cards, direct hero, and only its o
  assert.match(customer,/BiteRestaurantCovers\.choose\(activeRestaurant,publicMenuSearch,SUPABASE_URL\)/);
  assert.match(customer,/id="biteRestaurantHeroImage"/);
  assert.match(customer,/id="biteRestaurantCoverLabel"/);
- assert.match(customer,/image_url'\)\.eq\('is_available'/);
+ assert.match(customer,/\.select\(columns\)\.eq\('is_available'/);
  assert.match(customer,/bite_storefront/);
 });
 test('Owner upload is correctly authorized, WebP compressed, with scoped database path and safe rollback',()=>{

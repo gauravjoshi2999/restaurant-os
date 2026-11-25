@@ -14,7 +14,7 @@ test('QR guest sees only chosen published restaurant menu; no login, checkout or
  assert.match(menu,/\.eq\('restaurant_id',restaurantId\)/);
  assert.match(menu,/\.eq\('is_available',true\)/);
  assert.match(menu,/\.eq\('is_active',true\)/);
- assert.match(menu,/\.select\('id,category_id,name,description,price,image_url,is_vegetarian'\)/);
+ assert.match(menu,/'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type'/);
  assert.match(menu,/document\.createElement\('article'\)/);
  assert.match(menu,/\.textContent=item.name\|\|'Dish'/);
  assert.match(menu,/new URL\(value,location.href\)/);
@@ -51,9 +51,11 @@ test('Pure Veg restaurants hide redundant vegetarian filter without hiding it fo
  assert.match(menu,/id="vegSwitch"/);
  assert.match(menu,/id="pureVegLabel"/);
  assert.match(menu,/function pureVegMenu\(restaurant,availableItems\)/);
- assert.match(menu,/restaurant\.cuisine_tags/);
- assert.match(menu,/availableItems\.every\(item=>item\.is_vegetarian===true\)/);
- assert.match(menu,/availableItems\.some\(item=>item\.is_vegetarian===false\)/);
+ assert.match(menu,/BiteFoodTypes\.pureVegMenu\(restaurant,availableItems\)/);
+ const food=require('../assets/bite-food-types.js');
+ assert.equal(food.pureVegMenu({cuisine_tags:[]},[{is_vegetarian:true}]),false);
+ assert.equal(food.pureVegMenu({cuisine_tags:['Pure Veg']},[{is_vegetarian:true}]),true);
+ assert.equal(food.pureVegMenu({cuisine_tags:['Pure Veg']},[{is_vegetarian:false}]),false);
  assert.match(menu,/\$\('vegSwitch'\)\.hidden=isPureVeg/);
  assert.match(menu,/\$\('pureVegLabel'\)\.hidden=!isPureVeg/);
  assert.match(menu,/\.veg-switch\[hidden\]\{display:none!important\}/);
@@ -67,7 +69,7 @@ test('Printed permanent QR stays unchanged when live menu prices are updated',()
  assert.match(menu,/document\.addEventListener\('visibilitychange'/);
  assert.match(menu,/setInterval\(\(\)=>/);
  assert.match(menu,/REFRESH_INTERVAL_MS=120000/);
- assert.match(menu,/\.select\('id,category_id,name,description,price,image_url,is_vegetarian'\)/);
+ assert.match(menu,/'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type'/);
  assert.match(menu,/\.textContent=money\(item\.price\)/);
  assert.match(menu,/\$\('refreshMenuBtn'\)\.addEventListener\('click',\(\)=>loadMenu\(\)\)/);
 });

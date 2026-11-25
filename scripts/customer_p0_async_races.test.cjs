@@ -16,7 +16,7 @@ const checkout=extract('async function openCheckout(){', "$('savedAddress').addE
 const orderGuard=extract('function biteCurrentOrderRequest(', 'function showCustomerView(');
 const orders=extract('async function loadMyOrders(){', 'async function loadOrderDetail(');
 const setSession=extract('function setCustomerSession(session){', 'async function submitCustomerAuth(');
-const ctxOf=values=>vm.createContext({Promise,Set,Array,Object,JSON,console,...values});
+const ctxOf=values=>vm.createContext({BiteFoodTypes:require('../assets/bite-food-types.js'),Promise,Set,Array,Object,JSON,console,...values});
 
 test('checkout guard blocks stale restaurant, quantity and modal sessions',()=>{
  const ctx=ctxOf({

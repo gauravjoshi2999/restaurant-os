@@ -44,7 +44,7 @@ test('filter sheet results use the same restaurant serviceability and rating rul
 });
 test('mobile sheet includes proper dialog, keyboard trap, immediate time-only and safe disabled scheduling',()=>{
  assert.match(html,/customer-filter-sheet\.css\?v=20261115-sheet1/);
- assert.match(html,/customer-filter-sheet\.js\?v=20261115-sheet1/);
+ assert.match(html,/customer-filter-sheet\.js\?v=20261125-diet1/);
  for(const token of [
   'role="dialog" aria-modal="true"','role="tablist"','role="tabpanel"','aria-orientation="vertical"',
   'biteFilterApply','biteFilterClear','biteFilterCancel','biteFilterCloseX',

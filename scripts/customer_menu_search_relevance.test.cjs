@@ -60,7 +60,7 @@ test('invalid and missing prices never appear, and zero rupee real items remain 
 });
 
 test('integration stays in existing restaurant menu and cart without payment or backend changes',()=>{
- assert.match(html,/src="assets\/customer-menu-search\.js\?v=20261114-search1"/);
+ assert.match(html,/src="assets\/customer-menu-search\.js\?v=20261125-diet1"/);
  assert.match(html,/BiteMenuSearch\.selectMenu\(menuItems,/);
  assert.match(html,/setTimeout\(\(\)=>renderMenuItems\(\),70\)/);
  assert.match(addon,/BiteMenuSearch\.selectAddOns\(currentItems,currentCart,6\)/);

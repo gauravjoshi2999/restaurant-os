@@ -21,6 +21,7 @@ function fixture({manualMenu=false}={}){
  const countNode={textContent:'1 restaurant'};
  const rpcCalls=[],menuCalls=[],commits=[];
  const ctx={
+  BiteFoodTypes:require('../assets/bite-food-types.js'),
   BITE_DIRECT_MODE:false,
   BITE_DIRECT_RESTAURANT_ID:null,
   currentDiscoveryPin:'313324',
