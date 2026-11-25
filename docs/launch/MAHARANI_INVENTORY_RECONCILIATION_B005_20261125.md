@@ -45,13 +45,23 @@ Existing source: `docs/launch/MAHARANI_MENU_RECONCILIATION_20261116.md`, with re
 
 Do not restore deleted names, change old prices, auto-reactivate the 25 unavailable items, or reset customer order history based on these labels. In particular the 21 candidates have **unverified** sale approval.
 
+## Static image-manifest source parity
+
+Independently compared `docs/launch/maharani-image-snapshot-20261116.json` against the current production list of populated `menu_items.image_url` values by exact menu item name **and exact URL**:
+
+- Current populated live URLs: **91**.
+- Manifest entries: **91**.
+- Exact name+URL matches: **91/91**; missing/stale entries **0**.
+
+This authorizes reusing the repository manifest for a read-only repeatable photo-network audit. It does **not** establish that any external URL loads or that its image is licensed/correct.
+
 ## Photo evidence and limitations
 
 `docs/launch/MAHARANI_MEDIA_SOURCE_AUDIT_20261116.md` records 91 external Wikimedia `Special:FilePath` links and an earlier browser image-load run of **33 loaded / 58 failed** under heavy concurrency. This does not prove 58 permanently broken files; it does show that URL presence is insufficient as a launch-quality signal.
 
 - Current live DB metadata alone cannot certify image loading, correct food identity or per-image license/attribution.
 - Existing credit notes can guide permissions review, not be used as approval for public third-party image use.
-- Next safe code/QA work: bounded sequential external image verification (HTTP/network outcome plus visible image), keeping actual photos and production menu rows unchanged.
+- Next safe code/QA work: bounded sequential external image verification through `scripts/maharani_image_network_audit.py --concurrency 1 --delay-ms 900` (HTTP/network outcome plus visible image), keeping actual photos and production menu rows unchanged.
 
 ## Exact unresolved decisions and gates
 
