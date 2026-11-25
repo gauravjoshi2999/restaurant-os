@@ -9,7 +9,7 @@
  let disabled=[],returnFocus=null;
  function snapshot(){return JSON.stringify(fields.map(name=>String(form.elements[name]?.value??'')));}
  function valid(){return active&&context(form.dataset.menuRestaurant,form.dataset.menuUser);}
- function dirty(){return active&&snapshot()!==baseline;}
+ function dirty(){return active&&(snapshot()!==baseline||!!root.BiteMenuDishUpload?.hasSelection());}
  function source(value){
   const text=String(value||'').trim();if(!text)return '';
   if(text.startsWith('//')||text.includes('\\'))return null;
@@ -27,7 +27,7 @@
   for(const id of ['menuItemCloseSave','menuItemCloseDiscard','menuItemCloseKeep'])get(id).disabled=false;
  }
  function clear(){
-  version++;photoVersion++;root.clearTimeout(timer);release();active=false;baseline='';originalPhoto='';
+  version++;photoVersion++;root.clearTimeout(timer);release();root.BiteMenuDishUpload?.reset();active=false;baseline='';originalPhoto='';
   get('menuItemCloseChoice').hidden=true;get('menuItemPhotoPreview').removeAttribute('src');get('menuItemPhotoPreview').hidden=true;
  }
  function sync(){

@@ -89,7 +89,7 @@ test('existing save handler and context lifecycle are wired; photo controls have
  assert.match(html,/function applyRoleUI\(\)\{globalThis.BiteOwnerMenuEditor\?\.sync\(\)/);
  assert.match(html,/async function fetchMenuData\(\)\{globalThis.BiteOwnerMenuEditor\?\.sync\(\)/);
  assert.doesNotMatch(source,/localStorage|sessionStorage|\bsb\.from\(|\.rpc\(|\.storage\b|Cashfree|innerHTML|fetch\(/);
- assert.match(html,/owner-menu-editor\.js\?v=20261125-r14editor1/);assert.match(html,/owner-menu-editor\.css\?v=20261125-r14editor1/);
+ assert.match(html,/owner-menu-editor\.js\?v=20261125-b008a/);assert.match(html,/owner-menu-editor\.css\?v=20261125-r14editor1/);
 });
 test('actual-modal browser evidence fixture parses before launching Chromium',()=>{
  const {spawnSync}=require('node:child_process');
