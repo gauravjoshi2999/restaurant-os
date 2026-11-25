@@ -18,11 +18,20 @@ def main():
     obj=json.loads(MANIFEST.read_text(encoding="utf-8"))
     parser=argparse.ArgumentParser()
     parser.add_argument("--spotcheck",action="store_true",help="Retest 7 previously failed URLs from a fresh runner, one at a time")
+    parser.add_argument("--concurrency",type=int,default=1,help="At most 2 bounded image requests at once; default serial to limit CDN throttling")
+    parser.add_argument("--delay-ms",type=int,default=900,help="Wait at least 250 ms before each image load; default 900 ms")
+    parser.add_argument("--start",type=int,default=0,help="Start offset for a bounded full-list audit (zero-based)")
+    parser.add_argument("--limit",type=int,default=91,help="Maximum consecutive images to inspect; a subset is not a full audit")
     args=parser.parse_args()
+    if not 1<=args.concurrency<=2:parser.error("--concurrency must be 1 or 2")
+    if not 250<=args.delay_ms<=5000:parser.error("--delay-ms must be between 250 and 5000")
+    if args.spotcheck and (args.start!=0 or args.limit!=91):parser.error("--spotcheck cannot be combined with --start/--limit")
     all_images=obj["images"]
     assert len(all_images)==91, f"Unexpected snapshot count {len(all_images)}, review rather than guessing"
+    if not 0<=args.start<len(all_images):parser.error("--start is outside the 91-image manifest")
+    if not 1<=args.limit<=len(all_images):parser.error("--limit must be between 1 and 91")
     indices=[33,40,50,60,70,80,90]
-    images=[all_images[i] for i in indices] if args.spotcheck else all_images
+    images=[all_images[i] for i in indices] if args.spotcheck else all_images[args.start:args.start+args.limit]
     assert all(v["url"].startswith("https://commons.wikimedia.org/wiki/Special:FilePath/") for v in images), "Unexpected image host"
     with sync_playwright() as p:
         browser=p.chromium.launch()
@@ -64,7 +73,8 @@ def main():
             }
             await Promise.all(Array.from({length:options.concurrency},check));
             return output;
-        }""",{"items":images,"concurrency":1 if args.spotcheck else 5,"delayMs":1100 if args.spotcheck else 0})
+        }""",{"items":images,"concurrency":1 if args.spotcheck else args.concurrency,
+                "delayMs":1100 if args.spotcheck else args.delay_ms})
         context.close()
         browser.close()
     loaded=sum(x["status"]=="loaded" for x in report)
@@ -85,8 +95,15 @@ def main():
         "items":report,
         "limitations":"Image load does not verify actual dish, current license terms or required attribution. Browser/network failures can be temporary throttling.",
     }
-    out=OUT.with_name("maharani-photo-retry-spotcheck.json") if args.spotcheck else OUT
-    evidence["audit_mode"]="spotcheck_new_runner_serial" if args.spotcheck else "full_batch"
+    full=(not args.spotcheck and args.start==0 and len(images)==len(all_images))
+    out=OUT.with_name("maharani-photo-retry-spotcheck.json") if args.spotcheck else (
+        OUT if full else OUT.with_name(f"maharani-photo-audit-{args.start}-{len(images)}.json"))
+    evidence["audit_mode"]="spotcheck_new_runner_serial" if args.spotcheck else ("full_bounded" if full else "partial_bounded")
+    evidence["start_index"]=None if args.spotcheck else args.start
+    evidence["concurrency"]=1 if args.spotcheck else args.concurrency
+    evidence["delay_ms"]=1100 if args.spotcheck else args.delay_ms
+    evidence["snapshot_verified_against_live_db_on"]="2026-11-25"
+    evidence["scope_disclaimer"]="No image link, license or current owner approval is changed or proven by this report."
     OUT.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+"\n",encoding="utf-8")
     print("IMAGE NETWORK AUDIT RESULT:",json.dumps({
