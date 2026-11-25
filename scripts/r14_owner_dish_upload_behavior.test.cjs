@@ -54,7 +54,7 @@ test('Changed restaurant context is rejected without upload',async()=>{
 });
 test('Storage rejection does not return a published URL',async()=>{
  const h=harness();h.root.BiteMenuDishUpload.open(true,true);await h.choose();h.controls.menuItemDishRights.checked=true;
- h.setUploadError={message:'permission denied'};
+ h.setUploadError({message:'permission denied'});
  await assert.rejects(h.prepare(),/Storage upload failed: permission denied/);
  assert.equal(h.stats().uploads,1);assert.equal(h.stats().removes,0);
 });
