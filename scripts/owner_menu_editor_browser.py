@@ -30,7 +30,7 @@ const sb={from(table){if(table!=='menu_items')throw Error('Unexpected table');re
  if(qa.mode==='hold')await new Promise(resolve=>qa.release=resolve);
  Object.assign(row,payload);return{data:[{id:row.id}],error:null};
  }};return builder;},insert(){throw Error('This fixture edits existing items only');}
- }};async function fetchMenuData(){qa.refreshes++;menuItems=[row];}
+ }}};async function fetchMenuData(){qa.refreshes++;menuItems=[row];}
 document.getElementById('menuItemCategory').innerHTML='<option value="">Uncategorized</option><option value="c">Main course</option>';
 """
 html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+\

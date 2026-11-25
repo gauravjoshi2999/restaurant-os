@@ -21,7 +21,7 @@ This is partial R14 completion. File upload, image-rights/dish review, original 
 
 ## Validation and release journal
 
-Local: 1,256 Node tests passed, including 9 new editor behavior cases; frontend/Owner structure checks, 12 deployment safety tests, public packaging, Python syntax and whitespace checks passed. Local Chromium execution was blocked by the missing installed browser binary. A dedicated actual-modal/open/close/save Chromium fixture was added for 320/360/390/430/1440px; CI execution and exact-head production release remain PENDING at this source checkpoint.
+Local: 1,257 Node tests passed, including 10 new editor behavior cases; frontend/Owner structure checks, 12 deployment safety tests, public packaging, Python syntax and whitespace checks passed. Local Chromium execution was blocked by the missing installed browser binary. A dedicated actual-modal/open/close/save Chromium fixture was added for 320/360/390/430/1440px; CI execution and exact-head production release remain PENDING at this source checkpoint.
 
 The post-publication B006 journal in [launch ledger #216](https://github.com/gauravjoshi2999/restaurant-os/issues/216) and its linked PR records exact reviewed/merged SHA, CI, Pages and live source parity. Consult it before repeating work. No Supabase migration is required for B006.
 

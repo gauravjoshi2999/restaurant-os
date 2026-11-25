@@ -91,3 +91,15 @@ test('existing save handler and context lifecycle are wired; photo controls have
  assert.doesNotMatch(source,/localStorage|sessionStorage|\bsb\.from\(|\.rpc\(|\.storage\b|Cashfree|innerHTML|fetch\(/);
  assert.match(html,/owner-menu-editor\.js\?v=20261125-r14editor1/);assert.match(html,/owner-menu-editor\.css\?v=20261125-r14editor1/);
 });
+test('actual-modal browser evidence fixture parses before launching Chromium',()=>{
+ const {spawnSync}=require('node:child_process');
+ const result=spawnSync('python3',['-c',[
+  'import ast,json,pathlib',
+  "tree=ast.parse(pathlib.Path('scripts/owner_menu_editor_browser.py').read_text())",
+  'values={n.targets[0].id:ast.literal_eval(n.value)for n in tree.body if isinstance(n,ast.Assign)and isinstance(n.targets[0],ast.Name)and n.targets[0].id in ("fixture","prefixes")}',
+  "html=pathlib.Path('index.html').read_text()",
+  'actual="\\n".join(next(line for line in html.splitlines() if line.startswith(prefix))for prefix in values["prefixes"])',
+  'print(json.dumps(values["fixture"]+actual))'
+ ].join('\n')],{encoding:'utf8'});
+ assert.equal(result.status,0,result.stderr);assert.doesNotThrow(()=>new vm.Script(JSON.parse(result.stdout)));
+});
