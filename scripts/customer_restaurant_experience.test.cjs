@@ -29,7 +29,7 @@ test('vegetarian claim only appears for complete real list of all-vegan-tagged m
 });
 test('restaurant facts and category buttons are integrated without altering checkout',()=>{
  assert.match(html,/assets\/customer-restaurant-experience\.css\?v=20261115-details1/);
- assert.match(html,/assets\/customer-restaurant-experience\.js\?v=20261115-details1/);
+ assert.match(html,/assets\/customer-restaurant-experience\.js\?v=20261125-diet1/);
  assert.match(html,/BiteRestaurantDetails\?\.render\(activeRestaurant,\[\]\)/);
  assert.match(html,/BiteRestaurantDetails\?\.render\(activeRestaurant,menuItems\)/);
  assert.match(js,/role="dialog" aria-modal="true"/);

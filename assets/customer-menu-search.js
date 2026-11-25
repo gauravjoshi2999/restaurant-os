@@ -3,6 +3,7 @@
  */
 (function(root){
  'use strict';
+ const food=typeof module!=='undefined'&&module.exports?require('./bite-food-types.js'):root.BiteFoodTypes;
  const cache=new WeakMap();
  const normalize=value=>String(value??'').normalize('NFKC').toLocaleLowerCase('en-IN')
    .replace(/[^\p{L}\p{M}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
@@ -23,7 +24,7 @@
    for(const row of indexFor(items)){
      const item=row.item;
      if(!item||(category!=='all'&&item.category_id!==category))continue;
-     if(options.vegOnly&&item.is_vegetarian!==true)continue;
+     if(!food.matches(item,options.vegOnly?'veg':options.diet||'all'))continue;
      if(tokens.length&&!tokens.every(token=>row.name.includes(token)||row.description.includes(token)))continue;
      let rank=0;
      if(tokens.length){

@@ -24,7 +24,7 @@ function setup({menuError=false,confirmSwitch=true,matchingMenu=true,renderMenuE
  field('checkoutCutlery').checked=true;
  const calls={requests:0,renderCart:0,confirm:0,view:null,homeSync:0};
  const persistent={items:{'old-dish':2},notes:{'old-dish':'less spicy'}};
- const ctx={
+ const ctx={BiteFoodTypes:require('../assets/bite-food-types.js'),
   BITE_DIRECT_MODE:false,BITE_DIRECT_RESTAURANT_ID:null,
   activeRestaurant:previousRestaurant,restaurants:[previousRestaurant,nextRestaurant],
   menuItems:oldItems,cart:{...persistent.items},itemNotes:{...persistent.notes},

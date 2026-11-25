@@ -38,7 +38,7 @@ test('owner can mark dish Kids Choice, and customer fetches the same field',()=>
  assert.match(owner,/f\.elements\.is_kids_choice\.value=String\(item\.is_kids_choice===true\)/);
  assert.match(html,/assets\/customer-menu-personalization\.js\?v=20261116-choice1/);
  assert.match(html,/assets\/customer-menu-personalization\.css\?v=20261115-kids1/);
- assert.match(html,/select\('id,category_id,name,description,price,is_vegetarian,is_kids_choice,image_url'\)/);
+ assert.match(html,/'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url'/);
  assert.match(html,/window\.BiteMenuPersonalization\?\.selectKids/);
  assert.match(html,/window\.BiteMenuPersonalization\?\.renderRecommendations/);
  assert.match(html,/i\.is_kids_choice===true\?'<span class="bite-kids-tag">/);

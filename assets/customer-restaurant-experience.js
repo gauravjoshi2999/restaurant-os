@@ -1,6 +1,7 @@
 /* Restaurant menu context and mobile category jump. No invented offers/ETAs. */
 (function(root){
  'use strict';
+ const food=typeof module!=='undefined'&&module.exports?require('./bite-food-types.js'):root.BiteFoodTypes;
  function readClock(value){
   const m=/^([01]\d|2[0-4]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/.exec(String(value||''));
   if(!m)return null;
@@ -70,7 +71,8 @@
  let lastFocus=null,lastRestaurantId=null,loadedItems=[],jumpOpen=false;
 
  function updateFacts(restaurant,items){
-  const hasMenu=menuIsVegetarian(items);
+  const hasMenu=food.pureVegMenu(restaurant,items);
+  vegetarian.textContent='● 100% Pure Vegetarian';
   vegetarian.hidden=!hasMenu;
   const prepMinutes=Number(restaurant?.estimated_prep_minutes);
   prep.hidden=!(Number.isFinite(prepMinutes)&&prepMinutes>0&&prepMinutes<=480);

@@ -39,7 +39,7 @@ function authSetup(){
 test('guest checkout saves restaurant, cart return target and scroll without credentials',()=>{
  const t=authSetup();t.context.remember();
  const context=JSON.parse(t.saved.get('bite_customer_auth_return_v1'));
- assert.deepEqual(Object.keys(context).sort(),['at','category','flow','restaurantId','scrollY','search','vegOnly']);
+ assert.deepEqual(Object.keys(context).sort(),['at','category','flow','foodDiet','restaurantId','scrollY','search','vegOnly']);
  assert.equal(context.restaurantId,'r-1');
  assert.equal(context.flow,'checkout');
  assert.equal(context.scrollY,482);

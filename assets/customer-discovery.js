@@ -1,6 +1,7 @@
 /* Public discovery rules shared by the storefront and regression checks. */
 (function(root){
   'use strict';
+  const food=typeof module!=='undefined'&&module.exports?require('./bite-food-types.js'):root.BiteFoodTypes;
   const text=value=>String(value??'').trim().toLocaleLowerCase('en-IN');
   function isClosed(r,now=Date.now()){
     if(r.is_temporarily_closed&&(!r.temporary_closure_until||new Date(r.temporary_closure_until).getTime()>now))return true;
@@ -61,6 +62,8 @@
         if(options.favourites&&!options.favourites.has(r.id))return false;
         if(options.diet==='veg'&&!r.has_veg)return false;
         if(options.diet==='nonveg'&&!r.has_nonveg)return false;
+        if(options.diet==='egg'&&r.has_egg!==true)return false;
+        if(options.diet==='pureveg'&&r.has_pure_veg!==true)return false;
         if(category!=='all'&&!tags.some(t=>text(t).includes(category)))return false;
         if(options.service==='delivery'&&(!r.accepts_delivery||r.delivery_paused||(!options.scheduledOnly&&isClosed(r))))return false;
         if(options.service==='pickup'&&(!r.accepts_pickup||isClosed(r)))return false;
@@ -85,7 +88,7 @@
     .replace(/[^\p{L}\p{M}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
   function selectMenu(items,options={}){
     const tokens=menuText(options.query).split(' ').filter(Boolean),category=options.category||'all';
-    return items.filter(i=>(category==='all'||i.category_id===category)&&(!options.vegOnly||i.is_vegetarian===true)
+    return items.filter(i=>(category==='all'||i.category_id===category)&&food.matches(i,options.vegOnly?'veg':options.diet||'all')
       &&(!tokens.length||tokens.every(token=>menuText(i.name+' '+(i.description||'')).includes(token))));
   }
   const api={isClosed,safeImage,distance,selectRestaurants,selectMenu};

@@ -33,9 +33,9 @@
   const version=++restoreVersion;
   const openSequence=biteRestaurantOpenSequence;
   try{
-   const {data,error}=await sb.from('menu_items')
-    .select('id,category_id,name,description,price,is_vegetarian,is_kids_choice,image_url')
-    .eq('restaurant_id',restaurant.id).eq('is_available',true).order('sort_order');
+   const {data,error}=await BiteFoodTypes.readMenu(columns=>sb.from('menu_items')
+    .select(columns).eq('restaurant_id',restaurant.id).eq('is_available',true).order('sort_order'),
+    'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url');
    if(error)throw error;
    if(version!==restoreVersion||openSequence!==biteRestaurantOpenSequence||activeRestaurant)return;
    // Do not resurrect a cart that was explicitly cleared while the request ran.

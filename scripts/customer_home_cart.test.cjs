@@ -19,7 +19,7 @@ function harness(){
  }
  let saved=null,clearCount=0;
  const rows=[{id:'dish-1',name:'Poha',price:50},{id:'dish-2',name:'Tea',price:20}];
- const ctx={
+ const ctx={BiteFoodTypes:require('../assets/bite-food-types.js'),
   document:{body:{dataset:{view:'home'}},getElementById:id=>elements[id]},
   window:{},restaurants:[{id:'restaurant-1',name:'Hotel Maharani Palace'}],
   activeRestaurant:{id:'restaurant-1',name:'Hotel Maharani Palace'},menuItems:rows,

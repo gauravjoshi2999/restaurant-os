@@ -55,6 +55,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 </style>
 <link rel="stylesheet" href="assets/qr-menu-premium.css?v=20261114-hero1">
 <link rel="stylesheet" href="assets/bite-selected-logo-rollout.css?v=20261114-logo1">
+<link rel="stylesheet" href="assets/bite-food-types.css?v=20261125-diet1">
 </head>
 <body class="bite-qr-menu">
 <header><div class="brand"><img src="assets/bite-selected-wordmark.webp" alt="Bite logo"><div class="brand-copy"><strong>Bite</strong><span>Eat. Repeat.</span></div><span class="header-separator" aria-hidden="true"></span><span class="header-menu-label">DIGITAL MENU</span></div></header>
@@ -74,13 +75,14 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 <div id="message" role="status" aria-live="polite">Menu load ho raha hai...</div>
 <section id="filters" class="filters" hidden aria-label="Menu filters">
 <label><span style="display:block;font-size:12px;margin:0 0 6px;color:#64596d;font-weight:700">Dish search</span><input type="search" id="dishSearch" placeholder="Khana search karein, jaise Paneer" autocomplete="off"></label>
-<label id="vegSwitch" class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label>
+<label id="vegSwitch" class="veg-switch"><input id="vegOnly" type="checkbox"> Sirf vegetarian</label><label id="qrFoodFilter" hidden>Food <select id="qrDiet" class="qr-food-diet"><option value="all">All dishes</option><option value="egg">Egg</option><option value="nonveg">Non-veg</option></select></label>
 </section>
 <nav id="categories" class="categories" hidden aria-label="Menu categories"></nav>
 <div id="summary" class="summary" hidden><strong id="selectedCategoryTitle">Hamare dishes</strong><div class="menu-freshness"><span id="itemCount"></span><button id="refreshMenuBtn" type="button" aria-label="Refresh menu and current prices">↻ Refresh rates</button><span id="menuFreshness" role="status" aria-live="polite"></span></div></div>
 <div id="menu" class="menu" hidden aria-live="polite"></div>
 </main>
 <footer>Bite — Eat. Repeat. · Menu only. Prices/availability restaurant se confirm karein.</footer>
+<script src="assets/bite-food-types.js?v=20261125-diet1"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -106,7 +108,7 @@ function draw(){
  const search=$('dishSearch').value.trim().toLocaleLowerCase();
  const vegOnly=$('vegOnly').checked;
  const visible=items.filter(item=>(category==='all'||item.category_id===category)
-   &&(!vegOnly||item.is_vegetarian===true)
+   &&BiteFoodTypes.matches(item,vegOnly?'veg':$('qrDiet').value)
    &&(!search||String(item.name||'').toLocaleLowerCase().includes(search)
     ||String(item.description||'').toLocaleLowerCase().includes(search)));
  $('itemCount').textContent=visible.length+' dishes';
@@ -126,20 +128,16 @@ function draw(){
   const name=document.createElement('div');name.className='item-name';name.textContent=item.name||'Dish';
   const desc=document.createElement('p');desc.className='item-desc';desc.textContent=item.description||'';
   const price=document.createElement('span');price.className='price';price.textContent=money(item.price);
-  const mark=document.createElement('span');mark.className='mark'+(item.is_vegetarian===false?' nonveg':'');
-  mark.textContent=item.is_vegetarian===true?'● Veg':item.is_vegetarian===false?'● Non-veg':'';
+  const mark=document.createElement('span');mark.className='mark '+BiteFoodTypes.typeOf(item);
+  mark.textContent=BiteFoodTypes.typeOf(item)==='unknown'?'Dietary details not provided':'● '+BiteFoodTypes.label(item);
   const meta=document.createElement('div');meta.className='item-meta';meta.append(price,mark);
   content.append(name,desc,meta);card.append(content);menu.append(card);
  }
 }
 function pureVegMenu(restaurant,availableItems){
- const tags=Array.isArray(restaurant.cuisine_tags)?restaurant.cuisine_tags.join(' '):String(restaurant.cuisine_tags||'');
- const taggedPureVeg=/\bpure\s*veg(?:etarian)?\b|शुद्ध\s*शाकाहारी/i.test(tags);
- // Data-driven: Pure Veg explicitly marked in restaurant settings, OR every
- // currently available dish is verified vegetarian. Never hide if any non-veg.
- return availableItems.length>0&&!availableItems.some(item=>item.is_vegetarian===false)
-   &&(taggedPureVeg||availableItems.every(item=>item.is_vegetarian===true));
+ return BiteFoodTypes.pureVegMenu(restaurant,availableItems);
 }
+
 function scrollToDishes(){
  const section=$('summary');
  if(!section||section.hidden)return;
@@ -215,7 +213,7 @@ async function loadMenu({quiet=false}={}){
   }
   const [catResult,itemResult]=await Promise.all([
    client.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',restaurantId).eq('is_active',true).order('sort_order'),
-   client.from('menu_items').select('id,category_id,name,description,price,image_url,is_vegetarian').eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000)
+   BiteFoodTypes.readMenu(columns=>client.from('menu_items').select(columns).eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000),'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type')
   ]);
   if(catResult.error)throw catResult.error;
   if(itemResult.error)throw itemResult.error;
@@ -234,6 +232,9 @@ async function loadMenu({quiet=false}={}){
   $('vegSwitch').hidden=isPureVeg;
   $('filters').classList.toggle('pure-veg',isPureVeg);
   $('pureVegLabel').hidden=!isPureVeg;
+  $('qrFoodFilter').hidden=isPureVeg||!items.some(i=>['egg','nonveg'].includes(BiteFoodTypes.typeOf(i)));
+  for(const option of $('qrDiet').options)option.hidden=option.value!=='all'&&!items.some(i=>BiteFoodTypes.typeOf(i)===option.value);
+  if(!Array.from($('qrDiet').options).some(o=>o.value===$('qrDiet').value&&!o.hidden))$('qrDiet').value='all';
   if(isPureVeg)$('vegOnly').checked=false;
   $('restaurantName').textContent=restaurant.name||'Restaurant menu';
   const description=String(restaurant.public_description||restaurant.address||'')
@@ -270,7 +271,8 @@ $('descriptionToggle').addEventListener('click',()=>{
  $('descriptionToggle').textContent=expanded?'Show less':'Read more';
 });
 $('dishSearch').addEventListener('input',draw);
-$('vegOnly').addEventListener('change',draw);
+$('vegOnly').addEventListener('change',()=>{$('qrDiet').value='all';draw();});
+$('qrDiet').addEventListener('change',()=>{$('vegOnly').checked=false;draw();});
 $('refreshMenuBtn').addEventListener('click',()=>loadMenu());
 document.addEventListener('visibilitychange',()=>{
  if(!document.hidden&&Date.now()-lastLoadedAt>30000)void loadMenu({quiet:true});
