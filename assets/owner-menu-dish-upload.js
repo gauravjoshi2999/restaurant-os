@@ -38,7 +38,7 @@
   const {data:auth,error:authError}=await sb.auth.getUser();
   if(authError||auth?.user?.id!==userId)throw Error('Owner session recheck failed.');
   const {data:membership,error:memberError}=await sb.from('restaurant_members').select('restaurant_id,role').eq('restaurant_id',rid).eq('user_id',userId).eq('role','owner');
-  if(memberError||!Array.isArray(membership)||membership.length!==1||!stillValid())throw Error('Only current restaurant Owner can upload a dish photo.');
+  if(memberError||!Array.isArray(membership)||membership.length!==1||membership[0]?.restaurant_id!==rid||membership[0]?.role!=='owner'||!stillValid())throw Error('Only current restaurant Owner can upload a dish photo.');
   const {data:items,error:itemError}=await sb.from('menu_items').select('id').eq('id',id).eq('restaurant_id',rid);
   if(itemError||!Array.isArray(items)||items.length!==1||items[0]?.id!==id||!stillValid())throw Error('Saved item no longer belongs to this restaurant. Refresh menu.');
   await checkImage(selected);
