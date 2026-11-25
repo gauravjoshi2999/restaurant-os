@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 source=(ROOT/'index.html').read_text()
 modal=source[source.index('<div class="modal" id="menuItemModal"'):source.index('<div class="modal" id="restaurantModal"')]
-styles=''.join(re.findall(r'<style[^>]*>[\s\S]*?</style>',source))
+styles=''.join(re.findall(r'<style[^>]*>[\s\S]*?</style>',source[:source.index('</head>')]))
 prefixes=['function openMenuItem(','function menuEditScope(','function menuRestaurantId(','function closeModal(',
  "globalThis.BiteOwnerMenuEditor?.configure(","document.getElementById('menuItemForm').addEventListener("]
 actual='\n'.join(next(line for line in source.splitlines() if line.startswith(prefix))for prefix in prefixes)
@@ -67,6 +67,7 @@ try:
    page.route('**/*',route)
    page.goto('http://127.0.0.1:4494/menu-editor-fixture')
    page.locator('#fixtureOpen').click()
+   check(page.locator('#menuItemModal').is_visible(),f'Actual editor opens {width}px; script errors: {errors}')
    form=page.locator('#menuItemForm');price=form.locator('[name=price]');close=page.locator('#menuItemModal .close')
    price.fill('150');close.click();page.locator('#menuItemCloseKeep').click()
    check(price.input_value()=='150'and page.evaluate('qa.writes.length')==0,f'Keep editing preserves price draft without write {width}px')
