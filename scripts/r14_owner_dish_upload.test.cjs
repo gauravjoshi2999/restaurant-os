@@ -35,3 +35,9 @@ test('B008 helper gates unsaved, Manager, or malformed files before Storage writ
  await assert.rejects(helper.prepare({sb:{storage:{from(){writes++;throw Error('unexpected write')}}},rid:'bad',id:'bad',userId:'a',stillValid:()=>true}),/verification pending/);
  assert.equal(writes,0);
 });
+
+test('Uncertain menu saves never delete uploaded photos without definitive reconciliation',()=>{
+ assert.doesNotMatch(html,/if\(result\.error\)\{await globalThis\.BiteMenuDishUpload\?\.cleanup\(uploaded\)/);
+ assert.match(html,/Dish photo retained for reconciliation: menu save result not confirmed/);
+ assert.match(html,/Save not confirmed\. Refresh menu; uploaded object requires audit before cleanup/);
+});
