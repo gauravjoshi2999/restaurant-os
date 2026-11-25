@@ -42,7 +42,7 @@ test('Guest document boundaries are restrictive, not permission grants for other
  assert.match(report,/No inferred anonymous write vulnerability/);
 });
 test('Existing cover upload uses unique tenant path without overwrite; not a menu upload',()=>{
- assert.match(html,/path=rid\+'\/covers\/\'+crypto\.randomUUID\(\)\+'\.webp'/);
+ assert.ok(html.includes("path=rid+'/covers/'+crypto.randomUUID()+'.webp'"),'cover uploads must use a fresh path under the current restaurant');
  assert.match(html,/\.storage\.from\('bite-menu'\)/);
  assert.match(html,/upsert:false/);
  assert.match(report,/no menu-photo file picker/i);
