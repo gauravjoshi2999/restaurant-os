@@ -115,5 +115,5 @@
   if(!get('menuItemCloseChoice').hidden&&!pending)keep();else root.closeModal('menuItemModal');
  });
  root.addEventListener('beforeunload',event=>{if(valid()&&(dirty()||pending)){event.preventDefault();event.returnValue='';}});
- root.BiteOwnerMenuEditor={configure:check=>{context=check;},start,beforeClose,sync,validate,saving,saved,source};
+ root.BiteOwnerMenuEditor={configure:check=>{context=check;},start,beforeClose,sync,validate,saving,saved,source,isDirty:dirty};
 })(globalThis);
