@@ -15,10 +15,10 @@ function harness(){
  root.globalThis=root;vm.runInNewContext(source,root);
  const rid='12345678-1234-4234-9234-123456789abc',id='87654321-4321-4321-8321-abcdefabcdef',userId='owner-1';
  const file={size:JPEG.byteLength,type:'image/jpeg',slice(){return {arrayBuffer:async()=>JPEG.buffer.slice(0)}}};
- let membership=[{restaurant_id:rid,role:'owner'}],uploadError=null,authUser=userId,valid=true;
+ let membership=[{restaurant_id:rid,role:'owner'}],itemRows=[{id}],uploadError=null,authUser=userId,valid=true;
  const storage={upload:async(path,blob,options)=>{uploads++;lastPath=path;assert.equal(blob,file);assert.equal(options.upsert,false);return {error:uploadError}},getPublicUrl:path=>({data:{publicUrl:'https://example.supabase.co/storage/v1/object/public/bite-menu/'+path}}),remove:async(paths)=>{removes++;assert.equal(paths[0],lastPath);return {error:null}}};
- const sb={auth:{getUser:async()=>{auths++;return {data:{user:{id:authUser}},error:null}}},from(table){assert.equal(table,'restaurant_members');return {select(columns){assert.equal(columns,'restaurant_id,role');return {eq(){return this},then(ok){queries++;return Promise.resolve({data:membership,error:null}).then(ok)}}}}},storage:{from(bucket){assert.equal(bucket,'bite-menu');return storage}}};
- return {root,controls,events,rid,id,userId,file,sb,prepare:()=>root.BiteMenuDishUpload.prepare({sb,rid,id,userId,stillValid:()=>valid}),choose:async()=>{controls.menuItemDishFile.files=[file];await events.change();await new Promise(resolve=>setImmediate(resolve))},stats:()=>({uploads,removes,auths,queries,lastPath}),setMembership:v=>membership=v,setAuth:v=>authUser=v,setValid:v=>valid=v,setUploadError:v=>uploadError=v};
+ const sb={auth:{getUser:async()=>{auths++;return {data:{user:{id:authUser}},error:null}}},from(table){assert.ok(['restaurant_members','menu_items'].includes(table));return {select(columns){assert.equal(columns,table==='restaurant_members'?'restaurant_id,role':'id');return {eq(){return this},then(ok){queries++;return Promise.resolve({data:table==='restaurant_members'?membership:itemRows,error:null}).then(ok)}}}}},storage:{from(bucket){assert.equal(bucket,'bite-menu');return storage}}};
+ return {root,controls,events,rid,id,userId,file,sb,prepare:()=>root.BiteMenuDishUpload.prepare({sb,rid,id,userId,stillValid:()=>valid}),choose:async()=>{controls.menuItemDishFile.files=[file];await events.change();await new Promise(resolve=>setImmediate(resolve))},stats:()=>({uploads,removes,auths,queries,lastPath}),setMembership:v=>membership=v,setItemRows:v=>itemRows=v,setAuth:v=>authUser=v,setValid:v=>valid=v,setUploadError:v=>uploadError=v};
 }
 test('Manager and new unsaved item cannot receive R14 file picker',()=>{
  const h=harness();h.root.BiteMenuDishUpload.open(false,true);assert.equal(h.controls.menuItemDishTools.hidden,true);
@@ -34,7 +34,7 @@ test('Confirmed owner uploads verified JPEG to unique own restaurant/item path w
  const result=await h.prepare();
  assert.match(result.url,/^https:\/\//);
  assert.match(h.stats().lastPath,new RegExp('^'+h.rid+'/menu/'+h.id+'/[0-9a-f-]+\\.jpg$'));
- assert.equal(h.stats().uploads,1);assert.equal(h.stats().auths,1);assert.equal(h.stats().queries,1);
+ assert.equal(h.stats().uploads,1);assert.equal(h.stats().auths,1);assert.equal(h.stats().queries,2);
  await h.root.BiteMenuDishUpload.cleanup(result);assert.equal(h.stats().removes,1);
 });
 test('Wrong authenticated user is rejected before role query or upload',async()=>{
@@ -62,5 +62,11 @@ test('Invalid file content does not pass picker selection',async()=>{
  const h=harness();h.root.BiteMenuDishUpload.open(true,true);h.controls.menuItemDishFile.files=[{size:5,type:'image/jpeg',slice(){return {arrayBuffer:async()=>new Uint8Array([60,104,116,109,108]).buffer}}}];
  await h.events.change();assert.match(h.controls.menuItemDishStatus.textContent,/File content image format/);
  assert.equal(h.root.BiteMenuDishUpload.hasSelection(),false);
+ assert.equal(h.stats().uploads,0);
+});
+
+test('Foreign or deleted item row fails before Storage write',async()=>{
+ const h=harness();h.root.BiteMenuDishUpload.open(true,true);await h.choose();h.controls.menuItemDishRights.checked=true;
+ h.setItemRows([]);await assert.rejects(h.prepare(),/Saved item no longer belongs/);
  assert.equal(h.stats().uploads,0);
 });
