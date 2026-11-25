@@ -4,7 +4,7 @@ const source=fs.readFileSync('assets/owner-menu-dish-upload.js','utf8');
 const JPEG=new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,0,0,1]);
 function harness(){
  const events={},controls={
-  menuItemForm:{},menuItemDishFile:{files:[],value:'',disabled:true,addEventListener(name,fn){events[name]=fn}},
+  menuItemForm:{},menuItemDishFile:{files:[],_value:'',disabled:true,get value(){return this._value},set value(v){this._value=v;if(v==='')this.files=[]},addEventListener(name,fn){events[name]=fn}},
   menuItemDishRights:{checked:false,disabled:true},menuItemDishStatus:{textContent:''},
   menuItemDishPreview:{hidden:true,src:'',removeAttribute(name){if(name==='src')this.src=''}},
   menuItemDishTools:{hidden:true}
