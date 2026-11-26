@@ -13,11 +13,11 @@ assert.match(html, /id="googleAuthBtn"[^>]+aria-label="Continue with Google"/);
 assert.match(html, /id="googleAuthWrap" class="bite-google-auth hidden"/);
 assert.match(html, /assets\/customer-google-auth\.css/);
 assert.match(html, /\$\('googleAuthBtn'\)\.addEventListener\('click',signInCustomerWithGoogle\)/);
-assert.match(html, /handleCustomerGoogleRedirectError\(\);let checkoutAddresses=/);
+assert.match(html, /handleCustomerGoogleRedirectError\(\);biteInstallNativeGoogleCallback\(\);let checkoutAddresses=/);
 assert.match(html, /signInWithPassword\(/);
 assert.match(html, /sb\.auth\.signUp\(/);
 assert.doesNotMatch(html, /client_secret|service_role/i);
-function setup({webview=false,direct=false,provider=true}={}){
+function setup({webview=false,direct=false,provider=true,native=false}={}){
  const nodes=new Map();
  function $(id){
   if(!nodes.has(id))nodes.set(id,{
@@ -36,13 +36,14 @@ function setup({webview=false,direct=false,provider=true}={}){
   },
   history:{replaceState(_,__,url){calls.push({history:url});}}
  };
+ if(native)window.Capacitor={Plugins:{BiteGoogleOAuth:{open:async({url})=>{calls.push({nativeUrl:url})},consumeRedirect:async()=>({})}}};
  const ctx=vm.createContext({
   $,window,navigator:{userAgent:webview?'Mozilla/5.0 (Linux; Android 13; wv)':'Mozilla/5.0 Chrome/156'},
   authMode:'login',SUPABASE_URL:'https://project.supabase.co',SUPABASE_KEY:'sb_publishable_test',
-  BITE_DIRECT_MODE:direct,
+  BITE_DIRECT_MODE:direct,BITE_CUSTOMER_WEBVIEW:webview,
   URLSearchParams,
   fetch:async(url,opts)=>{fetches.push({url,opts});return {ok:true,json:async()=>({external:{google:provider}})};},
-  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{error:null};}}},
+  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{data:{url:'https://project.supabase.co/auth/v1/authorize?provider=google'},error:null};}}},
   isCustomerAuthNetworkError:()=>false,
   showAuth:(mode)=>{calls.push({showAuth:mode});}
  });
@@ -92,6 +93,17 @@ test('Android embedded WebView does not expose a Google flow that Google blocks'
  assert.equal(t.fetches.length,0);
  assert.equal(t.calls.filter(x=>x.oauth).length,0);
  assert.equal(t.$('googleAuthWrap').classList.hidden,true);
+});
+test('Android APK bridge opens Google in external browser and receives PKCE return URL',async()=>{
+ const t=setup({webview:true,native:true});
+ await t.ctx.load();
+ assert.equal(t.fetches.length,1);
+ assert.equal(t.$('googleAuthWrap').classList.hidden,false);
+ await t.ctx.click();
+ const args=t.calls.find(x=>x.oauth).oauth;
+ assert.equal(args.options.redirectTo,'bitecustomer://oauth/callback');
+ assert.equal(args.options.skipBrowserRedirect,true);
+ assert.equal(t.calls.filter(x=>x.nativeUrl).length,1);
 });
 test('OAuth error returns to email login; successful auth tokens remain untouched',()=>{
  const t=setup();

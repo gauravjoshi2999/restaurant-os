@@ -5,7 +5,7 @@ on:
       version_code:
         description: 'Android version code (increase for each installable update)'
         required: false
-        default: '18'
+        default: '19'
         type: string
   push:
     branches: [main]
@@ -54,7 +54,7 @@ jobs:
       - name: Configure selected Bite app
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '18' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '19' }}
         run: |
           node - <<'NODE'
           const fs = require('fs');
@@ -109,8 +109,29 @@ jobs:
           path: bite-approved-brand
           sparse-checkout: |
             assets/bite-selected-icon.png
+            customer.html
             android-app/patch_bite_fcm.py
+            android-app/patch_bite_google_oauth.py
           sparse-checkout-cone-mode: false
+      - name: Confirm Google provider is actually enabled for Customer signed APK
+        if: matrix.app == 'customer'
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          (async()=>{
+            const page=fs.readFileSync('../bite-approved-brand/customer.html','utf8');
+            const key=page.match(/const SUPABASE_KEY='([^']+)'/);
+            if(!key)throw Error('Approved public Supabase client key unavailable');
+            const result=await fetch('https://wedbgpybbgsszcmffoha.supabase.co/auth/v1/settings',{
+              headers:{apikey:key[1]},signal:AbortSignal.timeout(15000)
+            });
+            if(!result.ok)throw Error('Cannot verify Supabase provider settings: '+result.status);
+            const settings=await result.json();
+            if(settings?.external?.google!==true)throw Error('Customer Google provider is not enabled in Supabase Auth; do not sign an unusable APK');
+            console.log('Verified: Supabase Google provider enabled (read-only readiness check).');
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          NODE
       - name: Prepare native Bite launcher icon tools
         uses: actions/setup-python@v5
         with:
@@ -156,6 +177,21 @@ jobs:
           PY
       - name: Preserve WebView login and install native new-order notifications
         run: python3 patch_bite_native.py
+      - name: Install Customer-only native Google PKCE bridge
+        shell: bash
+        run: |
+          test -s ../bite-approved-brand/android-app/patch_bite_google_oauth.py
+          python3 ../bite-approved-brand/android-app/patch_bite_google_oauth.py
+          if [ "${{ matrix.app }}" = "customer" ]; then
+            GOOGLE_FILE="$(find android/app/src/main/java -name BiteGoogleOAuthPlugin.java -print -quit)"
+            test -n "$GOOGLE_FILE" && test -s "$GOOGLE_FILE"
+            grep -Fq 'new CustomTabsIntent.Builder().build().launchUrl(getActivity(),u)' "$GOOGLE_FILE"
+            grep -Fq 'registerPlugin(BiteGoogleOAuthPlugin.class);' "$(find android/app/src/main/java -name MainActivity.java -print -quit)"
+            grep -Fq 'android:scheme="bitecustomer"' android/app/src/main/AndroidManifest.xml
+            echo "Customer Google OAuth native callback and external browser are compiled."
+          else
+            test -z "$(find android/app/src/main/java -name BiteGoogleOAuthPlugin.java -print -quit)"
+          fi
       - name: Install Firebase push only when Bite Partner Firebase config is available
         shell: bash
         env:
@@ -191,7 +227,7 @@ jobs:
       - name: Set version code for signed releases
         shell: bash
         env:
-          BITE_VERSION_CODE: ${{ inputs.version_code || '18' }}
+          BITE_VERSION_CODE: ${{ inputs.version_code || '19' }}
         run: |
           node -e "const fs=require('fs');const p='android/app/build.gradle';let s=fs.readFileSync(p,'utf8');const v=Number(process.env.BITE_VERSION_CODE);if(!Number.isSafeInteger(v)||v<1)throw Error('Invalid version code');s=s.replace(/versionCode\s+\d+/, 'versionCode '+v);if(!s.includes('versionCode '+v))throw Error('versionCode update failed');fs.writeFileSync(p,s)"
       - name: Build release APK (unsigned)

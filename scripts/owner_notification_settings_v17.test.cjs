@@ -38,6 +38,6 @@ test('Native plugin takes the owner directly to order notification channel, with
  assert.match(android,/Settings\.EXTRA_CHANNEL_ID,"bite_owner_new_orders_v1"/);
  assert.match(android,/Settings\.ACTION_APPLICATION_DETAILS_SETTINGS/);
  assert.match(android,/call\.resolve\(\);/);
- assert.match(workflow,/default: '18'/);
+ assert.match(workflow,/default: '19'/);
  assert.match(workflow,/Partner v18 notification settings plugin method not compiled/);
 });
