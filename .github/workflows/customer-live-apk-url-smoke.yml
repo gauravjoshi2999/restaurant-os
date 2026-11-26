@@ -1,0 +1,25 @@
+name: Customer live APK URL smoke
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/customer-live-apk-url-smoke.yml'
+      - '.github/workflows/bite-android-signed-manual.yml'
+permissions:
+  contents: read
+jobs:
+  live-customer-url:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check public HTTPS Customer page and APK startup route
+        shell: bash
+        run: |
+          set -euo pipefail
+          for URL in 'https://gauravjoshi2999.github.io/restaurant-os/customer.html' 'https://gauravjoshi2999.github.io/restaurant-os/customer.html?bite_app=customer&bite_version=19'; do
+            HTTP_CODE="$(curl --silent --show-error --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 2 --output "$RUNNER_TEMP/customer-live.html" --write-out '%{http_code}' "$URL")"
+            echo "Customer HTTPS response: $HTTP_CODE"
+            test "$HTTP_CODE" = 200
+            grep -Fq 'authModal' "$RUNNER_TEMP/customer-live.html"
+            grep -Fq 'customerNativeGoogleReady' "$RUNNER_TEMP/customer-live.html"
+          done
+          echo "Live Customer route and native Google frontend marker verified; device connectivity is a separate test."
