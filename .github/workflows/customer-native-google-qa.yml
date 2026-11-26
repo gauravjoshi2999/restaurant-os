@@ -1,0 +1,42 @@
+name: Customer Google native compile QA
+on:
+  pull_request:
+    paths:
+      - 'android-app/patch_bite_customer_google.py'
+      - '.github/workflows/customer-native-google-qa.yml'
+      - '.github/workflows/bite-android-signed-manual.yml'
+permissions:
+  contents: read
+jobs:
+  compile-customer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/bite-android-apk
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+          sparse-checkout: android-app/patch_bite_customer_google.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Generate Customer Android scaffold and compile candidate native bridge
+        working-directory: android-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npx cap add android
+          npx cap sync android
+          python3 patch_bite_native.py
+          # Deliberately unconfigured compile-only build. No signing or OAuth secrets.
+          python3 ../candidate/android-app/patch_bite_customer_google.py
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
