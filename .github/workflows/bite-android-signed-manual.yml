@@ -111,6 +111,7 @@ jobs:
             assets/bite-selected-icon.png
             android-app/patch_bite_fcm.py
             android-app/patch_bite_customer_google.py
+            android-app/check_bite_google_provider.py
           sparse-checkout-cone-mode: false
       - name: Prepare native Bite launcher icon tools
         uses: actions/setup-python@v5
@@ -157,11 +158,15 @@ jobs:
           PY
       - name: Preserve WebView login and install native new-order notifications
         run: python3 patch_bite_native.py
-      - name: Install Customer native Google sign-in
+      - name: Verify existing Customer Google provider before signed build
         if: matrix.app == 'customer'
         env:
           BITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.BITE_GOOGLE_WEB_CLIENT_ID }}
+        run: python3 ../bite-approved-brand/android-app/check_bite_google_provider.py
+      - name: Install Customer native Google sign-in
+        if: matrix.app == 'customer'
         run: |
+          test -n "$BITE_GOOGLE_WEB_CLIENT_ID"
           python3 ../bite-approved-brand/android-app/patch_bite_customer_google.py
           test -s "$(find android/app/src/main/java -name BiteCustomerGooglePlugin.java -print -quit)"
       - name: Install Firebase push only when Bite Partner Firebase config is available
@@ -223,6 +228,10 @@ jobs:
           "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "android/app/build/outputs/apk/release/bite-aligned.apk"
           "$BUILD_TOOLS/apksigner" sign --ks "$RUNNER_TEMP/bite-release.jks" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD --out "android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk" "android/app/build/outputs/apk/release/bite-aligned.apk"
           "$BUILD_TOOLS/apksigner" verify --verbose "android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk"
+          # OAuth Android registration requires the public release certificate SHA-1, not the key.
+          if [ "${{ matrix.app }}" = "customer" ]; then
+            "$BUILD_TOOLS/apksigner" verify --print-certs "android/app/build/outputs/apk/release/bite-customer-release.apk" | grep -E "certificate SHA-1 digest:" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
           rm -f "$RUNNER_TEMP/bite-release.jks"
       - uses: actions/upload-artifact@v4
         with:
