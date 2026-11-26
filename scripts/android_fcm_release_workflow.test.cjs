@@ -41,3 +41,12 @@ test('Partner release fails closed without Firebase secrets or generated native 
  const signingIndex=yml.indexOf('- name: Sign release APK with stable private key');
  assert.ok(checkIndex>=0 && signingIndex>checkIndex,'Partner native verification must happen before signing');
 });
+
+test('Customer APK cannot be published with an incompatible release certificate',()=>{
+ const guard=yml.indexOf('Customer signed release blocked: signing certificate differs');
+ const upload=yml.indexOf('uses: actions/upload-artifact@v4');
+ assert.ok(guard>0&&upload>guard);
+ assert.match(yml,/EXPECTED_SHA256="a1e9c24b1bf379fa264fcddfae77766fa1d5be9681c8f65a638aaa654b0f9b3b"/);
+ assert.match(yml,/if \[ "\$ACTUAL_SHA256" != "\$EXPECTED_SHA256" \]; then[\s\S]*?exit 1/);
+ assert.match(yml,/Signer #1 certificate SHA-256 digest:/);
+});
