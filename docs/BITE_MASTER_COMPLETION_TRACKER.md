@@ -4,6 +4,14 @@ Last checked: 25 November 2026. B008/#323 merged into `main` at `26dbd0fff0a4581
 
 **Chronology:** B0/B001–B006 below preserve original source-time checkpoints. Statements marked PENDING within earlier journals are historical; newer verified release evidence above governs. B004 dietary migration `20261125052036` is applied; do not repeat it.
 
+## Customer Android Google OAuth — C-AUTH-01 (26 November 2026)
+
+**Issue confirmed in code:** Customer `customer.html` intentionally hides the Google option in WebView; the existing signed Customer APK uses Capacitor WebView and does not provide an external-browser OAuth return bridge. On web, Google is also hidden unless Auth settings report `external.google=true`. **Do not solve by removing the WebView guard alone.**
+
+**Current candidate branch:** `fix/customer-native-google-oauth-20261126`; adds Customer-only Chrome Custom Tab + strict S256 PKCE/native callback, Android v19 build patch, Customer button gating, source/Android patch tests, and [activation checklist](launch/CUSTOMER_ANDROID_GOOGLE_LOGIN_20261126.md). Website's existing Google login and Partner/Admin access unchanged. **PLANNED/IMPLEMENTED IN PR, NOT LIVE OR ACCEPTED.**
+
+**Exact release gates:** successful PR QA, safe merge, exact-main QA/Pages, actual signed Android Customer APK v19, Supabase Google provider + exact callback allowlist verified, real Android end-to-end Google login/cancel/session/cart test. Provider settings and real phone acceptance currently not independently verified. An old APK will not acquire new native code from live website refresh.
+
 ## NEXT ACTION
 
 1. **B008 / R14 Owner-only saved-dish file upload — PR #323 MERGED; exact-main QA/Pages pending:** Merge SHA `26dbd0fff0a4581315b63c8afc1936ce95f920f8`; exact PR-head SHA `94c376a6a1d84b3cb09bb1356e169decf26a547b`, [13/13 QA passed](https://github.com/gauravjoshi2999/restaurant-os/actions/runs/45571101980), including static/Node, PostgreSQL and Chromium jobs. Existing R14 editor has Owner-only picker for *already-saved* items, 5 MiB JPEG/PNG/WebP signature/decode/dimensions guard, public-photo rights confirmation, Auth + `restaurant_members.role='owner'` recheck, per-tenant/item UUID Storage path with `upsert:false`, scoped URL compare-and-swap menu update, concurrent Save lock, and cautious cleanup/readback for ambiguous outcomes. This does **not** authorize Manager uploads. **EXACT NEXT ACTION:** independently verify merged-main 13-job QA and GitHub Pages deploy for **this exact merge SHA**; inspect actual served JS/version and browser smoke evidence. Connected GitHub commit status and PR-only workflow-run search returned zero entries for merge SHA; this is *no verification*, not proof of failure. Do not mark LIVE until release evidence exists.
