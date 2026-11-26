@@ -1380,22 +1380,32 @@ function setupOrderRealtime(userId){if(orderChannel){sb.removeChannel(orderChann
   void biteOpenFullOrderDetails(biteFullOrderId,true);
 }).subscribe();}
 
-let customerGoogleProviderState='unknown',customerGoogleProviderRequest=null;
+let customerGoogleProviderState='unknown',customerGoogleProviderRequest=null,customerNativeGoogleReady=false;
 function isEmbeddedCustomerWebView(){
- // Google OAuth blocks embedded Android WebViews. Keep password login available in the APK.
- return /;\s*wv\b/i.test(navigator.userAgent||'');
+ // Never start browser OAuth inside any embedded Android WebView.
+ return /;\s*wv\b/i.test(navigator.userAgent||'')||window.Capacitor?.getPlatform?.()==='android';
+}
+function customerNativeGooglePlugin(){
+ const cap=window.Capacitor;
+ if(cap?.getPlatform?.()!=='android'||cap?.isPluginAvailable?.('BiteCustomerGoogle')!==true)return null;
+ return cap.Plugins?.BiteCustomerGoogle||null;
 }
 function renderCustomerGoogleAuth(){
- const enabled=customerGoogleProviderState==='enabled'&&!isEmbeddedCustomerWebView();
+ const enabled=customerGoogleProviderState==='enabled'&&(!isEmbeddedCustomerWebView()||customerNativeGoogleReady);
  $('googleAuthWrap').classList.toggle('hidden',!(enabled&&(authMode==='login'||authMode==='signup')));
 }
 async function checkCustomerGoogleProvider(){
  if(customerGoogleProviderState!=='unknown')return renderCustomerGoogleAuth();
- if(isEmbeddedCustomerWebView())return renderCustomerGoogleAuth();
+ if(isEmbeddedCustomerWebView()&&!customerNativeGooglePlugin())return renderCustomerGoogleAuth();
  if(customerGoogleProviderRequest)return customerGoogleProviderRequest;
  // Do not advertise an unusable OAuth button before Google is enabled in Supabase.
  customerGoogleProviderRequest=(async()=>{
   try{
+   if(isEmbeddedCustomerWebView()){
+    const native=customerNativeGooglePlugin();
+    customerNativeGoogleReady=(await native?.availability())?.ready===true;
+    if(!customerNativeGoogleReady)return;
+   }
    const response=await fetch(SUPABASE_URL+'/auth/v1/settings',{
     headers:{apikey:SUPABASE_KEY},cache:'no-store'
    });
@@ -1412,12 +1422,25 @@ async function checkCustomerGoogleProvider(){
  return customerGoogleProviderRequest;
 }
 async function signInCustomerWithGoogle(){
- if(customerGoogleProviderState!=='enabled'||isEmbeddedCustomerWebView())return;
+ if(customerGoogleProviderState!=='enabled'||(isEmbeddedCustomerWebView()&&!customerNativeGoogleReady))return;
  const button=$('googleAuthBtn');
  if(button.disabled)return;
  button.disabled=true;
  $('authError').textContent='';
+ const emailSubmit=$('authSubmit'),emailWasDisabled=emailSubmit.disabled;
+ emailSubmit.disabled=true;
  try{
+  if(isEmbeddedCustomerWebView()){
+   const native=customerNativeGooglePlugin();
+   if(!native)throw Error('Native Google sign-in unavailable');
+   const credential=await native.signIn();
+   if(!credential?.idToken||!credential?.nonce)throw Error('Google credential missing');
+   if(!['login','signup'].includes(authMode)||$('authModal').classList?.contains?.('show')!==true)return;
+   const {data,error}=await sb.auth.signInWithIdToken({provider:'google',token:credential.idToken,nonce:credential.nonce});
+   if(error)throw error;
+   if(!data?.session)throw Error('Google session not established');
+   return;
+  }
   // Same-origin callback, preserving only an existing restaurant-direct query.
   const redirectTo=window.location.origin+window.location.pathname+(BITE_DIRECT_MODE?window.location.search:'');
   const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo}});
@@ -1425,12 +1448,12 @@ async function signInCustomerWithGoogle(){
   // Supabase navigates to Google. Never automatically retry OAuth or checkout.
  }catch(error){
   $('authError').style.color='#b42318';
-  $('authError').textContent=/provider is not enabled|unsupported provider|provider is disabled/i.test(error?.message||'')
+  $('authError').textContent=error?.code==='CANCELLED'?'Google Login cancel ho gaya. Email se bhi login kar sakte hain.':/provider is not enabled|unsupported provider|provider is disabled/i.test(error?.message||'')
    ?'Google Login abhi available nahi hai. Email se login karein.'
    :isCustomerAuthNetworkError(error)
     ?'Google Login ke liye server se connection nahi ho paaya. Internet check karein.'
     :'Google Login shuru nahi ho paaya. Email se login karein ya dobara try karein.';
- }finally{button.disabled=false;}
+ }finally{button.disabled=false;emailSubmit.disabled=emailWasDisabled;}
 }
 function handleCustomerGoogleRedirectError(){
  // An OAuth error is returned in the URL fragment; successful tokens are left for Supabase.
