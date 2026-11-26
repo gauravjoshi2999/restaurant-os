@@ -55,6 +55,18 @@ try:
     check(home.get_attribute('hidden') is None,f'{mode} {width}px PDF H02/H03 visible')
     check(page.locator('#biteV3Home .bv3-pdf-metric').count()==4,
           f'{mode} {width}px four Sales/Received/Due/Expenses cards')
+    primary=home.locator('.bv3-pdf-primary-grid button[data-bv3-route]')
+    routes=primary.evaluate_all('(els)=>els.map(e=>e.dataset.bv3Route)')
+    expected_primary={'hotel':['rooms','hotel-register','daily-book'],
+                      'hybrid':['rooms','pos','hotel-register','daily-book'],
+                      'restaurant':['pos']}[mode]
+    check(routes[:len(expected_primary)]==expected_primary and (mode!='restaurant' or routes in (['pos'],['pos','daily-book'],['pos','cashbook'])),
+          f'{mode} {width}px primary action order and capability: {routes}')
+    check(len(routes)==len(set(routes)),f'{mode} {width}px no duplicate primary routes')
+    check(home.locator('.bv3-pdf-primary-grid').bounding_box()['y']<home.locator('.bv3-pdf-metrics').bounding_box()['y'],
+          f'{mode} {width}px primary actions above accounts')
+    check(all(v>=44 for v in primary.evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
+          f'{mode} {width}px primary touch targets')
     if mode in ('hotel','hybrid'):
      check(page.locator('#biteV3Home [data-bv3-business-day]').count()==1,
            f'{mode} {width}px selected-day input available')
@@ -87,7 +99,7 @@ try:
           f'{mode} {width}px hotel rooms module permission')
     check(page.locator('#biteV3Home [data-bv3-new-pos="true"]').count()==(0 if mode=='hotel' else 1),
           f'{mode} {width}px canonical POS quick action')
-    check(page.locator('#biteV3Home .bv3-pdf-room-stats span').all_text_contents().count('Cleaning')==0,
+    check(page.locator('#biteV3Home .bv3-pdf-room-stats .bv3-pdf-primary-stat>span').all_text_contents().count('Cleaning')==0,
           f'{mode} {width}px disabled housekeeping not shown')
     check(page.locator('#biteV3Home .bv3-pdf-metric').nth(1).locator('strong').inner_text()=='—',
           f'{mode} {width}px unverified receipt never becomes fake zero')
