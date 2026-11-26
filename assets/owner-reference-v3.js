@@ -286,7 +286,7 @@
   const financeNotice='<p class="bv3-pdf-finance-note" role="status">'+
    (financeReady?'Received excludes refundable deposits and internal transfers.':
     financeStatus==='error'?'Accounts unavailable. <button type="button" class="bv3-pdf-retry" data-bv3-retry-finance="true">Retry accounts</button>':
-    financeStatus==='loading'?'Loading accounts…':'— means not yet verified.')+
+    financeStatus==='loading'?'Loading accounts…':'Cross-source totals show — until verified.')+
    '</p>';
   const orderRows=permitted('orders')?
     (approvalCount?pdfRow(approvalCount+' customer request'+(approvalCount===1?'':'s')+' awaiting approval','Payment not collected · Today','orders','urgent'):'')+
