@@ -284,15 +284,15 @@
   const finance=pdfHomeFinance(data,snap),financeReady=financeQuery.key===homeFinanceKey()&&financeQuery.status==='ready';
   const financeStatus=financeQuery.key===homeFinanceKey()?financeQuery.status:'idle';
   const financeNotice='<p class="bv3-pdf-finance-note" role="status">'+
-   (financeReady?'Selected-day accounting uses the existing authorized Daily Book. Received excludes refundable deposits and internal transfers.':
-    financeStatus==='error'?'Accounts unavailable for this date. No zero has been assumed. <button type="button" class="bv3-pdf-retry" data-bv3-retry-finance="true">Retry accounts</button>':
-    'Sales = billed services, Received = confirmed collections, Due = unpaid balances. Cross-source totals show — until linked accounting is verified; no sample amounts are used.')+
+   (financeReady?'Received excludes refundable deposits and internal transfers.':
+    financeStatus==='error'?'Accounts unavailable. <button type="button" class="bv3-pdf-retry" data-bv3-retry-finance="true">Retry accounts</button>':
+    financeStatus==='loading'?'Loading accounts…':'Cross-source totals show — until verified.')+
    '</p>';
   const orderRows=permitted('orders')?
     (approvalCount?pdfRow(approvalCount+' customer request'+(approvalCount===1?'':'s')+' awaiting approval','Payment not collected · Today','orders','urgent'):'')+
     (paidNew?pdfRow(paidNew+' new paid Bite order'+(paidNew===1?'':'s'),'Verified online payment · Today','orders','urgent'):'')+
     (!approvalCount&&!paidNew?'<p class="bv3-pdf-empty">No verified new orders requiring attention.</p>':''):
-    '<p class="bv3-pdf-empty">Orders module is not enabled for this property.</p>';
+    '';
   const checkout=permitted('checkouts')&&hotel?
     (!snap?.ready?'<p class="bv3-pdf-empty">Loading checkout information…</p>':
      checkoutRows.length?checkoutRows.slice(0,2).map(s=>{
@@ -322,7 +322,7 @@
   }
   if(hotel&&snap?.ready){
    const lastAudit=(ws.audit||[]).find(a=>a.action);
-   if(lastAudit)recent.push(pdfRow('Hotel activity · '+lastAudit.action,'See property activity and guest records','guests'));
+   if(lastAudit&&permitted('guests'))recent.push(pdfRow('Guest records','View guest history','guests'));
   }
   const quickRoutes=[
    ['Orders','orders',''],
@@ -333,13 +333,14 @@
   ];
   const quick=quickRoutes.filter(([,routeName])=>permitted(routeName)).map(([title,routeName,extra])=>
    '<button type="button" class="bv3-pdf-quick" data-bv3-route="'+routeName+'" '+extra+'>'+escapeHtml(title)+' <span aria-hidden="true">›</span></button>').join('');
+  const dateExpanded=historical||root.document?.getElementById('biteV3Home')?.querySelector?.('.bv3-pdf-date-disclosure')?.open===true;
   return '<div class="bv3-pdf-home" data-pdf-screen="H02-H03" aria-label="Bite Owner V3 single workspace">'+
     '<header class="bv3-pdf-heading"><div><p class="bv3-pdf-kicker">BITE OWNER · '+(historical?'SELECTED DAY':'TODAY')+' <span class="bv3-pdf-today">'+(historical?'HISTORICAL':'LIVE')+'</span></p>'+
-    '<h1>'+escapeHtml(propertyName())+'</h1><small>'+escapeHtml(selectedDay)+(historical?' · Historical accounts; live alerts remain today':' · Enabled business departments')+'</small></div>'+
-    (permitted('daily-book')?'<div class="bv3-pdf-date-controls"><label class="bv3-pdf-date-field">Business date<input type="date" data-bv3-business-day="true" value="'+escapeHtml(selectedDay)+'" max="'+escapeHtml(today)+'" aria-label="Selected business date"></label><button type="button" class="bv3-pdf-date-link" data-bv3-date-today="true">Today</button></div>':'')+'</header>'+
+    '<h1>'+escapeHtml(propertyName())+'</h1><small>'+escapeHtml(selectedDay)+(historical?' · Historical accounts; live alerts remain today':'')+'</small></div>'+
+    (permitted('daily-book')?'<details class="bv3-pdf-date-disclosure"'+(dateExpanded?' open':'')+'><summary>Past dates</summary><div class="bv3-pdf-date-controls"><label class="bv3-pdf-date-field">Business date<input type="date" data-bv3-business-day="true" value="'+escapeHtml(selectedDay)+'" max="'+escapeHtml(today)+'" aria-label="Selected business date"></label><button type="button" class="bv3-pdf-date-link" data-bv3-date-today="true">Today</button></div></details>':'')+'</header>'+
     '<section class="bv3-pdf-metrics" aria-label="Business financial summary">'+finance+'</section>'+financeNotice+
     '<div class="bv3-pdf-columns"><div class="bv3-pdf-main-column">'+
-    '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Live orders</h2><span class="bv3-pdf-today">Today</span></div>'+orderRows+'</section>'+
+    (permitted('orders')?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Live orders</h2><span class="bv3-pdf-today">Today</span></div>'+orderRows+'</section>':'')+
     (hotel?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Arrivals &amp; checkouts</h2>'+(permitted('checkouts')?'<span data-checkout-count>'+num(snap?.ready?snap.departures:null)+'</span>':'')+'</div>'+checkout+arrival+'</section>':'')+
     '</div><div class="bv3-pdf-side-column">'+rooms+
     '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Recent activity</h2></div>'+

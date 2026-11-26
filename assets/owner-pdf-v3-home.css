@@ -252,3 +252,9 @@ body[data-role="owner"] #biteV3Home button:hover{filter:brightness(.99)}
 @media(prefers-reduced-motion:reduce){
  body[data-role="owner"] #biteV3Home .bv3-pdf-home *{animation:none!important;transition:none!important}
 }
+
+/* ZC-02.01-C: secondary date controls are opt-in; historical values remain accessible. */
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure{min-width:0;max-width:100%;align-self:flex-start}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure>summary{cursor:pointer;min-height:44px;padding:10px 12px;border:1px solid #dce2e9;border-radius:9px;background:#fff;color:#344154;font-weight:700;font-size:12px;box-sizing:border-box}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure>summary:focus-visible{outline:2px solid #a94e0c;outline-offset:2px}
+body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure[open] .bv3-pdf-date-controls{margin-top:8px;justify-content:flex-start}
