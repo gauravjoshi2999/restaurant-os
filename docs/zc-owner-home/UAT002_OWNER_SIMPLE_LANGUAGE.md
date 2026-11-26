@@ -1,0 +1,7 @@
+# Bite Owner usability standard — UAT002 follow-up
+
+User screenshots on 2026-11-26 show overly technical copy, crowded historical register and bill sharing failure. Use owner vocabulary, short action labels, field-level errors, one primary action, mobile first; hide optional detail, never hide money, consent, permissions or uncertain payment status. References: https://www.gov.uk/service-manual/design/writing-for-user-interfaces ; https://www.nngroup.com/articles/ten-usability-heuristics/ .
+
+First batch: Guest Register dates, search, old entries and share bill UX. Number normalization handles Indian mobile formats and explicit international numbers; WhatsApp opens via same-tab user action, PDF share sheet is separate and delivery is not verified. No actual guest contacted. No database writes. Real Android acceptance pending.
+
+Remaining UAT002: master menu with distinct online/POS/room/QR channel visibility (audit public reads, server checkout validation, RLS, POS and room posting before schema change); custom food vs hotel service charge with correct category/tax and no duplicate sales; inspect Past form and complete manual user acceptance. Audit Owner Home, Check-in, Room board, Reservations, Guest Bills, Checkout, POS, Orders, Menu, More, Expenses, Staff, Inventory, Reports, Settings, and then Customer/Admin panels. Do not blanket-replace strings or hide safeguards. Test 320/360/390/430/1280 widths. Existing data must remain intact. Do not claim complete or begin Test 003 before user acceptance.

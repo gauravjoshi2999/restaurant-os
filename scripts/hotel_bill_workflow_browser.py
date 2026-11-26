@@ -147,6 +147,13 @@ try:
   check('2,050.00' in share.locator('[name=message]').input_value(),'H14 share message uses issued invoice balance')
   share.locator('[name=reviewed]').check();share.locator('[name=phone]').fill('9999999998')
   check(not share.locator('[name=reviewed]').is_checked(),'Changing guest number requires new review')
+  check(not share.locator('[name=message]').is_visible(),'UAT002 message preview is collapsed by default')
+  share.locator('[name=phone]').fill('123');share.locator('[name=reviewed]').check();share.locator('[type=submit]').click()
+  check('mobile number' in share.locator('.bh-message').inner_text(),'UAT002 invalid number shows local actionable error')
+  p.evaluate("""()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>false});Object.defineProperty(navigator,'share',{configurable:true,value:()=>Promise.resolve()})}""")
+  for number in ['9999999999','09999999999','+91 99999 99999','00919999999999']:
+   share.locator('[name=phone]').fill(number);share.locator('[name=reviewed]').check();share.locator('[type=submit]').click()
+   check('Download PDF' in share.locator('.bh-message').inner_text(),'UAT002 Indian number format reaches file-sharing fallback: '+number)
   p.locator('[data-bill-action=credit-list]').first.click()
   p.locator('[data-credit-list]').wait_for()
   p.locator('[data-credit-list] [data-bill-action=close]').click()
