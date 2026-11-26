@@ -48,5 +48,6 @@ test('Customer APK cannot be published with an incompatible release certificate'
  assert.ok(guard>0&&upload>guard);
  assert.match(yml,/EXPECTED_SHA256="a1e9c24b1bf379fa264fcddfae77766fa1d5be9681c8f65a638aaa654b0f9b3b"/);
  assert.match(yml,/if \[ "\$ACTUAL_SHA256" != "\$EXPECTED_SHA256" \]; then[\s\S]*?exit 1/);
- assert.match(yml,/Signer #1 certificate SHA-256 digest:/);
+ assert.match(yml,/certificate SHA-256 digest:/);
+ assert.match(yml,/sort -u/);
 });
