@@ -19,8 +19,8 @@ test('Signed Android workflow pulls latest reviewed Firebase patch from main, no
  assert.match(yml,/isApproval\?"bite-approval-"\+approvalId/);
 });
 test('Signed APK build provides a fresh upgrade versionCode and runs on workflow file update',()=>{
- assert.match(yml,/default: '18'/);
- assert.equal((yml.match(/inputs\.version_code \|\| '18'/g)||[]).length,2);
+ assert.match(yml,/default: '19'/);
+ assert.equal((yml.match(/inputs\.version_code \|\| \(matrix\.app == 'customer' && '19' \|\| '18'\)/g)||[]).length,2);
  assert.match(yml,/push:[\s\S]*?branches: \[main\][\s\S]*?\.github\/workflows\/bite-android-signed-manual\.yml/);
  assert.match(yml,/Sign release APK with stable private key/);
  assert.match(yml,/matrix:[\s\S]*?app: \[customer, partner, admin\]/);
