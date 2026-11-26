@@ -17,12 +17,12 @@ assert.match(html, /handleCustomerGoogleRedirectError\(\);let checkoutAddresses=
 assert.match(html, /signInWithPassword\(/);
 assert.match(html, /sb\.auth\.signUp\(/);
 assert.doesNotMatch(html, /client_secret|service_role/i);
-function setup({webview=false,direct=false,provider=true}={}){
+function setup({webview=false,direct=false,provider=true,nativeReady=null,cancelNative=false}={}){
  const nodes=new Map();
  function $(id){
   if(!nodes.has(id))nodes.set(id,{
    disabled:false,textContent:'',style:{color:''},
-   classList:{hidden:true,toggle(name,value){if(name==='hidden')this.hidden=Boolean(value);}}
+   classList:{hidden:true,contains(name){return name==='show';},toggle(name,value){if(name==='hidden')this.hidden=Boolean(value);}}
   });
   return nodes.get(id);
  }
@@ -36,13 +36,20 @@ function setup({webview=false,direct=false,provider=true}={}){
   },
   history:{replaceState(_,__,url){calls.push({history:url});}}
  };
+ if(nativeReady!==null)window.Capacitor={
+  getPlatform:()=> 'android',isPluginAvailable:name=>name==='BiteCustomerGoogle',
+  Plugins:{BiteCustomerGoogle:{
+   availability:async()=>({ready:nativeReady}),
+   signIn:async()=>{calls.push({native:true});if(cancelNative)throw Object.assign(new Error('Cancelled'),{code:'CANCELLED'});return {idToken:'mock-google-token',nonce:'mock-raw-nonce'};}
+  }}
+ };
  const ctx=vm.createContext({
   $,window,navigator:{userAgent:webview?'Mozilla/5.0 (Linux; Android 13; wv)':'Mozilla/5.0 Chrome/156'},
   authMode:'login',SUPABASE_URL:'https://project.supabase.co',SUPABASE_KEY:'sb_publishable_test',
   BITE_DIRECT_MODE:direct,
   URLSearchParams,
   fetch:async(url,opts)=>{fetches.push({url,opts});return {ok:true,json:async()=>({external:{google:provider}})};},
-  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{error:null};}}},
+  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{error:null};},signInWithIdToken:async(args)=>{calls.push({idToken:args});return {data:{session:{user:{id:'test'}}},error:null};}}},
   isCustomerAuthNetworkError:()=>false,
   showAuth:(mode)=>{calls.push({showAuth:mode});}
  });
@@ -103,4 +110,32 @@ test('OAuth error returns to email login; successful auth tokens remain untouche
  assert.equal(t.calls.filter(x=>x.showAuth).length,1);
  assert.match(t.$('authError').textContent,/cancel/);
  assert.equal(t.calls.filter(x=>x.history).length,1);
+});
+
+test('Configured Customer native bridge uses ID token and nonce, never WebView OAuth',async()=>{
+ const t=setup({webview:true,nativeReady:true});
+ await t.ctx.load();
+ assert.equal(t.$('googleAuthWrap').classList.hidden,false);
+ await t.ctx.click();
+ assert.equal(t.calls.filter(x=>x.native).length,1);
+ assert.equal(t.calls.filter(x=>x.oauth).length,0);
+ const payload=t.calls.find(x=>x.idToken).idToken;
+ assert.equal(payload.provider,'google');
+ assert.equal(payload.token,'mock-google-token');
+ assert.equal(payload.nonce,'mock-raw-nonce');
+ assert.equal(t.$('authSubmit').disabled,false);
+});
+test('Unconfigured APK bridge keeps Google hidden and email available',async()=>{
+ const t=setup({webview:true,nativeReady:false});
+ await t.ctx.load();await t.ctx.click();
+ assert.equal(t.$('googleAuthWrap').classList.hidden,true);
+ assert.equal(t.calls.length,0);
+ assert.equal(t.$('authSubmit').disabled,false);
+});
+test('Native account selection cancellation never exchanges a token or starts OAuth',async()=>{
+ const t=setup({webview:true,nativeReady:true,cancelNative:true});
+ await t.ctx.load();await t.ctx.click();
+ assert.equal(t.calls.filter(x=>x.idToken||x.oauth).length,0);
+ assert.match(t.$('authError').textContent,/cancel/);
+ assert.equal(t.$('authSubmit').disabled,false);
 });
