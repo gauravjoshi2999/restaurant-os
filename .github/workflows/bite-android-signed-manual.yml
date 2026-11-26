@@ -109,9 +109,29 @@ jobs:
           path: bite-approved-brand
           sparse-checkout: |
             assets/bite-selected-icon.png
+            customer.html
             android-app/patch_bite_fcm.py
             android-app/patch_bite_google_oauth.py
           sparse-checkout-cone-mode: false
+      - name: Confirm Google provider is actually enabled for Customer signed APK
+        if: matrix.app == 'customer'
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          (async()=>{
+            const page=fs.readFileSync('../bite-approved-brand/customer.html','utf8');
+            const key=page.match(/const SUPABASE_KEY='([^']+)'/);
+            if(!key)throw Error('Approved public Supabase client key unavailable');
+            const result=await fetch('https://wedbgpybbgsszcmffoha.supabase.co/auth/v1/settings',{
+              headers:{apikey:key[1]},signal:AbortSignal.timeout(15000)
+            });
+            if(!result.ok)throw Error('Cannot verify Supabase provider settings: '+result.status);
+            const settings=await result.json();
+            if(settings?.external?.google!==true)throw Error('Customer Google provider is not enabled in Supabase Auth; do not sign an unusable APK');
+            console.log('Verified: Supabase Google provider enabled (read-only readiness check).');
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          NODE
       - name: Prepare native Bite launcher icon tools
         uses: actions/setup-python@v5
         with:
