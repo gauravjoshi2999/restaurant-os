@@ -58,7 +58,9 @@ try:
     if mode in ('hotel','hybrid'):
      check(page.locator('#biteV3Home [data-bv3-business-day]').count()==1,
            f'{mode} {width}px selected-day input available')
+     check(not page.locator('#biteV3Home [data-bv3-business-day]').is_visible(),f'{mode} {width}px date input hidden by default')
      if mode=='hybrid' and width==390:
+      page.locator('#biteV3Home .bv3-pdf-date-disclosure>summary').click()
       picker=page.locator('#biteV3Home [data-bv3-business-day]')
       picker.fill('2026-10-01')
       picker.dispatch_event('change')
@@ -70,6 +72,8 @@ try:
       page.locator('#biteV3Home [data-bv3-date-today]').click()
       page.wait_for_function("document.querySelector('#biteV3Home .bv3-pdf-today')?.textContent==='LIVE'")
       check(True,'Today resets historical Home without changing records')
+    check(home.get_by_role('heading',name='Live orders',exact=True).count()==(0 if mode=='hotel' else 1),f'{mode} {width}px no disabled orders panel')
+    check('Hotel activity ·' not in home.inner_text(),f'{mode} {width}px no raw hotel audit action')
     check(all(label in home.inner_text() for label in ('Sales','Received','Due','Expenses','Recent activity')),
           f'{mode} {width}px PDF money sections')
     check(page.locator('#biteV3Home .boh-feature-grid').count()==0,
