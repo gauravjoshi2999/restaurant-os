@@ -48,7 +48,7 @@
    '<label class="bh-field"><span>Status</span><select data-gr-filter="state"><option value="">All stays</option>'+
    ['in_house','checked_out','reserved','cancelled','no_show'].map(s=>'<option value="'+s+'" '+(state===s?'selected':'')+'>'+status(s)+'</option>').join('')+
    '</select></label><div class="gr-tool-buttons">'+button('reset','Show all dates')+button('excel','Excel · stays')+button('print','Print stays')+
-   '</div></div><nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Stays'],['drafts','Drafts'],['past','Past']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3><p>Resume the saved draft or verify an earlier pending check-in in the existing check-in form. Drafts are not saved stays.</p>'+button('new','Open check-in drafts')+'</div><section data-gr-past hidden><h3>Past · Historical entries</h3><p>Old room entries saved through the calendar. Read-only records; never live occupancy or payments.</p><div class="bh-actions">'+button('load-history','Load historical records')+'</div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('new','New check-in','','data-gr-primary="true"')+button('sheet',sheetOpen?'Close register sheet':'Open register sheet')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
+   '</div></div><nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Stays'],['drafts','Drafts'],['past','Past']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3><p>Resume the saved draft or verify an earlier pending check-in in the existing check-in form. Drafts are not saved stays.</p>'+button('new','Open check-in drafts')+'</div><section data-gr-past hidden><h3>Past · Historical entries</h3><p>Completed stays from your offline register. Read-only records; never live occupancy or payments.</p><div class="bh-actions">'+(['owner','manager'].includes(H().prop()?.role)?button('add-past','Add past record'):'')+button('load-history','Refresh past records')+'</div><div data-gr-past-editor></div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('new','New check-in','','data-gr-primary="true"')+button('sheet',sheetOpen?'Close register sheet':'Open register sheet')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
    '><summary>Saved guest profiles</summary><div data-gr-profiles></div></details>';
   const picker=root.BiteV3Period,periodBox=target.querySelector('[data-gr-period]');
   if(period&&picker){
@@ -156,6 +156,11 @@
    if(action==='close-record'||action==='keep-editing'){close();return}
    if(action==='close-checkin'){closeCheckin();return}
    if(action==='draft-close'||action==='discard-close'){const form=document.getElementById('bhCheckinForm');if(action==='draft-close'){if(!H().persistRegistration(form))throw Error('Draft could not be saved. Keep the form open and retry.');}else H().discardRegistrationDraft();close();root.BiteCheckinFlow.clear();await H().navigate('rooms');return}
+   if(action==='open-past'){
+    const form=document.getElementById('bhCheckinForm');
+    if(form&&hasUnsavedCheckinChanges(form)&&!H().persistRegistration(form))throw Error('Save your current draft before opening past records.');
+    registerTab='past';await H().navigate('guests');return;
+   }
    if(action==='register'){const form=document.getElementById('bhCheckinForm');if(form?.elements.full_name.value.trim())H().persistRegistration(form);await H().navigate('guests');return}
    if(action==='new'){close();await H().navigate('hotel-register');return}
    if(action==='repeat'){close();await H().useGuest(id);return}
@@ -164,6 +169,13 @@
    if(action==='view-photo'){const box=dialog;if(box?.__record)await loadPhoto(box.__record,Number(b.dataset.person),b.dataset.side,scope(),epoch,box,true,b);return}
    const target=document.getElementById('guests');if(action==='tab'){if(!['stays','drafts','past'].includes(id))return;registerTab=id;page=1;paint(target);return}
    if(action==='sheet'){registerTab='stays';sheetOpen=!sheetOpen;render(target);target.querySelector(sheetOpen?'.gr-sheet-scroll':'.gr-stay-cards')?.scrollIntoView({block:'nearest'});return}
+   if(action==='add-past'){
+    if(registerTab!=='past'||!['owner','manager'].includes(H().prop()?.role))throw Error('Past record access unavailable.');
+    const editor=target.querySelector('[data-gr-past-editor]');
+    if(!editor||!root.BiteOwnerHistory?.mountPastRoom)throw Error('Past record form unavailable. Reload Bite.');
+    if(!editor.dataset.bheBound){editor.dataset.bheBound='true';editor.addEventListener('bite-past-saved',()=>{if(registerTab==='past')void loadHistory(target);});}
+    root.BiteOwnerHistory.mountPastRoom(editor);editor.scrollIntoView({block:'start'});return;
+   }
    if(action==='load-history'){await loadHistory(target);return}
    if(action==='historical-excel'){
     if(!historyExport||historyExport.key!==scope()||historyExport.request!==historyEpoch||registerTab!=='past'||!H().has('guest_register')||!['owner','manager'].includes(H().prop()?.role))throw Error('Refresh historical records before exporting.');

@@ -41,3 +41,11 @@
  .bhe-calendar-top button{flex:0 0 auto}
  #bhCheckinForm .bhe-calendar input[type="date"],#orderForm .bhe-calendar input[type="date"]{max-width:100%}
 }
+
+/* H07/H15: dedicated historical register form, no date picker on live check-in. */
+#bhPastStayForm{margin:12px 0;min-width:0;max-width:100%;box-sizing:border-box}
+#bhPastStayForm [hidden]{display:none!important}
+#bhPastStayForm .bh-form-grid{min-width:0}
+#bhPastStayForm :is(input,select,button){min-width:0;max-width:100%;min-height:44px;box-sizing:border-box}
+#bhCheckinForm .ha-register-meta input[readonly]{border-color:transparent!important;background:transparent!important;padding-inline:0!important;box-shadow:none!important}
+@media(max-width:430px){#bhPastStayForm .bh-form-grid{grid-template-columns:minmax(0,1fr)}}
