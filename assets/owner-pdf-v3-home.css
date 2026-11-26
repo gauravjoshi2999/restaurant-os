@@ -258,3 +258,20 @@ body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure{min-width:0;max-wid
 body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure>summary{cursor:pointer;min-height:44px;padding:10px 12px;border:1px solid #dce2e9;border-radius:9px;background:#fff;color:#344154;font-weight:700;font-size:12px;box-sizing:border-box}
 body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure>summary:focus-visible{outline:2px solid #a94e0c;outline-offset:2px}
 body[data-role="owner"] #biteV3Home .bv3-pdf-date-disclosure[open] .bv3-pdf-date-controls{margin-top:8px;justify-content:flex-start}
+
+/* ZC-02.01-D1: one canonical action card per daily operation, above the accounts. */
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 14px}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary{display:flex;flex-direction:column;justify-content:flex-start;gap:6px;min-width:0;min-height:88px;text-align:left;padding:12px;border:1px solid #cad5e2;border-radius:12px;color:#253344;background:#edf2fa;cursor:pointer;box-shadow:none;overflow-wrap:anywhere}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary-pos{background:#fff1e9;border-color:#ead0c0;color:#793519}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary-checkin{background:#fcf3de;border-color:#e6d6af;color:#644818}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary-book{background:#eaf4e7;border-color:#c8dec3;color:#285637}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-title{display:flex;align-items:center;gap:8px;line-height:1.3;min-width:0}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-title svg{width:22px;height:22px;flex:none}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-title strong{font-size:14px;font-weight:800;color:inherit}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary>small{font-size:12px;color:inherit;line-height:1.35}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary .bv3-pdf-room-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;margin:0;width:100%}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-stat{display:flex;align-items:center;justify-content:space-between;gap:3px;min-width:0}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-stat>span{font-size:11px;color:#36485e}
+body[data-role="owner"] #biteV3Home .bv3-pdf-primary-stat>b{font-size:14px;line-height:1.4;color:#253344}
+body[data-role="owner"] #biteV3Home button.bv3-pdf-primary:focus-visible{outline:3px solid #a94e0c;outline-offset:2px}
+@media(max-width:400px){body[data-role="owner"] #biteV3Home button.bv3-pdf-primary{padding:9px;gap:5px}body[data-role="owner"] #biteV3Home .bv3-pdf-primary .bv3-pdf-room-stats{grid-template-columns:1fr;gap:0}body[data-role="owner"] #biteV3Home .bv3-pdf-primary-title{gap:5px}}

@@ -304,15 +304,14 @@
   const arrival=hotel&&permitted('reservations')?
     pdfRow(snap?.ready?String(snap.arrivals??0)+' arrival'+(snap.arrivals===1?'':'s')+' due':'Arrivals loading',
      'Review reservations and check-in availability','reservations'):'';
-  const rooms=hotel?'<section class="bv3-pdf-panel bv3-pdf-room-panel" aria-label="Rooms summary">'+
-   '<div class="bv3-pdf-panel-head"><h2>Rooms'+(totalRooms===null?'':' / '+totalRooms)+(historical?' · Live today':'')+'</h2>'+
-   '<button type="button" data-bv3-route="rooms">Open rooms ›</button></div>'+
-   '<div class="bv3-pdf-room-stats">'+
+  const rooms=hotel?'<button type="button" class="bv3-pdf-primary bv3-pdf-primary-rooms bv3-pdf-room-panel" data-bv3-route="rooms">'+
+   '<span class="bv3-pdf-primary-title">'+icon('bed')+'<strong>Rooms'+(totalRooms===null?'':' / '+totalRooms)+(historical?' · Live today':'')+'</strong></span>'+
+   '<span class="bv3-pdf-room-stats">'+
    [['Occupied',snap?.ready?snap.occupied:null],['Ready',snap?.ready?snap.available:null],
     ...(root.BiteHospitality?.housekeepingVisible?.()?[['Cleaning',snap?.ready?snap.cleaning:null]]:[]),
-    ['Blocked',blocked]].map(([label,value])=>'<div><span>'+label+'</span><b>'+num(value)+'</b></div>').join('')+
-   '</div>'+(!snap?.ready?'<p class="bv3-pdf-empty">'+(roomRecoveryError?'Room data sync failed. Open Rooms to retry.':'Room data syncing…')+'</p>':'')+
-   '</section>':'';
+    ['Blocked',blocked]].map(([label,value])=>'<span class="bv3-pdf-primary-stat"><span>'+label+'</span><b>'+num(value)+'</b></span>').join('')+
+   '</span>'+(!snap?.ready?'<small role="status">'+(roomRecoveryError?'Sync failed · tap to retry':'Syncing rooms…')+'</small>':'')+
+   '</button>':'';
   const recent=[];
   if(permitted('pos')&&currentAccess?.restaurantId){
    const latest=(currentState?.orders||[]).filter(o=>o.restaurant===currentAccess.restaurantId&&!o.isDemo&&/^POS - /i.test(String(o.channel||'')))
@@ -324,11 +323,17 @@
    const lastAudit=(ws.audit||[]).find(a=>a.action);
    if(lastAudit&&permitted('guests'))recent.push(pdfRow('Guest records','View guest history','guests'));
   }
+  const primaryAction=(title,routeName,ico,tone,description,extra='')=>permitted(routeName)?
+   '<button type="button" class="bv3-pdf-primary bv3-pdf-primary-'+tone+'" data-bv3-route="'+routeName+'" '+extra+'>'+
+   '<span class="bv3-pdf-primary-title">'+icon(ico)+'<strong>'+escapeHtml(title)+'</strong></span>'+
+   '<small>'+escapeHtml(description)+'</small></button>':'';
+  const primary=rooms+
+   primaryAction('New POS bill','pos','receipt','pos','Create a bill','data-bv3-new-pos="true"')+
+   primaryAction('New check-in','hotel-register','people','checkin','Register guest')+
+   (permitted('daily-book')?primaryAction('Daily Book','daily-book','book','book','Business accounts'):
+    primaryAction('Cashbook','cashbook','book','book','Business accounts'));
   const quickRoutes=[
    ['Orders','orders',''],
-   ['New POS bill','pos','data-bv3-new-pos="true"'],
-   ['New check-in','hotel-register',''],
-   ['Daily Book','daily-book',''],
    ['Reports','reports','']
   ];
   const quick=quickRoutes.filter(([,routeName])=>permitted(routeName)).map(([title,routeName,extra])=>
@@ -338,11 +343,12 @@
     '<header class="bv3-pdf-heading"><div><p class="bv3-pdf-kicker">BITE OWNER · '+(historical?'SELECTED DAY':'TODAY')+' <span class="bv3-pdf-today">'+(historical?'HISTORICAL':'LIVE')+'</span></p>'+
     '<h1>'+escapeHtml(propertyName())+'</h1><small>'+escapeHtml(selectedDay)+(historical?' · Historical accounts; live alerts remain today':'')+'</small></div>'+
     (permitted('daily-book')?'<details class="bv3-pdf-date-disclosure"'+(dateExpanded?' open':'')+'><summary>Past dates</summary><div class="bv3-pdf-date-controls"><label class="bv3-pdf-date-field">Business date<input type="date" data-bv3-business-day="true" value="'+escapeHtml(selectedDay)+'" max="'+escapeHtml(today)+'" aria-label="Selected business date"></label><button type="button" class="bv3-pdf-date-link" data-bv3-date-today="true">Today</button></div></details>':'')+'</header>'+
+    (primary?'<section class="bv3-pdf-primary-grid" aria-label="Daily operations">'+primary+'</section>':'')+
     '<section class="bv3-pdf-metrics" aria-label="Business financial summary">'+finance+'</section>'+financeNotice+
     '<div class="bv3-pdf-columns"><div class="bv3-pdf-main-column">'+
     (permitted('orders')?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Live orders</h2><span class="bv3-pdf-today">Today</span></div>'+orderRows+'</section>':'')+
     (hotel?'<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Arrivals &amp; checkouts</h2>'+(permitted('checkouts')?'<span data-checkout-count>'+num(snap?.ready?snap.departures:null)+'</span>':'')+'</div>'+checkout+arrival+'</section>':'')+
-    '</div><div class="bv3-pdf-side-column">'+rooms+
+    '</div><div class="bv3-pdf-side-column">'+
     '<section class="bv3-pdf-panel"><div class="bv3-pdf-panel-head"><h2>Recent activity</h2></div>'+
     (recent.length?recent.join(''):'<p class="bv3-pdf-empty">No recent activity available in this session.</p>')+'</section></div></div>'+
     (quick?'<section class="bv3-pdf-quick-section"><h2>Quick actions</h2><div class="bv3-pdf-quick-grid">'+quick+'</div></section>':'')+
