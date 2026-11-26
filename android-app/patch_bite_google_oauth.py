@@ -128,12 +128,15 @@ public class BiteGoogleOAuthPlugin extends Plugin {
     Uri u;
     try {u=Uri.parse(raw);} catch(Exception e){call.reject("Invalid authorization URL");return;}
     String challenge=u.getQueryParameter("code_challenge");
+    String method=u.getQueryParameter("code_challenge_method");
     if(!"https".equals(u.getScheme()) ||
        !"wedbgpybbgsszcmffoha.supabase.co".equals(u.getHost()) ||
        !"/auth/v1/authorize".equals(u.getPath()) ||
+       u.getPort()!=-1 || u.getUserInfo()!=null ||
        !"google".equals(u.getQueryParameter("provider")) ||
        !"bitecustomer://oauth/callback".equals(u.getQueryParameter("redirect_to")) ||
-       challenge==null || !challenge.matches("[A-Za-z0-9_-]{43,128}")) {
+       challenge==null || !challenge.matches("[A-Za-z0-9_-]{43,128}") ||
+       !"s256".equalsIgnoreCase(method)) {
       call.reject("Only the verified PKCE Google OAuth endpoint is permitted");
       return;
     }
