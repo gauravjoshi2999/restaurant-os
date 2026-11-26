@@ -335,7 +335,7 @@
   const quickRoutes=[
    ['Staff Attendance','hr','data-bv3-attendance="true"'],
    ['Add Expense','expenses','data-bv3-filter="add-expense"'],
-   ['GST Collection','daily-book','data-bv3-gst="true" title="Bill-wise GST report, not payment collection"'],
+   ['GST Report','daily-book','data-bv3-gst="true"'],
    ['Orders','orders',''],
    ['Reports','reports','']
   ];
