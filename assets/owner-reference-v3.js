@@ -333,6 +333,9 @@
    (permitted('daily-book')?primaryAction('Daily Book','daily-book','book','book','Business accounts'):
     primaryAction('Cashbook','cashbook','book','book','Business accounts'));
   const quickRoutes=[
+   ['Staff Attendance','hr','data-bv3-attendance="true"'],
+   ['Add Expense','expenses','data-bv3-filter="add-expense"'],
+   ['GST Collection','daily-book','data-bv3-gst="true" title="Bill-wise GST report, not payment collection"'],
    ['Orders','orders',''],
    ['Reports','reports','']
   ];
@@ -501,8 +504,26 @@
   observer.observe(parent,{subtree:true,childList:true});
   deadline=root.setTimeout(()=>observer?.disconnect(),5000);
  }
+ // Wait for existing asynchronous content; never submit or change records.
+ function revealQuickTarget(page,selector,propertyId){
+  const parent=root.document.getElementById(page);
+  if(!parent||!propertyId)return;
+  let observer=null,deadline=null;
+  const stop=()=>{observer?.disconnect();if(deadline)root.clearTimeout(deadline);};
+  const reveal=()=>{
+   if(currentAccess?.role!=='owner'||root.BiteHospitality?.prop?.()?.id!==propertyId||!parent.classList.contains('active')||!permitted(page)){stop();return true;}
+   const target=parent.querySelector(selector);
+   if(!target||!target.getClientRects().length)return false;
+   stop();target.scrollIntoView?.({block:'center',behavior:'auto'});return true;
+  };
+  if(reveal()||typeof root.MutationObserver!=='function')return;
+  observer=new root.MutationObserver(reveal);
+  observer.observe(parent,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
+  deadline=root.setTimeout(stop,5000);
+ }
  function route(page,filter,newPos,notification){
   if(!permitted(page))return;
+  const propertyId=root.BiteHospitality?.prop?.()?.id;
   if(page==='daily-book')root.BiteHotelAccounts?.selectOwnerHomeMonth?.(businessDay());
   if(notification?.folioId&&page==='folios'){void root.BiteHospitality.openFolio(notification.folioId);return;}
   if(newPos&&page==='pos'&&typeof root.openPosFromOverview==='function'){
@@ -516,7 +537,8 @@
     if(notification)focusNotificationOrder(notification);
    }
    if(page==='hr'&&typeof root.BiteOwnerHRTabs?.activate==='function'&&filter==='attendance')root.BiteOwnerHRTabs.activate(root.document,'attendance');
-   if(page==='daily-book'&&filter==='gst')root.document.querySelector('#daily-book [data-ha-action="gst"]')?.scrollIntoView?.({block:'center',behavior:'smooth'});
+   if(page==='daily-book'&&filter==='gst')revealQuickTarget(page,'[data-ha-action="gst"]',propertyId);
+   if(page==='expenses'&&filter==='add-expense')revealQuickTarget(page,'#expenseTitle, [data-hotel-form="expense"]',propertyId);
   }).catch(e=>root.console?.warn?.('Owner route unavailable',e));
  }
  function onClick(e){

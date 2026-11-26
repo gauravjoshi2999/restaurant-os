@@ -67,6 +67,15 @@ try:
           f'{mode} {width}px primary actions above accounts')
     check(all(v>=44 for v in primary.evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
           f'{mode} {width}px primary touch targets')
+    quick=home.locator('.bv3-pdf-quick-grid button')
+    expected_quick=['hr','expenses','daily-book']+([] if mode=='hotel' else ['orders'])+['reports']
+    check(quick.evaluate_all('(els)=>els.map(e=>e.dataset.bv3Route)')==expected_quick,
+          f'{mode} {width}px canonical permission-aware secondary routes')
+    check(home.locator('.bv3-pdf-quick-grid [data-bv3-attendance="true"]').count()==1 and
+          home.locator('.bv3-pdf-quick-grid [data-bv3-gst="true"]').count()==1,
+          f'{mode} {width}px one Attendance and GST shortcut')
+    check(all(v>=44 for v in quick.evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
+          f'{mode} {width}px secondary touch targets')
     if mode in ('hotel','hybrid'):
      check(page.locator('#biteV3Home [data-bv3-business-day]').count()==1,
            f'{mode} {width}px selected-day input available')
@@ -113,6 +122,13 @@ try:
            f'{mode} {width}px bottom nav touch targets')
     else:
      check(page.locator('#mainApp>.side').is_visible(),f'{mode} desktop uses original permitted sidebar')
+    if width==390:
+     for selector,target in (('[data-bv3-attendance="true"]','hr'),('[data-bv3-filter="add-expense"]','expenses'),('[data-bv3-gst="true"]','daily-book')):
+      home.locator('.bv3-pdf-quick-grid '+selector).click()
+      page.locator('#'+target+'.active').wait_for(state='visible')
+      check(True,f'{mode} {width}px {selector} opens canonical {target} page without submission')
+      page.evaluate("showPage('overview')")
+      home.locator('.bv3-pdf-home').wait_for(state='visible')
     if mode=='hybrid' and width==390:
      page.locator('#biteV3Home [data-bv3-route="rooms"]').first.click()
      page.locator('#rooms.active').wait_for(state='visible')
