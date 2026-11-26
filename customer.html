@@ -182,7 +182,10 @@ html.bite-direct-order #biteMenuBrowseStart{scroll-margin-top:95px}
 <script>
 const SUPABASE_URL='https://wedbgpybbgsszcmffoha.supabase.co';
 const SUPABASE_KEY='sb_publishable_9rvWwRCJ86dz13perbmcSg_SE4iFnXn';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+// Android Customer uses PKCE with a native external-browser callback; web stays unchanged.
+const BITE_CUSTOMER_WEBVIEW=/;\s*wv\b/i.test(navigator.userAgent||'');
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,
+ BITE_CUSTOMER_WEBVIEW?{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}:undefined);
 const BITE_DIRECT_PARAMS=new URLSearchParams(location.search);
 const BITE_DIRECT_MODE=BITE_DIRECT_PARAMS.get('direct')==='1';
 const BITE_DIRECT_RESTAURANT_ID=BITE_DIRECT_MODE&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(BITE_DIRECT_PARAMS.get('restaurant')||'')?BITE_DIRECT_PARAMS.get('restaurant').toLowerCase():null;
