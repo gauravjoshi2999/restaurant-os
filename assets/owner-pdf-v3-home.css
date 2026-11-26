@@ -149,7 +149,7 @@ body[data-role="owner"] #biteV3Home .bv3-pdf-quick-grid{
  display:flex;flex-wrap:wrap;gap:8px;margin-top:9px
 }
 body[data-role="owner"] #biteV3Home .bv3-pdf-quick{
- min-height:43px;border:1px solid #ebc9b5;background:#fff5ed;
+ min-height:44px;min-width:44px;overflow-wrap:anywhere;border:1px solid #ebc9b5;background:#fff5ed;
  color:#a44c0b;font-size:12px;font-weight:800;
  padding:9px 12px;border-radius:10px;display:flex;gap:14px;align-items:center;
  justify-content:space-between;cursor:pointer
