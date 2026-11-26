@@ -27,6 +27,8 @@ test('normal web login remains same-origin; Customer signed build includes patch
  assert.match(customer,/window\.location\.origin\+window\.location\.pathname/);
  assert.match(workflow,/BITE_VERSION_CODE: \$\{\{ inputs\.version_code \|\| '19' \}\}/);
  assert.match(workflow,/android-app\/patch_bite_google_oauth\.py/);
+ assert.match(workflow,/Confirm Google provider is actually enabled for Customer signed APK/);
+ assert.match(workflow,/settings\?\.external\?\.google!==true/);
  assert.match(workflow,/matrix\.app \}\}" = "customer"/);
 });
 function fixture(pkg){
