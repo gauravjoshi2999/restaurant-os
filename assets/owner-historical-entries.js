@@ -101,8 +101,7 @@
   renderState(form,kind);
  }
  function scan(){
-  const guest=document.querySelector('#bhCheckinForm');
-  if(guest)decorate(guest,'room');
+  // Live check-in is never an old-register entry. Past stays use the separate form.
   const pos=document.querySelector('#orderForm');
   if(pos)decorate(pos,'pos');
  }
@@ -157,6 +156,7 @@
   const values={request_id:null,entry_kind:kind,property_id:kind==='room'?id:null,restaurant_id:kind==='pos'?id:null,
    record_date:date,customer_name:name,customer_phone:phone,created_by:user};
   if(kind==='room'){
+   if(!['owner','manager'].includes(root.BiteHospitality?.prop?.()?.role))throw Error('Old register access is unavailable.');
    const departure=getField(form,'departure')?.value;
    if(!validCompletedStay(date,departure,today()))throw new Error('Historical stay completed hona chahiye. Checkout date arrival ke baad aur aaj ya usse pehle rakhein.');
    const rId=getField(form,'room_id')?.value;
@@ -164,14 +164,15 @@
    const roomNumber=String(getField(form,'history_room_number')?.value||room?.number||'').trim();
    if(!roomNumber)throw new Error('Old register ka room number likhein.');
    if(roomNumber.length>60)throw new Error('Room number maximum 60 characters.');
+   if(!String(getField(form,'history_room_amount')?.value??'').trim()||!String(getField(form,'history_room_received')?.value??'').trim())throw Error('Enter the original bill and received amounts; use 0 only when actually zero.');
    const amount=number(getField(form,'history_room_amount')?.value,'Room bill'),
     received=number(getField(form,'history_room_received')?.value,'Received amount');
    if(received>amount)throw new Error('Received amount bill se zyada nahi ho sakta.');
    values.departure_date=departure;values.room_number=roomNumber;values.amount=amount;values.received_amount=received;
    values.guest_count=Number(getField(form,'adults')?.value||1)+Number(getField(form,'children')?.value||0);
-   if(values.guest_count<1||values.guest_count>200)throw new Error('Guest count check karein.');
+   if(!Number.isInteger(values.guest_count)||values.guest_count<1||values.guest_count>200)throw new Error('Guest count check karein.');
    Object.assign(values,historicalReceipt(received,getField(form,'history_room_received_date')?.value,getField(form,'history_room_method')?.value,today()));
-   values.guest_details=Object.fromEntries(['country','address','email','id_type','id_last4','arrived_from','next_destination','transport','vehicle_number','booking_reference','booking_source','compliance_note','male','female','children','arrival_time'].map(key=>[key,String(getField(form,key)?.value||'').slice(0,500)]));
+   values.guest_details=Object.fromEntries(['original_serial','country','address','email','id_type','id_last4','arrived_from','next_destination','transport','vehicle_number','booking_reference','booking_source','compliance_note','male','female','children','arrival_time'].map(key=>[key,String(getField(form,key)?.value||'').slice(0,500)]));
    values.notes=String(getField(form,'compliance_note')?.value||'').slice(0,500);
    // Identity files from the live form are never silently copied into historical storage.
    values.items=[];
@@ -214,6 +215,37 @@
   if(kind==='pos')try{await root.BitePOS?.finishOrder?.()}catch(e){console.warn('Historical POS saved; draft cleanup needs retry',e)}
   await loadRows(form,kind);
   return data.id;
+ }
+ function mountPastRoom(target){
+  if(!target||!['owner','manager'].includes(root.BiteHospitality?.prop?.()?.role)||!scope('room')||!ctx?.getUser?.()?.id)return;
+  const key=scope('room'),user=ctx.getUser().id;
+  if(target.querySelector('#bhPastStayForm'))return;
+  target.innerHTML='<form id="bhPastStayForm" class="bh-panel bh-form bhe-past-form"><h2>Add past record</h2><p class="bh-note">Completed stays only. Live rooms and accounts stay unchanged.</p>'+
+   '<div class="bh-form-grid"><label class="bh-field"><span>Original register number</span><input name="original_serial" maxlength="60"></label>'+
+   '<label class="bh-field"><span>Guest name *</span><input name="full_name" maxlength="120" required autocomplete="off"></label>'+
+   '<label class="bh-field"><span>Mobile (if recorded)</span><input name="phone" maxlength="24" type="tel"></label>'+
+   '<label class="bh-field"><span>Original room number *</span><input name="history_room_number" maxlength="60" required></label>'+
+   '<label class="bh-field"><span>Original arrival date *</span><input name="history_date" type="date" min="2000-01-01" max="'+safe(today())+'" required></label>'+
+   '<label class="bh-field"><span>Actual departure date *</span><input name="departure" type="date" min="2000-01-01" max="'+safe(today())+'" required></label>'+
+   '<label class="bh-field"><span>Total guests *</span><input name="adults" type="number" min="1" max="200" step="1" required></label>'+
+   '<label class="bh-field"><span>Original total bill (₹) *</span><input name="history_room_amount" type="number" min="0" step=".01" required></label>'+
+   '<label class="bh-field"><span>Already received (₹) *</span><input name="history_room_received" type="number" min="0" step=".01" required></label>'+
+   '<label class="bh-field"><span>Actual receipt date</span><input name="history_room_received_date" type="date" min="2000-01-01" max="'+safe(today())+'" disabled></label>'+
+   '<label class="bh-field"><span>Original payment method</span><select name="history_room_method" disabled><option value="">Choose method</option><option>Cash</option><option>UPI</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select></label></div>'+
+   '<details><summary>Other details from paper register</summary><div class="bh-form-grid"><label class="bh-field"><span>Address</span><input name="address" maxlength="500"></label><label class="bh-field"><span>Arrival time</span><input name="arrival_time" type="time"></label><label class="bh-field"><span>Arriving from</span><input name="arrived_from" maxlength="120"></label><label class="bh-field"><span>Next destination</span><input name="next_destination" maxlength="120"></label><label class="bh-field"><span>Vehicle number</span><input name="vehicle_number" maxlength="30"></label><label class="bh-field"><span>Notes</span><input name="compliance_note" maxlength="500"></label></div></details>'+
+   '<p data-bhe-status class="bhe-status" role="status" aria-live="polite"></p><div class="bh-actions"><button type="submit" class="btn">Save past record</button><button type="button" class="btn secondary" data-bhe-next hidden>Add another record</button></div></form>';
+  const form=target.querySelector('form'),submit=form.querySelector('[type=submit]'),next=form.querySelector('[data-bhe-next]'),amount=getField(form,'history_room_received');
+  let busy=false,confirmed=false;
+  const current=()=>form.isConnected&&scope('room')===key&&ctx?.getUser?.()?.id===user&&['owner','manager'].includes(root.BiteHospitality?.prop?.()?.role);
+  const receipt=()=>{const required=Number(amount.value)>0;for(const name of ['history_room_received_date','history_room_method']){const input=getField(form,name);input.required=required;input.disabled=!required;if(!required)input.value='';}};
+  amount.addEventListener('input',receipt);
+  next.addEventListener('click',()=>{if(busy||!confirmed||!current())return;form.reset();delete form.dataset.bheSavedSignature;confirmed=false;for(const el of form.querySelectorAll('input,select'))el.disabled=false;receipt();next.hidden=true;submit.disabled=false;status(form,'');getField(form,'full_name').focus();});
+  form.addEventListener('submit',async e=>{e.preventDefault();e.stopImmediatePropagation();if(busy||confirmed||!current())return;
+   busy=true;submit.disabled=true;status(form,'Saving old record…');
+   try{await save(form,'room');if(!current())return;confirmed=true;for(const el of form.querySelectorAll('input,select'))el.disabled=true;next.hidden=false;status(form,'Past record saved.');target.dispatchEvent(new Event('bite-past-saved',{bubbles:true}));}
+   catch(error){if(current())status(form,'Save failed: '+(error.message||String(error)),true);}
+   finally{busy=false;if(current())submit.disabled=confirmed;}
+  });
  }
  function onSubmit(e){
   const form=e.target;
@@ -262,5 +294,5 @@
   observer.observe(document.body,{childList:true,subtree:true});
   scan();
  }
- root.BiteOwnerHistory={init,scan,isHistorical,validDate,validCompletedStay,historicalReceipt,plusDay,historyListSummary,loadRows};
+ root.BiteOwnerHistory={init,scan,isHistorical,validDate,validCompletedStay,historicalReceipt,plusDay,historyListSummary,loadRows,mountPastRoom};
 })(window);
