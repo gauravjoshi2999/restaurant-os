@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'android-app/patch_bite_customer_google.py'
+      - 'android-app/check_bite_google_provider.py'
       - '.github/workflows/customer-native-google-qa.yml'
       - '.github/workflows/bite-android-signed-manual.yml'
 permissions:
@@ -40,3 +41,41 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+  google-provider-preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test public OAuth redirect parser
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          import urllib.parse
+          spec = importlib.util.spec_from_file_location("provider", "android-app/check_bite_google_provider.py")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          client = "123-example.apps.googleusercontent.com"
+          callback = module.PROJECT + "/auth/v1/callback"
+          q = urllib.parse.urlencode({"client_id":client,"redirect_uri":callback})
+          url = "https://accounts.google.com/o/oauth2/v2/auth?" + q
+          assert module.parse_google_redirect(url) == client
+          for invalid in [
+              url.replace("accounts.google.com", "example.com"),
+              url.replace("https:", "http:"),
+              url.replace("accounts.google.com", "accounts.google.com:444"),
+              url + "&client_id=another",
+              url.replace(urllib.parse.quote_plus(callback), urllib.parse.quote_plus("https://evil.example/callback")),
+          ]:
+              try:
+                  module.parse_google_redirect(invalid)
+              except ValueError:
+                  continue
+              raise AssertionError("Unsafe redirect accepted")
+          print("Google OAuth redirect parser passed")
+          PY
+      - name: Read existing Bite Google provider without sign-in
+        env:
+          BITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.BITE_GOOGLE_WEB_CLIENT_ID }}
+        run: python3 android-app/check_bite_google_provider.py
