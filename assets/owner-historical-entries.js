@@ -220,7 +220,7 @@
   if(!target||!['owner','manager'].includes(root.BiteHospitality?.prop?.()?.role)||!scope('room')||!ctx?.getUser?.()?.id)return;
   const key=scope('room'),user=ctx.getUser().id;
   if(target.querySelector('#bhPastStayForm'))return;
-  target.innerHTML='<form id="bhPastStayForm" class="bh-panel bh-form bhe-past-form"><h2>Add past record</h2><p class="bh-note">Completed stays from your paper register only. No live booking, room allocation, payment or ID upload.</p>'+
+  target.innerHTML='<form id="bhPastStayForm" class="bh-panel bh-form bhe-past-form"><h2>Add past record</h2><p class="bh-note">Completed stays only. Live rooms and accounts stay unchanged.</p>'+
    '<div class="bh-form-grid"><label class="bh-field"><span>Original register number</span><input name="original_serial" maxlength="60"></label>'+
    '<label class="bh-field"><span>Guest name *</span><input name="full_name" maxlength="120" required autocomplete="off"></label>'+
    '<label class="bh-field"><span>Mobile (if recorded)</span><input name="phone" maxlength="24" type="tel"></label>'+
@@ -242,7 +242,7 @@
   next.addEventListener('click',()=>{if(busy||!confirmed||!current())return;form.reset();delete form.dataset.bheSavedSignature;confirmed=false;for(const el of form.querySelectorAll('input,select'))el.disabled=false;receipt();next.hidden=true;submit.disabled=false;status(form,'');getField(form,'full_name').focus();});
   form.addEventListener('submit',async e=>{e.preventDefault();e.stopImmediatePropagation();if(busy||confirmed||!current())return;
    busy=true;submit.disabled=true;status(form,'Saving old record…');
-   try{await save(form,'room');if(!current())return;confirmed=true;for(const el of form.querySelectorAll('input,select'))el.disabled=true;next.hidden=false;status(form,'Saved. Original record is now in Past records. Live accounts unchanged.');target.dispatchEvent(new Event('bite-past-saved',{bubbles:true}));}
+   try{await save(form,'room');if(!current())return;confirmed=true;for(const el of form.querySelectorAll('input,select'))el.disabled=true;next.hidden=false;status(form,'Past record saved.');target.dispatchEvent(new Event('bite-past-saved',{bubbles:true}));}
    catch(error){if(current())status(form,'Save failed: '+(error.message||String(error)),true);}
    finally{busy=false;if(current())submit.disabled=confirmed;}
   });

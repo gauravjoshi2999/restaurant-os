@@ -1,3 +1,5 @@
 # UAT-002 — separate live check-in and historical register
 
 User screenshot showed duplicate calendar in live check-in. Move historical entry to Guest Register > Past > Add past record; live date stays readonly. Use existing append-only historical save and RLS, original arrival/departure/room/guest details and original paper serial in guest_details. No automatic allocation, collection, invoice, ID upload, or legacy replay. Require original amounts and explicit receipt date/method when received >0. Unknown amounts, same-day historical stays, multiple receipts, original serial display/export, bulk import, historical correction/reversal, unified register reporting and current-in-house migration remain separate follow-ups. Preserve POS date handling. Real acceptance and exact-head CI pending; do not merge ahead of D1/D2 release coordination.
+
+Follow-up: concise UI labels; retain mandatory consent/validation and essential historical/live boundary. Preserve H11 cache lineage while adding a new suffix. Prior CI failed on hardcoded old cache assertions, not a verified browser result. Re-run full CI; do not claim live.
