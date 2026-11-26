@@ -17,12 +17,12 @@ assert.match(html, /handleCustomerGoogleRedirectError\(\);let checkoutAddresses=
 assert.match(html, /signInWithPassword\(/);
 assert.match(html, /sb\.auth\.signUp\(/);
 assert.doesNotMatch(html, /client_secret|service_role/i);
-function setup({webview=false,direct=false,provider=true,nativeReady=null,cancelNative=false}={}){
+function setup({webview=false,direct=false,provider=true,nativeReady=null,cancelNative=false,noNativeSession=false}={}){
  const nodes=new Map();
  function $(id){
   if(!nodes.has(id))nodes.set(id,{
-   disabled:false,textContent:'',style:{color:''},
-   classList:{hidden:true,contains(name){return name==='show';},toggle(name,value){if(name==='hidden')this.hidden=Boolean(value);}}
+   disabled:false,textContent:'',value:'',style:{color:''},
+   classList:{hidden:true,show:true,contains(name){return name==='show'&&this.show;},toggle(name,value){if(name==='hidden')this.hidden=Boolean(value);},remove(name){if(name==='show')this.show=false;}}
   });
   return nodes.get(id);
  }
@@ -49,11 +49,17 @@ function setup({webview=false,direct=false,provider=true,nativeReady=null,cancel
   BITE_DIRECT_MODE:direct,
   URLSearchParams,
   fetch:async(url,opts)=>{fetches.push({url,opts});return {ok:true,json:async()=>({external:{google:provider}})};},
-  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{error:null};},signInWithIdToken:async(args)=>{calls.push({idToken:args});return {data:{session:{user:{id:'test'}}},error:null};}}},
+  sb:{auth:{signInWithOAuth:async(args)=>{calls.push({oauth:args});return{error:null};},signInWithIdToken:async(args)=>{calls.push({idToken:args});return {data:{session:noNativeSession?null:{user:{id:'test'}}},error:null};}}},
   isCustomerAuthNetworkError:()=>false,
+  setCustomerSession:(session)=>{calls.push({session});ctx.completeUi(session);},
+  hideAuth:()=>{$('authModal').classList.remove('show');calls.push({closed:true});},
   showAuth:(mode)=>{calls.push({showAuth:mode});}
  });
- vm.runInContext(section+';globalThis.load=checkCustomerGoogleProvider;globalThis.click=signInCustomerWithGoogle;globalThis.draw=renderCustomerGoogleAuth;globalThis.err=handleCustomerGoogleRedirectError;',ctx);
+ const ui=html.slice(html.indexOf('function completeCustomerLoginUi(session)'),html.indexOf('function setCustomerSession(session)'));
+ assert.ok(ui.startsWith('function completeCustomerLoginUi'));
+ vm.runInContext(section+ui+';globalThis.completeUi=completeCustomerLoginUi;globalThis.load=checkCustomerGoogleProvider;globalThis.click=signInCustomerWithGoogle;globalThis.draw=renderCustomerGoogleAuth;globalThis.err=handleCustomerGoogleRedirectError;',ctx);
+ vm.runInContext('biteRestoreCustomerAuthReturn=async()=>{globalThis.recordRestore();return true;}',ctx);
+ ctx.recordRestore=()=>calls.push({restore:true});
  return{ctx,$,calls,fetches,window};
 }
 test('Google is hidden until verified enabled by Supabase, then shows in login and signup only',async()=>{
@@ -123,6 +129,9 @@ test('Configured Customer native bridge uses ID token and nonce, never WebView O
  assert.equal(payload.provider,'google');
  assert.equal(payload.token,'mock-google-token');
  assert.equal(payload.nonce,'mock-raw-nonce');
+ assert.equal(t.calls.filter(x=>x.session).length,1);
+ assert.equal(t.$('authModal').classList.contains('show'),false);
+ assert.equal(t.calls.filter(x=>x.restore).length,1);
  assert.equal(t.$('authSubmit').disabled,false);
 });
 test('Unconfigured APK bridge keeps Google hidden and email available',async()=>{
@@ -138,4 +147,37 @@ test('Native account selection cancellation never exchanges a token or starts OA
  assert.equal(t.calls.filter(x=>x.idToken||x.oauth).length,0);
  assert.match(t.$('authError').textContent,/cancel/);
  assert.equal(t.$('authSubmit').disabled,false);
+});
+
+test('Authenticated session closes login or signup and clears credentials; repeat event is harmless',()=>{
+ for(const mode of ['login','signup']){
+  const t=setup();t.ctx.authMode=mode;
+  t.$('customerPassword').value='old-password';t.$('customerPasswordConfirm').value='old-confirm';
+  assert.equal(t.ctx.completeUi({user:{id:'test'}}),true);
+  assert.equal(t.$('authModal').classList.contains('show'),false);
+  assert.equal(t.$('customerPassword').value,'');
+  assert.equal(t.$('customerPasswordConfirm').value,'');
+  assert.equal(t.ctx.completeUi({user:{id:'test'}}),false);
+  assert.equal(t.calls.filter(x=>x.closed).length,1);
+ }
+});
+test('No valid session or password recovery must not dismiss the auth form',()=>{
+ const t=setup();
+ assert.equal(t.ctx.completeUi(null),false);
+ assert.equal(t.ctx.completeUi({user:{}}),false);
+ for(const mode of ['recovery','reset-request']){
+  t.ctx.authMode=mode;
+  assert.equal(t.ctx.completeUi({user:{id:'test'}}),false);
+  assert.equal(t.$('authModal').classList.contains('show'),true);
+ }
+});
+test('Native Google token without authenticated session keeps login open',async()=>{
+ const t=setup({webview:true,nativeReady:true,noNativeSession:true});
+ await t.ctx.load();await t.ctx.click();
+ assert.equal(t.calls.filter(x=>x.session||x.restore).length,0);
+ assert.equal(t.$('authModal').classList.contains('show'),true);
+ assert.notEqual(t.$('authError').textContent,'');
+});
+test('Session change handler uses shared authenticated modal completion',()=>{
+ assert.match(html,/function setCustomerSession\(session\)\{[^\n]+\n completeCustomerLoginUi\(session\);/);
 });
