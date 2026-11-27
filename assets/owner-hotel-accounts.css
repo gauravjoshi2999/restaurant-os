@@ -121,3 +121,44 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #mainApp #guests [data-gr-past] .bh-actions{gap:8px}
 #mainApp #guests [data-gr-past] .bh-actions .btn{min-height:44px}
 @media(max-width:600px){#mainApp #guests .gr-tools>.bh-field{width:100%;max-width:none}#mainApp #guests .gr-period-all{flex-direction:row;align-items:center}#mainApp #guests .gr-period-all .btn{width:auto;flex:0 1 auto}}
+
+/* UAT002 premium register: one scoped compact toolbar, not global overrides. */
+#mainApp #guests .gr-register.gr-compact{padding:12px!important;background:#fff;border:1px solid #e7e7e7;border-radius:14px;box-shadow:none}
+#mainApp #guests .gr-compact [hidden]{display:none!important}
+#mainApp #guests .gr-compact .gr-title-row,#mainApp #guests .gr-compact .gr-history-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#mainApp #guests .gr-title-row h2{font-size:19px;line-height:1.3;margin:0!important;color:#282323}
+#mainApp #guests .gr-title-row [data-gr-primary]{background:#c95811!important;color:white!important;border:1px solid #c95811!important;border-radius:9px;min-height:44px;padding:8px 11px;font-size:13px!important}
+#mainApp #guests .gr-compact .gr-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#f4f4f5;padding:3px;gap:3px;border-radius:10px;margin:12px 0}
+#mainApp #guests .gr-compact .gr-view-tabs .btn{min-width:0;width:100%;border:1px solid transparent!important;border-radius:8px;background:transparent;box-shadow:none;font-size:12px!important;min-height:44px;padding:6px 2px}
+#mainApp #guests .gr-compact .gr-view-tabs [aria-pressed=true]{background:#fff!important;color:#9e420b!important;border-color:#edddd1!important;font-weight:750}
+#mainApp #guests .gr-compact .gr-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+#mainApp #guests .gr-compact .gr-search{grid-column:1/-1;display:block!important;width:100%!important;max-width:none!important;margin:0!important}
+#mainApp #guests .gr-compact .gr-search input{display:block;width:100%!important;max-width:none!important;min-height:44px;padding:10px 12px;border:1px solid #ddd;border-radius:9px;background:#fff;font-size:14px!important}
+#mainApp #guests .gr-compact .gr-status-filter{grid-column:1/-1;width:100%!important;max-width:none!important;margin:0!important}
+#mainApp #guests .gr-compact .gr-status-filter select{width:100%!important;max-width:none!important;min-height:44px}
+#mainApp #guests .gr-compact .gr-period-control{grid-column:1/-1}
+#mainApp #guests .gr-compact .gr-period-control .bv3-period,#mainApp #guests .gr-compact .gr-period-all{margin:0!important;padding:4px 8px!important;background:#fff!important;border:1px solid #dedede!important;border-radius:9px!important}
+#mainApp #guests .gr-compact .gr-period-control .bv3-period-head,#mainApp #guests .gr-compact .gr-period-all{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:space-between;gap:6px}
+#mainApp #guests .gr-compact .bv3-period-head small,#mainApp #guests .gr-compact .bv3-period-head span{display:none}
+#mainApp #guests .gr-compact .bv3-period-head strong,#mainApp #guests .gr-compact .gr-period-all strong{font-size:14px!important;font-weight:650}
+#mainApp #guests .gr-compact .bv3-period-head>button,#mainApp #guests .gr-compact .gr-period-all .btn{width:auto!important;flex:0 0 auto!important;min-height:44px;padding:6px 9px!important;border:0!important;background:#fff3e8!important;color:#98420d!important;font-size:12px!important}
+#mainApp #guests .gr-compact .gr-tool-buttons{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin:0}
+#mainApp #guests .gr-compact .gr-tool-buttons .btn,#mainApp #guests .gr-history-head .btn,#mainApp #guests .gr-bottom-actions .btn{min-height:44px!important;padding:6px 11px!important;font-size:12px!important;border:1px solid #ddd!important;border-radius:9px;box-shadow:none;background:#fff}
+#mainApp #guests .gr-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0}
+#mainApp #guests .gr-history-summary>div{background:#f6f6f6;border-radius:9px;padding:8px;min-width:0;display:grid;gap:4px}
+#mainApp #guests .gr-history-summary small{font-size:11px;color:#666}
+#mainApp #guests .gr-history-summary strong{font-size:14px;overflow-wrap:anywhere;color:#222;font-variant-numeric:tabular-nums}
+#mainApp #guests .gr-history-head{margin:8px 0}
+#mainApp #guests .gr-old-card{border:1px solid #e5e5e5;border-radius:10px;padding:10px;margin:8px 0;background:#fff;min-width:0}
+#mainApp #guests .gr-old-main{display:flex;align-items:flex-start;gap:9px;min-width:0}
+#mainApp #guests .gr-old-main>div{min-width:0;overflow-wrap:anywhere}
+#mainApp #guests .gr-avatar{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:#fff0e3;color:#99501e;font-size:12px;font-weight:700}
+#mainApp #guests .gr-old-main p,#mainApp #guests .gr-old-main small{font-size:12px!important;line-height:1.45;margin:3px 0;color:#666}
+#mainApp #guests .gr-old-money{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;border-top:1px solid #eee;margin-top:8px;padding-top:8px;font-size:12px;color:#666}
+#mainApp #guests .gr-old-money strong{color:#222}
+#mainApp #guests .gr-empty{text-align:center;border:1px dashed #dedede;border-radius:9px;padding:18px 8px;color:#555}
+#mainApp #guests .gr-empty p{font-size:12px!important;margin:5px 0 0}
+#mainApp #guests .gr-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap!important;border:0!important}
+#mainApp #guests .gr-compact .gr-stay-card{border-color:#e5e5e5;background:white;box-shadow:none}
+#mainApp #guests .gr-compact .gr-name{min-height:44px}
+@media(min-width:701px){#mainApp #guests .gr-compact .gr-tools{grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) minmax(0,1fr)}#mainApp #guests .gr-compact .gr-search,#mainApp #guests .gr-compact .gr-period-control,#mainApp #guests .gr-compact .gr-status-filter{grid-column:auto}}
