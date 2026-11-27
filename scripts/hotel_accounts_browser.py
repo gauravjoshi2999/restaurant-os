@@ -234,6 +234,13 @@ try:
     check('H/26-27/000042' in sheet and 'CGST amount' in sheet,'GST Excel includes bill number and tax split')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'Daily Book fits '+str(width)+'px with contained table scrolling')
    page.screenshot(path=str(OUT/f'ui-hotel-daily-book-{width}.png'),full_page=width>760)
+   day_link=page.locator('.ha-book-table [data-ha-action=book-day]').first
+   # On the first of a month the month-to-date table already contains a single day.
+   if day_link.count():
+    selected=day_link.get_attribute('data-id')
+    day_link.click()
+    page.wait_for_function('(day)=>window.__BITE_A02_DAILY_CALLS.at(-1).p_from===day && window.__BITE_A02_DAILY_CALLS.at(-1).p_to===day',arg=selected)
+    check(page.locator('.ha-book-table tbody tr').count()==1,'Daily totals drill into the selected date at '+str(width)+'px')
    page.close()
   browser.close()
  check(not errors,'No controller page errors')

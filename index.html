@@ -386,6 +386,31 @@ body[data-role="owner"] #ownerAlertPreferences .owner-alert-settings-actions .bt
 #ownerAlertPreferences>summary::marker{content:""}
 #ownerAlertPreferences>summary::after{content:"⌄";font-size:20px;line-height:1;color:#697386}
 #ownerAlertPreferences[open]>summary::after{transform:rotate(180deg)}
+
+#reportDailyRows summary{cursor:pointer;min-height:44px;align-content:center;text-decoration:underline;text-underline-offset:3px}
+.report-day-entries{list-style:none;padding:0;white-space:normal;min-width:12rem}
+.report-day-entries li{padding:.5rem 0;border-top:1px solid #d7dce2}
+.report-day-entries strong{display:block}
+#cashbook .book-filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:.6rem 0}
+#cashbook .book-filters label{display:grid;grid-template-columns:minmax(0,1fr);gap:.25rem;font-weight:600;flex:1 1 10rem;min-width:0}
+#cashbook .book-filters input,#cashbook .book-filters select,#cashbookManualCard summary{min-height:44px}
+#cashbook .book-filters :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:0 .65rem;border:1px solid #bac1cb;border-radius:8px;background:#fff;color:#1c2532;font-size:1rem}
+body[data-role="owner"] #mainApp #cashbook :is(#cashbookCloseBtn,#cashbookReviewBtn)[hidden]{display:none!important}
+#cashbookManualCard summary{cursor:pointer;font-weight:700;align-content:center}
+@media(max-width:600px){
+ body[data-role="owner"] #mainApp #cashbook.page .table-wrap table.book-entries{display:block;min-width:0!important;width:100%}
+ #cashbook .book-entries thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ #cashbook .book-entries tbody{display:block}
+ #cashbook .book-entries tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;padding:12px;border-bottom:1px solid #d7dce2}
+ body[data-role="owner"] #mainApp #cashbook.page .table-wrap table.book-entries td{border:0;padding:0!important;font-size:14px!important;line-height:1.4;white-space:normal!important;overflow-wrap:anywhere}
+ #cashbook .book-entries td:nth-child(5) strong{font-size:16px}
+ #cashbook .book-entries .pill{font-size:12px}
+ #cashbook .book-entries td:nth-child(1){grid-area:1/1}
+ #cashbook .book-entries td:nth-child(5){grid-area:1/2;text-align:right}
+ #cashbook .book-entries td:nth-child(2){grid-area:2/1;font-weight:700}
+ #cashbook .book-entries td:nth-child(4){grid-area:2/2;text-align:right}
+ #cashbook .book-entries td:nth-child(3),#cashbook .book-entries td:nth-child(6){grid-column:1/-1}
+}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>#restaurantLocationMap{height:260px;width:100%;border:1px solid var(--line);border-radius:12px;margin-top:9px;z-index:1}.restaurant-map-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.restaurant-map-actions button{flex:1;min-width:150px}/* Platform restaurant manager */
@@ -747,7 +772,7 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/admin-cashfree-audit.js?v=20261124-provider-not-initiated1" defer></script>
 <link rel="stylesheet" href="assets/owner-cancellation-alerts.css?v=20261115-live1"><link rel="stylesheet" href="assets/owner-hospitality.css?v=20261121-h06pdf2-h10review1-h11availability1">
 <link rel="stylesheet" href="assets/owner-premium-shell.css?v=20261116-owner-v2">
-<link rel="stylesheet" href="assets/owner-hotel-polish.css?v=20261119-h04filter1"><link rel="stylesheet" href="assets/owner-hotel-accounts.css?v=20261119-h06-period1-steps1-deposit1-simple1-compact1-continuity2-register-contract1">
+<link rel="stylesheet" href="assets/owner-hotel-polish.css?v=20261119-h04filter1"><link rel="stylesheet" href="assets/owner-hotel-accounts.css?v=20261119-h06-period1-steps1-deposit1-simple1-compact1-continuity2-register-contract1-daybook2">
 <link rel="stylesheet" href="assets/owner-guest-documents.css?v=20261116-1">
 <link rel="stylesheet" href="assets/owner-mobile-forms.css?v=20261116-1">
 <script src="assets/owner-mobile-forms.js?v=20261116-1" defer></script>
@@ -1025,13 +1050,17 @@ body.bite-session-check #biteSessionSplash{
   <div class="field"><label>Cashbook status</label><div id="cashbookStatus" class="tag">Loading…</div></div>
  </div></div>
  <div class="grid section">
-  <div class="card"><div class="metric-label">Total income</div><div class="metric" id="cashbookIncome">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Total outflow</div><div class="metric" id="cashbookOutflow">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Net movement</div><div class="metric" id="cashbookNet">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Expected cash in hand</div><div class="metric" id="cashbookExpectedCash">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Money received · all modes</div><div class="metric" id="cashbookIncome">—</div></div>
+  <div class="card"><div class="metric-label">Money paid · all modes</div><div class="metric" id="cashbookOutflow">—</div></div>
+  <div class="card"><div class="metric-label">Net movement · all modes</div><div class="metric" id="cashbookNet">—</div></div>
+  <div class="card"><div class="metric-label">Expected drawer cash</div><div class="metric" id="cashbookExpectedCash">—</div></div>
  </div>
- <div class="card section" id="cashbookManualCard">
-  <div class="section-head"><h2>Manual cashbook entry</h2><span class="small">Owner only · POS payments aur recorded kharcha dobara mat likhein</span></div>
+ <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small" id="cashbookMatches" role="status"></span></div>
+  <div class="book-filters"><label>Search entries<input id="cashbookSearch" type="search" placeholder="Search receipts…"></label><label>Money movement<select id="cashbookMovement"><option value="">All entries</option><option value="in">Money received</option><option value="out">Money paid</option></select></label></div>
+  <div class="card table-wrap"><table class="book-entries"><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
+ </div>
+  <details class="card section" id="cashbookManualCard">
+  <summary>Add a manual entry</summary><p class="small">POS receipts aur recorded kharcha yahan apne aap aate hain. Sirf baaki entry likhein.</p>
   <div class="form-row" style="align-items:end">
    <div class="field"><label>Entry type *</label><select id="cashbookDirection"><option value="in">Income / Aaya</option><option value="out">Expense / Gaya</option></select></div>
    <div class="field"><label>Category *</label><input id="cashbookCategory" maxlength="80" placeholder="Customer collection, other income..."></div>
@@ -1040,12 +1069,9 @@ body.bite-session-check #biteSessionSplash{
    <div class="field" style="grid-column:1/-1"><label>Description</label><input id="cashbookDescription" maxlength="300" placeholder="Customer, reason or reference"></div>
   </div>
   <div class="actions"><button class="btn" id="cashbookSaveBtn" type="button" onclick="saveCashbookEntry()">＋ Save entry</button><span class="small" id="cashbookEntryMessage" role="status"></span></div>
- </div>
- <div class="section"><div class="section-head"><h2>Payment mode summary</h2><span class="small" id="cashbookEntryCount">0 entries</span></div>
+ </details>
+ <div class="section"><div class="section-head"><h2>Payment mode summary</h2><span class="small" id="cashbookEntryCount">—</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Payment mode</th><th>Income</th><th>Outflow</th><th>Net</th></tr></thead><tbody id="cashbookModeRows"></tbody></table></div>
- </div>
- <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small">POS receipts, expenses, purchases, staff, khata and refunds</span></div>
-  <div class="card table-wrap"><table><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
  </div>
  <div class="card section" id="cashbookClosingCard">
   <div class="section-head"><h2>Daily cash closing</h2><span class="small">Owner only · Day close ke baad entries lock</span></div>
@@ -1056,7 +1082,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field" style="grid-column:1/-1"><label>Closing note (difference ho to zaroori)</label><input id="cashbookClosingNote" maxlength="300" placeholder="Difference ka reason, minimum 8 characters"></div>
   </div>
   <div class="notice" id="cashbookClosingReview" role="status" style="display:none"></div>
-  <div class="actions"><button class="btn secondary" id="cashbookReviewBtn" type="button" onclick="reviewCashbookDay()">Review closing</button><button class="btn" id="cashbookCloseBtn" type="button" onclick="closeCashbookDay()" style="display:none">Confirm &amp; close day</button><span class="small" id="cashbookCloseMessage" role="status" aria-live="polite"></span></div>
+  <div class="actions"><button class="btn secondary" id="cashbookReviewBtn" type="button" onclick="reviewCashbookDay()">Review closing</button><button class="btn" id="cashbookCloseBtn" type="button" hidden onclick="closeCashbookDay()" style="display:none">Confirm &amp; close day</button><span class="small" id="cashbookCloseMessage" role="status" aria-live="polite"></span></div>
  </div>
 </section>
 
@@ -1246,18 +1272,18 @@ body.bite-session-check #biteSessionSplash{
   <div class="field"><label>Restaurant</label><select id="reportRestaurant"></select></div>
   <div class="field"><label>From date</label><input id="reportFrom" type="date"></div>
   <div class="field"><label>To date</label><input id="reportTo" type="date"></div>
-  <div class="field"><label>Report status</label><div class="small" id="reportStatus">Select date range</div></div>
- </div></div>
+  <div class="field"><label>Report status</label><div class="small" id="reportStatus" role="status">Select date range</div></div>
+ </div><div class="actions"><button type="button" class="btn secondary" onclick="selectReportPeriod('day')">Today</button><button type="button" class="btn secondary" onclick="selectReportPeriod('month')">This month</button></div></div>
  <div class="grid section">
-  <div class="card"><div class="metric-label">Orders</div><div class="metric" id="reportOrderCount">0</div></div>
-  <div class="card"><div class="metric-label">Verified collections</div><div class="metric" id="reportGrossSales">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Cancelled sale</div><div class="metric" id="reportCancelledSales">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="reportActualRefunds">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Collections after refunds</div><div class="metric" id="reportNetSales">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Cashbook income</div><div class="metric" id="reportCashIn">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Cashbook outflow</div><div class="metric" id="reportCashOut">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Net cash movement</div><div class="metric" id="reportNetCash">₹0.00</div></div>
-  <div class="card"><div class="metric-label">Platform commission</div><div class="metric" id="reportPosDue">₹0.00</div></div>
+  <div class="card"><div class="metric-label">Orders</div><div class="metric" id="reportOrderCount">—</div></div>
+  <div class="card"><div class="metric-label">Verified collections</div><div class="metric" id="reportGrossSales">—</div></div>
+  <div class="card"><div class="metric-label">Cancelled sale</div><div class="metric" id="reportCancelledSales">—</div></div>
+  <div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="reportActualRefunds">—</div></div>
+  <div class="card"><div class="metric-label">Collections after refunds</div><div class="metric" id="reportNetSales">—</div></div>
+  <div class="card"><div class="metric-label">Money received · all modes</div><div class="metric" id="reportCashIn">—</div></div>
+  <div class="card"><div class="metric-label">Money paid · all modes</div><div class="metric" id="reportCashOut">—</div></div>
+  <div class="card"><div class="metric-label">Net movement · all modes</div><div class="metric" id="reportNetCash">—</div></div>
+  <div class="card"><div class="metric-label">Platform commission</div><div class="metric" id="reportPosDue">—</div></div>
  </div>
  <div class="grid section">
   <div class="card"><div class="section-head"><h2>Sales by channel</h2></div><div class="table-wrap"><table><thead><tr><th>Channel</th><th>Orders</th><th>Sales</th></tr></thead><tbody id="reportChannelRows"></tbody></table></div></div>
@@ -1267,7 +1293,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="section-head"><h2>Expense categories</h2></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Entries</th><th>Amount</th></tr></thead><tbody id="reportExpenseRows"></tbody></table></div></div>
   <div class="card"><div class="section-head"><h2>Top selling items</h2></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="reportItemRows"></tbody></table></div></div>
  </div>
- <div class="section"><div class="section-head"><h2>Daily cashbook summary</h2><span class="small">Actual recorded movements</span></div>
+ <div class="section"><p class="notice" id="reportDemoDifference" hidden></p><div class="section-head"><h2>Daily cashbook summary</h2><span class="small">Actual recorded movements</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Income</th><th>Outflow</th><th>Net movement</th><th>Entries</th></tr></thead><tbody id="reportDailyRows"></tbody></table><div class="empty" id="reportDailyEmpty">No cashbook activity for this period.</div></div>
  </div>
  <div class="section"><div class="section-head"><h2>Customers with outstanding balance</h2><span class="small">Current balance, not limited to selected dates</span></div>
@@ -1498,7 +1524,7 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-guest-register.js?v=20261126-past-form1-simple1-compact1"></script><script src="assets/owner-hotel-billing.js?v=20261122-h13-deposit-review1-simple1"></script><script src="assets/owner-checkin-guard.js?v=20261122-h11-overdue1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1-register-contract1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261122-a04-verified1"></script><script src="assets/owner-supplier-dues.js?v=20261122-a04-retry1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
-<script src="assets/owner-v3-settlements.js?v=20261124-provider-not-initiated1"></script><script src="assets/owner-hotel-accounts.js?v=20261126-past-form1-continuity2-register-contract1"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261122-a07-verified1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-v3-settlements.js?v=20261124-provider-not-initiated1"></script><script src="assets/owner-hotel-accounts.js?v=20261126-past-form1-continuity2-register-contract1-daybook2"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261122-a07-verified1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
 <script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-uat002-custom1-continuity2-register-contract1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261126-past-form1"></script>
 <script>
@@ -1995,6 +2021,24 @@ document.getElementById('inventoryV3Search').addEventListener('input',()=>{
 
 let cashbookEntries=[],cashbookClosing=null,cashbookLastLoadedKey=null;
 let cashbookDataReadyKey=null,cashbookLoadSequence=0,cashbookClosingBusy=false,cashbookEntryBusy=false,cashbookReview=null;
+function renderCashbookTransactions(){
+ const ready=cashbookDataReadyKey===cashbookKey();
+ const query=document.getElementById('cashbookSearch').value.trim().toLowerCase();
+ const direction=document.getElementById('cashbookMovement').value;
+ const labels={expense:'Expense ledger',purchase:'Purchase payment',manual:'Manual entry',order_payment:'POS payment',employee_payment:'Staff payment',customer_ledger_payment:'Khata collection',order_refund:'Customer refund'};
+ const rows=(ready?cashbookEntries:[]).filter(row=>{
+  if(direction&&direction!==row.direction)return false;
+  return !query||[row.category,row.description,row.payment_method,row.source_id,row.entry_id,labels[row.source_type]||row.source_type].some(value=>String(value??'').toLowerCase().includes(query));
+ });
+ document.getElementById('cashbookMatches').textContent=ready?rows.length+' of '+cashbookEntries.length+' entries':'';
+ document.getElementById('cashbookRows').innerHTML=rows.map(row=>{
+  const received=row.direction==='in';
+  return '<tr><td><span class="pill '+(received?'green':'amber')+'">'+(received?'Received':'Paid')+'</span></td><td>'+esc(row.category)+'</td><td>'+esc(row.description||'—')+'</td><td>'+esc(row.payment_method)+'</td><td><strong>'+money(row.amount)+'</strong></td><td>'+esc(labels[row.source_type]||row.source_type)+'</td></tr>';
+ }).join('');
+ const empty=document.getElementById('cashbookEmpty');
+ if(ready)empty.textContent=cashbookEntries.length?'No matching entries. Change the search or movement filter.':'No transactions for this date.';
+ empty.style.display=rows.length?'none':'block';
+}
 function cashbookRestaurantId(){return document.getElementById('cashbookRestaurant').value||''}
 function cashbookDateValue(){return document.getElementById('cashbookDate').value}
 function cashbookKey(){return cashbookRestaurantId()+'|'+cashbookDateValue()}
@@ -2010,7 +2054,7 @@ async function loadCashbookWorkspace(){
  const ids=access.memberships.filter(m=>['owner','manager'].includes(m.role)).map(m=>m.restaurant_id);
  const eligible=state.restaurants.filter(r=>ids.includes(r.id));
  select.innerHTML=eligible.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+'</option>').join('');
- if(!eligible.length){document.getElementById('cashbookEmpty').textContent='Is login ke saath Owner/Manager restaurant linked nahi hai.';return}
+ if(!eligible.length){await loadCashbook();document.getElementById('cashbookEmpty').textContent='Is login ke saath Owner/Manager restaurant linked nahi hai.';return}
  select.value=eligible.some(r=>r.id===previous)?previous:(eligible.find(r=>r.id===access.restaurantId)||eligible[0]).id;
  document.getElementById('cashbookDate').value=localDateInput();
  document.getElementById('cashbookManualCard').style.display=access.role==='owner'?'block':'none';
@@ -2028,11 +2072,21 @@ async function fetchCashbookSnapshot(rid,date){
  return {entries:entries.data,closing:closing.data||null};
 }
 async function loadCashbook(){
- const rid=cashbookRestaurantId(),date=cashbookDateValue();if(!rid||!date)return;
+ const rid=cashbookRestaurantId(),date=cashbookDateValue();
+ if(!rid||!date){
+  cashbookLoadSequence++;cashbookDataReadyKey=null;cashbookEntries=[];cashbookClosing=null;cashbookReview=null;
+  for(const id of ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'])document.getElementById(id).value='';
+  cashbookLastLoadedKey=null;
+  document.getElementById('cashbookEmpty').textContent='Select a restaurant and date.';
+  renderCashbook();document.getElementById('cashbookStatus').textContent='Select day';return;
+ }
  const key=rid+'|'+date,sequence=++cashbookLoadSequence,session=cashbookSessionToken();
  cashbookDataReadyKey=null;cashbookReview=null;
  const empty=document.getElementById('cashbookEmpty');empty.textContent='Cashbook load ho raha hai…';empty.style.display='block';
- if(key!==cashbookLastLoadedKey){cashbookEntries=[];cashbookClosing=null}
+ if(key!==cashbookLastLoadedKey){
+  cashbookEntries=[];cashbookClosing=null;
+  for(const id of ['cashbookSearch','cashbookMovement','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'])document.getElementById(id).value='';
+ }
  renderCashbook();
  try{
   const snapshot=await fetchCashbookSnapshot(rid,date);
@@ -2072,20 +2126,20 @@ function renderCashbook(){
  document.getElementById('cashbookIncome').textContent=display(income);document.getElementById('cashbookOutflow').textContent=display(out);
  document.getElementById('cashbookNet').textContent=display(income-out);document.getElementById('cashbookExpectedCash').textContent=expected===null?'—':display(expected);
  document.getElementById('cashbookEntryCount').textContent=verified?cashbookEntries.length+' entries':'Not verified';
- const modes=[...new Set(['Cash','UPI','Card','Bank Transfer','Other',...Object.keys(totals?.methods||{})])];
- document.getElementById('cashbookModeRows').innerHTML=verified?modes.map(m=>'<tr><td><strong>'+esc(m)+'</strong></td><td>'+display(total('in',m))+'</td><td>'+display(total('out',m))+'</td><td>'+display(total('in',m)-total('out',m))+'</td></tr>').join(''):'';
- const labels={expense:'Expense ledger',purchase:'Purchase payment',manual:'Manual entry',order_payment:'POS payment',employee_payment:'Staff payment',customer_ledger_payment:'Khata collection',order_refund:'Customer refund'};
- document.getElementById('cashbookRows').innerHTML=(verified?cashbookEntries:[]).map(x=>'<tr><td><span class="pill '+(x.direction==='in'?'green':'amber')+'">'+(x.direction==='in'?'Income':'Outflow')+'</span></td><td>'+esc(x.category)+'</td><td>'+esc(x.description||'—')+'</td><td>'+esc(x.payment_method)+'</td><td><strong>'+money(x.amount)+'</strong></td><td>'+esc(labels[x.source_type]||x.source_type)+'</td></tr>').join('');
- document.getElementById('cashbookEmpty').style.display=cashbookEntries.length?'none':'block';
+ const modes=Object.keys(totals?.methods||{}).sort();
+ document.getElementById('cashbookModeRows').innerHTML=verified?modes.map(m=>'<tr><td><strong>'+esc(m)+'</strong></td><td>'+display(total('in',m))+'</td><td>'+display(total('out',m))+'</td><td>'+display(total('in',m)-total('out',m))+'</td></tr>').join('')||'<tr><td colspan="4">No recorded payments.</td></tr>':'';
+ renderCashbookTransactions();
  const status=document.getElementById('cashbookStatus');status.textContent=verified?(cashbookClosing?'Closed':'Open'):'Loading…';status.className='tag '+(verified&&cashbookClosing?'success':'');
  const closed=!!cashbookClosing,owner=access.role==='owner',ready=cashbookDataReadyKey===cashbookKey();
  document.getElementById('cashbookSaveBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
  document.getElementById('cashbookReviewBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
+ document.getElementById('cashbookReviewBtn').hidden=!owner||closed;
  document.getElementById('cashbookReviewBtn').style.display=owner&&!closed?'inline-flex':'none';
  document.getElementById('cashbookCloseBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||!cashbookReview;
+ document.getElementById('cashbookCloseBtn').hidden=!owner||closed||!cashbookReview;
  document.getElementById('cashbookCloseBtn').style.display=owner&&!closed&&cashbookReview?'inline-flex':'none';
  document.getElementById('cashbookClosingReview').style.display=cashbookReview&&!closed?'block':'none';
- ['cashbookDirection','cashbookCategory','cashbookAmount','cashbookPayment','cashbookDescription','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>document.getElementById(id).disabled=closed||!owner||cashbookClosingBusy);
+ ['cashbookDirection','cashbookCategory','cashbookAmount','cashbookPayment','cashbookDescription','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>document.getElementById(id).disabled=!ready||closed||!owner||cashbookClosingBusy);
  document.getElementById('cashbookRestaurant').disabled=cashbookClosingBusy;
  document.getElementById('cashbookDate').disabled=cashbookClosingBusy;
  if(verified&&cashbookClosing){
@@ -2094,7 +2148,7 @@ function renderCashbook(){
   document.getElementById('cashbookClosingNote').value=cashbookClosing.notes||'';
   document.getElementById('cashbookClosingSummary').textContent='Day closed · Expected cash '+money(cashbookClosing.expected_cash)+' · Counted '+money(cashbookClosing.counted_cash)+' · Difference '+money(cashbookClosing.difference)+' · Cash income '+money(cashbookClosing.cash_in)+' · Cash outflow '+money(cashbookClosing.cash_out);
  }else{
-  document.getElementById('cashbookClosingSummary').textContent=owner?'Pehle drawer ka cash ginke bharein, phir Review closing dekhein. Difference ho to reason likhein. Close ke baad day lock ho jayega.':'Day abhi close nahi hua hai. Closing sirf Owner kar sakta hai.';
+  document.getElementById('cashbookClosingSummary').textContent=!verified?'Load a verified day to review closing.':owner?'Pehle drawer ka cash ginke bharein, phir Review closing dekhein. Difference ho to reason likhein. Close ke baad day lock ho jayega.':'Day abhi close nahi hua hai. Closing sirf Owner kar sakta hai.';
  }
 }
 function invalidateCashbookReview(){
@@ -2200,6 +2254,8 @@ async function closeCashbookDay(){
   console.error(e);
  }finally{cashbookReview=null;cashbookClosingBusy=false;renderCashbook()}
 }
+document.getElementById('cashbookSearch').addEventListener('input',renderCashbookTransactions);
+document.getElementById('cashbookMovement').addEventListener('change',renderCashbookTransactions);
 document.getElementById('cashbookRestaurant').addEventListener('change',loadCashbook);
 document.getElementById('cashbookDate').addEventListener('change',loadCashbook);
 ['cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>
@@ -2887,7 +2943,13 @@ document.querySelector('#khata .v3-khata-filters').addEventListener('click',e=>{
 let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[],reportLoadVersion=0,reportReadyKey='';
 function reportKey(){return [currentUser?.id||'',access.role,reportRestaurantId(),document.getElementById('reportFrom').value,document.getElementById('reportTo').value].join('|');}
 function reportReady(){return !!currentUser?.id&&['owner','manager'].includes(access.role)&&reportReadyKey===reportKey();}
-function clearReportView(){reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
+function clearReportView(){document.getElementById('reportDemoDifference').hidden=true;document.getElementById('reportDemoDifference').textContent='';for(const id of ['reportDailyEmpty','reportCustomerEmpty'])document.getElementById(id).style.display='none';reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
+function selectReportPeriod(period){
+ const today=localDateInput();
+ document.getElementById('reportFrom').value=period==='month'?today.slice(0,8)+'01':today;
+ document.getElementById('reportTo').value=today;
+ return loadReportsData();
+}
 function reportRestaurantId(){return document.getElementById('reportRestaurant').value||''}
 async function loadReportsWorkspace(){
  const sel=document.getElementById('reportRestaurant'),previous=sel.value;
@@ -2929,9 +2991,28 @@ async function loadReportsData(){
    itemRows=items.data;paymentRows=payments.data;
   }
   if(!current())return;
-  reportOrders=orders.data;reportFinancials=financials.data;const demoExpenses=new Set(expenses.data.filter(e=>e.is_demo).map(e=>e.id));reportCashbook=cashbook.data.filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data;reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
+  const demoExpenses=new Set(expenses.data.filter(row=>row.is_demo).map(row=>row.id));
+  const excluded=[];
+  reportCashbook=cashbook.data.filter(row=>{
+   if(row.source_type!=='expense'||!demoExpenses.has(row.source_id))return true;
+   excluded.push(row);return false;
+  });
+  reportOrders=orders.data;reportFinancials=financials.data;reportCustomerBalances=balances.data;
+  reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
   renderReports();
+  showReportExclusions(excluded);
  }catch(e){if(!current())return;clearReportView();document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
+}
+function showReportExclusions(rows){
+ const note=document.getElementById('reportDemoDifference');
+ note.hidden=!rows.length;
+ if(!rows.length){note.textContent='';return}
+ const amounts=BiteCashClosing.totals(rows);
+ const parts=[];
+ if(amounts.out)parts.push(money(amounts.out/100)+' paid');
+ if(amounts.in)parts.push(money(amounts.in/100)+' received');
+ note.textContent='Cashbook includes '+rows.length+' demo expense '+(rows.length===1?'entry':'entries')+
+  (parts.length?' ('+parts.join(', ')+')':'')+'. Business Reports excludes these entries for this period.';
 }
 function reportSummaryFor(orderId){
  return reportPaymentSummaries.find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:0,cancelled_sale_amount:0,refunded_amount:0};
@@ -2941,26 +3022,37 @@ function renderReports(){
  const summary=BiteOwner.financialSummary(reportOrders,reportFinancials);
  const salesOrders=summary.paid;
  const cancelledSales=sum(salesOrders.filter(o=>['Cancelled','Rejected'].includes(o.status)),o=>Number(o.amount||0));
- const cashIn=sum(reportCashbook,e=>e.direction==='in'?Number(e.amount):0),cashOut=sum(reportCashbook,e=>e.direction==='out'?Number(e.amount):0);
+ const cashTotals=BiteCashClosing.totals(reportCashbook);
+ const cashIn=cashTotals.in/100,cashOut=cashTotals.out/100;
  document.getElementById('reportOrderCount').textContent=String(salesOrders.length);
  document.getElementById('reportGrossSales').textContent=money(summary.gross);
  document.getElementById('reportCancelledSales').textContent=money(cancelledSales);
  document.getElementById('reportActualRefunds').textContent=money(summary.refunds);
  document.getElementById('reportNetSales').textContent=money(summary.net);
  document.getElementById('reportCashIn').textContent=money(cashIn);document.getElementById('reportCashOut').textContent=money(cashOut);
- document.getElementById('reportNetCash').textContent=money(cashIn-cashOut);document.getElementById('reportPosDue').textContent=money(summary.commission);
- const channels={};salesOrders.forEach(o=>{const f=reportFinancials.find(f=>f.order_id===o.id);channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=Number(f?.customer_payable_amount||0)-Number(f?.refund_amount_actual||0)});
+ document.getElementById('reportNetCash').textContent=money((cashTotals.in-cashTotals.out)/100);document.getElementById('reportPosDue').textContent=money(summary.commission);
+ const channels=Object.create(null);salesOrders.forEach(o=>{const f=reportFinancials.find(f=>f.order_id===o.id);channels[o.channel]??={count:0,total:0};channels[o.channel].count++;channels[o.channel].total+=Number(f?.customer_payable_amount||0)-Number(f?.refund_amount_actual||0)});
  document.getElementById('reportChannelRows').innerHTML=Object.entries(channels).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No verified paid orders</td></tr>';
- const modes=['Cash','UPI','Card','Bank Transfer','Other'];
- const total=(direction,mode)=>sum(reportCashbook.filter(e=>e.direction===direction&&e.payment_method===mode),e=>Number(e.amount));
- document.getElementById('reportModeRows').innerHTML=modes.map(m=>'<tr><td>'+m+'</td><td>'+money(total('in',m))+'</td><td>'+money(total('out',m))+'</td><td>'+money(total('in',m)-total('out',m))+'</td></tr>').join('');
- const expenses={};reportCashbook.filter(e=>e.source_type==='expense').forEach(e=>{expenses[e.category]??={count:0,total:0};expenses[e.category].count++;expenses[e.category].total+=Number(e.amount)});
+ const modes=Object.keys(cashTotals.methods).sort();
+ document.getElementById('reportModeRows').innerHTML=modes.map(method=>{
+  const amounts=cashTotals.methods[method];
+  return '<tr><td>'+esc(method)+'</td><td>'+money(amounts.in/100)+'</td><td>'+money(amounts.out/100)+'</td><td>'+money((amounts.in-amounts.out)/100)+'</td></tr>';
+ }).join('')||'<tr><td colspan="4">No recorded money movements.</td></tr>';
+ const expenses=Object.create(null);reportCashbook.filter(e=>e.source_type==='expense').forEach(e=>{expenses[e.category]??={count:0,total:0};expenses[e.category].count++;expenses[e.category].total+=Number(e.amount)});
  document.getElementById('reportExpenseRows').innerHTML=Object.entries(expenses).sort((a,b)=>b[1].total-a[1].total).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.count+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No expenses</td></tr>';
- const paidOrderIds=new Set(salesOrders.filter(o=>!['Rejected','Cancelled'].includes(o.status)).map(o=>o.id));const items={};reportItems.filter(i=>paidOrderIds.has(i.order_id)).forEach(i=>{items[i.item_name]??={qty:0,total:0};items[i.item_name].qty+=Number(i.quantity);items[i.item_name].total+=Number(i.line_total)});
+ const paidOrderIds=new Set(salesOrders.filter(o=>!['Rejected','Cancelled'].includes(o.status)).map(o=>o.id));const items=Object.create(null);reportItems.filter(i=>paidOrderIds.has(i.order_id)).forEach(i=>{items[i.item_name]??={qty:0,total:0};items[i.item_name].qty+=Number(i.quantity);items[i.item_name].total+=Number(i.line_total)});
  document.getElementById('reportItemRows').innerHTML=Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10).map(([name,v])=>'<tr><td>'+esc(name)+'</td><td>'+v.qty.toFixed(2)+'</td><td>'+money(v.total)+'</td></tr>').join('')||'<tr><td colspan="3">No items</td></tr>';
- const daily={};reportCashbook.forEach(e=>{daily[e.entry_date]??={in:0,out:0,count:0};daily[e.entry_date][e.direction==='in'?'in':'out']+=Number(e.amount);daily[e.entry_date].count++});
- const days=Object.entries(daily).sort((a,b)=>b[0].localeCompare(a[0]));
- document.getElementById('reportDailyRows').innerHTML=days.map(([date,v])=>'<tr><td>'+esc(date)+'</td><td>'+money(v.in)+'</td><td>'+money(v.out)+'</td><td>'+money(v.in-v.out)+'</td><td>'+v.count+'</td></tr>').join('');
+ const daily=new Map();
+ for(const entry of reportCashbook){
+  if(!daily.has(entry.entry_date))daily.set(entry.entry_date,[]);
+  daily.get(entry.entry_date).push(entry);
+ }
+ const days=[...daily].sort(([first],[second])=>second.localeCompare(first));
+ document.getElementById('reportDailyRows').innerHTML=days.map(([date,entries])=>{
+  const totals=BiteCashClosing.totals(entries);
+  const detail=entries.map(entry=>'<li><span>'+esc(entry.description||entry.category||entry.source_type)+' · '+esc(entry.payment_method)+'</span> <strong>'+(entry.direction==='in'?'+':'−')+money(entry.amount)+'</strong></li>').join('');
+  return '<tr><td><details><summary aria-label="View entries for '+esc(date)+'">'+esc(date)+'</summary><ul class="report-day-entries">'+detail+'</ul></details></td><td>'+money(totals.in/100)+'</td><td>'+money(totals.out/100)+'</td><td>'+money((totals.in-totals.out)/100)+'</td><td>'+entries.length+'</td></tr>';
+ }).join('');
  document.getElementById('reportDailyEmpty').style.display=days.length?'none':'block';
  const outstanding=reportCustomerBalances.filter(c=>Number(c.balance)>0).sort((a,b)=>Number(b.balance)-Number(a.balance)).slice(0,20);
  document.getElementById('reportCustomerRows').innerHTML=outstanding.map(c=>'<tr><td>'+esc(c.full_name)+'</td><td>'+esc(c.phone||'—')+'</td><td><strong>'+money(c.balance)+'</strong></td></tr>').join('');
