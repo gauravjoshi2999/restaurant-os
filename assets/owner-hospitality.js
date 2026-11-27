@@ -666,7 +666,8 @@
   }).join('');
   mount.innerHTML='<section id="bhFoodPicker" class="bh-guest-food-picker"><div class="bh-food-picker-heading"><div><h2>Add food to Room '+esc(room?.number||'—')+'</h2><p>Menu se select karein. Payment checkout par hoga.</p></div>'+btn('food-close','Close')+'</div>'+
    '<label class="bh-field"><span>Find a dish</span><input type="search" data-bh-food-search placeholder="Search roti, paneer, tea…" value="'+esc(foodQuery)+'" autocomplete="off"></label>'+
-   '<div class="bh-guest-food-list">'+(rows||stateCard('No available dishes. Update the restaurant menu first.'))+'</div>'+
+   '<details class="bh-panel" data-bh-custom-food><summary>+ Custom food item</summary><div class="bh-form-grid">'+field('custom_food_name','Item name','text','','maxlength="120"')+field('custom_food_qty','Quantity','number',1,'min="1" max="999" step="1" inputmode="numeric"')+field('custom_food_price','Price per item (₹)','number','','min="0.01" max="99999999" step="0.01" inputmode="decimal"')+'</div>'+btn('food-custom-add','Add item')+'<p data-custom-food-error role="status"></p></details>'+
+   '<div class="bh-guest-food-list">'+(rows||stateCard('No menu items. Add a custom food item above.'))+'</div>'+
    '<div class="bh-guest-food-bottom"><strong>'+picked.reduce((n,x)=>n+(foodCart.get(x.id)||0),0)+' items · '+money(total)+'</strong>'+
    btn('food-save','Add selected food to guest bill','',!picked.length?'disabled':'')+'</div>'+notice()+'</section>';
   const search=mount.querySelector('[data-bh-food-search]');
@@ -692,7 +693,7 @@
   const f=data.folios.find(x=>x.id===foodFolio),s=data.stays.find(x=>x.id===f?.stay_id),room=data.rooms.find(x=>x.id===s?.room_id);
   if(f?.status!=='open'||s?.status!=='in_house')throw Error('This guest is no longer checked in.');
   const items=foodMenu.filter(x=>(foodCart.get(x.id)||0)>0).map(x=>({name:x.name,quantity:foodCart.get(x.id),unit_price:Number(x.price)}));
-  if(!items.length)throw Error('Choose at least one menu item.');
+  if(!items.length)throw Error('Choose at least one food item.');
   const total=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0);
   if(!root.confirm('Room '+(room?.number||'—')+' mein '+money(total)+' ka food add karna hai? Payment abhi record nahi hoga.'))return;
   const result=await command('room_pos',{folio_id:foodFolio,restaurant_id:ctx.getAccess().restaurantId,items,fulfilment:'served',service_note:'',channel:'POS - Counter',discount:0,discount_reason:''});
@@ -858,6 +859,7 @@
    else if(action==='folio-list'){selectedFolio=null;foodFolio=null;renderFolios()}
    else if(action==='original-pos')await openOriginalPOS(id,b);
    else if(action==='food-menu')await openFoodPicker();
+   else if(action==='food-custom-add'){const panel=b.closest('[data-bh-custom-food]'),msg=panel?.querySelector('[data-custom-food-error]');if(!panel||!msg||!foodFolio||selectedFolio!==foodFolio||!['owner','manager'].includes(prop()?.role)||!has('charge_to_room'))throw Error('Open an active guest bill first.');const name=panel.querySelector('[name=custom_food_name]').value.trim(),qty=Number(panel.querySelector('[name=custom_food_qty]').value),price=Number(panel.querySelector('[name=custom_food_price]').value);if(!name||name.length>120||!Number.isInteger(qty)||qty<1||qty>999||!Number.isFinite(price)||price<=0||price>99999999||Math.abs(price*100-Math.round(price*100))>0.00001){msg.textContent='Enter item name, quantity and a valid price.';return}const customId='custom-'+crypto.randomUUID();foodMenu.push({id:customId,name,price:Math.round(price*100)/100});foodCart.set(customId,qty);foodQuery='';renderFoodPicker()}
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
    else if(action==='food-save')await postFoodToBill();
