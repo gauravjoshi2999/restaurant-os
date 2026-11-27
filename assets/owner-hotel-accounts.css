@@ -180,3 +180,13 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 /* Returning guest conflict stays visible even after the suggestion list closes. */
 #bhCheckinForm .ha-duplicate-phone{margin:4px 0 12px;padding:10px 12px;border:1px solid #ead2a2;border-radius:10px;background:#fff9eb;color:#704508;font-size:13px;line-height:1.45;overflow-wrap:anywhere}#bhCheckinForm .ha-duplicate-phone[hidden]{display:none!important}
 #hotel-register .ha-checkin-unavailable{border:1px solid #ead2a2;max-width:720px;margin:16px auto}#hotel-register .ha-checkin-unavailable .btn{min-height:44px}
+
+/* On phones, use each date to open the full day. The period metrics above
+   retain expenses, staff advances and closing balances for the whole period. */
+@media(max-width:600px){
+ .ha-many-days{table-layout:fixed;min-width:0}
+ .ha-many-days :is(th,td):nth-child(n+3):nth-child(-n+6){display:none}
+ .ha-many-days :is(th,td){padding:.55rem .25rem;white-space:normal;overflow-wrap:anywhere}
+ .ha-many-days :is(th,td):first-child{width:38%}
+ .ha-many-days button{min-height:44px;padding:.4rem;font-variant-numeric:tabular-nums}
+}
