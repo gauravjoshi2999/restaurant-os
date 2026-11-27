@@ -38,6 +38,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/menu_dietary_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/menu_dietary_classification.sql
           psql -v ON_ERROR_STOP=1 -f scripts/menu_dietary_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/menu_channels_visibility_pg_test.sql
 
   refund-provider-sync-postgres-qa:
     runs-on: ubuntu-latest

@@ -1,0 +1,47 @@
+-- Isolated fixture ONLY: invoke after existing menu dietary tests on disposable CI PostgreSQL.
+BEGIN;
+\ir ../docs/sql/menu_channels_visibility_candidate.sql
+-- Mirror actual helper ACLs, and use deterministic publication in the fixture.
+REVOKE EXECUTE ON FUNCTION public.is_platform_admin() FROM PUBLIC,anon;
+REVOKE EXECUTE ON FUNCTION public.is_restaurant_member(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.is_platform_admin(),public.is_restaurant_member(uuid) TO authenticated;
+CREATE OR REPLACE FUNCTION public.is_restaurant_public(rid uuid) RETURNS boolean LANGUAGE sql STABLE AS $$
+ SELECT rid='10000000-0000-0000-0000-000000000001'::uuid
+$$;
+-- Stable synthetic rows independent of previous dietary test fixtures.
+INSERT INTO public.menu_items(id,restaurant_id,name,price,is_vegetarian,is_available,available_online,available_pos,available_room,available_qr)
+VALUES
+ ('31000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Channel online',100,true,true,true,false,false,false),
+ ('31000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Channel private room',20,true,true,false,true,true,false),
+ ('31000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','Channel QR only',20,true,true,false,false,false,true),
+ ('31000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000001','Channel paused',20,true,false,true,true,true,true),
+ ('31000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000002','Channel unpublished',20,true,true,true,true,true,true);
+DO $$ BEGIN
+ IF EXISTS(SELECT 1 FROM public.menu_items WHERE name LIKE 'Legacy %' AND NOT (available_online AND available_pos AND available_room AND available_qr)) THEN RAISE EXCEPTION 'Existing menu flags not preserved'; END IF;
+END $$;
+SET LOCAL ROLE anon;
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%')<>2 THEN RAISE EXCEPTION 'Anon must see only published online/QR items'; END IF;
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%' AND available_online)<>1 THEN RAISE EXCEPTION 'Online filter leaked QR only'; END IF;
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%' AND available_qr)<>1 THEN RAISE EXCEPTION 'QR filter leaked online only'; END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000099',true);
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%')<>2 THEN RAISE EXCEPTION 'Customer visibility mismatch'; END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%')<>4 THEN RAISE EXCEPTION 'Owner must see own private/paused items but not other unpublished tenant'; END IF;
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%' AND is_available AND available_room)<>1 THEN RAISE EXCEPTION 'Room picker should show only eligible private item'; END IF;
+ IF (SELECT count(*) FROM public.menu_items WHERE id::text LIKE '31000000-%' AND is_available AND available_pos)<>1 THEN RAISE EXCEPTION 'POS picker should show only eligible private item'; END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000002',true);
+DO $$ DECLARE changed integer; BEGIN
+ UPDATE public.menu_items SET available_online=true WHERE id='31000000-0000-0000-0000-000000000002'; GET DIAGNOSTICS changed=ROW_COUNT;
+ IF changed<>0 THEN RAISE EXCEPTION 'Cross tenant update succeeded'; END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+SELECT 'PASS: channel visibility, ACL, tenant and legacy defaults (synthetic fixture)' AS result;

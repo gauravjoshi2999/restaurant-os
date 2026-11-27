@@ -1,16 +1,7 @@
 -- REHEARSAL CANDIDATE ONLY. No production migration has been applied.
 -- Run against a disposable production-like clone. Always rolls back.
 BEGIN;
-ALTER TABLE public.menu_items
- ADD COLUMN available_online boolean NOT NULL DEFAULT true,
- ADD COLUMN available_pos boolean NOT NULL DEFAULT true,
- ADD COLUMN available_room boolean NOT NULL DEFAULT true,
- ADD COLUMN available_qr boolean NOT NULL DEFAULT true;
--- Restrict all existing permissive SELECT policies, retaining existing tenant/role grants.
-CREATE POLICY bite_menu_channel_visibility ON public.menu_items AS RESTRICTIVE
- FOR SELECT TO anon, authenticated
- USING ((is_available AND (available_online OR available_qr))
-        OR public.is_platform_admin() OR public.is_restaurant_member(restaurant_id));
+\ir menu_channels_visibility_candidate.sql
 -- Exact-match guard: abort on drift instead of silently editing unexpected server code.
 DO $patch$
 DECLARE item record; old_def text; new_def text; actual_count integer;
