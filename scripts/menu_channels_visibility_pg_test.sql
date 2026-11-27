@@ -104,5 +104,6 @@ BEGIN
 END $qa$;
 RESET ROLE;
 SELECT 'PASS: exact v1/v2 quote candidates reject offline/QR/paused/cross-tenant/stale items and preserve option pricing' AS result;
+\ir menu_channels_paid_finalize_fixture.sql
 ROLLBACK;
 SELECT 'PASS: channel visibility, ACL, tenant and legacy defaults (synthetic fixture)' AS result;
