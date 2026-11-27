@@ -43,5 +43,66 @@ DO $$ DECLARE changed integer; BEGIN
  IF changed<>0 THEN RAISE EXCEPTION 'Cross tenant update succeeded'; END IF;
 END $$;
 RESET ROLE;
+-- Rehearse exact current v1/v2 server quote code with the candidate channel predicate.
+-- Disposable fixture tables only; never import these grants or seed rows to production.
+CREATE TABLE public.menu_option_groups(id uuid primary key,restaurant_id uuid,name text,min_select integer,max_select integer,is_available boolean);
+CREATE TABLE public.menu_option_choices(id uuid primary key,restaurant_id uuid,option_group_id uuid,name text,price_delta numeric,is_available boolean);
+CREATE TABLE public.menu_item_option_groups(restaurant_id uuid,menu_item_id uuid,option_group_id uuid,is_available boolean);
+GRANT SELECT ON public.menu_option_groups,public.menu_option_choices,public.menu_item_option_groups TO anon,authenticated;
+INSERT INTO public.menu_option_groups VALUES ('32000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Size',1,1,true);
+INSERT INTO public.menu_option_choices VALUES ('33000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000001','Large',15,true);
+INSERT INTO public.menu_item_option_groups VALUES ('10000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000001',true);
+\ir menu_channels_quote_candidate_fixture.sql
+-- Both quote versions must compute canonical pricing and reject direct or stale offline cart lines.
+SET LOCAL ROLE anon;
+DO $qa$
+DECLARE ver text; item uuid; quote jsonb; rejected boolean;
+BEGIN
+ FOREACH ver IN ARRAY ARRAY['bite_quote_menu_options_v1','bite_quote_menu_options_v2'] LOOP
+  EXECUTE format('SELECT public.%I($1,$2)',ver) INTO quote USING
+   '10000000-0000-0000-0000-000000000001'::uuid,
+   '[{"menu_item_id":"31000000-0000-0000-0000-000000000001","quantity":2,"option_choice_ids":["33000000-0000-0000-0000-000000000001"]}]'::jsonb;
+  IF (quote->>'food_subtotal')::numeric<>230 OR quote->>'authorizes_payment'<>'false' THEN RAISE EXCEPTION 'Wrong canonical quote %: %',ver,quote; END IF;
+  FOREACH item IN ARRAY ARRAY['31000000-0000-0000-0000-000000000002'::uuid,'31000000-0000-0000-0000-000000000003'::uuid,'31000000-0000-0000-0000-000000000004'::uuid,'31000000-0000-0000-0000-000000000005'::uuid] LOOP
+   rejected:=false;
+   BEGIN
+    EXECUTE format('SELECT public.%I($1,$2)',ver) INTO quote USING '10000000-0000-0000-0000-000000000001'::uuid,jsonb_build_array(jsonb_build_object('menu_item_id',item,'quantity',1));
+   EXCEPTION WHEN invalid_parameter_value THEN
+    IF SQLERRM<>'Menu item is unavailable' THEN RAISE; END IF;
+    rejected:=true;
+   END;
+   IF NOT rejected THEN RAISE EXCEPTION 'Direct quote leaked unavailable item %/%',ver,item; END IF;
+  END LOOP;
+  rejected:=false;
+  BEGIN
+   EXECUTE format('SELECT public.%I($1,$2)',ver) INTO quote USING '10000000-0000-0000-0000-000000000001'::uuid,'[{"menu_item_id":"31000000-0000-0000-0000-000000000001","quantity":1}]'::jsonb;
+  EXCEPTION WHEN invalid_parameter_value THEN
+   IF SQLERRM NOT LIKE 'Selection limit not met%' THEN RAISE; END IF;
+   rejected:=true;
+  END;
+  IF NOT rejected THEN RAISE EXCEPTION 'Mandatory option bypass %',ver; END IF;
+ END LOOP;
+END $qa$;
+RESET ROLE;
+-- Model a stale cart: previously eligible online item disabled after menu load.
+UPDATE public.menu_items SET available_online=false,available_qr=true WHERE id='31000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000099',true);
+DO $qa$
+DECLARE ver text; rejected boolean; quote jsonb;
+BEGIN
+ FOREACH ver IN ARRAY ARRAY['bite_quote_menu_options_v1','bite_quote_menu_options_v2'] LOOP
+  rejected:=false;
+  BEGIN
+   EXECUTE format('SELECT public.%I($1,$2)',ver) INTO quote USING '10000000-0000-0000-0000-000000000001'::uuid,'[{"menu_item_id":"31000000-0000-0000-0000-000000000001","quantity":2,"option_choice_ids":["33000000-0000-0000-0000-000000000001"]}]'::jsonb;
+  EXCEPTION WHEN invalid_parameter_value THEN
+   IF SQLERRM<>'Menu item is unavailable' THEN RAISE; END IF;
+   rejected:=true;
+  END;
+  IF NOT rejected THEN RAISE EXCEPTION 'Stale online cart accepted by %',ver; END IF;
+ END LOOP;
+END $qa$;
+RESET ROLE;
+SELECT 'PASS: exact v1/v2 quote candidates reject offline/QR/paused/cross-tenant/stale items and preserve option pricing' AS result;
 ROLLBACK;
 SELECT 'PASS: channel visibility, ACL, tenant and legacy defaults (synthetic fixture)' AS result;
