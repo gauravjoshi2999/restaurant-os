@@ -69,6 +69,23 @@ def noise_png():
 try:
  with sync_playwright()as pw:
   browser=pw.chromium.launch()
+  # Production contract regressions: do not silently fall back when the server or client is incomplete.
+  c,p,f=open_case(browser)
+  nav(p,'overview');p.evaluate("delete __BITE_HOTEL_QA.db.register_version");nav(p,'hotel-register')
+  check(p.locator('.ha-checkin-unavailable').is_visible() and f.count()==0,'Missing register contract cannot expose the old check-in form')
+  p.evaluate("__BITE_HOTEL_QA.db.register_version=1");p.locator('.ha-checkin-unavailable [data-hotel-action=retry]').click()
+  f.wait_for();check(f.get_attribute('data-enhanced')=='true','Retry restores the current register once the contract is present')
+  nav(p,'overview');p.evaluate("window.__savedCheckinFlow=BiteCheckinFlow;window.BiteCheckinFlow=undefined");nav(p,'hotel-register')
+  check(p.locator('.ha-checkin-unavailable').is_visible() and f.count()==0,'Missing current check-in module cannot expose a partial form')
+  p.evaluate("window.BiteCheckinFlow=window.__savedCheckinFlow");p.locator('.ha-checkin-unavailable [data-hotel-action=retry]').click()
+  f.wait_for();check(f.get_attribute('data-enhanced')=='true','Retry restores the current form after module recovery')
+  check(p.evaluate('__BITE_HOTEL_QA.db.stays.length===0&&__BITE_HOTEL_QA.db.entries.length===0'),'Contract failures and retries do not write a stay or payment');c.close()
+  c,p,f=open_case(browser,'returning')
+  f.locator('[name=phone]').fill('9999999999')
+  check(f.locator('.ha-duplicate-phone').is_visible() and f.locator('[data-guest-suggestion=guest-old]').is_visible(),'Exact mobile match displays both a saved guest and persistent warning')
+  f.locator('[data-guest-suggestion=guest-old]').click()
+  check(f.locator('[name=guest_id]').input_value()=='guest-old' and f.locator('.ha-duplicate-phone').is_hidden(),'Explicit saved guest selection clears warning and sets correct ID')
+  c.close()
   # Original PDF wizard, including backwards navigation and no early database mutation.
   for width in [320,360,390,430,1440]:
    c,p,f=open_case(browser,width=width,steps=True)

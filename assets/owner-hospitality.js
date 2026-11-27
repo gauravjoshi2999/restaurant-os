@@ -499,6 +499,12 @@
   raw.savedAt=Date.now();localStorage.setItem('bite_register_draft:'+key,JSON.stringify(raw));for(const item of resolved)localStorage.removeItem(item);return raw;
  }
  function renderRegister(guestId='',resume=false,reservationId=''){
+  const target=$('hotel-register'),version=data.register_version;
+  const unavailable=()=>{target.innerHTML=header('Check-in','')+'<div class="bh-panel ha-checkin-unavailable" role="alert"><h2>Check-in temporarily unavailable</h2><p>The current guest register could not load completely. No check-in has been submitted. Your saved draft remains available.</p><div class="bh-actions">'+btn('retry','Retry check-in','hotel-register')+'<button type="button" class="btn secondary" data-checkin-reload>Reload app</button></div></div>';target.querySelector('[data-checkin-reload]').onclick=()=>root.location.reload();};
+  // Only an explicitly advertised legacy contract may use the legacy form.
+  // A missing capability/version or incomplete modern client must never silently downgrade.
+  if(version!==0&&version!==1){unavailable();return}
+  if(version===1&&(!root.BiteHotelAccounts?.decorateRegister||!root.BiteHotelAccounts?.mountRegisterSteps||!root.BiteCheckinFlow?.decorate||!root.BiteCheckinGuard?.decorate||!root.BiteOwnerOperations?.registerFields)){unavailable();return}
   let raw;try{raw=JSON.parse(localStorage.getItem('bite_register_draft:'+identity())||'null')}catch{}
   const state=root.BiteCheckinGuard?.draftState(raw,data.stays)||{kind:raw?.fields?'draft':'none',fields:raw?.fields};
   if(state.kind==='stale')try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}
@@ -521,17 +527,24 @@
    <h2>2 · Stay & room</h2><div class="bh-form-grid">${field('arrival','Arrival *','date',draft.arrival||today(),'required')}${field('departure','Departure *','date',draft.departure||datePlus(1),'required')}${field('adults','Adults *','number',draft.adults||1,'required min="1" max="20"')}${field('children','Children','number',draft.children||0,'required min="0" max="20"')}${select('room_id','Room *',option('','Choose a room')+data.rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type+' · '+money(r.nightly_rate)+'/night · '+roomState(r),r.id===draft.room_id)).join(''),'required')}${field('compliance_note','Compliance / arrival note','text',draft.compliance_note||'','maxlength="250"')}</div>
    ${select('mode','On confirmation',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))}
    <p class="bh-note">Availability and room readiness are checked again by the server. No payment is collected by this form.</p>${notice()}<div class="bh-form-actions">${btn('save-draft','Save draft')}<button type="submit" class="btn">Review check-in</button></div></form>`;
-  root.BiteOwnerOperations?.registerFields($('bhCheckinForm'),draft,g);
-  root.BiteHotelAccounts?.decorateRegister($('bhCheckinForm'),draft,g);
-  root.BiteFamilyCheckin?.decorate($('bhCheckinForm'),draft,data);
-  root.BiteHotelAccounts?.mountRegisterSteps($('bhCheckinForm'),draft);
+  try{
+   root.BiteOwnerOperations?.registerFields($('bhCheckinForm'),draft,g);
+   root.BiteHotelAccounts?.decorateRegister($('bhCheckinForm'),draft,g);
+   root.BiteFamilyCheckin?.decorate($('bhCheckinForm'),draft,data);
+   root.BiteHotelAccounts?.mountRegisterSteps($('bhCheckinForm'),draft);
+   const form=$('bhCheckinForm');
+   if(version===1&&(form.dataset.enhanced!=='true'||!form.__haSteps||!form.__haSelectGuest||!form.querySelector('.ha-checkin-progress'))){unavailable();return}
+   if(version===0)form.insertAdjacentHTML('afterbegin','<p class="bh-note" role="status">Legacy register compatibility mode. Refresh the app for the current guest register.</p>');
+  }catch(error){if(version===1){unavailable();return}throw error}
   $('bhCheckinForm').querySelector('[data-guest-picker]').addEventListener('change',e=>{
    const f=$('bhCheckinForm'),g=data.guests.find(g=>g.id===e.target.value);
+   if(e.target.disabled)return;
    if(g&&f.elements.is_oci)f.elements.is_oci.checked=!!g.is_oci;
    if(g)for(const key of ['full_name','phone','country','email','address','id_type','id_last4'])f.elements[key].value=g[key]||'';
    f.dataset.stayId='';f.dataset.reviewed='';f.querySelector('.bh-review')?.remove();persistDraft(f);
   });
-  $('bhCheckinForm').querySelector('[data-guest-search]').addEventListener('input',e=>{
+  // The modern controller owns its combobox and selected guest; do not rebuild its hidden picker on each name edit.
+  if(version===0)$('bhCheckinForm').querySelector('[data-guest-search]')?.addEventListener('input',e=>{
    const q=e.target.value.trim().toLowerCase(),picker=$('bhCheckinForm').elements.guest_id,selected=picker.value;
    picker.innerHTML=option('','New guest')+data.guests.filter(g=>g.id===selected||[g.full_name,g.phone].join(' ').toLowerCase().includes(q)).slice(0,30).map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===selected)).join('');
   });
