@@ -35,8 +35,9 @@
   let name=error.field;
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
-  if(!input||input.disabled||!label||label.hidden)return false;
-  form.__haSteps?.reveal(input);root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
+  if(!input||input.disabled||!label)return false;
+  form.__haSteps?.reveal(input);
+  if(label.hidden&&!label.dataset.haPaymentExtra)return false;root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -187,8 +188,9 @@
   if(!guest||!rooms||!payment||!photos)return;
   const draftButton=guestActions.querySelector('[data-ha-action=draft]');if(draftButton)actions.prepend(draftButton);
   const header=document.createElement('div');header.className='ha-step-header';header.innerHTML='<div><small data-ha-step-caption></small><strong data-ha-step-title></strong></div><button type="button" class="ha-text-button" data-ha-toggle-view>Full form</button>';form.prepend(header);
+  const progress=document.createElement('ol');progress.className='ha-checkin-progress';progress.setAttribute('aria-label','Check-in progress');progress.innerHTML='<li data-progress="guest">Guest</li><li data-progress="rooms">Room &amp; IDs</li><li data-progress="payment">Payment</li>';header.after(progress);
   const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to payment</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
-  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
+  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn secondary" data-ha-id-back>Back to rooms</button><button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
   const paymentBack=document.createElement('button');paymentBack.type='button';paymentBack.className='btn secondary';paymentBack.dataset.haPaymentBack='';paymentBack.textContent='Back to rooms';actions.prepend(paymentBack);
   const panels={guest,rooms,ids:photos,payment},labels={guest:['STEP 1 OF 3 · Guest','Guest'],rooms:['STEP 2 OF 3 · Rooms','Multiple rooms'],ids:['STEP 2 OF 3 · Guest ID photos','Guest ID photos'],payment:['STEP 3 OF 3 · Review','Payment & review']};
   let full=false,step='guest',returnToReview=false,idsForPayment=false;try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
@@ -200,7 +202,8 @@
    for(const [key,el] of Object.entries(panels)){el.hidden=!full&&(key!==step||(key==='payment'&&reviewing));if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
    roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';paymentBack.textContent=reviewing?'Edit payment':'Back to rooms';submit.hidden=!full&&step!=='payment';
    roomActions.querySelector('[data-ha-room-next]').textContent=returnToReview?'Return to review':'Continue to payment';guestActions.querySelector('[data-h07-continue]').textContent=returnToReview?'Return to review':'Continue to rooms';idActions.querySelector('[data-ha-return-rooms]').textContent=returnToReview?'Return to review':idsForPayment?'Continue to payment':'Save & return';
-   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
+   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':step==='payment'?(reviewing?'Review & confirm':'Payment'):step==='rooms'?'Room allocation':labels[step][1];
+   progress.hidden=full;const current=step==='ids'?'rooms':step;const order=['guest','rooms','payment'];for(const li of progress.children){li.classList.toggle('done',order.indexOf(li.dataset.progress)<order.indexOf(current));if(li.dataset.progress===current)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current')}
    const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
    if(focus&&!full){header.tabIndex=-1;header.focus({preventScroll:true});header.scrollIntoView({block:'start',behavior:'instant'})}
   }
@@ -208,7 +211,10 @@
    for(const input of form.elements){if(panelNode.contains(input)&&input.willValidate&&!input.validity.valid){showRegisterError(form,fieldError(input.name,input.validationMessage||'Complete this field.'));return false}}
    return true;
   }
-  function finishStep(){show('payment');if(returnToReview){returnToReview=false;form.requestSubmit()}}
+  function finishStep(){
+   if(!form.dataset.stayId&&!validate(photos)){idsForPayment=true;show('ids',false);return}
+   idsForPayment=false;show('payment');if(returnToReview){returnToReview=false;form.requestSubmit()}
+  }
   function advance(){
    if(full)return false;
    if(step==='guest'){
@@ -220,7 +226,6 @@
     if(!validate(rooms))return true;
     if(form.elements.departure.value<=form.elements.arrival.value){showRegisterError(form,fieldError('departure','Departure must be after arrival.'));return true}
     try{root.BiteFamilyCheckin?.plan(form,Object.fromEntries(new FormData(form)),H().getWorkspace())}catch(e){if(!showRegisterError(form,e))form.querySelector('.bh-message').textContent=e.message||String(e);return true}
-    if(!form.dataset.stayId&&!validate(photos)){idsForPayment=true;show('ids',false);return true}
     finishStep();return true;
    }
    if(step==='ids'){if(!validate(photos))return true;if(returnToReview||idsForPayment){idsForPayment=false;finishStep()}else show('rooms');return true}return false;
@@ -228,10 +233,10 @@
   function back(next){invalidate();show(next)}
   function edit(next){if(!panels[next])return;returnToReview=true;invalidate();show(next)}
   function showReview(){returnToReview=false;idsForPayment=false;show('payment',false);const review=form.querySelector('.bh-review');if(!review)return;review.tabIndex=-1;review.focus({preventScroll:true});review.scrollIntoView({block:'start',behavior:'instant'})}
-  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&id!==step){if(form.dataset.reviewed==='true'){returnToReview=true;invalidate()}show(id,false)}},back,show,edit,showReview,invalidate};
+  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&(id!==step||form.dataset.reviewed==='true')){if(form.dataset.reviewed==='true'){returnToReview=true;invalidate()}show(id,false)}},back,show,edit,showReview,invalidate};
   toggle.onclick=()=>{full=!full;try{root.sessionStorage.setItem('bite_checkin_full_form',full?'1':'0')}catch{}show(step)};
   guestActions.querySelector('[data-h07-continue]').addEventListener('click',e=>{if(!full){e.preventDefault();e.stopImmediatePropagation();advance()}},true);
-  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>{if(returnToReview||idsForPayment)advance();else show('rooms')};paymentBack.onclick=()=>{if(form.dataset.reviewed==='true')edit('payment');else back('rooms')};
+  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-id-back]').onclick=()=>back('rooms');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>{if(returnToReview||idsForPayment)advance();else show('rooms')};paymentBack.onclick=()=>{if(form.dataset.reviewed==='true')edit('payment');else back('rooms')};
   form.addEventListener('input',()=>{submit.textContent='Review check-in'});
   show(draft.stay_id?'rooms':'guest',false);
  }

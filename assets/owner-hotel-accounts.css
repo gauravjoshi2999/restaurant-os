@@ -174,3 +174,5 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #bhCheckinForm[data-ha-step-view=payment] .bh-form-actions{display:flex;gap:8px;flex-wrap:wrap}
 #bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button[type=submit]{flex:1 1 100%;order:-1;min-height:48px}
 #bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button:not([type=submit]){flex:1 1 100px}
+
+#bhCheckinForm .ha-checkin-progress{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0;margin:0 0 14px}#bhCheckinForm .ha-checkin-progress[hidden]{display:none!important}#bhCheckinForm .ha-checkin-progress li{border-top:3px solid #d6d3d1;padding-top:6px;text-align:center;font-size:12px;color:#665c58}#bhCheckinForm .ha-checkin-progress li.done{border-color:#20854d;color:#236d43}#bhCheckinForm .ha-checkin-progress li[aria-current=step]{border-color:#bd5d16;color:#8e410d;font-weight:750}#bhCheckinForm .bh-review-guest details{margin:6px 0}#bhCheckinForm .bh-review-guest p{overflow-wrap:anywhere}
