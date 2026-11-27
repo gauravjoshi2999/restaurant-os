@@ -206,7 +206,7 @@ test('Business Reports includes every recorded method and exposes the underlying
   return elements.get(id);
  }};
  const source=fs.readFileSync('index.html','utf8');
- const start=source.indexOf('function renderReports(){');
+ const start=source.indexOf('function showReportExclusions(rows){');
  const end=source.indexOf('function ownerReportRows(){',start);
  const context={document:doc,BiteCashClosing:closing,BiteOwner:{financialSummary:()=>({paid:[],gross:0,net:0,refunds:0,commission:0})},
   reportOrders:[],reportFinancials:[],reportCashbook:rows,reportItems:[],reportCustomerBalances:[],money:n=>'₹'+Number(n).toFixed(2),esc:String};
@@ -217,4 +217,10 @@ test('Business Reports includes every recorded method and exposes the underlying
  assert.match(day,/View entries for 2026-11-13/);
  assert.equal((day.match(/<li>/g)||[]).length,3);
  assert.match(day,/−₹0\.05/);
+ const renderNote=vm.runInNewContext(source.slice(start,end)+'\nshowReportExclusions;',context);
+ renderNote([entry('demo','15.75','Cash','out')]);
+ assert.match(doc.getElementById('reportDemoDifference').textContent,/1 demo expense entry.*₹15.75 paid/);
+ renderNote([]);
+ assert.equal(doc.getElementById('reportDemoDifference').hidden,true);
+ assert.equal(doc.getElementById('reportDemoDifference').textContent,'');
 });

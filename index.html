@@ -1289,7 +1289,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="section-head"><h2>Expense categories</h2></div><div class="table-wrap"><table><thead><tr><th>Category</th><th>Entries</th><th>Amount</th></tr></thead><tbody id="reportExpenseRows"></tbody></table></div></div>
   <div class="card"><div class="section-head"><h2>Top selling items</h2></div><div class="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="reportItemRows"></tbody></table></div></div>
  </div>
- <div class="section"><div class="section-head"><h2>Daily cashbook summary</h2><span class="small">Actual recorded movements</span></div>
+ <div class="section"><p class="notice" id="reportDemoDifference" hidden></p><div class="section-head"><h2>Daily cashbook summary</h2><span class="small">Actual recorded movements</span></div>
   <div class="card table-wrap"><table><thead><tr><th>Date</th><th>Income</th><th>Outflow</th><th>Net movement</th><th>Entries</th></tr></thead><tbody id="reportDailyRows"></tbody></table><div class="empty" id="reportDailyEmpty">No cashbook activity for this period.</div></div>
  </div>
  <div class="section"><div class="section-head"><h2>Customers with outstanding balance</h2><span class="small">Current balance, not limited to selected dates</span></div>
@@ -2937,7 +2937,7 @@ document.querySelector('#khata .v3-khata-filters').addEventListener('click',e=>{
 let reportOrders=[],reportCashbook=[],reportItems=[],reportCustomerBalances=[],reportPaymentSummaries=[],reportFinancials=[],reportLoadVersion=0,reportReadyKey='';
 function reportKey(){return [currentUser?.id||'',access.role,reportRestaurantId(),document.getElementById('reportFrom').value,document.getElementById('reportTo').value].join('|');}
 function reportReady(){return !!currentUser?.id&&['owner','manager'].includes(access.role)&&reportReadyKey===reportKey();}
-function clearReportView(){for(const id of ['reportDailyEmpty','reportCustomerEmpty'])document.getElementById(id).style.display='none';reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
+function clearReportView(){document.getElementById('reportDemoDifference').hidden=true;document.getElementById('reportDemoDifference').textContent='';for(const id of ['reportDailyEmpty','reportCustomerEmpty'])document.getElementById(id).style.display='none';reportReadyKey='';reportOrders=[];reportCashbook=[];reportItems=[];reportCustomerBalances=[];reportPaymentSummaries=[];reportFinancials=[];for(const id of ['reportOrderCount','reportGrossSales','reportCancelledSales','reportActualRefunds','reportNetSales','reportCashIn','reportCashOut','reportNetCash','reportPosDue'])document.getElementById(id).textContent='—';for(const id of ['reportChannelRows','reportModeRows','reportExpenseRows','reportItemRows','reportDailyRows','reportCustomerRows'])document.getElementById(id).replaceChildren();}
 function selectReportPeriod(period){
  const today=localDateInput();
  document.getElementById('reportFrom').value=period==='month'?today.slice(0,8)+'01':today;
@@ -2985,9 +2985,28 @@ async function loadReportsData(){
    itemRows=items.data;paymentRows=payments.data;
   }
   if(!current())return;
-  reportOrders=orders.data;reportFinancials=financials.data;const demoExpenses=new Set(expenses.data.filter(e=>e.is_demo).map(e=>e.id));reportCashbook=cashbook.data.filter(e=>e.source_type!=='expense'||!demoExpenses.has(e.source_id));reportCustomerBalances=balances.data;reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
+  const demoExpenses=new Set(expenses.data.filter(row=>row.is_demo).map(row=>row.id));
+  const excluded=[];
+  reportCashbook=cashbook.data.filter(row=>{
+   if(row.source_type!=='expense'||!demoExpenses.has(row.source_id))return true;
+   excluded.push(row);return false;
+  });
+  reportOrders=orders.data;reportFinancials=financials.data;reportCustomerBalances=balances.data;
+  reportItems=itemRows;reportPaymentSummaries=paymentRows;reportReadyKey=key;
   renderReports();
+  showReportExclusions(excluded);
  }catch(e){if(!current())return;clearReportView();document.getElementById('reportStatus').textContent='Report load nahi hua: '+e.message;console.error(e)}
+}
+function showReportExclusions(rows){
+ const note=document.getElementById('reportDemoDifference');
+ note.hidden=!rows.length;
+ if(!rows.length){note.textContent='';return}
+ const amounts=BiteCashClosing.totals(rows);
+ const parts=[];
+ if(amounts.out)parts.push(money(amounts.out/100)+' paid');
+ if(amounts.in)parts.push(money(amounts.in/100)+' received');
+ note.textContent='Cashbook includes '+rows.length+' demo expense '+(rows.length===1?'entry':'entries')+
+  (parts.length?' ('+parts.join(', ')+')':'')+'. Business Reports excludes these entries for this period.';
 }
 function reportSummaryFor(orderId){
  return reportPaymentSummaries.find(p=>p.order_id===orderId)||{paid_amount:0,balance_amount:0,cancelled_sale_amount:0,refunded_amount:0};
