@@ -395,13 +395,14 @@ body[data-role="owner"] #ownerAlertPreferences .owner-alert-settings-actions .bt
 #cashbook .book-filters label{display:grid;grid-template-columns:minmax(0,1fr);gap:.25rem;font-weight:600;flex:1 1 10rem;min-width:0}
 #cashbook .book-filters input,#cashbook .book-filters select,#cashbookManualCard summary{min-height:44px}
 #cashbook .book-filters :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:0 .65rem;border:1px solid #bac1cb;border-radius:8px;background:#fff;color:#1c2532;font-size:1rem}
+body[data-role="owner"] #mainApp #cashbook :is(#cashbookCloseBtn,#cashbookReviewBtn)[hidden]{display:none!important}
 #cashbookManualCard summary{cursor:pointer;font-weight:700;align-content:center}
 @media(max-width:600px){
- #cashbook .book-entries{display:block;min-width:0;width:100%}
+ body[data-role="owner"] #mainApp #cashbook.page .table-wrap table.book-entries{display:block;min-width:0!important;width:100%}
  #cashbook .book-entries thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
  #cashbook .book-entries tbody{display:block}
  #cashbook .book-entries tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;padding:12px;border-bottom:1px solid #d7dce2}
- #cashbook .book-entries td{border:0;padding:0!important;font-size:14px!important;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+ body[data-role="owner"] #mainApp #cashbook.page .table-wrap table.book-entries td{border:0;padding:0!important;font-size:14px!important;line-height:1.4;white-space:normal!important;overflow-wrap:anywhere}
  #cashbook .book-entries td:nth-child(5) strong{font-size:16px}
  #cashbook .book-entries .pill{font-size:12px}
  #cashbook .book-entries td:nth-child(1){grid-area:1/1}
@@ -1081,7 +1082,7 @@ body.bite-session-check #biteSessionSplash{
    <div class="field" style="grid-column:1/-1"><label>Closing note (difference ho to zaroori)</label><input id="cashbookClosingNote" maxlength="300" placeholder="Difference ka reason, minimum 8 characters"></div>
   </div>
   <div class="notice" id="cashbookClosingReview" role="status" style="display:none"></div>
-  <div class="actions"><button class="btn secondary" id="cashbookReviewBtn" type="button" onclick="reviewCashbookDay()">Review closing</button><button class="btn" id="cashbookCloseBtn" type="button" onclick="closeCashbookDay()" style="display:none">Confirm &amp; close day</button><span class="small" id="cashbookCloseMessage" role="status" aria-live="polite"></span></div>
+  <div class="actions"><button class="btn secondary" id="cashbookReviewBtn" type="button" onclick="reviewCashbookDay()">Review closing</button><button class="btn" id="cashbookCloseBtn" type="button" hidden onclick="closeCashbookDay()" style="display:none">Confirm &amp; close day</button><span class="small" id="cashbookCloseMessage" role="status" aria-live="polite"></span></div>
  </div>
 </section>
 
@@ -2132,8 +2133,10 @@ function renderCashbook(){
  const closed=!!cashbookClosing,owner=access.role==='owner',ready=cashbookDataReadyKey===cashbookKey();
  document.getElementById('cashbookSaveBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
  document.getElementById('cashbookReviewBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||cashbookEntryBusy;
+ document.getElementById('cashbookReviewBtn').hidden=!owner||closed;
  document.getElementById('cashbookReviewBtn').style.display=owner&&!closed?'inline-flex':'none';
  document.getElementById('cashbookCloseBtn').disabled=!owner||closed||!ready||cashbookClosingBusy||!cashbookReview;
+ document.getElementById('cashbookCloseBtn').hidden=!owner||closed||!cashbookReview;
  document.getElementById('cashbookCloseBtn').style.display=owner&&!closed&&cashbookReview?'inline-flex':'none';
  document.getElementById('cashbookClosingReview').style.display=cashbookReview&&!closed?'block':'none';
  ['cashbookDirection','cashbookCategory','cashbookAmount','cashbookPayment','cashbookDescription','cashbookOpeningCash','cashbookCountedCash','cashbookClosingNote'].forEach(id=>document.getElementById(id).disabled=!ready||closed||!owner||cashbookClosingBusy);
