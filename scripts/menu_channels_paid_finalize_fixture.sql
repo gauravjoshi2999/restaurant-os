@@ -131,3 +131,36 @@ BEGIN
  IF NOT rejected OR (SELECT count(*) FROM public.orders)<>1 THEN RAISE EXCEPTION 'Unverified payment activated'; END IF;
 END $qa$;
 SELECT 'PASS: exact live finalizer preserves paid price/options, idempotency and rejects unverified payment after menu change' AS result;
+
+-- Isolated first-attempt gate tests use the exact candidate function.
+CREATE ROLE service_role NOLOGIN BYPASSRLS;
+ALTER TABLE public.bite_live_checkout_intents ADD COLUMN provider_attempted_at timestamptz, ADD COLUMN created_at timestamptz DEFAULT now();
+GRANT USAGE ON SCHEMA auth TO service_role;
+GRANT SELECT,UPDATE ON public.bite_live_checkout_intents,public.menu_items TO service_role;
+\ir ../docs/sql/menu_channels_first_attempt_candidate.sql
+INSERT INTO public.bite_live_checkout_intents(id,customer_id,restaurant_id,status,priced_items,provider_attempted_at,provider_order_id)
+VALUES
+ ('35000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000099','10000000-0000-0000-0000-000000000001','awaiting_payment','[{"menu_item_id":"31000000-0000-0000-0000-000000000001"}]',NULL,NULL),
+ ('35000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000099','10000000-0000-0000-0000-000000000001','awaiting_payment','[{"menu_item_id":"31000000-0000-0000-0000-000000000001"}]',now()-interval '2 minutes',NULL),
+ ('35000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000099','10000000-0000-0000-0000-000000000001','awaiting_payment','[{"menu_item_id":"31000000-0000-0000-0000-000000000001"}]',NULL,'existing-provider');
+DO $$ BEGIN
+ IF has_function_privilege('anon','public.bite_claim_channel_payment_attempt(uuid,uuid)','EXECUTE') OR has_function_privilege('authenticated','public.bite_claim_channel_payment_attempt(uuid,uuid)','EXECUTE') THEN RAISE EXCEPTION 'Client may claim payment'; END IF;
+END $$;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role','service_role',true);
+DO $$ DECLARE c uuid:='00000000-0000-0000-0000-000000000099'; i uuid:='35000000-0000-0000-0000-000000000001'; t timestamptz;
+BEGIN
+ IF public.bite_claim_channel_payment_attempt(i,c)<>'menu_changed' THEN RAISE EXCEPTION 'Offline first attempt accepted'; END IF;
+ IF (SELECT provider_attempted_at FROM public.bite_live_checkout_intents WHERE id=i) IS NOT NULL THEN RAISE EXCEPTION 'Rejected attempt mutated'; END IF;
+ IF public.bite_claim_channel_payment_attempt(i,'00000000-0000-0000-0000-000000000001')<>'not_payable' THEN RAISE EXCEPTION 'Wrong customer accepted'; END IF;
+ UPDATE public.menu_items SET is_available=true,available_online=true WHERE id='31000000-0000-0000-0000-000000000001';
+ IF public.bite_claim_channel_payment_attempt(i,c)<>'claimed' THEN RAISE EXCEPTION 'Eligible first attempt denied'; END IF;
+ SELECT provider_attempted_at INTO t FROM public.bite_live_checkout_intents WHERE id=i;
+ UPDATE public.menu_items SET available_online=false WHERE id='31000000-0000-0000-0000-000000000001';
+ IF public.bite_claim_channel_payment_attempt(i,c)<>'retry' THEN RAISE EXCEPTION 'Already claimed attempt lost'; END IF;
+ IF t IS DISTINCT FROM (SELECT provider_attempted_at FROM public.bite_live_checkout_intents WHERE id=i) THEN RAISE EXCEPTION 'Retry extended original timestamp'; END IF;
+ IF public.bite_claim_channel_payment_attempt('35000000-0000-0000-0000-000000000002',c)<>'reconcile' OR public.bite_claim_channel_payment_attempt('35000000-0000-0000-0000-000000000003',c)<>'reconcile' THEN RAISE EXCEPTION 'Old/uncertain provider attempt incorrectly accepted'; END IF;
+ IF public.bite_claim_channel_payment_attempt('34000000-0000-0000-0000-000000000001',c)<>'not_payable' THEN RAISE EXCEPTION 'Activated order payable again'; END IF;
+END $$;
+RESET ROLE;
+SELECT 'PASS: first attempt rejects offline, checks customer, retains original retry boundary and protects activated/uncertain orders' AS result;

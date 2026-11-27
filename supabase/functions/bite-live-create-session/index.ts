@@ -76,8 +76,13 @@ Deno.serve(async req=>{
  if(!contact?.phone)return json({error:"Customer phone required"},409);
  const amount=Number(intent.amount);if(!Number.isFinite(amount)||amount<1||amount>1000000||intent.currency!=="INR")return json({error:"Invalid checkout amount"},409);
  const payload={order_id:cfId,order_amount:amount,order_currency:"INR",order_expiry_time:new Date(Date.now()+20*60*1000).toISOString(),customer_details:{customer_id:user.id,customer_name:contact.full_name||"Customer",customer_phone:contact.phone,customer_email:user.email||"customer@example.com"},order_meta:{return_url:"https://gauravjoshi2999.github.io/restaurant-os/customer.html?live_checkout_return="+encodeURIComponent(id)}};
- const {error:attemptError}=await db.from("bite_live_checkout_intents").update({provider_attempted_at:new Date().toISOString()}).eq("id",id).eq("status","awaiting_payment");
- if(attemptError)return json({error:"Could not record provider attempt; no payment session requested"},503);
+ // Atomic first-attempt claim: recheck online availability before initiating a provider request.
+ const {data:claim,error:attemptError}=await db.rpc("bite_claim_channel_payment_attempt",{p_intent_id:id,p_customer_id:user.id});
+ if(attemptError)return json({error:"Could not check current menu; no payment session requested"},503);
+ if(claim==="menu_changed")return json({error:"Menu availability changed. Cancel this unpaid request and review your cart.",status:"menu_changed"},409);
+ if(claim==="reconcile")return json({error:"Check the previous payment status before paying again.",status:"payment_check_required"},409);
+ if(claim!=="claimed"&&claim!=="retry")return json({error:"Checkout is no longer payable.",status:"payment_check_required"},409);
+ // Retry only the same canonical provider id / idempotency key; never renew attempt timestamp.
  let res:Response;let data:any;
  const providerHeaders={"content-type":"application/json","x-api-version":"2023-08-01","x-client-id":app,"x-client-secret":secret};
  try{
