@@ -175,8 +175,8 @@ jobs:
           python scripts/menu_qr_browser_smoke.py
           python scripts/owner_feedback_mobile_browser.py
           python scripts/delivery_handoff_mobile_browser.py
-          python scripts/browser_smoke.py
           python scripts/browser_completion.py
+          python scripts/browser_smoke.py
           python scripts/customer_reorder_review_browser.py
           python scripts/customer_support_topics_browser.py
           python scripts/owner_cash_closing_smoke.py

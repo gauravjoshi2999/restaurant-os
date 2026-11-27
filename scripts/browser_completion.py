@@ -51,6 +51,15 @@ server=ThreadingHTTPServer(('127.0.0.1',4174),SimpleHTTPRequestHandler);Thread(t
 try:
  with sync_playwright() as p:
   browser=p.chromium.launch()
+  # Exercise channel-aware storefront against synthetic schema, never real guest/provider data.
+  channels=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(channels)
+  channels.goto('http://127.0.0.1:4174/dist/qa/customer-flow.html?qa_channels=1',wait_until='domcontentloaded')
+  channels.locator('#restaurantGrid .restaurant').first.wait_for(state='visible')
+  check(channels.evaluate("publicMenuSearch.length>0 && publicMenuSearch.every(i=>!String(i.name).match(/QA (QR Only|Private Room|POS Only|Paused) Dish/))"),'Online discovery excludes QR-only, room-only, POS-only and globally paused synthetic items')
+  channels.locator('#restaurantGrid .restaurant').first.click()
+  channels.locator('#menuItems .menuitem').first.wait_for(state='visible')
+  check(channels.evaluate("menuItems.length===1 && menuItems[0].name==='QA Veg Thali'"),'Online restaurant menu exposes only eligible synthetic dish')
+  channels.close()
   customer=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(customer)
   # Mock owner-uploaded photo bytes; no production data, Supabase, or external photos used.
   cover_bytes=(ROOT/'assets/food/meal-1100.jpg').read_bytes()
