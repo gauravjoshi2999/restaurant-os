@@ -392,15 +392,18 @@ body[data-role="owner"] #ownerAlertPreferences .owner-alert-settings-actions .bt
 .report-day-entries li{padding:.5rem 0;border-top:1px solid #d7dce2}
 .report-day-entries strong{display:block}
 #cashbook .book-filters{display:flex;flex-wrap:wrap;gap:.65rem;margin:.6rem 0}
-#cashbook .book-filters label{display:grid;gap:.25rem;font-weight:600;flex:1 1 10rem;min-width:0}
+#cashbook .book-filters label{display:grid;grid-template-columns:minmax(0,1fr);gap:.25rem;font-weight:600;flex:1 1 10rem;min-width:0}
 #cashbook .book-filters input,#cashbook .book-filters select,#cashbookManualCard summary{min-height:44px}
+#cashbook .book-filters :is(input,select){box-sizing:border-box;min-width:0;width:100%;padding:0 .65rem;border:1px solid #bac1cb;border-radius:8px;background:#fff;color:#1c2532;font-size:1rem}
 #cashbookManualCard summary{cursor:pointer;font-weight:700;align-content:center}
 @media(max-width:600px){
  #cashbook .book-entries{display:block;min-width:0;width:100%}
  #cashbook .book-entries thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
  #cashbook .book-entries tbody{display:block}
  #cashbook .book-entries tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;padding:12px;border-bottom:1px solid #d7dce2}
- #cashbook .book-entries td{border:0;padding:0;white-space:normal;overflow-wrap:anywhere}
+ #cashbook .book-entries td{border:0;padding:0!important;font-size:14px!important;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+ #cashbook .book-entries td:nth-child(5) strong{font-size:16px}
+ #cashbook .book-entries .pill{font-size:12px}
  #cashbook .book-entries td:nth-child(1){grid-area:1/1}
  #cashbook .book-entries td:nth-child(5){grid-area:1/2;text-align:right}
  #cashbook .book-entries td:nth-child(2){grid-area:2/1;font-weight:700}
@@ -1052,7 +1055,7 @@ body.bite-session-check #biteSessionSplash{
   <div class="card"><div class="metric-label">Expected drawer cash</div><div class="metric" id="cashbookExpectedCash">—</div></div>
  </div>
  <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small" id="cashbookMatches" role="status"></span></div>
-  <div class="book-filters"><label>Search entries<input id="cashbookSearch" type="search" placeholder="Description, payment mode, reference…"></label><label>Money movement<select id="cashbookMovement"><option value="">All entries</option><option value="in">Money received</option><option value="out">Money paid</option></select></label></div>
+  <div class="book-filters"><label>Search entries<input id="cashbookSearch" type="search" placeholder="Search receipts…"></label><label>Money movement<select id="cashbookMovement"><option value="">All entries</option><option value="in">Money received</option><option value="out">Money paid</option></select></label></div>
   <div class="card table-wrap"><table class="book-entries"><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
  </div>
   <details class="card section" id="cashbookManualCard">
