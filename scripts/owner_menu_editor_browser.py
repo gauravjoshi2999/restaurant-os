@@ -20,7 +20,7 @@ let currentUser={id:'synthetic-owner'},access={isPlatformAdmin:false,memberships
 let activeMenuRestaurant='synthetic-restaurant';
 const qa=window.__menuQA={writes:[],refreshes:0,mode:'ok',photoOk:false};
 const row={id:'synthetic-item',restaurant_id:'synthetic-restaurant',category_id:'c',name:'Synthetic Paneer',price:120,
- description:'Synthetic fixture only',is_vegetarian:true,dietary_type:'veg',is_available:true,is_kids_choice:false,image_url:'https://images.example/saved.png'};
+ description:'Synthetic fixture only',is_vegetarian:true,dietary_type:'veg',is_available:true,available_online:true,available_pos:true,available_room:true,available_qr:true,is_kids_choice:false,image_url:'https://images.example/saved.png'};
 let menuItems=[row];
 const sb={from(table){if(table!=='menu_items')throw Error('Unexpected table');return{
  update(payload){const call={payload,filters:[]};qa.writes.push(call);const builder={eq(k,v){call.filters.push([k,v]);return builder;},async select(cols){
@@ -69,6 +69,9 @@ try:
    page.locator('#fixtureOpen').click()
    check(page.locator('#menuItemModal').is_visible(),f'Actual editor opens {width}px; script errors: {errors}')
    form=page.locator('#menuItemForm');price=form.locator('[name=price]');close=page.locator('#menuItemModal .close')
+   form.locator('[name=available_online]').uncheck();close.click();page.locator('#menuItemCloseKeep').click()
+   check(not form.locator('[name=available_online]').is_checked() and page.evaluate('qa.writes.length')==0,'Channel change is a dirty draft, not an immediate write')
+   form.locator('[name=available_online]').check()
    price.fill('150');close.click();page.locator('#menuItemCloseKeep').click()
    check(price.input_value()=='150'and page.evaluate('qa.writes.length')==0,f'Keep editing preserves price draft without write {width}px')
    page.keyboard.press('Escape');page.locator('#menuItemCloseDiscard').click()
@@ -76,10 +79,11 @@ try:
    page.locator('#fixtureOpen').click();price.fill('150');page.evaluate("qa.mode='zero'");close.click();page.locator('#menuItemCloseSave').click()
    page.wait_for_function("document.getElementById('menuItemError').textContent.includes('Save nahi hua:')")
    check(price.input_value()=='150'and page.locator('#menuItemModal').is_visible(),f'Zero-row save retains draft and error {width}px')
-   page.evaluate("qa.mode='hold'");page.locator('#menuItemSaveBtn').click();page.wait_for_function('!!qa.release')
+   form.locator('[name=available_online]').uncheck();page.evaluate("qa.mode='hold'");page.locator('#menuItemSaveBtn').click();page.wait_for_function('!!qa.release')
    close.click()
    check(price.is_disabled()and 'Saving' in page.locator('#menuItemCloseStatus').inner_text(),f'Pending save freezes fields and blocks dismissal {width}px')
    page.evaluate('qa.release()');page.wait_for_function("!document.getElementById('menuItemModal').classList.contains('show')")
+   check(page.evaluate('row.available_online===false&&row.available_pos===true&&row.available_room===true&&row.available_qr===true'),'Save preserves independent channel choices')
    check(page.evaluate('row.price===150&&qa.refreshes===1')and not page.locator('#menuItemSaveBtn').is_disabled(),f'Confirmed single-row save closes and refreshes {width}px')
    check(page.evaluate("qa.writes.every(w=>JSON.stringify(w.filters)===JSON.stringify([['id','synthetic-item'],['restaurant_id','synthetic-restaurant']]))"),f'Actual handler keeps item and restaurant scope {width}px')
    page.locator('#fixtureOpen').click();url=form.locator('[name=image_url]');url.fill('https://images.example/new.png')

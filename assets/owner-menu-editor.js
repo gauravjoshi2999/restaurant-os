@@ -2,12 +2,12 @@
 (function(root){
  'use strict';
  const doc=root.document;
- const fields=['id','name','category_id','price','image_url','is_vegetarian','is_available','is_kids_choice','description'];
+ const fields=['id','name','category_id','price','image_url','is_vegetarian','is_available','is_kids_choice','description','available_online','available_pos','available_room','available_qr'];
  const form=doc.getElementById('menuItemForm'),modal=doc.getElementById('menuItemModal');
  const get=id=>doc.getElementById(id);
  let context=()=>false,active=false,baseline='',originalPhoto='',pending=false,version=0,photoVersion=0,photoState='empty',loadedPhoto='',timer;
  let disabled=[],returnFocus=null;
- function snapshot(){return JSON.stringify(fields.map(name=>String(form.elements[name]?.value??'')));}
+ function snapshot(){return JSON.stringify(fields.map(name=>form.elements[name]?.type==='checkbox'?String(form.elements[name].checked):String(form.elements[name]?.value??'')));}
  function valid(){return active&&context(form.dataset.menuRestaurant,form.dataset.menuUser);}
  function dirty(){return active&&snapshot()!==baseline;}
  function source(value){

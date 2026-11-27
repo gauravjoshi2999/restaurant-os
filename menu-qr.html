@@ -213,7 +213,7 @@ async function loadMenu({quiet=false}={}){
   }
   const [catResult,itemResult]=await Promise.all([
    client.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',restaurantId).eq('is_active',true).order('sort_order'),
-   BiteFoodTypes.readMenu(columns=>client.from('menu_items').select(columns).eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000),'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type')
+   BiteFoodTypes.readMenu(columns=>client.from('menu_items').select(columns).eq('restaurant_id',restaurantId).eq('is_available',true).eq('available_qr',true).order('sort_order').limit(1000),'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type')
   ]);
   if(catResult.error)throw catResult.error;
   if(itemResult.error)throw itemResult.error;

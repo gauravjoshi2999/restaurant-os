@@ -680,7 +680,7 @@
   if(!['owner','manager'].includes(prop().role))throw Error('Only an authorized restaurant-linked owner or manager can add menu food.');
   $('bhActionEditor')?.remove();
   const mount=$('bhFolioEditor');mount.innerHTML='<section class="bh-panel" role="status">Loading restaurant menu…</section>';
-  const response=await ctx.sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).order('name');
+  const response=await ctx.sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).eq('available_room',true).order('name');
   if(prop()?.id!==propertyId||selectedFolio!==folioId)return;
   if(response.error){mount.innerHTML='';throw response.error;}
   foodMenu=(response.data||[]).filter(x=>x.id&&x.name&&Number.isFinite(Number(x.price))&&Number(x.price)>=0);
