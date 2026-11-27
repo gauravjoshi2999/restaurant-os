@@ -42,13 +42,14 @@
   periodControl?.dispose();periodControl=null;
   if(!H().has('guest_register')){target.replaceChildren();return}
   target.innerHTML=H().header('Guest register','')+
-   '<section class="bh-panel gr-register"><div class="gr-tools">'+
+   '<section class="bh-panel gr-register gr-compact"><div class="gr-title-row"><h2>Guest Register</h2>'+button('new','+ Check-in','','data-gr-primary="true"')+(['owner','manager'].includes(H().prop()?.role)?button('add-past','+ Add old entry','','data-gr-primary="true" hidden'):'')+'</div>'+
+   '<nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Guests'],['drafts','Drafts'],['past','Old entries']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav>'+
+   '<div class="gr-tools"><label class="bh-field gr-search"><span class="gr-sr-only">Search guests</span><input type="search" data-gr-filter="query" value="'+esc(query)+'" placeholder="Name / mobile / room"></label>'+
    '<div class="gr-period-control" data-gr-period aria-label="Guest register record period"></div>'+
-   '<label class="bh-field"><span>Search</span><input type="search" data-gr-filter="query" value="'+esc(query)+'" placeholder="Name / mobile / room"></label>'+
-   '<label class="bh-field"><span>Status</span><select data-gr-filter="state"><option value="">All stays</option>'+
+   '<label class="bh-field gr-status-filter"><span class="gr-sr-only">Status</span><select aria-label="Status" data-gr-filter="state"><option value="">All stays</option>'+
    ['in_house','checked_out','reserved','cancelled','no_show'].map(s=>'<option value="'+s+'" '+(state===s?'selected':'')+'>'+status(s)+'</option>').join('')+
-   '</select></label><div class="gr-tool-buttons">'+button('reset','All dates')+button('excel','Export Excel')+button('print','Print')+
-   '</div></div><nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Guests'],['drafts','Drafts'],['past','Old entries']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3><p>Continue an unfinished check-in.</p>'+button('new','Continue check-in')+'</div><section data-gr-past hidden><h3>Old guest register</h3><div class="bh-actions">'+(['owner','manager'].includes(H().prop()?.role)?button('add-past','Add old entry'):'')+button('load-history','Refresh')+'</div><div data-gr-past-editor></div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('new','New check-in','','data-gr-primary="true"')+button('sheet',sheetOpen?'Hide table':'View table')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
+   '</select></label><div class="gr-tool-buttons">'+button('reset','All dates')+button('excel','Excel')+button('print','Print')+button('load-history','Refresh','','hidden')+
+   '</div></div><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3></div><section data-gr-past hidden><h3 class="gr-sr-only">Old guest register</h3><div data-gr-past-editor></div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('sheet',sheetOpen?'Hide table':'View table')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
    '><summary>Saved guest profiles</summary><div data-gr-profiles></div></details>';
   const picker=root.BiteV3Period,periodBox=target.querySelector('[data-gr-period]');
   if(period&&picker){
@@ -75,6 +76,8 @@
   if(drafts)drafts.hidden=registerTab!=='drafts';
   if(pastTab)pastTab.hidden=registerTab!=='past';
   for(const b of target.querySelectorAll('[data-gr-action="excel"],[data-gr-action="print"],[data-gr-action="sheet"]'))b.hidden=registerTab!=='stays';
+  for(const b of target.querySelectorAll('.gr-title-row [data-gr-action="new"]'))b.hidden=registerTab==='past';
+  for(const b of target.querySelectorAll('.gr-title-row [data-gr-action="add-past"],[data-gr-action="load-history"]'))b.hidden=registerTab!=='past';
   const statusFilter=target.querySelector('[data-gr-filter="state"]');if(statusFilter)statusFilter.closest('label').hidden=registerTab!=='stays';
   for(const b of target.querySelectorAll('[data-gr-action="tab"]'))b.setAttribute('aria-pressed',String(b.dataset.id===registerTab));
   const past=target.querySelector('[data-gr-history]');if(past)past.replaceChildren();if(registerTab==='past'){void loadHistory(target);return}if(registerTab==='drafts'){
@@ -102,7 +105,7 @@
   if(!['owner','manager'].includes(H().prop()?.role)){panel.textContent='Historical entries are available to the property owner and manager.';return;}
   historyExport=null;const request=++historyEpoch,key=scope(),selected=period?{...period}:null,search=query;
   const current=()=>request===historyEpoch&&key===scope()&&H()?.has('guest_register')&&target.isConnected&&target.querySelector('[data-gr-history]')===panel;
-  panel.textContent='Reading historical records…';
+  panel.textContent='Loading entries…';
   try{
    let q=ctx.sb.from('bite_owner_historical_entries').select('id,record_date,departure_date,customer_name,customer_phone,room_number,amount,received_amount,guest_count,payment_method').eq('entry_kind','room').eq('property_id',property);
    if(selected){if(!validEntryDate(selected.from)||!validEntryDate(selected.to)||selected.from>selected.to)throw Error('Choose a valid record period.');q=q.gte('record_date',selected.from).lte('record_date',selected.to);}
@@ -110,8 +113,9 @@
    if(!current())return;
    if(error)throw Error('Historical records could not be loaded. Retry or check property permissions.');
    const rows=historicalRows(data,selected,search);
-   historyExport={key,request,rows};panel.innerHTML=button('historical-excel','Export Excel')+'<p><strong>'+rows.length+' old '+(rows.length===1?'entry':'entries')+'</strong></p>'+
-    (rows.length?rows.map(r=>'<article class="bh-record"><div><strong>'+esc(r.customer_name||'Guest')+'</strong> <span class="gr-status">Old entry</span><p>'+esc(day(r.record_date))+' → '+esc(day(r.departure_date))+' · Room '+esc(r.room_number||'—')+'</p><p>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</p></div><div><strong>Bill '+money(r.amount)+'</strong><p>Paid '+money(r.received_amount)+' · '+esc(r.payment_method||'—')+'</p></div></article>').join(''):'<p class="bh-empty">No old entries found.</p>');
+   const totalFor=field=>{let cents=0;for(const r of rows){const amount=verifiedRent(r[field]);if(amount===null)return '—';cents+=Math.round(amount*100);if(!Number.isSafeInteger(cents))return '—';}return rows.length?money(cents/100):money(0)};
+   historyExport={key,request,rows};panel.innerHTML='<div class="gr-history-summary"><div><small>Entries</small><strong>'+rows.length+'</strong></div><div><small>Recorded bills</small><strong>'+totalFor('amount')+'</strong></div><div><small>Recorded paid</small><strong>'+totalFor('received_amount')+'</strong></div></div><div class="gr-history-head"><strong>'+rows.length+' old '+(rows.length===1?'entry':'entries')+'</strong>'+button('historical-excel','Excel')+'</div>'+
+    (rows.length?rows.map(r=>'<article class="gr-old-card"><div class="gr-old-main"><span class="gr-avatar" aria-hidden="true">'+esc((r.customer_name||'Guest').trim().split(/\\s+/).slice(0,2).map(s=>s.charAt(0)).join('').toUpperCase())+'</span><div><strong>'+esc(r.customer_name||'Guest')+'</strong><p>Room '+esc(r.room_number||'—')+' · '+esc(day(r.record_date))+' – '+esc(day(r.departure_date))+'</p><small>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</small></div></div><div class="gr-old-money"><span>Bill <strong>'+money(r.amount)+'</strong></span><span>Paid <strong>'+money(r.received_amount)+'</strong></span></div></article>').join(''):'<div class="gr-empty"><strong>No old entries found.</strong><p>Select other dates or add an old entry.</p></div>');
   }catch(error){if(current())panel.textContent=error.message||'Historical records unavailable. Retry.';}
  }
  function filter(e){const input=e.target.closest('[data-gr-filter]');if(!input)return;const target=input.closest('#guests');if(!target)return;if(input.dataset.grFilter==='query')query=input.value;else if(input.dataset.grFilter==='state')state=input.value;page=1;paint(target)}
