@@ -140,7 +140,7 @@
   content.addEventListener('input',e=>{
    const search=e.target.closest('[data-hotel-search]');if(search)filterCards(search);
    const foodSearch=e.target.closest('[data-bh-food-search]');if(foodSearch){foodQuery=foodSearch.value.toLocaleLowerCase().trim();$('bhFoodPicker')?.querySelectorAll('[data-food-row]').forEach(row=>{row.hidden=!row.dataset.foodRow.includes(foodQuery)});}
-   const form=e.target.closest('#bhCheckinForm');if(form){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();if(!pendingRegistration().length)$('hotel-register').querySelector('.ha-draft-choice')?.remove();persistDraft(form)}
+   const form=e.target.closest('#bhCheckinForm');if(form){if(form.__haSteps)form.__haSteps.invalidate();else{form.dataset.reviewed='';form.querySelector('.bh-review')?.remove()}if(!pendingRegistration().length)$('hotel-register').querySelector('.ha-draft-choice')?.remove();persistDraft(form)}
   });
   content.addEventListener('change',e=>{
    const filter=e.target.closest?.('[data-room-filter]');
@@ -984,16 +984,17 @@
      const roomNumbers=family?family.rooms.map(unit=>data.rooms.find(item=>item.id===unit.room_id)?.number||'—').join(', '):r?.number||'—';
      const guests=family?family.rooms.reduce((total,unit)=>total+unit.adults+unit.children,0):Number(f.adults||0)+Number(f.children||0);
      const review=document.createElement('div');review.className='bh-review bh-payment-review';
-     review.innerHTML='<p class="bh-review-step">STEP 3 OF 3 · Review</p><h2>Payment &amp; review</h2><section class="bh-review-guest"><strong>'+esc(f.full_name)+' · '+guests+' guests</strong><p>Rooms '+esc(roomNumbers)+' · '+esc(f.arrival)+' → '+esc(f.departure)+' · '+n+' night(s)</p>'+(f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':'')+'</section><div class="bh-review-line"><span>Room quote · Agreed total:</span><strong>'+sumMoney(family?roomQuotes:[quote.total])+'</strong></div>'+
+     review.innerHTML='<h2>Confirm details</h2><section class="bh-review-guest"><strong>'+esc(f.full_name)+' · '+guests+' guests</strong><p>'+esc(f.phone||'')+'</p><details><summary>Guest details</summary><p>'+esc(f.address||'')+'</p><p>'+esc(f.arrived_from||'')+' → '+esc(f.next_destination||'')+' · '+esc(f.transport||'')+(f.vehicle_number?' · '+esc(f.vehicle_number):'')+'</p></details><p>Rooms '+esc(roomNumbers)+' · '+esc(f.arrival)+' → '+esc(f.departure)+' · '+n+' night(s)</p>'+(f.arrival_time?'<p>Arrival: '+esc(f.arrival)+' · '+esc(f.arrival_time)+' ('+esc(prop().timezone||'Asia/Kolkata')+')</p>':'')+'</section><div class="bh-review-line"><span>Room quote · Agreed total:</span><strong>'+sumMoney(family?roomQuotes:[quote.total])+'</strong></div>'+
       (family?'<details><summary>Room-wise quote</summary><div class="bf-family-review">'+familyReview+'</div></details>':'<p>Room '+sumMoney([quote.room])+' · tax '+sumMoney([quote.room_tax])+' · early arrival '+sumMoney([quote.early_fee??0,quote.early_tax??0])+'</p>')+
       '<div class="bh-review-line"><span>Advance received'+(form.dataset.stayId?'':' (on confirmation)')+'</span><strong>'+sumMoney(confirmed)+'</strong></div>'+
       '<div class="bh-review-line"><span>Pending receipt verification</span><strong>'+sumMoney(pending)+'</strong></div>'+
       (!form.dataset.stayId&&advance>0?'<p>'+esc(f.advance_method||'Cash')+' · '+(paidStatus?(online?'Verified receipt':'Cash reported received'):'Not counted as received')+'</p>':'')+
       '<section class="bh-review-deposit"><strong>Refundable security deposit</strong><p>'+(deposit?sumMoney([deposit.amount])+' · '+esc(deposit.method)+' · '+(deposit.method==='Cash'||deposit.verified?'Separate held receipt on confirmation':'Pending verification, not received'):'No new refundable deposit entered. Existing deposits remain in Guest Bill.')+'</p><p>Deposit is not room sales or advance.</p></section>'+
-      '<p class="bh-note">Received date is recorded by the server when the receipt is saved. Arrival time is not receipt time.</p><details><summary>Guest ID review</summary><p>'+people.map(esc).join(', ')+'</p></details>'+
-      '<button type="button" class="btn secondary" data-review-back>Back to rooms</button>';
-     review.querySelector('[data-review-back]').addEventListener('click',()=>{if(form.dataset.haStepView!=='all'&&form.__haSteps){form.__haSteps.back('rooms');return}const heading=form.querySelector('[data-h07-rooms]');if(heading){heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'})}else form.elements.room_id.focus()});
-     form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='Review guest, room and dates before confirming.';return;
+      '<details><summary>Guest IDs</summary><p>'+people.map(esc).join(', ')+'</p></details>'+
+      '<div class="ha-review-edits"><button type="button" class="btn secondary" data-review-edit="guest">Edit guest</button><button type="button" class="btn secondary" data-review-back>Edit rooms</button><button type="button" class="btn secondary" data-review-edit="ids">Edit IDs</button></div>';
+     review.querySelector('[data-review-back]').addEventListener('click',()=>{if(form.dataset.haStepView!=='all'&&form.__haSteps){form.__haSteps.edit('rooms');return}const heading=form.querySelector('[data-h07-rooms]');if(heading){heading.focus({preventScroll:true});heading.scrollIntoView({block:'start'})}else form.elements.room_id.focus()});
+     for(const edit of review.querySelectorAll('[data-review-edit]'))edit.addEventListener('click',()=>{const next=edit.dataset.reviewEdit;if(form.dataset.haStepView!=='all')form.__haSteps?.edit(next);else form.querySelector('[data-ha-step="'+next+'"]')?.scrollIntoView({block:'start'})});
+     form.querySelector('.bh-form-actions').before(review);form.dataset.reviewed='true';button.textContent=f.mode==='reserve'?'Confirm reservation':'Confirm check-in';if(message)message.textContent='';form.inert=false;form.__haSteps?.showReview();return;
     }
     let guestId=f.guest_id;
     if(!form.dataset.stayId){const g=await command('guest_save',{...Object.fromEntries(['full_name','phone','country','email','address','id_type','id_last4'].map(k=>[k,f[k]])),is_oci:f.is_oci==='on',...(guestId?{id:guestId}:{})});guestId=g.id;if(!f.guest_id){const op=document.createElement('option');op.value=guestId;op.textContent=f.full_name;form.elements.guest_id.append(op)}form.elements.guest_id.value=guestId;persistDraft(form)}
@@ -1064,6 +1065,7 @@
   }catch(e){
    form.inert=false;
    if(type==='register'&&!e.field&&/room.*(reserved|unavailable|occupied|ready|blocked|timing)|earlier stay/i.test(e.message||'')){
+    form.__haSteps?.invalidate();
     try{await refreshRegistration(form)}catch{}e.field='room_id';
    }
    if(!root.BiteHotelAccounts?.showRegisterError(form,e)&&message)message.textContent=e.message||String(e);

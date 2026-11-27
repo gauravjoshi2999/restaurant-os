@@ -162,3 +162,17 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #mainApp #guests .gr-compact .gr-stay-card{border-color:#e5e5e5;background:white;box-shadow:none}
 #mainApp #guests .gr-compact .gr-name{min-height:44px}
 @media(min-width:701px){#mainApp #guests .gr-compact .gr-tools{grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) minmax(0,1fr)}#mainApp #guests .gr-compact .gr-search,#mainApp #guests .gr-compact .gr-period-control,#mainApp #guests .gr-compact .gr-status-filter{grid-column:auto}}
+
+/* Check-in continuity: compact step mode, preserve full-form compatibility and payment semantics. */
+#bhCheckinForm[data-ha-step-view=payment] #biteRegistrationOperations{padding:0!important;border:0!important;box-shadow:none;background:transparent}
+#bhCheckinForm[data-ha-step-view=payment] #biteRegistrationOperations .bh-note{font-size:12px;line-height:1.4;padding:8px;margin:8px 0}
+#bhCheckinForm[data-ha-step-view=payment][data-ha-external=false] [data-ha-payment-extra=external],#bhCheckinForm[data-ha-step-view=payment][data-ha-advance=false] [data-ha-payment-extra=advance],#bhCheckinForm[data-ha-step-view=payment][data-ha-deposit=false] [data-ha-payment-extra=deposit]{display:none!important}
+#bhCheckinForm .ha-checkin-deposit{background:#fff;border-color:#e5e5e5;padding:10px;margin-top:12px}
+#bhCheckinForm .bh-payment-review{scroll-margin-top:120px;background:white;border:1px solid #e5e5e5;border-radius:12px;padding:12px;outline:none}
+#bhCheckinForm .ha-review-edits{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#bhCheckinForm .ha-review-edits button{min-height:44px;flex:1 1 90px;font-size:12px}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions{display:flex;gap:8px;flex-wrap:wrap}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button[type=submit]{flex:1 1 100%;order:-1;min-height:48px}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button:not([type=submit]){flex:1 1 100px}
+
+#bhCheckinForm .ha-checkin-progress{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0;margin:0 0 14px}#bhCheckinForm .ha-checkin-progress[hidden]{display:none!important}#bhCheckinForm .ha-checkin-progress li{border-top:3px solid #d6d3d1;padding-top:6px;text-align:center;font-size:12px;color:#665c58}#bhCheckinForm .ha-checkin-progress li.done{border-color:#20854d;color:#236d43}#bhCheckinForm .ha-checkin-progress li[aria-current=step]{border-color:#bd5d16;color:#8e410d;font-weight:750}#bhCheckinForm .bh-review-guest details{margin:6px 0}#bhCheckinForm .bh-review-guest p{overflow-wrap:anywhere}
