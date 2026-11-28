@@ -137,6 +137,19 @@ assert.equal(recharge.amount,199);
 orders.get(recharge.order_id).order_status='PAID';
 const grant = await call(owner,{action:'verify',attempt_id:recharge.attempt_id});
 assert.equal(grant.receipt.offer.extra_pos_bills,500);
+const state = await call(owner,{action:'status'});
+assert.equal(state.subscription.status,'active');
+assert.equal(state.subscription.tier,'starter');
+assert.equal(state.subscription.pos_bills_remaining,1000);
+assert.equal(state.subscription.recharge_bills_available,500);
+await call(receptionist,{action:'status'},403);
+const item = randomUUID();
+for(let replay=0;replay<2;replay++){
+ const billed=await operator.rpc('bite_meter_sandbox_subscription_bill',{p_property:property,p_bill:item});
+ assert.equal(billed.data,'plan');
+}
+assert.equal((await call(owner,{action:'status'})).subscription.pos_bills_remaining,999);
+
 
 const unpaid = await call(owner,{...purchase,request_id:randomUUID()});
 assert.equal((await call(owner,{action:'verify',attempt_id:unpaid.attempt_id})).status,'awaiting_payment');

@@ -64,7 +64,7 @@ async function verifyPayment({scope, receipt, fetchProvider, headers}) {
  return reply(503, {error: 'Could not record sandbox payment. Retry verification.'});
 }
 
-export function createSandboxHandler({env, authenticate, prepare, receipt, fetchProvider = fetch, now = Date.now}) {
+export function createSandboxHandler({env, authenticate, prepare, receipt, subscription, fetchProvider = fetch, now = Date.now}) {
  return async function handle(request) {
   if (request.method !== 'POST') return reply(405, {error: 'Use POST'});
   const app = env('BITE_SUBSCRIPTION_CASHFREE_TEST_APP_ID');
@@ -77,11 +77,11 @@ export function createSandboxHandler({env, authenticate, prepare, receipt, fetch
 
   let body;
   try { body = await request.json(); } catch { return reply(400, {error: 'Invalid checkout request'}); }
-  const checking = body?.action === 'verify';
-  if (checking && (!isUuid(body?.property_id) || !isUuid(body?.attempt_id))) {
+  const checking = body?.action === 'verify', reading = body?.action === 'status';
+  if ((checking || reading) && (!isUuid(body?.property_id) || (checking && !isUuid(body?.attempt_id)))) {
    return reply(400, {error: 'Choose a property and checkout attempt'});
   }
-  if (!checking && (!isUuid(body?.property_id) || !isUuid(body?.request_id)
+  if (!checking && !reading && (!isUuid(body?.property_id) || !isUuid(body?.request_id)
       || !Number.isInteger(body?.catalog_version) || body.catalog_version < 1 || body.catalog_version > 2147483647
       || typeof body?.offer_code !== 'string' || !/^[a-z_0-9]{1,40}$/.test(body.offer_code))) {
    return reply(400, {error: 'Choose a property and a valid subscription offer'});
@@ -95,6 +95,12 @@ export function createSandboxHandler({env, authenticate, prepare, receipt, fetch
   try {
    actor = await authenticate(token);
    if (!actor) return reply(401, {error: 'Owner login required'});
+   if (reading) {
+    const state = await subscription({p_property:body.property_id,p_actor:actor});
+    if (state.error?.code === '42501') return reply(403, {error: 'Active property Owner required'});
+    if (state.error || !state.data) return reply(503, {error: 'Sandbox subscription usage unavailable'});
+    return reply(200, {environment:'sandbox',subscription:state.data});
+   }
    if (checking) return verifyPayment({
     scope: {p_property: body.property_id, p_actor: actor, p_attempt: body.attempt_id.toLowerCase()},
     receipt, fetchProvider, headers

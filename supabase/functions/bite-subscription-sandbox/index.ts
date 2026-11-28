@@ -25,5 +25,8 @@ Deno.serve(createSandboxHandler({
  },
  async receipt(args: Record<string, unknown>) {
   return await serviceClient().rpc("bite_subscription_sandbox_receipt", args);
+ },
+ async subscription(args: Record<string, unknown>) {
+  return await serviceClient().rpc("bite_sandbox_subscription_status", args);
  }
 }));

@@ -20,5 +20,6 @@ insert into public.bite_properties values
 \ir ../supabase/migrations/20261128154000_paid_subscription_offers.sql
 \ir ../supabase/migrations/20261128160000_subscription_sandbox_attempts.sql
 \ir ../supabase/migrations/20261128162500_subscription_sandbox_receipts.sql
+\ir ../supabase/migrations/20261128170000_subscription_sandbox_lifecycle.sql
 notify pgrst, 'reload schema';
 commit;
