@@ -229,3 +229,15 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
 
 /* H11 approved PDF availability period and compact results */
 #reservations .bh-h11-period{margin:12px 0;padding:14px}#reservations .bh-h11-period h2,#reservations .bh-h11-results h2{font-size:16px;margin:0 0 10px}#reservations .bh-h11-period .bh-actions>*{flex:1 1 130px;white-space:normal}#reservations .bh-h11-results .bh-record{min-width:0;gap:8px;overflow-wrap:anywhere}#reservations .bh-h11-results .bh-chip{flex-shrink:0}
+
+
+/* Subscription usage stays inside the Owner's existing property Settings. */
+.bh-trial-usage{margin:0 0 16px}
+.bh-trial-usage h2{font-size:18px;margin:0 0 6px}
+.bh-trial-usage .bh-trial-status{margin:0;color:#565c59;font-size:15px}
+.bh-trial-usage dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(128px,100%),1fr));gap:12px;margin:14px 0 0}
+.bh-trial-usage dl[hidden],.bh-trial-usage button[hidden]{display:none}
+.bh-trial-usage dl div{min-width:0;padding:10px 12px;background:#faf5ef;border-radius:10px}
+.bh-trial-usage dt{font-size:14px;color:#51483f}
+.bh-trial-usage dd{margin:4px 0 0;font-size:18px;font-weight:700;overflow-wrap:anywhere}
+.bh-trial-usage .btn{margin-top:10px}
