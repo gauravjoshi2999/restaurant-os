@@ -20,6 +20,6 @@ jobs:
             echo "Customer HTTPS response: $HTTP_CODE"
             test "$HTTP_CODE" = 200
             grep -Fq 'authModal' "$RUNNER_TEMP/customer-live.html"
-            grep -Fq 'customerNativeGoogleReady' "$RUNNER_TEMP/customer-live.html"
+            grep -Fq 'name="bite-customer-build"' "$RUNNER_TEMP/customer-live.html"
           done
-          echo "Live Customer route and native Google frontend marker verified; device connectivity is a separate test."
+          echo "Live Customer route and release marker verified. Physical Android connectivity and sign-in require separate device acceptance."

@@ -38,24 +38,27 @@
  }
  function filtered(rows){const q=query.trim().toLocaleLowerCase();return rows.filter(r=>inPeriod(r,period)&&(!state||r.status===state)&&(!q||[r.serial,r.name,r.phone,r.address,r.room,r.arrived_from,r.next_destination,r.vehicle_number,r.group_name,r.room_occupants,...r.additional_ids.map(p=>p.name)].join(' ').toLocaleLowerCase().includes(q)))}
  function exportRows(rows){return [['Serial number','Entry date','Guest name','Mobile','Permanent address','Country','Email','ID type','ID last 4','Check-in date','Arrival time','Expected checkout','Actual checkout','Room','Male','Female','Children','Arriving from','Next destination','Transport','Vehicle number','Agreed rent / night','Status','Lead ID front recorded','Lead ID back recorded','Additional guest names',...foreignFields.map(([,label])=>'Foreign guest · '+label),'Additional guest travel details'],...rows.map(r=>[r.serial,r.entry_date,r.name,r.phone,r.address,r.country,r.email,r.id_type,r.id_last4,r.arrival,r.arrival_time,r.departure,r.checkout_at,r.room,r.male,r.female,r.children,r.arrived_from,r.next_destination,r.transport,r.vehicle_number,verifiedRent(r.nightly_rate)??'',status(r.status),r.id_front?'Yes':'No',r.id_back?'Yes':'No',r.additional_ids.map(p=>p.name).join(', '),...foreignFields.map(([key])=>r.foreign?.[key]||''),r.additional_ids.filter(p=>p.foreign_details).map(p=>p.name+': '+foreignFields.filter(([key])=>p.foreign_details[key]).map(([key,label])=>label+' '+p.foreign_details[key]).join('; ')).join(' | ')])]}
+ const canReadPastBills=()=>H()?.prop()?.role==='owner'||(H()?.prop()?.role==='manager'&&H().has('folios'));
  function render(target){
   periodControl?.dispose();periodControl=null;
   if(!H().has('guest_register')){target.replaceChildren();return}
-  target.innerHTML=H().header('Guest register','Old register and new guests.')+
-   '<section class="bh-panel gr-register"><div class="gr-tools">'+
+  if(registerTab==='past'&&!canReadPastBills())registerTab='stays';
+  target.innerHTML=H().header('Guest register','')+
+   '<section class="bh-panel gr-register gr-compact"><div class="gr-title-row"><h2>Guest Register</h2>'+button('new','+ Check-in','','data-gr-primary="true"')+(canReadPastBills()?button('add-past','+ Add old entry','','data-gr-primary="true" hidden'):'')+'</div>'+
+   '<nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Guests'],['drafts','Drafts'],...(canReadPastBills()?[['past','Old entries']]:[])].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav>'+
+   '<div class="gr-tools"><label class="bh-field gr-search"><span class="gr-sr-only">Search guests</span><input type="search" data-gr-filter="query" value="'+esc(query)+'" placeholder="Name / mobile / room"></label>'+
    '<div class="gr-period-control" data-gr-period aria-label="Guest register record period"></div>'+
-   '<label class="bh-field"><span>Search</span><input type="search" data-gr-filter="query" value="'+esc(query)+'" placeholder="Name, mobile or room"></label>'+
-   '<label class="bh-field"><span>Status</span><select data-gr-filter="state"><option value="">All stays</option>'+
+   '<label class="bh-field gr-status-filter"><span class="gr-sr-only">Status</span><select aria-label="Status" data-gr-filter="state"><option value="">All stays</option>'+
    ['in_house','checked_out','reserved','cancelled','no_show'].map(s=>'<option value="'+s+'" '+(state===s?'selected':'')+'>'+status(s)+'</option>').join('')+
-   '</select></label><div class="gr-tool-buttons">'+button('reset','Show all dates')+button('excel','Excel · stays')+button('print','Print stays')+
-   '</div></div><nav class="gr-view-tabs" aria-label="Register views">'+[['stays','Stays'],['drafts','Drafts'],['past','Past']].map(([value,label])=>button('tab',label,value,'aria-pressed="'+(registerTab===value)+'"')).join('')+'</nav><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3><p>Resume the saved draft or verify an earlier pending check-in in the existing check-in form. Drafts are not saved stays.</p>'+button('new','Open check-in drafts')+'</div><section data-gr-past hidden><h3>Past · Historical entries</h3><p>Old room entries saved through the calendar. Read-only records; never live occupancy or payments.</p><div class="bh-actions">'+button('load-history','Load historical records')+'</div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('new','New check-in','','data-gr-primary="true"')+button('sheet',sheetOpen?'Close register sheet':'Open register sheet')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
+   '</select></label><div class="gr-tool-buttons">'+button('reset','All dates')+button('excel','Excel')+button('print','Print')+button('load-history','Refresh','','hidden')+
+   '</div></div><div data-gr-table></div><div data-gr-drafts hidden><h3>Unfinished check-in</h3></div><section data-gr-past hidden><h3 class="gr-sr-only">Old guest register</h3><div data-gr-past-editor></div><div data-gr-history role="status"></div></section><div class="gr-bottom-actions">'+button('sheet',sheetOpen?'Hide table':'View table')+'</div></section><details class="bh-panel gr-profiles" '+((H().getWorkspace().stays||[]).length?'':'open')+
    '><summary>Saved guest profiles</summary><div data-gr-profiles></div></details>';
   const picker=root.BiteV3Period,periodBox=target.querySelector('[data-gr-period]');
   if(period&&picker){
    const selectedScope=scope();
    periodControl=picker.mount(periodBox,{
     value:period,today:()=>root.BiteOwner.day(),
-    basis:'Hotel Register · original entry date',
+    basis:'Entry date',
     isCurrent:()=>target.isConnected&&scope()===selectedScope,
     onApply:async next=>{
      if(!target.isConnected||scope()!==selectedScope)return;
@@ -63,8 +66,8 @@
     }
    });
   }else{
-   periodBox.innerHTML='<div class="gr-period-all"><div><small>RECORD PERIOD · ENTRY DATE</small><strong>All saved dates</strong><span>Historical stays remain available until you choose a day, month or range.</span></div>'+
-    (picker?button('choose-period','Choose Day / Month / Range'):'<span>Period picker unavailable. All dates remain visible.</span>')+'</div>';
+   periodBox.innerHTML='<div class="gr-period-all"><div><strong>All dates</strong></div>'+
+    (picker?button('choose-period','Select dates'):'<span>Date filter unavailable.</span>')+'</div>';
   }
   paint(target);const profiles=target.querySelector('[data-gr-profiles]'),db=H().getWorkspace();
   profiles.innerHTML=(db.guests||[]).map(g=>'<article class="bh-record"><div><strong>'+esc(g.full_name)+'</strong><p>'+esc(g.phone)+' · '+esc(g.address||g.country)+'</p></div><div class="bh-actions">'+button('repeat','Check in again',g.id)+'<button type="button" class="btn secondary" data-hotel-action="edit-guest" data-id="'+esc(g.id)+'">Edit profile</button>'+(root.BiteGuestDocuments?.button(g.id)||'')+'</div></article>').join('')||'<p>No saved guest profiles yet.</p>';
@@ -74,7 +77,9 @@
   if(table)table.hidden=registerTab!=='stays';
   if(drafts)drafts.hidden=registerTab!=='drafts';
   if(pastTab)pastTab.hidden=registerTab!=='past';
-  for(const b of target.querySelectorAll('[data-gr-action="excel"],[data-gr-action="print"]'))b.hidden=registerTab!=='stays';
+  for(const b of target.querySelectorAll('[data-gr-action="excel"],[data-gr-action="print"],[data-gr-action="sheet"]'))b.hidden=registerTab!=='stays';
+  for(const b of target.querySelectorAll('.gr-title-row [data-gr-action="new"]'))b.hidden=registerTab==='past';
+  for(const b of target.querySelectorAll('.gr-title-row [data-gr-action="add-past"],[data-gr-action="load-history"]'))b.hidden=registerTab!=='past';
   const statusFilter=target.querySelector('[data-gr-filter="state"]');if(statusFilter)statusFilter.closest('label').hidden=registerTab!=='stays';
   for(const b of target.querySelectorAll('[data-gr-action="tab"]'))b.setAttribute('aria-pressed',String(b.dataset.id===registerTab));
   const past=target.querySelector('[data-gr-history]');if(past)past.replaceChildren();if(registerTab==='past'){void loadHistory(target);return}if(registerTab==='drafts'){
@@ -83,7 +88,7 @@
    const pending=H().registrationPending();
    drafts.innerHTML='<h3>Unfinished check-in</h3>'+(pending?'<p>Earlier check-in needs verification. Open the check-in form before making a new entry.</p>':['draft','reserved'].includes(draftState.kind)?'<p><strong>'+esc(draftState.fields?.full_name||'Saved guest details')+'</strong> · '+esc(day(draftState.fields?.arrival))+'</p><p>Saved on this device; not a new completed stay.</p>':'<p>No unfinished check-in on this device.</p>')+button('new',pending?'Verify & resume':['draft','reserved'].includes(draftState.kind)?'Open saved draft':'New check-in');return;
   }const all=records(H().getWorkspace()),rows=filtered(all),pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages);const visible=rows.slice((page-1)*50,page*50),box=target.querySelector('[data-gr-table]');if(!box)return;
-  box.innerHTML='<div class="gr-stay-cards" '+(sheetOpen?'hidden':'')+'>'+visible.map(r=>'<article class="gr-stay-card"><div><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.serial?'ST-'+r.serial+' · ':'')+esc(r.name)+'</button><p>'+esc(day(r.arrival))+' → '+esc(day(r.departure))+' · Room '+esc(r.room)+'</p><small>'+esc(r.phone||'')+' · M / F / C '+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</small></div><span class="gr-status" data-gr-status="'+esc(r.status)+'">'+esc(r.status==='in_house'?'Active':status(r.status))+'</span></article>').join('')+'</div><div class="gr-register-summary"><strong>'+rows.length+' '+(rows.length===1?'entry':'entries')+'</strong><span>'+new Set(rows.map(r=>r.guest_id)).size+' guests</span><span>'+rows.filter(r=>r.status==='in_house').length+' staying</span></div><p class="gr-scroll-hint">Scroll across the sheet to see all columns. Tap a guest to open the complete record.</p><div class="gr-sheet-scroll '+(sheetOpen?'gr-sheet-open':'')+'" tabindex="0" role="region" aria-label="Guest register sheet"><table class="gr-sheet"><thead><tr>'+['S.No.','Entry date','Guest / Mobile','Arrival','Checkout','Room','M / F / C','Permanent address','Arriving from','Next destination','Transport / Vehicle','Rent / night','ID photos','Status'].map(s=>'<th scope="col">'+s+'</th>').join('')+'</tr></thead><tbody>'+visible.map(r=>'<tr><td>'+esc(r.serial||'—')+'</td><td>'+esc(day(r.entry_date))+'</td><td><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.name)+'</button><small>'+esc(r.phone)+'</small></td><td>'+esc(day(r.arrival))+'<small>'+esc(r.arrival_time||'Not recorded')+'</small></td><td>'+esc(r.checkout_at?stamp(r.checkout_at):'Expected '+day(r.departure))+'</td><td><strong>'+esc(r.room)+'</strong></td><td>'+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</td><td class="gr-address">'+esc(r.address||'—')+'</td><td>'+esc(r.arrived_from||'—')+'</td><td>'+esc(r.next_destination||'—')+'</td><td>'+esc(r.transport||'—')+'<small>'+esc(r.vehicle_number)+'</small></td><td>'+money(r.nightly_rate)+'</td><td><div class="gr-photo-buttons">'+(r.id_front?button('photo-front','Front',r.id):'<span>Front not saved</span>')+(r.id_back?button('photo-back','Back',r.id):'<span>Back not saved</span>')+'</div></td><td><span class="gr-status">'+esc(status(r.status))+'</span></td></tr>').join('')+'</tbody></table></div>'+(!rows.length?'<p class="bh-empty">'+(all.length?(period?'No records for this period. Change the period or choose Show all dates.':'No records match these filters.'):'No stays have been saved yet. New check-ins will appear here.')+'</p>':'')+'<div class="gr-pagination"><span>Page '+page+' of '+pages+'</span>'+button('previous','Previous','',''+(page===1?'disabled':''))+button('next','Next','',page===pages?'disabled':'')+'</div>';
+  box.innerHTML='<div class="gr-stay-cards" '+(sheetOpen?'hidden':'')+'>'+visible.map(r=>'<article class="gr-stay-card"><div><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.serial?'ST-'+r.serial+' · ':'')+esc(r.name)+'</button><p>'+esc(day(r.arrival))+' → '+esc(day(r.departure))+' · Room '+esc(r.room)+'</p><small>'+esc(r.phone||'')+' · M / F / C '+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</small></div><span class="gr-status" data-gr-status="'+esc(r.status)+'">'+esc(r.status==='in_house'?'Active':status(r.status))+'</span></article>').join('')+'</div><div class="gr-register-summary"><strong>'+rows.length+' '+(rows.length===1?'entry':'entries')+'</strong><span>'+new Set(rows.map(r=>r.guest_id)).size+' guests</span><span>'+rows.filter(r=>r.status==='in_house').length+' staying</span></div><p class="gr-scroll-hint">Tap a guest for details.</p><div class="gr-sheet-scroll '+(sheetOpen?'gr-sheet-open':'')+'" tabindex="0" role="region" aria-label="Guest register sheet"><table class="gr-sheet"><thead><tr>'+['S.No.','Entry date','Guest / Mobile','Arrival','Checkout','Room','M / F / C','Permanent address','Arriving from','Next destination','Transport / Vehicle','Rent / night','ID photos','Status'].map(s=>'<th scope="col">'+s+'</th>').join('')+'</tr></thead><tbody>'+visible.map(r=>'<tr><td>'+esc(r.serial||'—')+'</td><td>'+esc(day(r.entry_date))+'</td><td><button type="button" class="gr-name" data-gr-action="record" data-id="'+esc(r.id)+'">'+esc(r.name)+'</button><small>'+esc(r.phone)+'</small></td><td>'+esc(day(r.arrival))+'<small>'+esc(r.arrival_time||'Not recorded')+'</small></td><td>'+esc(r.checkout_at?stamp(r.checkout_at):'Expected '+day(r.departure))+'</td><td><strong>'+esc(r.room)+'</strong></td><td>'+esc([r.male,r.female,r.children].map(v=>v==null?'—':v).join(' / '))+'</td><td class="gr-address">'+esc(r.address||'—')+'</td><td>'+esc(r.arrived_from||'—')+'</td><td>'+esc(r.next_destination||'—')+'</td><td>'+esc(r.transport||'—')+'<small>'+esc(r.vehicle_number)+'</small></td><td>'+money(r.nightly_rate)+'</td><td><div class="gr-photo-buttons">'+(r.id_front?button('photo-front','Front',r.id):'<span>Front not saved</span>')+(r.id_back?button('photo-back','Back',r.id):'<span>Back not saved</span>')+'</div></td><td><span class="gr-status">'+esc(status(r.status))+'</span></td></tr>').join('')+'</tbody></table></div>'+(!rows.length?'<p class="bh-empty">'+(all.length?(period?'No records for this period. Select other dates or All dates.':'No records match these filters.'):'No stays have been saved yet. New check-ins will appear here.')+'</p>':'')+'<div class="gr-pagination"><span>Page '+page+' of '+pages+'</span>'+button('previous','Previous','',''+(page===1?'disabled':''))+button('next','Next','',page===pages?'disabled':'')+'</div>';
  }
  function historicalRows(rows,selectedPeriod,search=''){
   if(!Array.isArray(rows))throw Error('Historical records unavailable.');
@@ -99,10 +104,10 @@
  async function loadHistory(target){
   const panel=target?.querySelector('[data-gr-history]'),property=H()?.prop()?.id,user=ctx?.getUser()?.id;
   if(!panel||!property||!user||!H().has('guest_register')||!ctx.sb)return;
-  if(!['owner','manager'].includes(H().prop()?.role)){panel.textContent='Historical entries are available to the property owner and manager.';return;}
+  if(!canReadPastBills()){panel.textContent='Guest bill access is required for historical entries.';return;}
   historyExport=null;const request=++historyEpoch,key=scope(),selected=period?{...period}:null,search=query;
-  const current=()=>request===historyEpoch&&key===scope()&&H()?.has('guest_register')&&target.isConnected&&target.querySelector('[data-gr-history]')===panel;
-  panel.textContent='Reading historical records…';
+  const current=()=>request===historyEpoch&&key===scope()&&H()?.has('guest_register')&&canReadPastBills()&&target.isConnected&&target.querySelector('[data-gr-history]')===panel;
+  panel.textContent='Loading entries…';
   try{
    let q=ctx.sb.from('bite_owner_historical_entries').select('id,record_date,departure_date,customer_name,customer_phone,room_number,amount,received_amount,guest_count,payment_method').eq('entry_kind','room').eq('property_id',property);
    if(selected){if(!validEntryDate(selected.from)||!validEntryDate(selected.to)||selected.from>selected.to)throw Error('Choose a valid record period.');q=q.gte('record_date',selected.from).lte('record_date',selected.to);}
@@ -110,8 +115,9 @@
    if(!current())return;
    if(error)throw Error('Historical records could not be loaded. Retry or check property permissions.');
    const rows=historicalRows(data,selected,search);
-   historyExport={key,request,rows};panel.innerHTML=button('historical-excel','Excel · historical entries')+'<p><strong>'+rows.length+' historical '+(rows.length===1?'record':'records')+'</strong> · Original entry dates</p>'+
-    (rows.length?rows.map(r=>'<article class="bh-record"><div><strong>'+esc(r.customer_name||'Guest')+'</strong> <span class="gr-status">Historical</span><p>'+esc(day(r.record_date))+' → '+esc(day(r.departure_date))+' · Room '+esc(r.room_number||'—')+'</p><p>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</p></div><div><strong>Bill '+money(r.amount)+'</strong><p>Recorded received '+money(r.received_amount)+' · '+esc(r.payment_method||'—')+'</p></div></article>').join(''):'<p class="bh-empty">No historical records for this period and search.</p>');
+   const totalFor=field=>{let cents=0;for(const r of rows){const amount=verifiedRent(r[field]);if(amount===null)return '—';cents+=Math.round(amount*100);if(!Number.isSafeInteger(cents))return '—';}return rows.length?money(cents/100):money(0)};
+   historyExport={key,request,rows};panel.innerHTML='<div class="gr-history-summary"><div><small>Entries</small><strong>'+rows.length+'</strong></div><div><small>Recorded bills</small><strong>'+totalFor('amount')+'</strong></div><div><small>Recorded paid</small><strong>'+totalFor('received_amount')+'</strong></div></div><div class="gr-history-head"><strong>'+rows.length+' old '+(rows.length===1?'entry':'entries')+'</strong>'+button('historical-excel','Excel')+'</div>'+
+    (rows.length?rows.map(r=>'<article class="gr-old-card"><div class="gr-old-main"><span class="gr-avatar" aria-hidden="true">'+esc((r.customer_name||'Guest').trim().split(/\\s+/).slice(0,2).map(s=>s.charAt(0)).join('').toUpperCase())+'</span><div><strong>'+esc(r.customer_name||'Guest')+'</strong><p>Room '+esc(r.room_number||'—')+' · '+esc(day(r.record_date))+' – '+esc(day(r.departure_date))+'</p><small>'+esc(r.customer_phone||'')+' · '+esc(r.guest_count??'—')+' guests</small></div></div><div class="gr-old-money"><span>Bill <strong>'+money(r.amount)+'</strong></span><span>Paid <strong>'+money(r.received_amount)+'</strong></span></div></article>').join(''):'<div class="gr-empty"><strong>No old entries found.</strong><p>Select other dates or add an old entry.</p></div>');
   }catch(error){if(current())panel.textContent=error.message||'Historical records unavailable. Retry.';}
  }
  function filter(e){const input=e.target.closest('[data-gr-filter]');if(!input)return;const target=input.closest('#guests');if(!target)return;if(input.dataset.grFilter==='query')query=input.value;else if(input.dataset.grFilter==='state')state=input.value;page=1;paint(target)}
@@ -156,17 +162,30 @@
    if(action==='close-record'||action==='keep-editing'){close();return}
    if(action==='close-checkin'){closeCheckin();return}
    if(action==='draft-close'||action==='discard-close'){const form=document.getElementById('bhCheckinForm');if(action==='draft-close'){if(!H().persistRegistration(form))throw Error('Draft could not be saved. Keep the form open and retry.');}else H().discardRegistrationDraft();close();root.BiteCheckinFlow.clear();await H().navigate('rooms');return}
+   if(action==='open-past'){
+    if(!canReadPastBills())return;
+    const form=document.getElementById('bhCheckinForm');
+    if(form&&hasUnsavedCheckinChanges(form)&&!H().persistRegistration(form))throw Error('Save your current draft before opening past records.');
+    registerTab='past';await H().navigate('guests');return;
+   }
    if(action==='register'){const form=document.getElementById('bhCheckinForm');if(form?.elements.full_name.value.trim())H().persistRegistration(form);await H().navigate('guests');return}
    if(action==='new'){close();await H().navigate('hotel-register');return}
    if(action==='repeat'){close();await H().useGuest(id);return}
    if(action==='bill'){close();await H().openFolio(id);return}
    if(action==='edit'){close();await H().navigate('guests');document.querySelector('#guests [data-hotel-action="edit-guest"][data-id="'+id+'"]')?.click();if(!document.querySelector('#bhActionEditor'))throw Error('Guest profile is unavailable. Refresh the register.');return}
    if(action==='view-photo'){const box=dialog;if(box?.__record)await loadPhoto(box.__record,Number(b.dataset.person),b.dataset.side,scope(),epoch,box,true,b);return}
-   const target=document.getElementById('guests');if(action==='tab'){if(!['stays','drafts','past'].includes(id))return;registerTab=id;page=1;paint(target);return}
+   const target=document.getElementById('guests');if(action==='tab'){if(!['stays','drafts','past'].includes(id)||(id==='past'&&!canReadPastBills()))return;registerTab=id;page=1;paint(target);return}
    if(action==='sheet'){registerTab='stays';sheetOpen=!sheetOpen;render(target);target.querySelector(sheetOpen?'.gr-sheet-scroll':'.gr-stay-cards')?.scrollIntoView({block:'nearest'});return}
+   if(action==='add-past'){
+    if(registerTab!=='past'||!canReadPastBills())throw Error('Past record access unavailable.');
+    const editor=target.querySelector('[data-gr-past-editor]');
+    if(!editor||!root.BiteOwnerHistory?.mountPastRoom)throw Error('Past record form unavailable. Reload Bite.');
+    if(!editor.dataset.bheBound){editor.dataset.bheBound='true';editor.addEventListener('bite-past-saved',()=>{if(registerTab==='past')void loadHistory(target);});}
+    root.BiteOwnerHistory.mountPastRoom(editor);editor.scrollIntoView({block:'start'});return;
+   }
    if(action==='load-history'){await loadHistory(target);return}
    if(action==='historical-excel'){
-    if(!historyExport||historyExport.key!==scope()||historyExport.request!==historyEpoch||registerTab!=='past'||!H().has('guest_register')||!['owner','manager'].includes(H().prop()?.role))throw Error('Refresh historical records before exporting.');
+    if(!historyExport||historyExport.key!==scope()||historyExport.request!==historyEpoch||registerTab!=='past'||!H().has('guest_register')||!canReadPastBills())throw Error('Refresh historical records before exporting.');
     const rows=historicalExportRows(historyExport.rows);
     root.BiteExports.download(root.BiteExports.workbook(rows),'Bite-Historical-Guest-Register-'+(period?period.from+'-'+period.to:'All')+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
    }if(action==='record'||action==='photo-front'||action==='photo-back'){const r=records(H().getWorkspace()).find(r=>r.id===id);if(r)details(r,action==='photo-front'?'front':action==='photo-back'?'back':null);return}

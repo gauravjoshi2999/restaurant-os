@@ -20,8 +20,8 @@ body[data-role="owner"] .bv3-period [role="alert"]{color:#b12626;font-size:12px;
 body[data-role="owner"] .bv3-period :is(button,input):focus-visible{outline:3px solid #e87f36;outline-offset:2px}
 @media(max-width:430px){
  body[data-role="owner"] .bv3-period{padding:11px;border-radius:13px}
- body[data-role="owner"] .bv3-period-head{align-items:flex-start;flex-wrap:wrap}
- body[data-role="owner"] .bv3-period-head>button{width:100%}
+ body[data-role="owner"] .bv3-period-head{align-items:center;flex-wrap:wrap}
+ body[data-role="owner"] .bv3-period-head>button{width:auto}
  body[data-role="owner"] .bv3-period-tabs{gap:5px}
  body[data-role="owner"] .bv3-period-tabs button{padding:7px}
  body[data-role="owner"] .bv3-period-actions>button{flex:1 1 90px}

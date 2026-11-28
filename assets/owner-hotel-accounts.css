@@ -113,3 +113,80 @@ body[data-role="owner"] #mainApp #bhCheckinForm .ha-invalid :is(input,select,tex
 #bhCheckinForm .ha-checkin-deposit{margin-top:16px;padding:14px;border:1px solid #eed9bd;background:#fffbf3;border-radius:12px}
 #bhCheckinForm .ha-checkin-deposit h3{font-size:15px;margin:0 0 6px}
 #bhCheckinForm .ha-checkin-deposit p{font-size:13px;margin:0 0 12px;color:#76572c}
+
+/* UAT002: compact date controls and full-width guest search, scoped to the register. */
+#mainApp #guests .gr-tools input[data-gr-filter=query]{width:100%;max-width:none;min-width:0}
+#mainApp #guests .gr-period-all{padding:8px 12px;gap:8px}
+#mainApp #guests .gr-period-all .btn{min-height:44px}
+#mainApp #guests [data-gr-past] .bh-actions{gap:8px}
+#mainApp #guests [data-gr-past] .bh-actions .btn{min-height:44px}
+@media(max-width:600px){#mainApp #guests .gr-tools>.bh-field{width:100%;max-width:none}#mainApp #guests .gr-period-all{flex-direction:row;align-items:center}#mainApp #guests .gr-period-all .btn{width:auto;flex:0 1 auto}}
+
+/* UAT002 premium register: one scoped compact toolbar, not global overrides. */
+#mainApp #guests .gr-register.gr-compact{padding:12px!important;background:#fff;border:1px solid #e7e7e7;border-radius:14px;box-shadow:none}
+#mainApp #guests .gr-compact [hidden]{display:none!important}
+#mainApp #guests .gr-compact .gr-title-row,#mainApp #guests .gr-compact .gr-history-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#mainApp #guests .gr-title-row h2{font-size:19px;line-height:1.3;margin:0!important;color:#282323}
+#mainApp #guests .gr-title-row [data-gr-primary]{background:#c95811!important;color:white!important;border:1px solid #c95811!important;border-radius:9px;min-height:44px;padding:8px 11px;font-size:13px!important}
+#mainApp #guests .gr-compact .gr-view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#f4f4f5;padding:3px;gap:3px;border-radius:10px;margin:12px 0}
+#mainApp #guests .gr-compact .gr-view-tabs .btn{min-width:0;width:100%;border:1px solid transparent!important;border-radius:8px;background:transparent;box-shadow:none;font-size:12px!important;min-height:44px;padding:6px 2px}
+#mainApp #guests .gr-compact .gr-view-tabs [aria-pressed=true]{background:#fff!important;color:#9e420b!important;border-color:#edddd1!important;font-weight:750}
+#mainApp #guests .gr-compact .gr-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center}
+#mainApp #guests .gr-compact .gr-search{grid-column:1/-1;display:block!important;width:100%!important;max-width:none!important;margin:0!important}
+#mainApp #guests .gr-compact .gr-search input{display:block;width:100%!important;max-width:none!important;min-height:44px;padding:10px 12px;border:1px solid #ddd;border-radius:9px;background:#fff;font-size:14px!important}
+#mainApp #guests .gr-compact .gr-status-filter{grid-column:1/-1;width:100%!important;max-width:none!important;margin:0!important}
+#mainApp #guests .gr-compact .gr-status-filter select{width:100%!important;max-width:none!important;min-height:44px}
+#mainApp #guests .gr-compact .gr-period-control{grid-column:1/-1}
+#mainApp #guests .gr-compact .gr-period-control .bv3-period,#mainApp #guests .gr-compact .gr-period-all{margin:0!important;padding:4px 8px!important;background:#fff!important;border:1px solid #dedede!important;border-radius:9px!important}
+#mainApp #guests .gr-compact .gr-period-control .bv3-period-head,#mainApp #guests .gr-compact .gr-period-all{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:space-between;gap:6px}
+#mainApp #guests .gr-compact .bv3-period-head small,#mainApp #guests .gr-compact .bv3-period-head span{display:none}
+#mainApp #guests .gr-compact .bv3-period-head strong,#mainApp #guests .gr-compact .gr-period-all strong{font-size:14px!important;font-weight:650}
+#mainApp #guests .gr-compact .bv3-period-head>button,#mainApp #guests .gr-compact .gr-period-all .btn{width:auto!important;flex:0 0 auto!important;min-height:44px;padding:6px 9px!important;border:0!important;background:#fff3e8!important;color:#98420d!important;font-size:12px!important}
+#mainApp #guests .gr-compact .gr-tool-buttons{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin:0}
+#mainApp #guests .gr-compact .gr-tool-buttons .btn,#mainApp #guests .gr-history-head .btn,#mainApp #guests .gr-bottom-actions .btn{min-height:44px!important;padding:6px 11px!important;font-size:12px!important;border:1px solid #ddd!important;border-radius:9px;box-shadow:none;background:#fff}
+#mainApp #guests .gr-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0}
+#mainApp #guests .gr-history-summary>div{background:#f6f6f6;border-radius:9px;padding:8px;min-width:0;display:grid;gap:4px}
+#mainApp #guests .gr-history-summary small{font-size:11px;color:#666}
+#mainApp #guests .gr-history-summary strong{font-size:14px;overflow-wrap:anywhere;color:#222;font-variant-numeric:tabular-nums}
+#mainApp #guests .gr-history-head{margin:8px 0}
+#mainApp #guests .gr-old-card{border:1px solid #e5e5e5;border-radius:10px;padding:10px;margin:8px 0;background:#fff;min-width:0}
+#mainApp #guests .gr-old-main{display:flex;align-items:flex-start;gap:9px;min-width:0}
+#mainApp #guests .gr-old-main>div{min-width:0;overflow-wrap:anywhere}
+#mainApp #guests .gr-avatar{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:#fff0e3;color:#99501e;font-size:12px;font-weight:700}
+#mainApp #guests .gr-old-main p,#mainApp #guests .gr-old-main small{font-size:12px!important;line-height:1.45;margin:3px 0;color:#666}
+#mainApp #guests .gr-old-money{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;border-top:1px solid #eee;margin-top:8px;padding-top:8px;font-size:12px;color:#666}
+#mainApp #guests .gr-old-money strong{color:#222}
+#mainApp #guests .gr-empty{text-align:center;border:1px dashed #dedede;border-radius:9px;padding:18px 8px;color:#555}
+#mainApp #guests .gr-empty p{font-size:12px!important;margin:5px 0 0}
+#mainApp #guests .gr-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap!important;border:0!important}
+#mainApp #guests .gr-compact .gr-stay-card{border-color:#e5e5e5;background:white;box-shadow:none}
+#mainApp #guests .gr-compact .gr-name{min-height:44px}
+@media(min-width:701px){#mainApp #guests .gr-compact .gr-tools{grid-template-columns:minmax(0,2fr) minmax(0,1.5fr) minmax(0,1fr)}#mainApp #guests .gr-compact .gr-search,#mainApp #guests .gr-compact .gr-period-control,#mainApp #guests .gr-compact .gr-status-filter{grid-column:auto}}
+
+/* Check-in continuity: compact step mode, preserve full-form compatibility and payment semantics. */
+#bhCheckinForm[data-ha-step-view=payment] #biteRegistrationOperations{padding:0!important;border:0!important;box-shadow:none;background:transparent}
+#bhCheckinForm[data-ha-step-view=payment] #biteRegistrationOperations .bh-note{font-size:12px;line-height:1.4;padding:8px;margin:8px 0}
+#bhCheckinForm[data-ha-step-view=payment][data-ha-external=false] [data-ha-payment-extra=external],#bhCheckinForm[data-ha-step-view=payment][data-ha-advance=false] [data-ha-payment-extra=advance],#bhCheckinForm[data-ha-step-view=payment][data-ha-deposit=false] [data-ha-payment-extra=deposit]{display:none!important}
+#bhCheckinForm .ha-checkin-deposit{background:#fff;border-color:#e5e5e5;padding:10px;margin-top:12px}
+#bhCheckinForm .bh-payment-review{scroll-margin-top:120px;background:white;border:1px solid #e5e5e5;border-radius:12px;padding:12px;outline:none}
+#bhCheckinForm .ha-review-edits{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#bhCheckinForm .ha-review-edits button{min-height:44px;flex:1 1 90px;font-size:12px}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions{display:flex;gap:8px;flex-wrap:wrap}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button[type=submit]{flex:1 1 100%;order:-1;min-height:48px}
+#bhCheckinForm[data-ha-step-view=payment] .bh-form-actions button:not([type=submit]){flex:1 1 100px}
+
+#bhCheckinForm .ha-checkin-progress{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:0;margin:0 0 14px}#bhCheckinForm .ha-checkin-progress[hidden]{display:none!important}#bhCheckinForm .ha-checkin-progress li{border-top:3px solid #d6d3d1;padding-top:6px;text-align:center;font-size:12px;color:#665c58}#bhCheckinForm .ha-checkin-progress li.done{border-color:#20854d;color:#236d43}#bhCheckinForm .ha-checkin-progress li[aria-current=step]{border-color:#bd5d16;color:#8e410d;font-weight:750}#bhCheckinForm .bh-review-guest details{margin:6px 0}#bhCheckinForm .bh-review-guest p{overflow-wrap:anywhere}
+
+/* Returning guest conflict stays visible even after the suggestion list closes. */
+#bhCheckinForm .ha-duplicate-phone{margin:4px 0 12px;padding:10px 12px;border:1px solid #ead2a2;border-radius:10px;background:#fff9eb;color:#704508;font-size:13px;line-height:1.45;overflow-wrap:anywhere}#bhCheckinForm .ha-duplicate-phone[hidden]{display:none!important}
+#hotel-register .ha-checkin-unavailable{border:1px solid #ead2a2;max-width:720px;margin:16px auto}#hotel-register .ha-checkin-unavailable .btn{min-height:44px}
+
+/* On phones, use each date to open the full day. The period metrics above
+   retain expenses, staff advances and closing balances for the whole period. */
+@media(max-width:600px){
+ .ha-many-days{table-layout:fixed;min-width:0}
+ .ha-many-days :is(th,td):nth-child(n+3):nth-child(-n+6){display:none}
+ .ha-many-days :is(th,td){padding:.55rem .25rem;white-space:normal;overflow-wrap:anywhere}
+ .ha-many-days :is(th,td):first-child{width:38%}
+ .ha-many-days button{min-height:44px;padding:.4rem;font-variant-numeric:tabular-nums}
+}

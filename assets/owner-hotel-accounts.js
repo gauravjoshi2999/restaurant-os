@@ -35,8 +35,9 @@
   let name=error.field;
   if(!name&&error.details){try{name=JSON.parse(error.details).field}catch{}}
   const input=form.elements.namedItem(name||''),label=input?.type==='file'?input.closest('[data-ha-id-card]')?.querySelector('.ha-id-capture-row'):input?.closest?.('label');
-  if(!input||input.disabled||!label||label.hidden)return false;
-  form.__haSteps?.reveal(input);root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
+  if(!input||input.disabled||!label)return false;
+  form.__haSteps?.reveal(input);
+  if(label.hidden&&!label.dataset.haPaymentExtra)return false;root.BiteCheckinGuard?.revealField(input);clearFieldError(input);
   for(let parent=label.parentElement;parent&&parent!==form;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
   const notice=document.createElement('small');notice.id='ha-error-'+input.name;notice.dataset.haFieldError='';notice.className='ha-field-error';notice.setAttribute('role','alert');notice.textContent=error.message||String(error);
   label.append(notice);label.classList.add('ha-invalid');input.setAttribute('aria-invalid','true');
@@ -89,7 +90,7 @@
  }
  function addDepositFields(form,booking,draft){
   if(draft.stay_id)return; // Earlier bookings use their existing Guest Bill rather than recording twice.
-  const box=document.createElement('section');box.className='ha-checkin-deposit';box.innerHTML='<h3>Refundable security deposit · Optional</h3><p>Separate receipt. Deposit is not room sales or advance. Record only the actual collection; unverified online receipts stay pending.</p><div class="bh-form-grid">'+
+  const box=document.createElement('section');box.className='ha-checkin-deposit';box.innerHTML='<h3>Refundable deposit (optional)</h3><p>Separate from room payment. Online receipts need verification.</p><div class="bh-form-grid">'+
    field('deposit_amount','Refundable deposit (₹)','number',draft.deposit_amount??'','min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="0"')+
    select('deposit_method','Deposit method',['Cash','UPI','Card','Bank Transfer'].map(m=>option(m,m,m===(draft.deposit_method||'Cash'))).join(''))+
    field('deposit_reference','Verified receipt reference','text',draft.deposit_reference||'','maxlength="100"')+field('deposit_account','Online account note','text',draft.deposit_account||'','maxlength="80"')+'</div>'+
@@ -110,7 +111,7 @@
   form.dataset.enhanced='true';form.noValidate=true;
   const rooms=db().rooms||[],guests=db().guests||[];
   const roomId=draft.room_id||'',room=rooms.find(r=>r.id===roomId),saved=!!draft.id_front_id;
-  form.innerHTML='<section class="ha-step-panel" data-ha-step="guest"><div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','date',today(),'readonly')+'</div>'+
+  form.innerHTML='<section class="ha-step-panel" data-ha-step="guest"><div class="ha-register-meta">'+field('serial_number','Serial number','text',db().next_register_number||1,'readonly')+field('register_date','Entry date','text',today(),'readonly aria-label="Automatic entry date"')+'</div>'+
    '<h2>1 · Guest details</h2>'+
    '<details class="ha-returning"><summary>Returning guest</summary>'+field('guest_search','Find by name or mobile','search','','data-guest-search autocomplete="off"')+select('guest_id','Use saved guest',option('','New guest')+guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===(guest?.id||draft.guest_id))).join(''),'data-guest-picker')+'</details>'+
    '<div class="bh-form-grid">'+field('phone','Mobile number *','tel',guest?.phone||draft.phone||'','required minlength="7" maxlength="20" autocomplete="tel"')+field('full_name','Guest name *','text',guest?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')+'</div><div class="bh-form-grid ha-guest-counts">'+field('male','Male','number',draft.male??1,'required min="0" max="20" step="1"')+field('female','Female','number',draft.female??0,'required min="0" max="20" step="1"')+field('children','Children','number',draft.children??0,'required min="0" max="20" step="1"')+'</div><input type="hidden" name="adults" value="1"><div class="bh-form-grid">'+
@@ -121,19 +122,42 @@
    '<div class="bh-actions" data-h07-guest-actions><button type="button" class="btn" data-h07-continue>Continue to rooms</button>'+button('draft','Save draft')+'</div></section><section class="ha-step-panel" data-ha-step="ids">'+
    '<div class="ha-id-section"><h3>Guest ID</h3><div class="bh-form-grid"><label class="bh-field"><span>ID front — Required</span><input type="file" name="id_front" accept="image/jpeg,image/png,application/pdf" '+(saved?'':'required')+'><small data-front-status>'+esc(saved?'Previously saved front will be checked again.':'Take a clear photo or choose a file · Up to 4 MB')+'</small></label><label class="bh-field"><span>ID back — Optional, if available</span><input type="file" name="id_back" accept="image/jpeg,image/png,application/pdf"><small>JPEG, PNG or PDF · Up to 4 MB</small></label></div>'+
    '<input type="hidden" name="id_front_id" value="'+esc(draft.id_front_id||'')+'"><input type="hidden" name="id_back_id" value="'+esc(draft.id_back_id||'')+'">'+
-   check('id_checked','I checked that the ID copy is necessary and masked where required.','required')+'<p class="bh-note">ID copies are private to authorized property staff and are excluded from bills.</p></div>'+
+   check('id_checked','ID checked and masked where required.','required')+'<p class="bh-note">Private ID · Not printed on bills.</p></div>'+
    '</section><section class="ha-step-panel" data-ha-step="rooms"><h2 tabindex="-1" data-h07-rooms>2 · Room allocation</h2><div class="ha-arrival-fields">'+field('arrival','Check-in date *','date',draft.arrival||today(),'required')+field('arrival_time','Arrival time *','time',draft.arrival_time??currentArrivalTime(),'required step="60"')+'</div><div class="bh-form-grid">'+field('departure','Expected checkout *','date',draft.departure||root.BiteOwner.day(new Date(Date.now()+86400000)),'required')+
    select('room_id','Room number *',option('','Select a room')+rooms.filter(r=>r.active&&r.housekeeping!=='blocked').map(r=>option(r.id,r.number+' · '+r.room_type,r.id===roomId)).join(''),'required')+
    field('nightly_rate','Agreed room rent / night (₹) *','number',draft.nightly_rate??'','required min="0" step="0.01" inputmode="decimal" placeholder="Enter this guest’s agreed rent"')+'</div>'+
    select('mode','Arrival',option('checkin','Check in now',draft.mode!=='reserve')+option('reserve','Reserve for later',draft.mode==='reserve'))+
    '<input type="hidden" name="upload_requests" value="'+esc(draft.upload_requests||'{}')+'"></section><section class="ha-step-panel" data-ha-step="payment"><div data-ha-booking></div></section>'+message()+'<div class="bh-form-actions"><button type="submit" class="btn">Review check-in</button></div>';
   if(booking){
-   booking.querySelector('h3').textContent='3 · Advance payment · Optional';
+   booking.querySelector('h3').textContent='Booking & advance';
+   booking.querySelector('.bh-note').textContent='Record received money only. Online receipts stay pending until verified.';
+   booking.querySelector('[name=booking_reference]').closest('label').querySelector('span').textContent='Booking reference *';
+   booking.querySelector('[name=advance_amount]').closest('label').querySelector('span').textContent='Advance received (₹)';
+   booking.querySelector('[name=advance_method]').closest('label').querySelector('span').textContent='Payment method';
    booking.insertAdjacentHTML('beforeend',field('advance_account','Online account · Short note','text',draft.advance_account||p().tax_profile?.primary_account||'','maxlength="80" placeholder="Owner account / second account"'));
    form.querySelector('[data-ha-booking]').append(booking);
    wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
    wireAdvanceVerification(form);
    addDepositFields(form,booking,draft);
+   const access=p();
+   if(access?.role!=='owner'&&Array.isArray(access?.permissions)&&!access.permissions.includes('payment_entry')){
+    booking.querySelector('h3').textContent='Booking details';
+    booking.querySelector('.bh-note').textContent='Guest entry will be saved. Ask an authorized staff member to record any payment.';
+    booking.querySelectorAll('[name^="advance_"],[name^="deposit_"]').forEach(input=>{
+     if(input.type==='checkbox')input.checked=false;
+     else if(input.tagName!=='SELECT')input.value='';
+     input.disabled=true;
+     const label=input.closest('label');if(label)label.hidden=true;
+    });
+    const depositBox=booking.querySelector('.ha-checkin-deposit');if(depositBox)depositBox.hidden=true;
+   }
+   // Hide irrelevant controls in step mode only; keep values and existing validation/payload intact.
+   const refreshPayment=()=>{const source=form.elements.booking_source,advance=form.elements.advance_amount,deposit=form.elements.deposit_amount;
+    form.dataset.haExternal=String(source?.value==='external_booking'||!!form.elements.booking_reference?.value);
+    form.dataset.haAdvance=String(Number(advance?.value||0)!==0||!!advance?.validity.badInput);
+    form.dataset.haDeposit=String(Number(deposit?.value||0)!==0||!!deposit?.validity.badInput);
+    for(const [name,group] of [['booking_reference','external'],['advance_method','advance'],['advance_reference','advance'],['advance_account','advance'],['advance_verified','advance'],['deposit_method','deposit'],['deposit_reference','deposit'],['deposit_account','deposit'],['deposit_verified','deposit']]){const label=form.elements[name]?.closest('label');if(label)label.dataset.haPaymentExtra=group;}
+   };form.addEventListener('input',refreshPayment);form.addEventListener('change',refreshPayment);refreshPayment();
   }
   function counts(){form.elements.adults.value=Number(form.elements.male.value||0)+Number(form.elements.female.value||0)}
   function vehicle(){const yes=['Car','Bike'].includes(form.elements.transport.value);const input=form.elements.vehicle_number;input.required=yes;input.closest('label').hidden=!yes}
@@ -176,18 +200,22 @@
   if(!guest||!rooms||!payment||!photos)return;
   const draftButton=guestActions.querySelector('[data-ha-action=draft]');if(draftButton)actions.prepend(draftButton);
   const header=document.createElement('div');header.className='ha-step-header';header.innerHTML='<div><small data-ha-step-caption></small><strong data-ha-step-title></strong></div><button type="button" class="ha-text-button" data-ha-toggle-view>Full form</button>';form.prepend(header);
-  const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to review</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
-  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
+  const progress=document.createElement('ol');progress.className='ha-checkin-progress';progress.setAttribute('aria-label','Check-in progress');progress.innerHTML='<li data-progress="guest">Guest</li><li data-progress="rooms">Room &amp; IDs</li><li data-progress="payment">Payment</li>';header.after(progress);
+  const roomActions=document.createElement('div');roomActions.className='bh-actions ha-step-actions';roomActions.innerHTML='<button type="button" class="btn secondary" data-ha-open-ids>Guest ID photos</button><button type="button" class="btn" data-ha-room-next>Continue to payment</button><button type="button" class="btn secondary" data-ha-back-guest>Back to guest</button>';rooms.append(roomActions);
+  const idActions=document.createElement('div');idActions.className='bh-actions ha-step-actions';idActions.innerHTML='<button type="button" class="btn secondary" data-ha-id-back>Back to rooms</button><button type="button" class="btn" data-ha-return-rooms>Save &amp; return</button>';photos.append(idActions);
   const paymentBack=document.createElement('button');paymentBack.type='button';paymentBack.className='btn secondary';paymentBack.dataset.haPaymentBack='';paymentBack.textContent='Back to rooms';actions.prepend(paymentBack);
   const panels={guest,rooms,ids:photos,payment},labels={guest:['STEP 1 OF 3 · Guest','Guest'],rooms:['STEP 2 OF 3 · Rooms','Multiple rooms'],ids:['STEP 2 OF 3 · Guest ID photos','Guest ID photos'],payment:['STEP 3 OF 3 · Review','Payment & review']};
-  let full=false,step='guest';try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
+  let full=false,step='guest',returnToReview=false,idsForPayment=false;try{full=root.sessionStorage.getItem('bite_checkin_full_form')==='1'}catch{}
   const submit=actions.querySelector('[type=submit]'),toggle=header.querySelector('[data-ha-toggle-view]');
-  function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();submit.textContent='Review check-in'}
+  function invalidate(){form.dataset.reviewed='';form.querySelector('.bh-review')?.remove();delete form.dataset.quoteHash;delete form.dataset.familyPayload;submit.textContent='Review check-in';if(step==='payment')show('payment',false)}
   function show(next,focus=true){
    if(!panels[next])return;step=next;form.dataset.haStepView=full?'all':step;
-   for(const [key,el] of Object.entries(panels)){el.hidden=!full&&key!==step;if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
-   roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';submit.hidden=!full&&step!=='payment';
-   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':labels[step][1];
+   const reviewing=form.dataset.reviewed==='true'&&!!form.querySelector('.bh-review');
+   for(const [key,el] of Object.entries(panels)){el.hidden=!full&&(key!==step||(key==='payment'&&reviewing));if(el.hidden)el.style.setProperty('display','none','important');else el.style.removeProperty('display')}
+   roomActions.hidden=full;idActions.hidden=full;paymentBack.hidden=full||step!=='payment';paymentBack.textContent=reviewing?'Edit payment':'Back to rooms';submit.hidden=!full&&step!=='payment';
+   roomActions.querySelector('[data-ha-room-next]').textContent=returnToReview?'Return to review':'Continue to payment';guestActions.querySelector('[data-h07-continue]').textContent=returnToReview?'Return to review':'Continue to rooms';idActions.querySelector('[data-ha-return-rooms]').textContent=returnToReview?'Return to review':idsForPayment?'Continue to payment':'Save & return';
+   toggle.textContent=full?'Step-by-step':'Full form';header.querySelector('[data-ha-step-caption]').textContent=full?'CHECK-IN':labels[step][0];header.querySelector('[data-ha-step-title]').textContent=full?'All check-in details':step==='payment'?(reviewing?'Review & confirm':'Payment'):step==='rooms'?'Room allocation':labels[step][1];
+   progress.hidden=full;const current=step==='ids'?'rooms':step;const order=['guest','rooms','payment'];for(const li of progress.children){li.classList.toggle('done',order.indexOf(li.dataset.progress)<order.indexOf(current));if(li.dataset.progress===current)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current')}
    const review=form.querySelector('.bh-review');if(review)review.hidden=!full&&step!=='payment';
    if(focus&&!full){header.tabIndex=-1;header.focus({preventScroll:true});header.scrollIntoView({block:'start',behavior:'instant'})}
   }
@@ -195,26 +223,32 @@
    for(const input of form.elements){if(panelNode.contains(input)&&input.willValidate&&!input.validity.valid){showRegisterError(form,fieldError(input.name,input.validationMessage||'Complete this field.'));return false}}
    return true;
   }
+  function finishStep(){
+   if(!form.dataset.stayId&&!validate(photos)){idsForPayment=true;show('ids',false);return}
+   idsForPayment=false;show('payment');if(returnToReview){returnToReview=false;form.requestSubmit()}
+  }
   function advance(){
    if(full)return false;
    if(step==='guest'){
     if(!validate(guest))return true;
     if(!form.dataset.stayId){try{validateRegistration({...Object.fromEntries(new FormData(form)),nightly_rate:'0'})}catch(e){showRegisterError(form,e);return true}}
-    show('rooms');return true;
+    if(returnToReview)finishStep();else show('rooms');return true;
    }
    if(step==='rooms'){
     if(!validate(rooms))return true;
     if(form.elements.departure.value<=form.elements.arrival.value){showRegisterError(form,fieldError('departure','Departure must be after arrival.'));return true}
     try{root.BiteFamilyCheckin?.plan(form,Object.fromEntries(new FormData(form)),H().getWorkspace())}catch(e){if(!showRegisterError(form,e))form.querySelector('.bh-message').textContent=e.message||String(e);return true}
-    show('payment');return true;
+    finishStep();return true;
    }
-   if(step==='ids'){show('rooms');return true}return false;
+   if(step==='ids'){if(!validate(photos))return true;if(returnToReview||idsForPayment){idsForPayment=false;finishStep()}else show('rooms');return true}return false;
   }
   function back(next){invalidate();show(next)}
-  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&id!==step)show(id,false)},back,show};
+  function edit(next){if(!panels[next])return;returnToReview=true;invalidate();show(next)}
+  function showReview(){returnToReview=false;idsForPayment=false;show('payment',false);const review=form.querySelector('.bh-review');if(!review)return;review.tabIndex=-1;review.focus({preventScroll:true});review.scrollIntoView({block:'start',behavior:'instant'})}
+  form.__haSteps={advance,reveal(input){if(full)return;const id=input.closest('[data-ha-step]')?.dataset.haStep;if(id&&(id!==step||form.dataset.reviewed==='true')){if(form.dataset.reviewed==='true'){returnToReview=true;invalidate()}show(id,false)}},back,show,edit,showReview,invalidate};
   toggle.onclick=()=>{full=!full;try{root.sessionStorage.setItem('bite_checkin_full_form',full?'1':'0')}catch{}show(step)};
   guestActions.querySelector('[data-h07-continue]').addEventListener('click',e=>{if(!full){e.preventDefault();e.stopImmediatePropagation();advance()}},true);
-  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>show('rooms');paymentBack.onclick=()=>back('rooms');
+  roomActions.querySelector('[data-ha-open-ids]').onclick=()=>show('ids');roomActions.querySelector('[data-ha-room-next]').onclick=advance;roomActions.querySelector('[data-ha-back-guest]').onclick=()=>back('guest');idActions.querySelector('[data-ha-id-back]').onclick=()=>back('rooms');idActions.querySelector('[data-ha-return-rooms]').onclick=()=>{if(returnToReview||idsForPayment)advance();else show('rooms')};paymentBack.onclick=()=>{if(form.dataset.reviewed==='true')edit('payment');else back('rooms')};
   form.addEventListener('input',()=>{submit.textContent='Review check-in'});
   show(draft.stay_id?'rooms':'guest',false);
  }
@@ -270,11 +304,10 @@
  function decorateFolio(target,folio,stay){
   if(!enabled())return;
   target.querySelector('h1').textContent='Guest Khata';
-  const actions=target.querySelector('.bh-guest-bill-buttons');
   if(folio.status==='open'&&['owner','manager','receptionist'].includes(p()?.role)){
-   if(H().has('hotel_incidentals'))actions?.insertAdjacentHTML('beforeend',button('extra','＋ Add extra charge',folio.id));
+   if(H().has('hotel_incidentals'))target.querySelector('[data-guest-more]')?.insertAdjacentHTML('beforeend',button('extra','＋ Add extra charge',folio.id));
    const old=target.querySelector('[data-hotel-action="checkout"]');
-   if(old){old.remove();actions?.insertAdjacentHTML('beforeend',button('checkout','Checkout & collect balance',folio.id))}
+   if(old)old.outerHTML=button('checkout','Checkout',folio.id);
   }
   root.BiteHotelBilling?.decorateFolio(target,folio,stay);
   if(stay?.register_number)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Register #'+esc(stay.register_number));
@@ -538,8 +571,8 @@
   month=month||today().slice(0,7);
   const picker=root.BiteV3Period;
   if(!picker){target.textContent='Date picker unavailable. Reload Bite to view accounts.';return}
-  const chosen=picker.normalize(viewPeriod||{mode:'month',month},today()),from=chosen.from,to=chosen.to;
-  target.innerHTML='<div class="bh-heading"><div><p class="bh-eyebrow">'+esc(p().name)+'</p><h1>Daily Book</h1><p>Sales, expenses, staff advances and cash / online balances.</p></div></div>'+
+  const chosen=picker.normalize(viewPeriod||{mode:'day',day:today()},today()),from=chosen.from,to=chosen.to;
+  target.innerHTML='<div class="bh-heading"><div><p class="bh-eyebrow">'+esc(p().name)+'</p><h1>Daily Book</h1><p>Sales, expenses and collections.</p></div></div>'+
    '<div id="haPeriod" aria-label="Daily Book period"></div><div id="haBookBody" role="status">Loading recorded accounts…</div>';
   picker.mount(target.querySelector('#haPeriod'),{value:chosen,today,
    basis:'Sales: bill / service date · Collections: money movement date',
@@ -555,16 +588,15 @@
   if(r.data?.from!==from||r.data?.to!==to||!Array.isArray(r.data?.days)||!Array.isArray(r.data?.journal)||!root.BiteV3Collections?.validDailyTotals(r.data)||root.BiteV3Collections.summarize(r.data.journal).error){body.textContent='Daily Book response could not be verified. Refresh selected period.';return;}
   report=r.data;reportScope=key;
   const sum=k=>(report.days||[]).reduce((n,d)=>n+Number(d[k]||0),0),last=report.days?.at(-1)||{};
-  body.innerHTML='<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('staff_advance','＋ Staff advance')+button('salary','Staff salary')+button('accounts','Opening / transfer'):'')+'</div>'+
-   '<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
-   '<p class="bh-note">Existing POS, room receipts and expenses appear automatically; add only missing entries. Sales follow issued bills. Advances and partial receipts change money balances; they do not create another sale. Add the starting balance for each account. Record earned salary once, then its payout after advances. Profit uses recorded sales less output GST and recorded costs.</p>'+
+  body.innerHTML='<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
+   '<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('accounts','Opening / transfer'):'')+'</div>'+
+   '<details class="bh-panel"><summary>How these totals work</summary><p class="bh-note">Sales follow the bill date. Cash and online balances follow recorded payments, including advances. Profit uses recorded sales less output GST and recorded costs. Enter a starting balance for each account. Record earned salary once and its payout separately.</p></details>'+
    '<section class="bh-panel" id="haCollections" aria-label="Source-linked Collections"></section>'+
-   '<section class="bh-panel" id="haHistoricalRoom" aria-label="Read-only historical guest collections"></section>'+
-   '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section>'+
-   '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
-   (report.days||[]).map(d=>'<tr><td>'+esc(d.day)+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
+   '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table '+(from===to?'ha-single-day':'ha-many-days')+'"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
+   report.days.slice().reverse().map(d=>'<tr><td>'+(from===to?esc(d.day):button('book-day',d.day,d.day,'aria-label="View Daily Book for '+esc(d.day)+'"'))+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
-   '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
+   '<details class="bh-panel"><summary>Old records · Unverified</summary><section class="bh-panel" id="haHistoricalRoom" aria-label="Read-only historical guest collections"></section>'+
+   '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section></details>'+
    '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
   root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',isCurrent:()=>key===scope()&&version===reportVersion&&reportScope===key,onOpen:openCollectionSource});
   renderHistoricalRoomCollections(body,{from,to,key,version});
@@ -642,6 +674,35 @@
    check('reviewed','I reviewed this property’s GST registration, rates and invoice series.','required')+message()+'<button class="btn" type="submit">Save billing settings</button></form>';
   target.append(box);
  }
+ function mountStaffLedger(target){
+  if(!enabled()||!H().has('reporting')||root.BiteOwnerAccess?.can('reporting')===false)return;
+  target.querySelector('[data-ha-staff-ledger]')?.remove();
+  const details=document.createElement('details');
+  details.className='bh-panel';details.dataset.haStaffLedger='';
+  const canWrite=manager()&&root.BiteOwnerAccess?.can('daybook_entry')!==false;
+  details.innerHTML='<summary>Hotel salary & advances</summary>'+
+   (canWrite?'<div class="bh-actions">'+button('staff_advance','Record advance')+button('salary','Staff salary')+'</div>':'')+
+   '<label class="bh-field">Salary month<input type="month" value="'+today().slice(0,7)+'" max="'+today().slice(0,7)+'"></label><div role="status"></div>';
+  const input=details.querySelector('input'),status=details.querySelector('[role=status]'),key=scope();
+  let request=0;
+  async function load(){
+   const seq=++request;
+   if(!details.open)return;
+   status.textContent='Loading salary entries…';
+   try{
+    const period=root.BiteV3Period.normalize({mode:'month',month:input.value},today());
+    const result=await ctx.sb.rpc('bite_daily_book',{p_property:p().id,p_from:period.from,p_to:period.to});
+    if(!details.isConnected||key!==scope()||seq!==request)return;
+    if(result.error||result.data?.from!==period.from||result.data?.to!==period.to||!Array.isArray(result.data?.staff))throw Error('Unable to verify salary entries.');
+    const rows=result.data.staff;
+    status.innerHTML=((rows||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>');
+   }catch(error){if(details.isConnected&&key===scope()&&seq===request)status.textContent=error.message}
+  }
+  details.addEventListener('toggle',load);
+  input.addEventListener('change',load);
+  details.addEventListener('bite-salary-refresh',load);
+  target.prepend(details);
+ }
  function entryEditor(kind){
   const headings={income:'Other income',expense:'Record expense',staff_advance:'Staff advance',salary_expense:'Earned monthly salary',salary_payment:'Pay remaining salary',opening:'Opening balance',transfer_in:'Money transferred in',transfer_out:'Money transferred out'};
   const staff=['staff_advance','salary_expense','salary_payment'].includes(kind);
@@ -671,6 +732,15 @@
    if(['income','expense','staff_advance','salary_expense','salary_payment','opening','transfer_in','transfer_out'].includes(a)){entryEditor(a);return}
    if(a==='salary'){H().editor('<h2>Staff salary</h2><div class="bh-actions">'+button('salary_expense','Record earned monthly salary')+button('salary_payment','Pay remaining salary')+'</div><p class="bh-note">Record salary cost once, then its remaining payout after advances.</p>');return}
    if(a==='accounts'){H().editor('<h2>Opening balance & transfers</h2><div class="bh-actions">'+button('opening','Add opening balance')+button('transfer_in','Transfer in / settlement')+button('transfer_out','Transfer out / withdrawal')+'</div><p class="bh-note">These change money balances and do not create sales or expenses. Record both sides when moving between your own accounts.</p>');return}
+   if(a==='book-day'){
+    if(reportScope!==scope()||!report?.days?.some(day=>day.day===id))return;
+    viewPeriod={mode:'day',day:id};month=id.slice(0,7);collectionFocusDay=id;
+    const target=document.getElementById('daily-book');
+    await renderDailyBook(target);
+    const period=target.querySelector('[data-bv3-period-toggle]');
+    period?.focus();
+    return;
+   }
    if(a==='excel'||a==='gst'){
     if(!report||reportScope!==scope())throw Error('Reload this property’s report.');
     root.BiteExports.download(root.BiteExports.workbook(a==='excel'?reportRows(report):gstRows(report)),'Bite-'+(a==='excel'?'Accounts-':'GST-Bills-')+(report.from||month)+'_to_'+(report.to||month)+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return;
@@ -707,10 +777,14 @@
     await H().command('checkout_collect',{...f,folio_id:form.dataset.id,amount:Number(f.amount),verified:f.verified==='on'});
     await H().reload();H().redraw();return;
    }
+   if(type==='book'&&document.querySelector('.page.active')?.id==='hr'){
+    document.getElementById('bhActionEditor')?.remove();
+    document.querySelector('#hr [data-ha-staff-ledger]')?.dispatchEvent(new Event('bite-salary-refresh'));return;
+   }
    await renderDailyBook(document.getElementById('daily-book'));
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,invoicePDF,downloadInvoice,historicalRoomSummary};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,mountStaffLedger,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,invoicePDF,downloadInvoice,historicalRoomSummary};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

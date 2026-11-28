@@ -55,10 +55,33 @@ try:
     check(home.get_attribute('hidden') is None,f'{mode} {width}px PDF H02/H03 visible')
     check(page.locator('#biteV3Home .bv3-pdf-metric').count()==4,
           f'{mode} {width}px four Sales/Received/Due/Expenses cards')
+    primary=home.locator('.bv3-pdf-primary-grid button[data-bv3-route]')
+    routes=primary.evaluate_all('(els)=>els.map(e=>e.dataset.bv3Route)')
+    expected_primary={'hotel':['rooms','hotel-register','daily-book'],
+                      'hybrid':['rooms','pos','hotel-register','daily-book'],
+                      'restaurant':['pos']}[mode]
+    check(routes[:len(expected_primary)]==expected_primary and (mode!='restaurant' or routes in (['pos'],['pos','daily-book'],['pos','cashbook'])),
+          f'{mode} {width}px primary action order and capability: {routes}')
+    check(len(routes)==len(set(routes)),f'{mode} {width}px no duplicate primary routes')
+    check(home.locator('.bv3-pdf-primary-grid').bounding_box()['y']<home.locator('.bv3-pdf-metrics').bounding_box()['y'],
+          f'{mode} {width}px primary actions above accounts')
+    check(all(v>=44 for v in primary.evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
+          f'{mode} {width}px primary touch targets')
+    quick=home.locator('.bv3-pdf-quick-grid button')
+    expected_quick=['hr','expenses','daily-book']+([] if mode=='hotel' else ['orders'])+['reports']
+    check(quick.evaluate_all('(els)=>els.map(e=>e.dataset.bv3Route)')==expected_quick,
+          f'{mode} {width}px canonical permission-aware secondary routes')
+    check(home.locator('.bv3-pdf-quick-grid [data-bv3-attendance="true"]').count()==1 and
+          home.locator('.bv3-pdf-quick-grid [data-bv3-gst="true"]').count()==1,
+          f'{mode} {width}px one Attendance and GST shortcut')
+    check(all(v>=44 for v in quick.evaluate_all('(els)=>els.map(e=>e.getBoundingClientRect().height)')),
+          f'{mode} {width}px secondary touch targets')
     if mode in ('hotel','hybrid'):
      check(page.locator('#biteV3Home [data-bv3-business-day]').count()==1,
            f'{mode} {width}px selected-day input available')
+     check(not page.locator('#biteV3Home [data-bv3-business-day]').is_visible(),f'{mode} {width}px date input hidden by default')
      if mode=='hybrid' and width==390:
+      page.locator('#biteV3Home .bv3-pdf-date-disclosure>summary').click()
       picker=page.locator('#biteV3Home [data-bv3-business-day]')
       picker.fill('2026-10-01')
       picker.dispatch_event('change')
@@ -70,6 +93,8 @@ try:
       page.locator('#biteV3Home [data-bv3-date-today]').click()
       page.wait_for_function("document.querySelector('#biteV3Home .bv3-pdf-today')?.textContent==='LIVE'")
       check(True,'Today resets historical Home without changing records')
+    check(home.get_by_role('heading',name='Live orders',exact=True).count()==(0 if mode=='hotel' else 1),f'{mode} {width}px no disabled orders panel')
+    check('Hotel activity ·' not in home.inner_text(),f'{mode} {width}px no raw hotel audit action')
     check(all(label in home.inner_text() for label in ('Sales','Received','Due','Expenses','Recent activity')),
           f'{mode} {width}px PDF money sections')
     check(page.locator('#biteV3Home .boh-feature-grid').count()==0,
@@ -83,7 +108,7 @@ try:
           f'{mode} {width}px hotel rooms module permission')
     check(page.locator('#biteV3Home [data-bv3-new-pos="true"]').count()==(0 if mode=='hotel' else 1),
           f'{mode} {width}px canonical POS quick action')
-    check(page.locator('#biteV3Home .bv3-pdf-room-stats span').all_text_contents().count('Cleaning')==0,
+    check(page.locator('#biteV3Home .bv3-pdf-room-stats .bv3-pdf-primary-stat>span').all_text_contents().count('Cleaning')==0,
           f'{mode} {width}px disabled housekeeping not shown')
     check(page.locator('#biteV3Home .bv3-pdf-metric').nth(1).locator('strong').inner_text()=='—',
           f'{mode} {width}px unverified receipt never becomes fake zero')
@@ -97,6 +122,13 @@ try:
            f'{mode} {width}px bottom nav touch targets')
     else:
      check(page.locator('#mainApp>.side').is_visible(),f'{mode} desktop uses original permitted sidebar')
+    if width==390:
+     for selector,target in (('[data-bv3-attendance="true"]','hr'),('[data-bv3-filter="add-expense"]','expenses'),('[data-bv3-gst="true"]','daily-book')):
+      home.locator('.bv3-pdf-quick-grid '+selector).click()
+      page.locator('#'+target+'.active').wait_for(state='visible')
+      check(True,f'{mode} {width}px {selector} opens canonical {target} page without submission')
+      page.evaluate("showPage('overview')")
+      home.locator('.bv3-pdf-home').wait_for(state='visible')
     if mode=='hybrid' and width==390:
      page.locator('#biteV3Home [data-bv3-route="rooms"]').first.click()
      page.locator('#rooms.active').wait_for(state='visible')

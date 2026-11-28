@@ -1,0 +1,3 @@
+# ZC-02.01-D1 — Primary actions
+
+Base: 4197e3b48d8a12856b360895031d80eb0e3ff1d7. C1 main deployment must be confirmed before D1 merge. Move a single Rooms card and canonical POS, check-in, Daily Book actions above finance; fallback to Cashbook only when permitted. Preserve unknown values, live/historical labels, housekeeping opt-in, and server route checks. Keep secondary Orders and Reports paths. No data mutation or new module. Extended 15-combination browser assertions for order, capability and touch target. Await full CI, visual check and live acceptance.

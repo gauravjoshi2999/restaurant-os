@@ -114,7 +114,11 @@
   const chip=document.createElement('div');chip.className='ha-saved-guest';chip.hidden=true;chip.innerHTML='<span data-selected-guest></span><button type="button" class="ha-text-button">Change guest</button>';
   form.elements.full_name.closest('label').before(chip);
   let selected=db.guests.find(g=>g.id===picker.value)||null;
-  function selection(){chip.hidden=!selected;chip.querySelector('span').textContent=selected?'Saved guest · '+selected.full_name:''}
+  const phoneStatus=document.createElement('p');phoneStatus.className='ha-duplicate-phone';phoneStatus.setAttribute('role','status');phoneStatus.hidden=true;
+  form.elements.phone.closest('label').after(phoneStatus);
+  const phoneKey=value=>{const n=String(value||'').replace(/\D/g,'');return n.length===12&&n.startsWith('91')?n.slice(2):n};
+  function duplicateNotice(){const key=phoneKey(form.elements.phone.value),matches=key.length>=7?db.guests.filter(g=>phoneKey(g.phone)===key):[];phoneStatus.hidden=!!selected||matches.length===0;phoneStatus.textContent=phoneStatus.hidden?'':matches.length+' saved guest'+(matches.length===1?' uses':'s use')+' this mobile number. Select the correct profile if returning; only continue as a new guest if this is a different person.'}
+  function selection(){chip.hidden=!selected;chip.querySelector('span').textContent=selected?'Saved guest · '+selected.full_name:'';duplicateNotice()}
   function detach(edited){
    selected=null;picker.value='';picker.dispatchEvent(new Event('change',{bubbles:true}));
    for(const key of ['full_name','phone','address','country','email','id_type','id_last4','arrived_from','next_destination','vehicle_number'])if(key!==edited)form.elements[key].value=key==='country'?'India':'';
@@ -143,7 +147,7 @@
     const rect=input.getBoundingClientRect(),vv=root.visualViewport,top=Math.max(vv?.offsetTop||0,document.querySelector('#mainApp>.main>.top')?.getBoundingClientRect().bottom||0),bottom=(vv?.offsetTop||0)+(vv?.height||root.innerHeight),below=bottom-rect.bottom-16,above=rect.top-top-16;
     const upward=below<150&&above>below;list.style.top=upward?'auto':'calc(100% - 10px)';list.style.bottom=upward?'calc(100% + 6px)':'auto';list.style.maxHeight=Math.max(70,Math.min(300,upward?above:below))+'px';
    }
-   input.addEventListener('input',()=>{if(selected)detach(key);show()});input.addEventListener('focus',show);
+   input.addEventListener('input',()=>{if(selected)detach(key);show();duplicateNotice()});input.addEventListener('focus',show);
    input.addEventListener('keydown',e=>{
     if(e.key==='Escape'){hide();return}
     if(['ArrowDown','ArrowUp'].includes(e.key)&&results.length){e.preventDefault();if(list.hidden)show();index=index<0?(e.key==='ArrowDown'?0:results.length-1):(index+(e.key==='ArrowDown'?1:-1)+results.length)%results.length;list.querySelectorAll('[role=option]').forEach((el,i)=>el.setAttribute('aria-selected',String(i===index)));input.setAttribute('aria-activedescendant',list.id+'-'+index);list.children[index+1]?.scrollIntoView({block:'nearest'});}

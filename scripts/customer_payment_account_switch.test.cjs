@@ -14,7 +14,7 @@ const verify=between('async function verifyPendingLiveCheckout(){','async functi
 const readiness=between('async function refreshCheckoutPaymentReadiness(){','async function finishVerifiedCheckout(');
 const continuation=between('async function continueLiveCheckout(){','// Authenticated server-side cancellation');
 const cancel=between('async function cancelPendingCustomerCheckout(options={}){','async function submitCustomerOrder(){');
-const session=between('function setCustomerSession(session){','async function sendCustomerPasswordResetLink(){');
+const session=between('function completeCustomerLoginUi(session){','async function sendCustomerPasswordResetLink(){');
 function deferred(){
  let release,notify;
  const started=new Promise(resolve=>notify=resolve);
@@ -114,7 +114,7 @@ test('late cancellation cannot activate the previous account order in a new sess
 test('direct Account A to B transition clears private modal and pending intent',()=>{
  const get=dom();let cleared=0,restored=null;
  const ctx=makeContext({
-  activeCustomerId:'customer-a',customerOrders:[{id:'order-a'}],expandedOrderId:'order-a',
+  authMode:'login',activeCustomerId:'customer-a',customerOrders:[{id:'order-a'}],expandedOrderId:'order-a',
   customerAccountViewSequence:1,customerOrderViewSequence:2,biteCheckoutOpenSequence:3,
   accountAddressRows:[{id:'address-a'}],checkoutAddresses:[{id:'address-a'}],
   checkoutRequestKey:'key-a',checkoutQuotedTotal:500,appliedCheckoutCoupon:{code:'OLD'},

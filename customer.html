@@ -1438,7 +1438,11 @@ async function signInCustomerWithGoogle(){
    if(!['login','signup'].includes(authMode)||$('authModal').classList?.contains?.('show')!==true)return;
    const {data,error}=await sb.auth.signInWithIdToken({provider:'google',token:credential.idToken,nonce:credential.nonce});
    if(error)throw error;
-   if(!data?.session)throw Error('Google session not established');
+   if(!data?.session?.user?.id)throw Error('Google session not established');
+   // Native sign-in stays on this page, unlike browser OAuth. Apply the returned
+   // session even if the auth event already fired or has not arrived yet.
+   setCustomerSession(data.session);
+   await biteRestoreCustomerAuthReturn();
    return;
   }
   // Same-origin callback, preserving only an existing restaurant-direct query.
@@ -1544,7 +1548,14 @@ function renderAuthMode(){
  $('authNetworkHelp').classList.toggle('hidden',true);
  if(typeof renderCustomerGoogleAuth==='function')renderCustomerGoogleAuth();
 }
+function completeCustomerLoginUi(session){
+ if(!session?.user?.id||!['login','signup'].includes(authMode)||!$('authModal').classList.contains('show'))return false;
+ hideAuth();
+ $('customerPassword').value='';$('customerPasswordConfirm').value='';$('authError').textContent='';
+ return true;
+}
 function setCustomerSession(session){const user=session?.user;const nextUserId=user?.id||null;
+ completeCustomerLoginUi(session);
  if(activeCustomerId!==nextUserId){
   // A direct Account A -> Account B switch must be as private as logout.
   // Keep the user's old pending intent in localStorage for their own later
