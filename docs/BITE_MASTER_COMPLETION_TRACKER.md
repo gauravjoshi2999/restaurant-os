@@ -10,6 +10,12 @@
 4. **Master Menu #337.** The draft passed all 13 QA jobs on its earlier combined build and has been reconciled with current `main`. Run the complete database rehearsal including the first-payment-attempt function. Validate canonical menu IDs and online, POS, room and QR eligibility server-side before rollout. [Draft #337](https://github.com/gauravjoshi2999/restaurant-os/pull/337)
 5. **Customer, Admin and subscription.** Continue authenticated customer/Android and partner settlement checks after the Owner workflows. BITE V2 SaaS billing still needs per-property plans, verified recharge and renewal, usage accounting and migration of existing properties. The 30-day workbook records zero businesses enrolled as of this check. Device acceptance, measured cash close, provider/bank evidence, published terms and actual pilot results remain open.
 
+### Subscription trial foundation
+
+The candidate adds one explicitly provisioned 30-day trial per property. The Owner usage RPC reports the 300 POS bill and 15 active room allowances. The POS meter counts issued counter, takeaway and dine-in bills once per order ID. It excludes demo, marketplace and authorized guest-room orders. Reprints, status changes and transaction rollbacks cannot add another bill. Properties without enrollment continue independently. Pilot measurement reports remaining allowances without blocking new work.
+
+Open before paid activation: Owner subscription screen and pilot enrollment, quota enforcement and ongoing stay recovery, Starter/Plus/Pro plan terms, Cashfree-verified purchase and recharge, expiry and renewals, retained credits and treatment of existing businesses. Record trial QA and rollout evidence on the linked PR before activation.
+
 ## How statuses work
 
 Lifecycle: `PLANNED → IMPLEMENTED → TESTED → LIVE → ACCEPTED`. A screen may contain released features and unresolved gaps; the lifecycle is a conservative screen-level summary, not an estimate of code completion.

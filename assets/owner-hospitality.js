@@ -45,6 +45,57 @@
  }
  const header=(title,detail,actions='')=>`<div class="bh-heading"><div><p class="bh-eyebrow">${esc(prop()?.name||'Bite Partner')}</p><h1>${esc(title)}</h1><p>${esc(detail)}</p></div><div class="bh-actions">${actions}</div></div>`+hotelSubnav(title);
  const stateCard=(text)=>`<div class="bh-empty">${esc(text)}</div>`;
+ function mountTrialUsage(target){
+  const property=prop();
+  $('biteTrialUsage')?.remove();
+  if(!target||property?.role!=='owner'||!ctx.getUser()?.id)return;
+  const scope=identity();
+  const card=document.createElement('article');
+  card.id='biteTrialUsage';
+  card.className='card bh-trial-usage';
+  card.setAttribute('aria-labelledby','biteTrialUsageTitle');
+  card.innerHTML='<h2 id="biteTrialUsageTitle">Subscription &amp; usage</h2><p role="status" class="bh-trial-status"></p><dl hidden></dl><div class="bh-actions"><button type="button" class="btn secondary" hidden>Retry</button></div>';
+  const heading=target.querySelector('.bh-heading,.welcome');
+  if(heading)heading.after(card);else target.prepend(card);
+  const status=card.querySelector('.bh-trial-status'),details=card.querySelector('dl'),retry=card.querySelector('button');
+  const isCurrent=()=>card.isConnected&&identity()===scope&&prop()?.role==='owner';
+  const dateFormat=new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Kolkata'});
+  const format=new Intl.NumberFormat('en-IN');
+  function metric(label,value){
+   const term=document.createElement('dt'),definition=document.createElement('dd');
+   term.textContent=label;definition.textContent=value;
+   const row=document.createElement('div');row.append(term,definition);details.append(row);
+  }
+  async function load(){
+   if(!isCurrent())return;
+   status.textContent='Loading trial usage…';retry.hidden=true;details.hidden=true;details.replaceChildren();
+   try{
+    const {data:usage,error}=await ctx.sb.rpc('bite_property_trial_usage',{p_property:property.id});
+    if(!isCurrent())return;
+    if(error)throw error;
+    if(usage?.status==='not_enrolled'){status.textContent='This property has no trial yet.';return;}
+    if(!['trial','expired'].includes(usage?.status))throw Error('Trial status unavailable');
+    const {ends_at:endsAt,pos_bills_used:billsUsed,pos_bill_limit:billLimit,
+     pos_bills_remaining:billsLeft,active_rooms:activeRooms,room_limit:roomLimit}=usage;
+    if(typeof endsAt!=='string'||![billsUsed,billLimit,billsLeft,activeRooms,roomLimit]
+     .every(value=>Number.isSafeInteger(value)&&value>=0))throw Error('Trial usage unavailable');
+    const end=dateFormat.format(new Date(endsAt));
+    const expired=usage.status==='expired';
+    status.textContent=expired?'Trial ended '+end+' IST.':'Trial ends '+end+' IST.';
+    if(property.business_type!=='hotel'){
+     metric('POS bills',format.format(billsUsed)+' of '+format.format(billLimit)+' used');
+     if(!expired)metric('POS bills left',format.format(billsLeft));
+    }
+    if(property.business_type!=='restaurant')metric('Active rooms',format.format(activeRooms)+' of '+format.format(roomLimit));
+    details.hidden=false;
+   }catch{
+    if(!isCurrent())return;
+    status.textContent='Could not load trial usage.';retry.hidden=false;
+   }
+  }
+  retry.addEventListener('click',load);
+  void load();
+ }
  function renderHousekeepingPreference(){
   const settings=$('settings'),p=prop();
   if(!settings)return;
@@ -175,6 +226,7 @@
   return properties.find(p=>p.id===saved)||properties[0]||null;
  }
  function setProperty(property){
+  $('biteTrialUsage')?.remove();
   reservationPeriod=null;reservationView='upcoming';roomFilters={floor:'',type:''};
   root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();setupDraft=null;setupStep=1;reportFrom='';reportTo='';hotelReportPeriod=null;
   if(property)try{localStorage.setItem('bite_property_v1:'+ctx.getUser().id,property.id)}catch{}
@@ -441,7 +493,7 @@
   if(id==='folios'){renderFolios();return}
   if(id==='reports'){renderReports(target);return}
   if(id==='settings'){
-   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);root.BiteHotelAccounts?.settings(target);renderHousekeepingPreference();root.BiteOwnerAccess?.settings(target);return;
+   target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);root.BiteHotelAccounts?.settings(target);renderHousekeepingPreference();root.BiteOwnerAccess?.settings(target);mountTrialUsage(target);return;
   }
   if(id==='hr'){renderStaffAccess(target);root.BiteHotelAccounts?.mountStaffLedger?.(target);return}
   if(id==='expenses'){
@@ -1185,14 +1237,14 @@
  function postedOrder(id){return data.entries.find(e=>e.source_order_id===id)||null}
  async function augmentPage(id){
   if(!prop())return;
-  if(id==='settings'&&restaurantAccess()){await reload();root.BiteOwnerOperations?.settings($('settings'));root.BiteHotelAccounts?.settings($('settings'));renderHousekeepingPreference();root.BiteOwnerAccess?.settings($('settings'))}
+  if(id==='settings'&&restaurantAccess()){await reload();root.BiteOwnerOperations?.settings($('settings'));root.BiteHotelAccounts?.settings($('settings'));renderHousekeepingPreference();root.BiteOwnerAccess?.settings($('settings'));mountTrialUsage($('settings'))}
   root.BiteOwnerAccess?.apply?.($(''+id)||document);
   if(!restaurantAccess())return;
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
   if(id==='hr')root.BiteHotelAccounts?.mountStaffLedger?.($('hr'));
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
- function clear(){roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
+ function clear(){$('biteTrialUsage')?.remove();roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
  root.BiteHospitality={header,reservationRows,reservationAvailability,linkedPOSSource,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,page==='expenses'&&expenseOnly()?'Record expense':label,'Open '+label,'›'])};

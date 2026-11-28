@@ -488,6 +488,13 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/hotel_credit_command_routes.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h13_credit_api_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_h10_checkin_deposit_pg_test.sql
+      - name: Verify property trial metering without restricting existing operations
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF; END $$;
+          SQL
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128150245_property_trial_metering.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/property_trial_metering_pg_test.sql
 
   super-admin-postgres-qa:
     runs-on: ubuntu-latest
