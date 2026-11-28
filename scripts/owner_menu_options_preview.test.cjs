@@ -45,6 +45,8 @@ test('quote must be immutable read-only evidence for the exact dish and choices'
  }
 });
 test('owner preview reads secure database quote; no payment or order writes',()=>{
+ assert.match(owner,/sb\.rpc\('bite_quote_menu_options_v2_for_channel',[^\n]+p_owner_preview:true/);
+ assert.match(owner,/error\?\.code==='PGRST202'/);
  assert.match(owner,/sb\.rpc\('bite_quote_menu_options_v2'/);
  assert.match(owner,/BiteOwnerOptionPreview\.verifyServerQuote/);
  assert.match(html,/id="menuOptionsPreviewForm"/);

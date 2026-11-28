@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 source=(ROOT/'index.html').read_text()
 modal=source[source.index('<div class="modal" id="menuItemModal"'):source.index('<div class="modal" id="restaurantModal"')]
+options_modal=source[source.index('<div class="modal" id="menuOptionsModal"'):source.index('<div class="modal" id="menuItemModal"')]
 styles=''.join(re.findall(r'<style[^>]*>[\s\S]*?</style>',source[:source.index('</head>')]))
 prefixes=['function openMenuItem(','function menuEditScope(','function menuRestaurantId(','function closeModal(',
  "globalThis.BiteOwnerMenuEditor?.configure(","document.getElementById('menuItemForm').addEventListener("]
@@ -19,6 +20,36 @@ fixture="""
 let currentUser={id:'synthetic-owner'},access={isPlatformAdmin:false,memberships:[{restaurant_id:'synthetic-restaurant',role:'owner'}]};
 let activeMenuRestaurant='synthetic-restaurant';
 const qa=window.__menuQA={writes:[],refreshes:0,mode:'ok',photoOk:false};
+const previewItem='11111111-1111-4111-8111-111111111111',groupId='22222222-2222-4222-8222-222222222222',
+ choiceId='33333333-3333-4333-8333-333333333333';
+qa.quoteCalls=[];qa.quoteMode='room';
+const previewRows={
+ menu_option_groups:[{id:groupId,name:'Extras',min_select:0,max_select:1,is_available:true}],
+ menu_option_choices:[{id:choiceId,option_group_id:groupId,name:'Room extra',price_delta:20,is_available:true}],
+ menu_item_option_groups:[{option_group_id:groupId,is_available:true}]
+};
+const optionDb={
+ from(table){
+  const q={select(){return q},eq(){return q},in(){return q},async order(){return {data:previewRows[table]}}};
+  return q;
+ },
+ async rpc(name,args){
+  qa.quoteCalls.push({name,args});
+  if(qa.quoteMode==='denied')return {error:{code:'42501',message:'Owner menu preview access denied'}};
+  if(name==='bite_quote_menu_options_v2_for_channel'){
+   if(args.p_owner_preview!==true)throw Error('Owner quote mode missing');
+   if(qa.quoteMode==='legacy')return {error:{code:'PGRST202'}};
+  }else if(name!=='bite_quote_menu_options_v2'||qa.quoteMode!=='legacy'){
+   throw Error('Unexpected preview RPC: '+name);
+  }
+  return {data:{quote_only:true,authorizes_payment:false,currency:'INR',restaurant_id:activeMenuRestaurant,
+   food_subtotal:140,lines:[{menu_item_id:previewItem,quantity:1,final_unit_price:140,base_unit_price:120,
+    option_unit_total:20,options:[{choice_id:choiceId,name:'Room extra',price_delta:20}]}]}};
+ }
+};
+BiteMenuOptions.init({sb:optionDb,getRestaurantId:()=>activeMenuRestaurant,canEditRestaurant:()=>true,
+ getMenuItems:()=>[{id:previewItem,name:'Room-only paneer',price:120,available_online:false,available_room:true}]});
+
 const row={id:'synthetic-item',restaurant_id:'synthetic-restaurant',category_id:'c',name:'Synthetic Paneer',price:120,
  description:'Synthetic fixture only',is_vegetarian:true,dietary_type:'veg',is_available:true,available_online:true,available_pos:true,available_room:true,available_qr:true,is_kids_choice:false,image_url:'https://images.example/saved.png'};
 let menuItems=[row];
@@ -34,10 +65,11 @@ const sb={from(table){if(table!=='menu_items')throw Error('Unexpected table');re
 document.getElementById('menuItemCategory').innerHTML='<option value="">Uncategorized</option><option value="c">Main course</option>';
 """
 html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+\
- '<link rel="stylesheet" href="/assets/owner-menu-editor.css"></head><body data-role="owner">'+\
+ '<link rel="stylesheet" href="/assets/owner-menu-editor.css"><link rel="stylesheet" href="/assets/owner-menu-options.css"></head><body data-role="owner">'+\
  '<select id="menuRestaurantSelect"><option value="synthetic-restaurant">Synthetic restaurant</option></select>'+\
- '<button id="fixtureOpen" onclick="openMenuItem(\'synthetic-item\')">Edit fixture item</button>'+modal+\
+ '<button id="fixtureOpen" onclick="openMenuItem(\'synthetic-item\')">Edit fixture item</button>'+modal+options_modal+\
  '<script src="/assets/bite-food-types.js"></script><script src="/assets/owner-menu-editor.js"></script>'+\
+ '<script src="/assets/owner-menu-options-preview.js"></script><script src="/assets/owner-menu-options.js"></script>'+\
  '<script>'+fixture+actual+'</script></body></html>'
 class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
@@ -105,6 +137,23 @@ try:
    check(page.locator('#menuItemCloseSave').bounding_box()['height']>=44,f'Close recovery actions have touch targets {width}px')
    page.evaluate("currentUser={id:'another-synthetic-user'};BiteOwnerMenuEditor.sync()")
    check(not page.locator('#menuItemModal').is_visible()and price.input_value()=='',f'Account change clears previous editor {width}px')
+   page.evaluate('BiteMenuOptions.open(previewItem)')
+   page.locator('#menuOptionsPreviewForm [data-option-preview-choice]').check()
+   button=page.locator('#menuOptionsPreviewCheck')
+   result=page.locator('#menuOptionsPreviewResult')
+   button.click()
+   result.get_by_text('₹140.00',exact=True).wait_for()
+   check(page.evaluate("qa.quoteCalls[0].args.p_owner_preview===true"),f'Room-only preview uses its guarded quote {width}px')
+   check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'Room-only preview fits {width}px')
+   if width==390:
+    page.evaluate("qa.quoteMode='denied';qa.quoteCalls=[]")
+    button.click()
+    result.get_by_text('Price check failed: Owner menu preview access denied',exact=True).wait_for()
+    check(page.evaluate('qa.quoteCalls.length===1'),'Access denial never retries through the public quote')
+    page.evaluate("qa.quoteMode='legacy';qa.quoteCalls=[]")
+    button.click()
+    result.get_by_text('₹140.00',exact=True).wait_for()
+    check(page.evaluate("qa.quoteCalls.map(c=>c.name).join(',')==='bite_quote_menu_options_v2_for_channel,bite_quote_menu_options_v2'"),'Older backend falls back to its existing quote')
    check(not errors,f'No browser script errors {width}px: {errors}')
    page.close()
   browser.close()

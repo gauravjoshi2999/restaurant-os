@@ -570,3 +570,8 @@ Do not publish private screenshots or user financial references in GitHub. Do no
 ## Staff expense entry without accounting access
 
 The hotel and hybrid expense form can be granted separately from expense history and reports. The owner can retain existing read grants or remove them individually. The staff command records the actor and time using the existing property expense ledger, honors day closing and deduplicates a retry. The test uses a synthetic reception account to record ₹500, checks that the accountant sees one attributed entry, and checks direct history, reporting, tenant separation and revoked access. Actual staff sign-in and operator acceptance are still required. Guest entry and historical folio visibility are a separate remaining change.
+
+
+## Master Menu Owner price preview
+
+The Master Menu draft adds a read-only, restaurant-scoped Owner quote for an active room-only dish. Public checkout still uses Online availability. Review the exact branch PostgreSQL and Chromium evidence in PR #337. The full migration rehearsal on a production-shaped database remains a separate release gate.

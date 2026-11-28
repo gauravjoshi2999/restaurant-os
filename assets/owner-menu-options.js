@@ -150,11 +150,15 @@
   panel.textContent='Verifying price from Bite server…';
   const active=globalThis.BiteOwnerOptionPreview.activeGroups(groups,linked,choices);
   const selectedIds=globalThis.BiteOwnerOptionPreview.validateSelections(active,Array.from(previewSelection));
-  const {data,error}=await deps.sb.rpc('bite_quote_menu_options_v2',{
-   p_restaurant_id:ctx.restaurantId,p_lines:[{
-    menu_item_id:ctx.itemId,quantity:1,option_choice_ids:selectedIds
-   }]
-  });
+  const args={p_restaurant_id:ctx.restaurantId,p_lines:[{
+   menu_item_id:ctx.itemId,quantity:1,option_choice_ids:selectedIds
+  }]};
+  let result=await deps.sb.rpc('bite_quote_menu_options_v2_for_channel',{...args,p_owner_preview:true});
+  // The older server can still quote online dishes while the migration rolls out.
+  if(result.error?.code==='PGRST202'&&ticket===previewQuoteTicket){
+   result=await deps.sb.rpc('bite_quote_menu_options_v2',args);
+  }
+  const {data,error}=result;
   if(ticket!==previewQuoteTicket||!selected||
     selected.itemId!==ctx.itemId||selected.restaurantId!==ctx.restaurantId)return;
   if(error)throw error;

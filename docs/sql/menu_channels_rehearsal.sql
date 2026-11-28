@@ -29,6 +29,7 @@ BEGIN
   EXECUTE new_def;
  END LOOP;
 END $patch$;
+\ir menu_channels_owner_quote_candidate.sql
 -- Verified paid-order finalization deliberately unchanged: immutable purchased snapshot.
 -- No production deployment until role, quote, cart, QR, POS, stale intent and paid-finalization tests pass.
 SELECT column_name,column_default,is_nullable FROM information_schema.columns

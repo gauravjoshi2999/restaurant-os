@@ -89,6 +89,52 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 \ir menu_channels_quote_candidate_fixture.sql
+\ir ../docs/sql/menu_channels_owner_quote_candidate.sql
+SET LOCAL ROLE authenticated;
+DO $preview_test$
+DECLARE
+ outlet uuid:='10000000-0000-0000-0000-000000000001';
+ lines jsonb:='[{"menu_item_id":"31000000-0000-0000-0000-000000000002","quantity":1,"option_choice_ids":["33000000-0000-0000-0000-000000000002"]}]';
+ actor text;
+ preview jsonb;
+BEGIN
+ FOREACH actor IN ARRAY ARRAY['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000005'] LOOP
+  PERFORM set_config('request.jwt.claim.sub',actor,true);
+  preview:=public.bite_quote_menu_options_v2_for_channel(outlet,lines,true);
+  IF (preview->>'food_subtotal')::numeric IS DISTINCT FROM 40
+   OR preview->>'authorizes_payment' IS DISTINCT FROM 'false'
+   OR preview->>'quote_only' IS DISTINCT FROM 'true' THEN
+   RAISE EXCEPTION 'Room-only option price preview must total 40 and remain read-only';
+  END IF;
+  BEGIN
+   PERFORM public.bite_quote_menu_options_v2(outlet,lines);
+   RAISE EXCEPTION 'Normal online quote accepted room-only item for its Owner';
+  EXCEPTION WHEN invalid_parameter_value THEN
+   IF SQLERRM<>'Menu item is unavailable' THEN RAISE; END IF;
+  END;
+ END LOOP;
+ FOREACH actor IN ARRAY ARRAY['00000000-0000-0000-0000-000000000099','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000004'] LOOP
+  PERFORM set_config('request.jwt.claim.sub',actor,true);
+  BEGIN
+   PERFORM public.bite_quote_menu_options_v2_for_channel(outlet,lines,true);
+   RAISE EXCEPTION 'Unauthorized account could use the Owner preview';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+ END LOOP;
+END $preview_test$;
+SET LOCAL ROLE anon;
+SELECT set_config('request.jwt.claim.sub','',true);
+DO $$ BEGIN
+ BEGIN
+  PERFORM public.bite_quote_menu_options_v2_for_channel(
+   '10000000-0000-0000-0000-000000000001','[]'::jsonb,true);
+  RAISE EXCEPTION 'Anonymous visitor could use Owner preview';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $$;
+RESET ROLE;
+SELECT 'PASS: Room-only Owner preview preserves customer and staff quote boundaries' AS result;
+
 -- Both quote versions must compute canonical pricing and reject direct or stale offline cart lines.
 SET LOCAL ROLE anon;
 DO $qa$

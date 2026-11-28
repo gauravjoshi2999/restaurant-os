@@ -37,3 +37,8 @@ POS and guest-bill pickers now send the menu item ID through checkout. Reopened 
 
 
 Public option groups and choices must belong to an active dish available through Online or QR. The draft policy uses the existing indexed item-to-group links and retains the restaurant team's read access. The calculation of an online quote still checks the item's Online flag. PostgreSQL fixtures cover public readers, signed-in customers, the restaurant owner and an exact quote with the updated policies.
+
+
+## Owner preview for room-only items
+
+The Owner option modal requests a server quote in preview mode. Owner and Manager access is scoped to the restaurant, and existing Platform Admin access is retained. Preview may quote an active room-only dish with its saved size or extras. Checkout calls the same pricing calculation in Online mode and still rejects the dish. The preview retains the quote-only response with payment authorization disabled. The older API fallback applies when the new function is absent, and a permission denial is shown immediately. PostgreSQL exercises the role and channel boundaries. Chromium exercises the actual modal at 320, 360, 390, 430 and 1440 pixels.
