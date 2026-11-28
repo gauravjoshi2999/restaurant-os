@@ -5,6 +5,12 @@ import { createSandboxHandler } from "./handler.mjs";
 const env = (name: string) => Deno.env.get(name);
 const url = env("SUPABASE_URL") ?? "";
 
+function serviceClient() {
+ return createClient(url, env("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
+  auth: { persistSession: false, autoRefreshToken: false }
+ });
+}
+
 Deno.serve(createSandboxHandler({
  env,
  async authenticate(authorization: string) {
@@ -15,9 +21,9 @@ Deno.serve(createSandboxHandler({
   return error ? null : data.user?.id ?? null;
  },
  async prepare(args: Record<string, unknown>) {
-  const client = createClient(url, env("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
-   auth: { persistSession: false, autoRefreshToken: false }
-  });
-  return await client.rpc("bite_prepare_subscription_sandbox", args);
+  return await serviceClient().rpc("bite_prepare_subscription_sandbox", args);
+ },
+ async receipt(args: Record<string, unknown>) {
+  return await serviceClient().rpc("bite_subscription_sandbox_receipt", args);
  }
 }));

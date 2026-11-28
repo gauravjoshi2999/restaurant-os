@@ -85,3 +85,69 @@ test('provider conflict reuses the same order and withholds unverified sessions'
  const paid=await handler({fetchProvider:async()=>Response.json({...providerOrder,order_status:'PAID'})});
  assert.equal((await paid(request())).status,409);
 });
+
+const verifyRequest = () => request({action:'verify',attempt_id:attemptId,cf_payment_id:'0000'});
+const verifiedPayment = {
+ cf_payment_id:'100200300',order_id:orderId,payment_status:'SUCCESS',payment_currency:'INR',payment_amount:1499
+};
+const receipt = {offer:{offer_code:'starter_year',pos_bill_limit:1000},verified_at:expiry};
+
+test('paid sandbox order records a single provider-confirmed receipt, then reuses it',async()=>{
+ let recorded=null, calls=0, writes=0;
+ const edge=await handler({
+  receipt: async args=>{
+   assert.equal(args.p_actor,actor);
+   assert.equal(args.p_property,property);
+   assert.equal(args.p_attempt,attemptId);
+   if(args.p_payment_id){
+    assert.equal(args.p_payment_id,verifiedPayment.cf_payment_id);
+    assert.equal(args.p_amount_paise,149900);
+    assert.equal(args.p_currency,'INR');
+    recorded=receipt;
+    writes++;
+   }
+   return {data:{...attempt,receipt:recorded}};
+  },
+  fetchProvider:async url=>{
+   calls++;
+   if(url===endpoint+'/'+orderId)return Response.json({...providerOrder,order_status:'PAID'});
+   assert.equal(url,endpoint+'/'+orderId+'/payments');
+   return Response.json([verifiedPayment]);
+  }
+ });
+ const first=await edge(verifyRequest());
+ const retry=await edge(verifyRequest());
+ assert.equal(first.status,200);
+ assert.deepEqual(await first.json(),{environment:'sandbox',status:'verified',receipt});
+ assert.deepEqual(await retry.json(),{environment:'sandbox',status:'verified',receipt});
+ assert.equal(calls,2);
+ assert.equal(writes,1);
+});
+
+test('pending, ambiguous, insufficient and unauthorized sandbox payments create no receipt',async()=>{
+ const getReceipt=async args=>{
+  assert.equal(args.p_payment_id,undefined);
+  return {data:{...attempt,receipt:null}};
+ };
+ const pending=await handler({
+  receipt:getReceipt,fetchProvider:async url=>{
+   assert.equal(url,endpoint+'/'+orderId);
+   return Response.json(providerOrder);
+  }
+ });
+ assert.deepEqual(await (await pending(verifyRequest())).json(),{environment:'sandbox',status:'awaiting_payment'});
+ for(const payments of [
+  [{...verifiedPayment,payment_status:'FAILED'}],
+  [{...verifiedPayment,payment_amount:1}],
+  [verifiedPayment,{...verifiedPayment,cf_payment_id:'222'}],
+  [{...verifiedPayment,order_id:'another_order'}]
+ ]){
+  const edge=await handler({
+   receipt:getReceipt,
+   fetchProvider:async url=>Response.json(url.endsWith('/payments')?payments:{...providerOrder,order_status:'PAID'})
+  });
+  assert.equal((await edge(verifyRequest())).status,409);
+ }
+ const denied=await handler({receipt:async()=>({error:{code:'42501'}})});
+ assert.equal((await denied(verifyRequest())).status,403);
+});

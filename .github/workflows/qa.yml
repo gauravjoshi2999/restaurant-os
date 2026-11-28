@@ -497,6 +497,8 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128160000_subscription_sandbox_attempts.sql
           psql -v ON_ERROR_STOP=1 -f scripts/subscription_sandbox_attempts_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128162500_subscription_sandbox_receipts.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/subscription_sandbox_receipts_pg_test.sql
 
   super-admin-postgres-qa:
     runs-on: ubuntu-latest

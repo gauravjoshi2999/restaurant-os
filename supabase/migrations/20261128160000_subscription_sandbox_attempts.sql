@@ -8,6 +8,7 @@ create table private.bite_subscription_sandbox_attempts (
  offer_code text not null,
  amount_paise integer not null check (amount_paise > 0),
  currency text not null check (currency='INR'),
+ offer_snapshot jsonb not null,
  created_at timestamptz not null,
  expires_at timestamptz not null check (expires_at > created_at),
  unique(property_id,request_id),
@@ -46,9 +47,9 @@ begin
   if not found then raise exception 'Unknown subscription offer' using errcode='22023'; end if;
 
   insert into private.bite_subscription_sandbox_attempts
-   (property_id,owner_id,request_id,catalog_version,offer_code,amount_paise,currency,created_at,expires_at)
+   (property_id,owner_id,request_id,catalog_version,offer_code,amount_paise,currency,offer_snapshot,created_at,expires_at)
   values(p_property,p_actor,p_request,offer.catalog_version,offer.offer_code,offer.amount_paise,
-   offer.currency,request_time,request_time+interval '20 minutes')
+   offer.currency,to_jsonb(offer)-'sale_enabled',request_time,request_time+interval '20 minutes')
   on conflict (property_id,request_id) do nothing returning * into attempt;
   if not found then
    select * into strict attempt from private.bite_subscription_sandbox_attempts
