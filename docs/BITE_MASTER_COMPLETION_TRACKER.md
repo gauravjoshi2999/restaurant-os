@@ -565,3 +565,8 @@ Do not publish private screenshots or user financial references in GitHub. Do no
 - **Guest bill.** Place Checkout beside the room and balance above bill activity. Show the relevant pending receipt, deposit or credit reason beside the action. Keep common bill actions visible and put secondary actions behind More guest actions.
 - **Cashbook and Daily Book.** Lead with cash drawer figures. Put all payment methods in a separate disclosure. Daily Book starts on the property's business date and puts old unverified records behind one disclosure. Salary and advance management lives in Staff and actual movements still use the same accounting source.
 - **Release.** Check the corresponding PR and exact main SHA in the release record. Browser checks exercise synthetic hotel checkout, account exports and the physical-drawer review interface. Actual guest, staff and physical-drawer acceptance requires an operator.
+
+
+## Staff expense entry without accounting access
+
+The hotel and hybrid expense form can be granted separately from expense history and reports. The owner can retain existing read grants or remove them individually. The staff command records the actor and time using the existing property expense ledger, honors day closing and deduplicates a retry. The test uses a synthetic reception account to record ₹500, checks that the accountant sees one attributed entry, and checks direct history, reporting, tenant separation and revoked access. Actual staff sign-in and operator acceptance are still required. Guest entry and historical folio visibility are a separate remaining change.
