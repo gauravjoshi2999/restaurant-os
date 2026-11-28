@@ -65,6 +65,7 @@ with sync_playwright() as playwright:
    page.evaluate(setup)
    page.add_script_tag(content=cashbook_js)
    page.evaluate('loadCashbook()')
+   check(page.locator('#cashbookOpeningMetric').inner_text()=='₹0.00' and page.locator('#cashbookCashIn').inner_text()=='₹50.00' and page.locator('#cashbookCashOut').inner_text()=='₹0.00',f'{width}px: headline separates drawer cash from other methods')
    search=page.get_by_label('Search entries')
    check(search.evaluate('(input)=>input.getBoundingClientRect().right <= input.parentElement.getBoundingClientRect().right+1'),f'{width}px: search stays inside its field')
    check(page.locator('#cashbookRows td').first.evaluate('(cell)=>parseFloat(getComputedStyle(cell).fontSize)>=14'),f'{width}px: mobile entries use readable text')

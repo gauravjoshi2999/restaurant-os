@@ -772,7 +772,7 @@ body.bite-session-check #biteSessionSplash{
 <script src="assets/admin-cashfree-audit.js?v=20261124-provider-not-initiated1" defer></script>
 <link rel="stylesheet" href="assets/owner-cancellation-alerts.css?v=20261115-live1"><link rel="stylesheet" href="assets/owner-hospitality.css?v=20261121-h06pdf2-h10review1-h11availability1">
 <link rel="stylesheet" href="assets/owner-premium-shell.css?v=20261116-owner-v2">
-<link rel="stylesheet" href="assets/owner-hotel-polish.css?v=20261119-h04filter1"><link rel="stylesheet" href="assets/owner-hotel-accounts.css?v=20261119-h06-period1-steps1-deposit1-simple1-compact1-continuity2-register-contract1-daybook2">
+<link rel="stylesheet" href="assets/owner-hotel-polish.css?v=20261119-h04filter1-launch1"><link rel="stylesheet" href="assets/owner-hotel-accounts.css?v=20261119-h06-period1-steps1-deposit1-simple1-compact1-continuity2-register-contract1-daybook2">
 <link rel="stylesheet" href="assets/owner-guest-documents.css?v=20261116-1">
 <link rel="stylesheet" href="assets/owner-mobile-forms.css?v=20261116-1">
 <script src="assets/owner-mobile-forms.js?v=20261116-1" defer></script>
@@ -785,7 +785,7 @@ body.bite-session-check #biteSessionSplash{
 <link rel="stylesheet" href="assets/owner-v3-collections.css?v=20261118-a03-collections1">
 <link rel="stylesheet" href="assets/owner-v3-inventory.css?v=20261119-a07-1">
 <link rel="stylesheet" href="assets/owner-v3-historical-reconcile.css?v=20261119-reconcile1">
-<link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1">
+<link rel="stylesheet" href="assets/owner-v3-period.css?v=20261119-a02-shared1-launch1">
 <link rel="stylesheet" href="assets/owner-v3-expenses.css?v=20261119-a04-paid1">
 <link rel="stylesheet" href="assets/owner-supplier-dues.css?v=20261119-a04-dues1">
 <link rel="stylesheet" href="assets/owner-v3-khata.css?v=20261119-a05-1">
@@ -1043,18 +1043,23 @@ body.bite-session-check #biteSessionSplash{
 
 <section class="page" id="cashbook">
  <div class="welcome"><div><h1>Daily cashbook</h1><div class="muted">Cash, UPI, Card aur Bank Transfer ka daily aana-jaana ek jagah.</div></div><button class="btn secondary" type="button" onclick="loadCashbook()">Refresh</button></div>
- <div class="notice">Expenses, purchase payments aur POS ke actual received payments yahan automatically dikhte hain. Online platform payments tabhi judenge jab trusted payment/settlement record connect hoga; browser-side payment ko received nahi maana jayega.</div>
+
  <div class="card"><div class="form-row" style="align-items:end">
   <div class="field"><label>Restaurant</label><select id="cashbookRestaurant"></select></div>
   <div class="field"><label>Day / date</label><input id="cashbookDate" type="date"></div>
   <div class="field"><label>Cashbook status</label><div id="cashbookStatus" class="tag">Loading…</div></div>
  </div></div>
  <div class="grid section">
+  <div class="card"><div class="metric-label">Opening cash</div><div class="metric" id="cashbookOpeningMetric">—</div></div>
+  <div class="card"><div class="metric-label">Cash in</div><div class="metric" id="cashbookCashIn">—</div></div>
+  <div class="card"><div class="metric-label">Cash out</div><div class="metric" id="cashbookCashOut">—</div></div>
+  <div class="card"><div class="metric-label">Expected drawer cash</div><div class="metric" id="cashbookExpectedCash">—</div></div>
+ </div>
+ <details class="section"><summary>Totals across all payment methods</summary><div class="grid">
   <div class="card"><div class="metric-label">Money received · all modes</div><div class="metric" id="cashbookIncome">—</div></div>
   <div class="card"><div class="metric-label">Money paid · all modes</div><div class="metric" id="cashbookOutflow">—</div></div>
   <div class="card"><div class="metric-label">Net movement · all modes</div><div class="metric" id="cashbookNet">—</div></div>
-  <div class="card"><div class="metric-label">Expected drawer cash</div><div class="metric" id="cashbookExpectedCash">—</div></div>
- </div>
+ </div></details>
  <div class="section"><div class="section-head"><h2>Day transactions</h2><span class="small" id="cashbookMatches" role="status"></span></div>
   <div class="book-filters"><label>Search entries<input id="cashbookSearch" type="search" placeholder="Search receipts…"></label><label>Money movement<select id="cashbookMovement"><option value="">All entries</option><option value="in">Money received</option><option value="out">Money paid</option></select></label></div>
   <div class="card table-wrap"><table class="book-entries"><thead><tr><th>Type</th><th>Category</th><th>Description</th><th>Payment</th><th>Amount</th><th>Source</th></tr></thead><tbody id="cashbookRows"></tbody></table><div class="empty" id="cashbookEmpty">No transactions for this date.</div></div>
@@ -1523,9 +1528,9 @@ window.addEventListener('error',function(ev){const app=document.getElementById('
 <script src="assets/bite-direct-order.js?v=20261113-share2"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-covers1"></script>
 <script src="assets/owner-capabilities.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-guest-register.js?v=20261126-past-form1-simple1-compact1"></script><script src="assets/owner-hotel-billing.js?v=20261122-h13-deposit-review1-simple1"></script><script src="assets/owner-checkin-guard.js?v=20261122-h11-overdue1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1-register-contract1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1"></script><script src="assets/owner-v3-expenses.js?v=20261122-a04-verified1"></script><script src="assets/owner-supplier-dues.js?v=20261122-a04-retry1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
-<script src="assets/owner-v3-settlements.js?v=20261124-provider-not-initiated1"></script><script src="assets/owner-hotel-accounts.js?v=20261126-past-form1-continuity2-register-contract1-daybook2"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261122-a07-verified1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
-<script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-uat002-custom1-continuity2-register-contract1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
+<script src="assets/owner-guest-register.js?v=20261126-past-form1-simple1-compact1"></script><script src="assets/owner-hotel-billing.js?v=20261122-h13-deposit-review1-simple1-launch1"></script><script src="assets/owner-checkin-guard.js?v=20261122-h11-overdue1"></script><script src="assets/owner-checkin-flow.js?v=20261118-guest-controls1-h09tiles1-register-contract1"></script><script src="assets/owner-guest-documents.js?v=20261117-photo1-h09role1"></script><script src="assets/owner-v3-period.js?v=20261119-a02-shared1-a01a03safe1-launch1"></script><script src="assets/owner-v3-expenses.js?v=20261122-a04-verified1"></script><script src="assets/owner-supplier-dues.js?v=20261122-a04-retry1"></script><script src="assets/owner-v3-khata.js?v=20261119-a05-1-verify2"></script>
+<script src="assets/owner-v3-settlements.js?v=20261124-provider-not-initiated1"></script><script src="assets/owner-hotel-accounts.js?v=20261126-past-form1-continuity2-register-contract1-daybook2-launch1"></script><script src="assets/owner-v3-collections.js?v=20261122-a03-daily-coverage1"></script><script src="assets/owner-v3-inventory.js?v=20261122-a07-verified1"></script><script src="assets/owner-v3-historical-reconcile.js?v=20261122-a12-exact-count"></script><script src="assets/owner-family-checkin.js?v=20261121-h08preview2-deposit1"></script><script src="assets/owner-access-controls.js?v=20261118-guest-controls1"></script>
+<script src="assets/owner-hospitality.js?v=20261119-h11-reservation-filter1-uat002-custom1-continuity2-register-contract1-launch1"></script><script src="assets/owner-operations.js?v=20261117-register1"></script>
 <script src="assets/owner-historical-entries.js?v=20261126-past-form1"></script>
 <script>
 let restaurantLocationMap=null,restaurantLocationMarker=null;
@@ -2117,12 +2122,15 @@ function renderCashbook(){
  const total=(dir,method)=>(method?totals?.methods[method]?.[dir]:totals?.[dir])||0;
  const display=value=>verified?money(value/100):'—';
  const income=total('in'),out=total('out'),cashIn=total('in','Cash'),cashOut=total('out','Cash');
- let expected=null;
+ let expected=null,opening=null;
  if(verified){try{
+  opening=BiteCashClosing.paise(cashbookClosing?cashbookClosing.opening_cash:document.getElementById('cashbookOpeningCash').value,'Opening cash');
   if(cashbookClosing)expected=BiteCashClosing.paise(cashbookClosing.expected_cash,'Expected cash');
-  else{const opening=BiteCashClosing.paise(document.getElementById('cashbookOpeningCash').value,'Opening cash');
-   if(Number.isSafeInteger(opening+cashIn))expected=opening+cashIn-cashOut;}
+  else if(Number.isSafeInteger(opening+cashIn))expected=opening+cashIn-cashOut;
  }catch(e){expected=null;}}
+ document.getElementById('cashbookOpeningMetric').textContent=opening===null?'—':display(opening);
+ document.getElementById('cashbookCashIn').textContent=display(cashIn);
+ document.getElementById('cashbookCashOut').textContent=display(cashOut);
  document.getElementById('cashbookIncome').textContent=display(income);document.getElementById('cashbookOutflow').textContent=display(out);
  document.getElementById('cashbookNet').textContent=display(income-out);document.getElementById('cashbookExpectedCash').textContent=expected===null?'—':display(expected);
  document.getElementById('cashbookEntryCount').textContent=verified?cashbookEntries.length+' entries':'Not verified';
@@ -5450,5 +5458,5 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <script src="assets/workspace-completion.js?v=20261110"></script><script src="assets/bite-language.js?v=20261110"></script>
 <script src="./android-update-check.js" defer></script>
-<script src="./assets/bite-live-refresh.js" defer></script>
+<script src="./assets/bite-live-refresh.js?v=launch1" defer></script>
 <!-- Live orders are consolidated by the Owner mobile shell; do not move a second panel above financial cards. --></body></html>

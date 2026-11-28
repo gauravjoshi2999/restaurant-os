@@ -192,7 +192,7 @@ try:
      old=page.evaluate("BiteOwner.day(new Date(Date.now()-86400000))")
      page.locator('#bv3HotelExpensePeriod [name=day]').fill(old)
      page.locator('#bv3HotelExpensePeriod [type=submit]').click()
-     check(old in page.locator('#bv3HotelExpensePeriod .bv3-period-head').inner_text(),'A04 historical expense view uses shared Day mode')
+     check(page.locator('#bv3HotelExpensePeriod [data-from]').get_attribute('data-from')==old,'A04 historical expense view uses shared Day mode')
      check(page.locator('#expenses [data-hotel-form=expense] [name=expense_date]').input_value()==page.evaluate('BiteOwner.day()'),'A04 changing report day cannot silently backdate new expense')
      nav(page,'reports')
      page.locator('#bhReportPeriod [data-bv3-period-toggle]').click()

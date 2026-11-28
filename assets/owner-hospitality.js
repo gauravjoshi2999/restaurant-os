@@ -437,7 +437,7 @@
   if(id==='settings'){
    target.innerHTML=header('Settings','Manage this property and its enabled business modules.')+`<article class="bh-panel"><h2>${esc(prop().name)}</h2><p>${esc(prop().address)}</p><p>${esc(prop().phone)}</p>${prop().can_configure?btn('modules','Business Modules'):stateCard('Only the property owner can change modules.')}</article>`;root.BiteOwnerOperations?.settings(target);root.BiteHotelAccounts?.settings(target);renderHousekeepingPreference();root.BiteOwnerAccess?.settings(target);return;
   }
-  if(id==='hr'){renderStaffAccess(target);return}
+  if(id==='hr'){renderStaffAccess(target);root.BiteHotelAccounts?.mountStaffLedger?.(target);return}
   if(id==='expenses'){
    const expKey='hotel:'+(ctx?.getUser?.()?.id||'')+':'+(prop()?.id||'');
    const rendered=root.BiteV3ExpenseView?.renderHotel?.(target,{
@@ -615,7 +615,13 @@
   const manager=writable&&['owner','manager'].includes(prop().role);
   const canFood=writable&&s?.status==='in_house'&&has('charge_to_room')&&restaurantAccess()&&['owner','manager'].includes(prop().role);
   const balance=Number(t.balance||0),pending=Number(t.pending||0),held=Number(t.deposit_held||0),paid=Number(t.paid||0);
-  const card='<section class="bh-guest-bill-top"><div class="bh-guest-identity"><div><p class="bh-guest-bill-overline">Room '+esc(r?.number||'—')+' · Guest bill</p><h2>'+esc(g?.full_name||'Guest')+'</h2></div><span class="bh-chip '+(s?.status==='in_house'?'in_house':'')+'">'+esc(s?.status==='in_house'?'Checked in':f.status==='open'?'Open bill':'Checked out')+'</span></div><p class="bh-stay-dates">'+esc(shortDate(s?.arrival))+' – '+esc(shortDate(s?.departure))+'</p></section>';
+  const canCheckout=writable&&s?.status==='in_house'&&root.BiteOwnerAccess?.can('checkout')!==false;
+  const checkoutHint=pending>0?'Verify the pending receipt before checkout.':held>0?'Apply or return the security deposit before checkout.':balance<0?'Review the guest credit before checkout.':'';
+  const enhancedCheckout=root.BiteHotelAccounts?.enabled?.();
+  const checkoutAction=canCheckout?'<div class="bh-folio-checkout">'+btn('checkout','Checkout',f.id,!enhancedCheckout&&(balance!==0||pending>0||held>0)?'disabled':'')+
+   '<span>'+esc(balance>0?'To collect':balance<0?'Guest credit':'Balance')+' <strong>'+money(Math.abs(balance))+'</strong></span></div>'+
+   (checkoutHint||(!enhancedCheckout&&balance>0)?'<p class="bh-checkout-hint">'+esc(checkoutHint||'Receive the outstanding payment before checkout.')+'</p>':''):'';
+  const card='<section class="bh-guest-bill-top"><div class="bh-guest-identity"><div><p class="bh-guest-bill-overline">Room '+esc(r?.number||'—')+' · Guest bill</p><h2>'+esc(g?.full_name||'Guest')+'</h2></div><span class="bh-chip '+(s?.status==='in_house'?'in_house':'')+'">'+esc(s?.status==='in_house'?'Checked in':f.status==='open'?'Open bill':'Checked out')+'</span></div><p class="bh-stay-dates">'+esc(shortDate(s?.arrival))+' – '+esc(shortDate(s?.departure))+'</p>'+checkoutAction+'</section>';
   const summary='<section class="bh-guest-bill-summary" aria-label="Guest bill summary"><div><span>Total room + food bill</span><strong>'+money(t.charges)+'</strong></div><div><span>Received & verified</span><strong>−'+money(paid)+'</strong></div><div class="bh-guest-bill-due"><span>'+esc(balance>0?'Amount due':balance<0?'Credit / refund due':'Fully paid')+'</span><strong>'+money(Math.abs(balance))+'</strong></div></section>';
   const foreignGuest=!!(g&&(g.is_oci||!['india','indian','bharat','भारत'].includes(String(g.country||'India').trim().toLowerCase())));
   const pendingReceipt=entries.find(e=>e.status==='pending'&&['payment','advance','deposit_hold'].includes(e.kind));
@@ -623,13 +629,11 @@
    (pending>0?'<section class="bh-bill-attention" role="status"><div><strong>'+money(pending)+' payment verification pending</strong><p>UPI / card / bank receipt verify hone ke baad hi payment received mein judega.</p></div>'+
     (manager&&pendingReceipt?btn('verify-payment','Verify receipt',pendingReceipt.id):'')+'</section>':'')+
    (held>0?'<p class="bh-note">Security deposit '+money(held)+' is separate from payment. Resolve it under Manager options.</p>':'');
-  const unsettled=balance!==0||pending>0||held>0;
   const primary=writable?'<section class="bh-guest-bill-steps"><h2>Guest actions</h2><div class="bh-guest-bill-buttons">'+
    (canFood?btn('food-menu','＋ Add food',f.id):'')+
    (balance>0?btn('entry','Receive payment','payment'):'')+
    btn('preview','View bill',f.id)+btn('share','Share bill',f.id)+
-   (s?.status==='in_house'?btn('checkout','Checkout guest',f.id,unsettled?'disabled title="Resolve outstanding balance, unverified payments and deposits first"':''):'')+
-   '</div>'+(unsettled&&s?.status==='in_house'?'<p class="bh-checkout-hint">Checkout available after pending payments, dues and deposits are resolved.</p>':'')+
+   '</div><details class="bh-guest-more"><summary>More guest actions</summary><div class="bh-actions" data-guest-more></div></details>'+
    (writable&&!canFood&&s?.status==='in_house'&&!has('charge_to_room')?'<p class="bh-note">Food billing needs Hotel + Restaurant / Charge to Room enabled.</p>':'')+'</section>':
    '<section class="bh-guest-bill-steps"><div class="bh-guest-bill-buttons">'+btn('preview','View bill',f.id)+btn('share','Share bill',f.id)+(f.invoice_snapshot?.splits||[]).map((x,i)=>btn('split-preview','Print '+x.guest.name,String(i))).join('')+'</div></section>';
   const activity=entries.map(e=>{
@@ -653,10 +657,12 @@
    '</div><h3>Original ledger and corrections</h3>'+adjustments+'</details>':'');
   target.innerHTML=header('Guest Bill','Room charges, food and payment in one bill.',btn('folio-list','← All guest bills'))+
    card+summary+flags+(f.payer_split?'<p class="bh-note">Payers: '+esc(f.payer_split.first_name)+' '+esc(f.payer_split.first_percent)+'% / '+esc(f.payer_split.second_name)+' '+esc(100-f.payer_split.first_percent)+'%</p>':'')+notice()+
-   '<section class="bh-guest-bill-activity"><h2>Bill details</h2>'+(activity||stateCard('Room and food charges will appear here.'))+'</section>'+
-   primary+'<div id="bhFolioEditor"></div>'+advanced;
+   primary+'<div id="bhFolioEditor"></div>'+
+   '<section class="bh-guest-bill-activity"><h2>Bill details</h2>'+(activity||stateCard('Room and food charges will appear here.'))+'</section>'+advanced;
   root.BiteOwnerOperations?.decorateFolio(target,f,s,g);
   root.BiteHotelAccounts?.decorateFolio(target,f,s);
+  const more=target.querySelector('[data-guest-more]');
+  if(more&&!more.children.length)more.closest('details').remove();
   const guestOperations=target.querySelector('#biteGuestOperations');
   if(guestOperations){
    const disclosure=document.createElement('details');
@@ -1143,6 +1149,7 @@
   root.BiteOwnerAccess?.apply?.($(''+id)||document);
   if(!restaurantAccess())return;
   if(id==='hr'&&prop().can_configure){await reload();let box=$('bitePropertyStaffAccess');if(!box){box=document.createElement('div');box.id='bitePropertyStaffAccess';box.className='bh-workspace bh-panel';$('hr').append(box)}renderStaffAccess(box,true)}
+  if(id==='hr')root.BiteHotelAccounts?.mountStaffLedger?.($('hr'));
   if(id==='reports'&&has('folios')){await reload();let box=$('biteHotelReports');if(!box){box=document.createElement('div');box.id='biteHotelReports';box.className='bh-workspace';$('reports').append(box)}renderReports(box)}
  }
  function clear(){roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
