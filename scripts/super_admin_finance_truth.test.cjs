@@ -58,3 +58,42 @@ test('Super Admin remains scoped to authenticated Super Admin and retains read-o
  assert.match(source,/action:'reconcile'/);
  assert.match(source,/Provider confirmation pending/);
 });
+
+test('advanced Admin Finance totals paid website orders and distinguishes unknown fees from zero',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const start=html.indexOf('function renderFinancials(){');
+ const end=html.indexOf('\nasync function saveReconciliation(',start);
+ assert.ok(start>=0&&end>start,'Admin Finance renderer must be present');
+ const elements=new Map();
+ const output=id=>{if(!elements.has(id))elements.set(id,{style:{}});return elements.get(id);};
+ const context={
+  BiteOwner:require('../assets/owner-core.js'),
+  document:{getElementById:id=>id==='settlementRestaurantSelect'?null:output(id)},
+  access:{isPlatformAdmin:true},
+  state:{restaurants:[],settlements:[],orders:[
+   {id:'paid',status:'Received',code:'PAID'},
+   {id:'refund',status:'Refunded',code:'REFUND'},
+   {id:'unpaid',status:'Received',code:'UNPAID'},
+   {id:'demo',status:'Received',code:'DEMO',isDemo:true}
+  ],financials:[
+   {channel:'Own Platform',order_id:'paid',payment_status:'paid',food_subtotal:100,commission_amount:10,provider_fee_actual:null},
+   {channel:'Own Platform',order_id:'refund',payment_status:'refunded',food_subtotal:45,commission_amount:4,refund_amount_actual:50,provider_fee_actual:0},
+   {channel:'Own Platform',order_id:'unpaid',payment_status:'unpaid',food_subtotal:1000,commission_amount:100},
+   {channel:'Own Platform',order_id:'demo',payment_status:'paid',food_subtotal:7000,commission_amount:700},
+   {channel:'Other',order_id:'paid',payment_status:'paid',food_subtotal:5000,commission_amount:500}
+  ]},
+  esc:value=>String(value??''),money:value=>'₹'+Number(value||0).toFixed(2),
+  pill:value=>String(value??'')
+ };
+ const run=()=>vm.runInNewContext(html.slice(start,end)+'\nrenderFinancials();',context);
+ run();
+ assert.equal(output('finFoodValue').textContent,'₹145.00');
+ assert.equal(output('finCommission').textContent,'₹14.00');
+ assert.equal(output('finRefunds').textContent,'₹50.00');
+ assert.equal(output('finGateway').textContent,'Not reconciled');
+ assert.equal(output('finSnapshotCount').textContent,'4 records · 2 paid');
+ assert.match(output('financialRows').innerHTML,/UNPAID/);
+ context.state.financials[0].provider_fee_actual=0;
+ run();
+ assert.equal(output('finGateway').textContent,'₹0.00');
+});

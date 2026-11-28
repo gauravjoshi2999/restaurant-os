@@ -931,7 +931,7 @@ body.bite-session-check #biteSessionSplash{
    <tbody id="biteRefundReviewRows"></tbody></table></div>
   <p class="notice">New approved-policy cancellations can become automatic only after production rollout is explicitly enabled and provider safety checks pass. Previously queued or manually approved refunds do not become automatic retroactively. Each "Check automatic refund readiness" button performs Cashfree GET-only checks; it never approves or sends a refund. A reference can exist in Bite even when a refund was never issued. Never issue a duplicate refund.</p>
  </div>
-</section><div class="grid"><div class="card"><div class="metric-label">Own website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">₹0</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
+</section><div class="grid"><div class="card"><div class="metric-label">Paid website food value</div><div class="metric" id="finFoodValue">₹0</div></div><div class="card"><div class="metric-label">Commission recorded</div><div class="metric" id="finCommission">₹0</div></div><div class="card"><div class="metric-label">Actual gateway fees</div><div class="metric" id="finGateway">—</div></div><div class="card"><div class="metric-label">Actual refunds</div><div class="metric" id="finRefunds">₹0</div></div></div><div class="section">
  <div class="section-head"><h2>Prepare weekly settlement draft</h2></div>
  <div class="card">
   <div class="notice">यह केवल settlement का draft बनाएगा। कोई payment collect, approve या bank transfer नहीं होगा। Actual gateway fee gateway statement से देखकर ही दर्ज करें। Draft केवल Bite Super Admin बना सकता है।</div>
@@ -5342,13 +5342,16 @@ async function saveActualGatewayFee(id){
 }
 function renderFinancials(){
  if(!access.isPlatformAdmin)return;
- const fs=state.financials||[],own=fs.filter(x=>x.channel==='Own Platform');
- const sum=(arr,key)=>arr.reduce((n,x)=>n+Number(x[key]||0),0);
- document.getElementById('finFoodValue').textContent=money(sum(own,'food_subtotal'));
- document.getElementById('finCommission').textContent=money(sum(own,'commission_amount'));
- document.getElementById('finGateway').textContent=money(sum(own,'provider_fee_actual'));
- document.getElementById('finRefunds').textContent=money(sum(own,'refund_amount_actual'));
- document.getElementById('finSnapshotCount').textContent=own.length+' records';
+ const own=(state.financials||[]).filter(snapshot=>snapshot.channel==='Own Platform');
+ const summary=BiteOwner.financialSummary(state.orders,own);
+ const byOrder=new Map(own.filter(snapshot=>!snapshot.is_demo).map(snapshot=>[snapshot.order_id,snapshot]));
+ const paidIds=new Set(summary.paid.map(order=>order.id));
+ const food=summary.paid.reduce((total,order)=>total+BiteOwner.number(byOrder.get(order.id).food_subtotal),0);
+ document.getElementById('finFoodValue').textContent=money(BiteOwner.round(food));
+ document.getElementById('finCommission').textContent=money(summary.commission);
+ document.getElementById('finGateway').textContent=!paidIds.size?'—':summary.fees===null?'Not reconciled':money(summary.fees);
+ document.getElementById('finRefunds').textContent=money(summary.refunds);
+ document.getElementById('finSnapshotCount').textContent=own.length+' records · '+paidIds.size+' paid';
  const restaurantSelect=document.getElementById('settlementRestaurantSelect');
  if(restaurantSelect){
   const previous=restaurantSelect.value;
@@ -5365,7 +5368,7 @@ function renderFinancials(){
   const canRecord=f.channel==='Own Platform'&&f.payment_status==='paid'&&o?.status==='Completed'&&!['included','paid'].includes(f.settlement_status);
   const feeCell=canRecord
    ? '<div class="actions"><input id="gatewayFee-'+esc(f.id)+'" type="number" min="0" step="0.01" value="'+(f.provider_fee_actual==null?'':esc(f.provider_fee_actual))+'" placeholder="0.00" style="width:105px;padding:7px;border:1px solid #e3e7ef;border-radius:8px"><button class="btn secondary" type="button" onclick="saveActualGatewayFee(\''+esc(f.id)+'\')">Save</button></div>'
-   : (f.provider_fee_actual==null?'<span class="small">Not eligible yet</span>':money(f.provider_fee_actual));
+   : (f.provider_fee_actual==null?'<span class="small">'+(paidIds.has(f.order_id)?'Not reconciled':'Not eligible yet')+'</span>':money(f.provider_fee_actual));
   return '<tr><td><strong>'+esc(o?.code||String(f.order_id).slice(0,8))+'</strong><br><span class="small">'+esc(r?.name||'Restaurant')+'</span></td><td>'+esc(f.channel)+(f.is_demo?' <span class="pill amber">DEMO ONLY</span>':'')+'</td><td>'+money(f.food_subtotal)+'</td><td>'+money(f.commission_amount)+' <span class="small">('+esc(f.commission_rate)+'%)</span></td><td>'+feeCell+'</td><td><span class="financial-status '+esc(f.payment_status)+'">'+esc(f.payment_status)+'</span></td><td><span class="financial-status '+esc(f.settlement_status)+'">'+esc(f.settlement_status)+'</span></td></tr>';
  }).join('');
  document.getElementById('financialEmpty').style.display=own.length?'none':'block';
