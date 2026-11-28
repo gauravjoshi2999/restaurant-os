@@ -1,0 +1,44 @@
+name: Master Menu isolated Supabase QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/master-menu-supabase-qa.yml'
+      - 'docs/sql/menu_channels_*.sql'
+      - 'scripts/menu_channels_*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Start disposable Supabase database, Auth and REST
+        working-directory: ${{ runner.temp }}
+        run: |
+          supabase init
+          supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Verify Master Menu with real local Auth sessions
+        run: |
+          set -euo pipefail
+          status=$(supabase --workdir "$RUNNER_TEMP" status -o json)
+          api=$(jq -er '.API_URL' <<<"$status")
+          db=$(jq -er '.DB_URL' <<<"$status")
+          [[ "$api" == http://127.0.0.1:54321 ]]
+          [[ "$db" == postgresql://*@127.0.0.1:54322/postgres ]]
+          credentials=$(mktemp)
+          trap 'rm -f "$credentials"' EXIT
+          jq -e '{anon: .ANON_KEY, service: .SERVICE_ROLE_KEY}' <<<"$status" >"$credentials"
+          psql "$db" -X -f scripts/menu_channels_supabase_fixture.sql
+          BITE_REHEARSAL_API="$api" node scripts/menu_channels_supabase_smoke.mjs "$credentials"
+      - name: Stop disposable stack
+        if: always()
+        working-directory: ${{ runner.temp }}
+        run: supabase stop
