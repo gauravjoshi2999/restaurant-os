@@ -30,7 +30,8 @@ const previewRows={
 };
 const optionDb={
  from(table){
-  const q={select(){return q},eq(){return q},in(){return q},async order(){return {data:previewRows[table]}}};
+  const q={select(){return q},eq(){return q},in(){return q},order(){return q},
+   then(resolve,reject){return Promise.resolve({data:previewRows[table]}).then(resolve,reject);}};
   return q;
  },
  async rpc(name,args){
