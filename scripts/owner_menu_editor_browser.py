@@ -65,7 +65,7 @@ const sb={from(table){if(table!=='menu_items')throw Error('Unexpected table');re
  }}};async function fetchMenuData(){qa.refreshes++;menuItems=[row];}
 document.getElementById('menuItemCategory').innerHTML='<option value="">Uncategorized</option><option value="c">Main course</option>';
 """
-html='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+\
+html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+styles+\
  '<link rel="stylesheet" href="/assets/owner-menu-editor.css"><link rel="stylesheet" href="/assets/owner-menu-options.css"></head><body data-role="owner">'+\
  '<select id="menuRestaurantSelect"><option value="synthetic-restaurant">Synthetic restaurant</option></select>'+\
  '<button id="fixtureOpen" onclick="openMenuItem(\'synthetic-item\')">Edit fixture item</button>'+modal+options_modal+\
@@ -76,7 +76,7 @@ class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
  def do_GET(self):
   if self.path=='/menu-editor-fixture':
-   data=html.encode();self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers();self.wfile.write(data)
+   data=html.encode();self.send_response(200);self.send_header('Content-Type','text/html; charset=utf-8');self.end_headers();self.wfile.write(data)
   else:super().do_GET()
  def log_message(self,*args):pass
 server=ThreadingHTTPServer(('127.0.0.1',4494),Handler);Thread(target=server.serve_forever,daemon=True).start()
@@ -143,7 +143,8 @@ try:
    button=page.locator('#menuOptionsPreviewCheck')
    result=page.locator('#menuOptionsPreviewResult')
    button.click()
-   result.get_by_text('₹140.00',exact=True).wait_for()
+   page.wait_for_function("document.querySelector('#menuOptionsPreviewResult .bite-options-verified') || document.querySelector('#menuOptionsPreviewResult').textContent.startsWith('Price check failed')",timeout=8000)
+   check(result.locator('strong').count()==1 and result.locator('strong').inner_text()=='₹140.00',f'Room-only quote at {width}px: {result.inner_text()}')
    check(page.evaluate("qa.quoteCalls[0].args.p_owner_preview===true"),f'Room-only preview uses its guarded quote {width}px')
    check(page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'Room-only preview fits {width}px')
    if width==390:
