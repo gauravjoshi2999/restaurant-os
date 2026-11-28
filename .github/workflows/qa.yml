@@ -489,6 +489,10 @@ jobs:
           SQL
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128150245_property_trial_metering.sql
           psql -v ON_ERROR_STOP=1 -f scripts/property_trial_metering_pg_test.sql
+      - name: Verify approved subscription prices and server-only offer lookup
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128154000_paid_subscription_offers.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/paid_subscription_offers_pg_test.sql
 
   super-admin-postgres-qa:
     runs-on: ubuntu-latest
