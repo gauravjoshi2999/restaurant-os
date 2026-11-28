@@ -16,6 +16,14 @@ RID="262aaba7-f48b-4fa5-9ff6-b334ededca84"
 SUPABASE_MOCK=r"""
 window.__qrTestWrites=[];
 window.__qrMenuPrice=180;
+window.__qrSchema='current';
+window.__qrReads=[];
+const channelDishes=[
+ {id:'qr-only',name:'QR Only Dish',available_qr:true,available_online:false,is_available:true},
+ {id:'online-only',name:'Online Only Dish',available_qr:false,available_online:true,is_available:true},
+ {id:'room-only',name:'Room Only Dish',available_qr:false,available_room:true,is_available:true},
+ {id:'paused',name:'Paused Dish',available_qr:true,is_available:false}
+].map(row=>({...row,category_id:'cat-veg',is_vegetarian:true,price:90}));
 window.supabase={
  createClient:()=>({
   rpc: async name=>{
@@ -33,13 +41,20 @@ window.supabase={
   from:table=>{
     if(!['menu_categories','menu_items'].includes(table))throw Error('Unexpected table '+table);
     const q={
-      restaurantId:'',
+      filters:{},
       select:()=>q,
-      eq:(field,value)=>{if(field==='restaurant_id')q.restaurantId=value;return q},
+      eq:(field,value)=>{q.filters[field]=value;return q},
       order:()=>q,limit:()=>q,
-      then:(resolve,reject)=>Promise.resolve({data:table==='menu_categories'
-       ?[{id:'cat-veg',name:'Main Course',sort_order:1},{id:'cat-breakfast',name:'Breakfast',sort_order:2}]
-       :q.restaurantId==='262aaba7-f48b-4fa5-9ff6-b334ededca84'
+      then:(resolve,reject)=>settle().then(resolve,reject)
+    };
+    const settle=async()=>{
+      if(table==='menu_categories')
+        return {data:[{id:'cat-veg',name:'Main Course',sort_order:1},{id:'cat-breakfast',name:'Breakfast',sort_order:2}],error:null};
+      window.__qrReads.push({...q.filters});
+      const missingFlag=window.__qrSchema==='legacy'&&q.filters.available_qr;
+      if(missingFlag)return {error:{code:'42703',message:'column menu_items.available_qr does not exist'}};
+      if(window.__qrSchema==='denied')return {error:{code:'42501',message:'permission denied'}};
+      const data=q.filters.restaurant_id==='262aaba7-f48b-4fa5-9ff6-b334ededca84'
          ?[{id:'dish-1',name:'Paneer Butter Masala',description:'Fresh paneer',
             price:window.__qrMenuPrice,image_url:null,is_vegetarian:true,category_id:'cat-veg'},
            {id:'dish-2',name:'Veg Sandwich',description:'Fresh vegetables',price:120,
@@ -47,9 +62,12 @@ window.supabase={
          :[{id:'dish-1',name:'Paneer Butter Masala',description:'Fresh paneer',price:180,
              image_url:null,is_vegetarian:true,category_id:'cat-veg'},
            {id:'dish-3',name:'Chicken Curry',description:'Spiced',price:250,
-             image_url:null,is_vegetarian:false,category_id:'cat-veg'}],
-       error:null}).then(resolve,reject)
-    };return q;
+             image_url:null,is_vegetarian:false,category_id:'cat-veg'}];
+      const rows=window.__qrSchema==='channels'?[...data,...channelDishes]:data;
+      return {data:rows.filter(row=>q.filters.is_available!==true||row.is_available!==false)
+        .filter(row=>q.filters.available_qr!==true||row.available_qr!==false),error:null};
+    };
+    return q;
   }
  })
 };
@@ -60,8 +78,8 @@ def check(condition,message):
 
 try:
  with sync_playwright() as playwright:
-  browser=playwright.chromium.launch()
-  for width in (320,390,430):
+  browser=playwright.chromium.launch(executable_path=os.environ.get('BITE_CHROMIUM_EXECUTABLE'))
+  for width in (320,360,390,430,1440):
    page=browser.new_page(viewport={'width':width,'height':820})
    page.route('**/supabase.min.js',lambda route:route.fulfill(status=200,
      content_type='application/javascript',body=SUPABASE_MOCK))
@@ -100,6 +118,27 @@ try:
    check(page.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+1'),
          f'QR menu no horizontal overflow at {width}px')
    check(page.evaluate('window.__qrTestWrites.length===0'),f'QR menu makes no writes at {width}px')
+   page.evaluate("window.__qrSchema='channels'; window.__qrReads=[]")
+   page.locator('#refreshMenuBtn').click()
+   page.get_by_text('QR Only Dish',exact=True).wait_for(timeout=8000)
+   check(page.locator('.item').count()==3 and all(page.get_by_text(dish,exact=True).count()==0
+     for dish in ('Online Only Dish','Room Only Dish','Paused Dish')),f'QR exposes only active QR dishes at {width}px')
+   check(page.evaluate("window.__qrReads.length===1 && window.__qrReads[0].available_qr===true"),
+     f'QR visibility filter is sent to the database at {width}px')
+   if width==390:
+    page.evaluate("window.__qrSchema='legacy'; window.__qrReads=[]")
+    page.locator('#refreshMenuBtn').click()
+    page.wait_for_function("window.__qrReads.length===2 && !document.getElementById('refreshMenuBtn').disabled")
+    check(page.locator('.item').count()==2 and page.evaluate("""() => {
+      const [first,retry]=window.__qrReads;
+      return first.available_qr===true && !('available_qr' in retry) &&
+        first.restaurant_id===retry.restaurant_id && first.is_available===true && retry.is_available===true;
+    }"""),'Legacy QR retry preserves outlet and global availability')
+    page.evaluate("window.__qrSchema='denied'; window.__qrReads=[]")
+    page.locator('#refreshMenuBtn').click()
+    page.wait_for_function("document.getElementById('menuFreshness').textContent.includes('latest update verify nahi hua')")
+    check(page.locator('.item').count()==2 and page.evaluate("window.__qrReads.length===1 && window.__qrReads[0].available_qr===true"),
+      'Permission error retains the previous snapshot and never retries with a broader query')
    page.close()
   page=browser.new_page(viewport={'width':390,'height':820})
   page.route('**/supabase.min.js',lambda route:route.fulfill(status=200,

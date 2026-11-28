@@ -42,3 +42,7 @@ Public option groups and choices must belong to an active dish available through
 ## Owner preview for room-only items
 
 The Owner option modal requests a server quote in preview mode. Owner and Manager access is scoped to the restaurant, and existing Platform Admin access is retained. Preview may quote an active room-only dish with its saved size or extras. Checkout calls the same pricing calculation in Online mode and still rejects the dish. The preview retains the quote-only response with payment authorization disabled. The older API fallback applies when the new function is absent, and a permission denial is shown immediately. PostgreSQL exercises the role and channel boundaries. Chromium exercises the actual modal at 320, 360, 390, 430 and 1440 pixels.
+
+## Printed QR compatibility rehearsal
+
+The QR menu now uses the same staged-schema reader as the Customer catalog and room picker. With the four channel columns in place it requests active QR items for the scanned outlet. On the known older schema it retries only when PostgreSQL reports that the QR column itself is absent. The retry keeps the restaurant and global availability filters. A permission error keeps the previous menu marked stale. Browser fixtures cover QR-only, online-only, room-only and paused dishes, the legacy retry, and a denied query at five viewport widths. No live migration or Cashfree payment was run. The integrated Supabase and Cashfree sandbox rehearsal remains a release gate.
