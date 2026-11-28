@@ -1,32 +1,39 @@
 -- Runs against the disposable Owner schema. All trial data rolls back.
 begin;
-create temporary table trial_test_properties as
-select property_id,restaurant_id from public.bite_property_outlets
-where restaurant_id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+-- Dedicated outlets and properties keep rooms and roles independent of other QA.
+create temporary table trial_test_properties(
+ property_id uuid,restaurant_id uuid,owner_id uuid
+);
+insert into trial_test_properties values
+ ('fc020000-0000-4000-8000-000000000001','fc010000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111'),
+ ('fc020000-0000-4000-8000-000000000002','fc010000-0000-4000-8000-000000000002','22222222-2222-4222-8222-222222222222');
 grant select on trial_test_properties to authenticated,service_role;
-
--- The shared suite changes outlet modules in its other cases. Set a known
--- hybrid property state so the real module guard allows marketplace and POS.
-update public.bite_properties
-set business_type='hybrid',capabilities=private.bite_default_capabilities('hybrid')
-where id in (select property_id from trial_test_properties);
+insert into public.restaurants(id,name,address,phone)
+select restaurant_id,'Trial QA restaurant','','' from trial_test_properties;
+insert into public.bite_properties(id,business_id,name,business_type,capabilities)
+select t.property_id,b.id,'Trial QA property','hybrid',private.bite_default_capabilities('hybrid')
+from trial_test_properties t join public.bite_businesses b on b.owner_id=t.owner_id;
+insert into public.bite_property_outlets(property_id,restaurant_id)
+select property_id,restaurant_id from trial_test_properties;
+insert into public.bite_property_members(property_id,user_id,role)
+select property_id,owner_id,'owner' from trial_test_properties;
 
 insert into public.orders(restaurant_id,order_code,channel,amount)
-values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','TRIAL-PREVIOUS','POS - Counter',100);
+values ('fc010000-0000-4000-8000-000000000001','TRIAL-PREVIOUS','POS - Counter',100);
 set local role service_role;
 select public.bite_enroll_property_trial(property_id) from trial_test_properties
-where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+where restaurant_id='fc010000-0000-4000-8000-000000000001';
 reset role;
 create temporary table trial_initial as select * from private.bite_property_trials;
 set local role service_role;
 select public.bite_enroll_property_trial(property_id) from trial_test_properties
-where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+where restaurant_id='fc010000-0000-4000-8000-000000000001';
 reset role;
 
 do $$
 declare
  property uuid:=(select property_id from trial_initial);
- outlet uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ outlet uuid:='fc010000-0000-4000-8000-000000000001';
  first_bill uuid;
 begin
  if exists(select * from private.bite_property_trials except select * from trial_initial)
@@ -38,7 +45,7 @@ begin
  insert into public.orders(restaurant_id,order_code,channel,amount,is_demo) values
   (outlet,'TRIAL-ONLINE','Own Platform',100,false),
   (outlet,'TRIAL-DEMO','POS - Counter',100,true),
-  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','TRIAL-UNENROLLED','POS - Counter',100,false);
+  ('fc010000-0000-4000-8000-000000000002','TRIAL-UNENROLLED','POS - Counter',100,false);
  perform set_config('bite.staff_room_charge_scope',property::text,true);
  insert into public.orders(restaurant_id,order_code,channel,amount)
  values(outlet,'POS-ROOM-TRIAL','POS - Counter',100);
@@ -62,14 +69,13 @@ begin
 end $$;
 
 insert into public.bite_property_members(property_id,user_id,role)
-select property_id,'33333333-3333-4333-8333-333333333333','receptionist' from trial_initial
-on conflict (property_id,user_id) do update set role=excluded.role,active=true;
+select property_id,'33333333-3333-4333-8333-333333333333','receptionist' from trial_initial;
 set local role authenticated;
 set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$
 declare
- property uuid:=(select property_id from trial_test_properties where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
- other_property uuid:=(select property_id from trial_test_properties where restaurant_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+ property uuid:=(select property_id from trial_test_properties where restaurant_id='fc010000-0000-4000-8000-000000000001');
+ other_property uuid:=(select property_id from trial_test_properties where restaurant_id='fc010000-0000-4000-8000-000000000002');
  usage jsonb;
 begin
  usage:=public.bite_property_trial_usage(property);
@@ -96,7 +102,7 @@ set local request.jwt.claim.sub='33333333-3333-4333-8333-333333333333';
 do $$begin
  begin
   perform public.bite_property_trial_usage(property_id) from trial_test_properties
-  where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  where restaurant_id='fc010000-0000-4000-8000-000000000001';
   raise exception 'Reception could read Owner-only usage';
  exception when insufficient_privilege then null;
  end;
@@ -104,7 +110,7 @@ end $$;
 set local request.jwt.claim.sub='22222222-2222-4222-8222-222222222222';
 do $$begin
  if exists(select from trial_test_properties
-  where restaurant_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  where restaurant_id='fc010000-0000-4000-8000-000000000002'
    and public.bite_property_trial_usage(property_id) is distinct from '{"status":"not_enrolled"}'::jsonb) then
   raise exception 'An existing property was enrolled automatically';
  end if;
@@ -112,13 +118,13 @@ end $$;
 reset role;
 
 insert into public.orders(restaurant_id,order_code,channel,amount)
-values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','TRIAL-ABOVE-ALLOWANCE','POS - Counter',100);
+values('fc010000-0000-4000-8000-000000000001','TRIAL-ABOVE-ALLOWANCE','POS - Counter',100);
 update public.bite_rooms set active=true where number='TRIAL-16';
 set local role authenticated;
 set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$begin
  if exists(select from trial_test_properties
-  where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  where restaurant_id='fc010000-0000-4000-8000-000000000001'
    and not (public.bite_property_trial_usage(property_id) @> '{"pos_bills_used":301,"pos_bills_remaining":0,"active_rooms":16,"rooms_remaining":0}')) then
   raise exception 'Shadow metering did not report the over-limit usage';
  end if;
@@ -129,12 +135,12 @@ reset role;
 update private.bite_property_trials set starts_at=statement_timestamp()-interval '721 hours',
  ends_at=statement_timestamp()-interval '1 hour';
 insert into public.orders(restaurant_id,order_code,channel,amount)
-values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','TRIAL-EXPIRED','POS - Counter',100);
+values('fc010000-0000-4000-8000-000000000001','TRIAL-EXPIRED','POS - Counter',100);
 set local role authenticated;
 set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$begin
  if exists(select from trial_test_properties
-  where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  where restaurant_id='fc010000-0000-4000-8000-000000000001'
    and not (public.bite_property_trial_usage(property_id) @> '{"status":"expired","pos_bills_used":301}')) then
   raise exception 'Expired trial counted a new bill or returned the wrong state';
  end if;
