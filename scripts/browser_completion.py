@@ -73,7 +73,11 @@ try:
     };
     window.BiteOrderConfirmation={
       watch(){},view:()=>({state:'approved'}),assertApproved:async()=>{},stop(){},
-      async cancel(){state.cancellations++;await new Promise(resolve=>state.finishCancel=resolve);}
+      async cancel(){
+        state.cancellations++;
+        if(state.cancellations===1)throw Error('Synthetic confirmation unavailable');
+        await new Promise(resolve=>state.finishCancel=resolve);
+      }
     };
     pendingLiveCheckout={id,restaurantId:activeRestaurant.id,confirmationRequired:true,
       intentCreatedAt:new Date().toISOString(),started:false,verifyOnly:false};
@@ -87,7 +91,11 @@ try:
   check(channels.locator('#checkoutError').inner_text()=='Menu availability changed. No payment was started.',
         'Checkout explains why payment was interrupted')
   channels.locator('#placeOrderBtn').click()
-  channels.wait_for_function("window.__menuReviewQa.cancellations===1 && document.getElementById('placeOrderBtn').disabled")
+  channels.wait_for_function("document.getElementById('checkoutError').textContent.includes('Could not close the earlier checkout') && !document.getElementById('placeOrderBtn').disabled")
+  check(channels.locator('#placeOrderBtn').is_visible() and channels.locator('#placeOrderBtn').is_enabled(),
+        'Temporary cancellation failure leaves the review action available')
+  channels.locator('#placeOrderBtn').click()
+  channels.wait_for_function("window.__menuReviewQa.cancellations===2 && document.getElementById('placeOrderBtn').disabled")
   check(channels.locator('#placeOrderBtn').inner_text()=='Closing unpaid checkout…',
         'Review waits for server cancellation before reopening a cart')
   channels.evaluate('window.__menuReviewQa.finishCancel()')

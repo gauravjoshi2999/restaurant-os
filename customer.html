@@ -2334,8 +2334,10 @@ async function cancelPendingCustomerCheckout(options={}){
   console.warn('Checkout cancellation not confirmed',e);
   $('checkoutError').textContent=pendingLiveCheckout?.menuReviewRequired?'Could not close the earlier checkout. Your cart is saved. Try Review updated menu again.':'Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
   if(background){if(!$('checkoutFormPanel').classList.contains('hidden')&&!$('checkoutModal').classList.contains('hidden'))$('checkoutError').textContent='Earlier payment is still being checked. Cart is saved; payment is paused.';}
-  else if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
-  else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
+  else if(!pendingLiveCheckout?.menuReviewRequired){
+   if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
+   else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
+  }
   return false;
  }
  finally{if(accountSequence===bitePaymentAccountSequence){window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}}

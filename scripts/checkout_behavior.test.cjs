@@ -14,7 +14,7 @@ function setup(options={}){
  let displayedOrders=0,writes=0,returnedToMenu=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{BiteCheckoutUX:{},matchMedia:()=>({matches:!!options.mobile}),BiteOrderConfirmation:{
+  window:{BiteCheckoutUX:{showPending(){calls.push({kind:'pending-panel'});}},matchMedia:()=>({matches:!!options.mobile}),BiteOrderConfirmation:{
    watch(){},view:()=>restaurantApproved?{state:'approved',label:'Confirmed'}:{state:'pending',label:'Restaurant confirmation · 02:59'},
    async request(sb,id){calls.push({kind:'confirmation',id});return {intent_id:id,state:'pending'};},
    async assertApproved(){if(!restaurantApproved)throw Error('Restaurant confirmation ka wait karein.');},
@@ -82,7 +82,7 @@ test('unconfirmed cancellation keeps menu review and never retries the old payme
  assert.equal(t.element('placeOrderBtn').textContent,'Review updated menu');
  assert.equal(vm.runInContext('pendingLiveCheckout.id',t.context),'checkout-1');
  assert.match(t.element('checkoutError').textContent,/Your cart is saved/);
- assert.equal(t.calls.filter(c=>c.kind==='review'||c.kind==='sdk').length,0);
+ assert.equal(t.calls.filter(c=>['review','sdk','pending-panel'].includes(c.kind)).length,0);
  assert.equal(t.calls.filter(c=>c.name==='bite-live-create-session'&&!c.args.body.action).length,1);
 });
 test('production mobile checkout stays in Bite modal with a freshly issued session',async()=>{
