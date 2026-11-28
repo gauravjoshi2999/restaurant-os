@@ -21,6 +21,7 @@ trial_fixture = """<script>
    const trial=window.__BITE_TRIAL_QA;
    trial.calls.push(params.p_property);
    if(trial.status==='error')return {error:{message:'Synthetic backend outage'}};
+   if(trial.status==='stalled')return new Promise(resolve=>{trial.finishStalled=resolve;});
    if(trial.status==='not_enrolled')return {data:{status:trial.status}};
    return {data:{status:trial.status,ends_at:'2026-12-28T13:42:00Z',
     pos_bills_used:125,pos_bill_limit:300,pos_bills_remaining:175,active_rooms:12,room_limit:15}};
@@ -129,9 +130,16 @@ try:
     card.get_by_role('button',name='Retry',exact=True).click()
     card.get_by_text('Trial ended 28 Dec 2026, 7:12 pm IST.',exact=True).wait_for()
     check(not card.get_by_text('POS bills left',exact=True).count(),'Expired trial omits remaining POS allowance')
-    page.evaluate("__BITE_TRIAL_QA.status='not_enrolled'; showPage('settings')")
+    page.evaluate("__BITE_TRIAL_QA.status='stalled'; showPage('settings')")
+    card.get_by_text('Loading trial usage…',exact=True).wait_for()
+    card.get_by_text('Could not load trial usage.',exact=True).wait_for(timeout=12000)
+    check(card.get_by_role('button',name='Retry',exact=True).is_visible(),'A stalled trial request offers a retry')
+    page.evaluate("__BITE_TRIAL_QA.status='not_enrolled'")
+    card.get_by_role('button',name='Retry',exact=True).click()
     card.get_by_text('This property has no trial yet.',exact=True).wait_for()
-    check(not card.locator('dl').is_visible(),'Unenrolled property does not show usage or payment prompts')
+    page.evaluate("__BITE_TRIAL_QA.finishStalled({error:{message:'Late response'}})")
+    check(card.get_by_text('This property has no trial yet.',exact=True).is_visible()
+          and not card.locator('dl').is_visible(),'A late trial response cannot replace the successful retry')
    c.close()
   check(not errors,'No JavaScript page errors: '+str(errors[:2]));browser.close()
 finally:
