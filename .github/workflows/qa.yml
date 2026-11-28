@@ -489,6 +489,18 @@ jobs:
           SQL
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128150245_property_trial_metering.sql
           psql -v ON_ERROR_STOP=1 -f scripts/property_trial_metering_pg_test.sql
+      - name: Verify approved subscription prices and server-only offer lookup
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128154000_paid_subscription_offers.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/paid_subscription_offers_pg_test.sql
+      - name: Verify property-scoped subscription sandbox attempts
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128160000_subscription_sandbox_attempts.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/subscription_sandbox_attempts_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128162500_subscription_sandbox_receipts.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/subscription_sandbox_receipts_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128170000_subscription_sandbox_lifecycle.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/subscription_sandbox_lifecycle_pg_test.sql
 
   super-admin-postgres-qa:
     runs-on: ubuntu-latest

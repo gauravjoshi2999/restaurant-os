@@ -1,0 +1,59 @@
+name: Subscription checkout isolated Supabase QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/subscription-sandbox-qa.yml'
+      - 'scripts/subscription_sandbox_*'
+      - 'supabase/functions/bite-subscription-sandbox/**'
+      - 'supabase/migrations/*_paid_subscription_offers.sql'
+      - 'supabase/migrations/*_subscription_sandbox_*.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-subscription:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Start disposable Supabase database, Auth and REST
+        working-directory: ${{ runner.temp }}
+        run: |
+          supabase init
+          supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Rehearse subscription checkout with real Auth and simulated Cashfree
+        run: |
+          set -euo pipefail
+          status=$(supabase --workdir "$RUNNER_TEMP" status -o json)
+          api=$(jq -er '.API_URL' <<<"$status")
+          db=$(jq -er '.DB_URL' <<<"$status")
+          [[ "$api" == http://127.0.0.1:54321 ]]
+          [[ "$db" == postgresql://*@127.0.0.1:54322/postgres ]]
+          credentials=$(mktemp)
+          trap 'rm -f "$credentials"' EXIT
+          jq -e '{anon: .ANON_KEY, service: .SERVICE_ROLE_KEY}' <<<"$status" >"$credentials"
+          psql "$db" -X -f scripts/subscription_sandbox_supabase_fixture.sql
+          npm install --prefix "$RUNNER_TEMP/bite-subscription-qa" --no-audit --no-fund @supabase/supabase-js@2.49.8
+          BITE_REHEARSAL_DEPENDENCIES="$RUNNER_TEMP/bite-subscription-qa" node scripts/subscription_sandbox_supabase_smoke.mjs "$credentials"
+          psql "$db" -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $$begin
+            if (select count(*) from private.bite_subscription_sandbox_attempts)<>3
+               or (select count(*) from private.bite_subscription_sandbox_receipts)<>2
+               or exists(select from private.bite_subscription_offers where sale_enabled) then
+              raise exception 'Unexpected sandbox attempts, receipts or enabled paid sales';
+            end if;
+          end $$;
+          SQL
+      - name: Stop disposable Supabase
+        if: always()
+        working-directory: ${{ runner.temp }}
+        run: supabase stop

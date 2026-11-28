@@ -241,3 +241,9 @@ body[data-role="owner"] #biteHousekeepingVisibilitySetting #biteHousekeepingRetr
 .bh-trial-usage dt{font-size:14px;color:#51483f}
 .bh-trial-usage dd{margin:4px 0 0;font-size:18px;font-weight:700;overflow-wrap:anywhere}
 .bh-trial-usage .btn{margin-top:10px}
+
+.bh-subscription-purchase{border-top:1px solid #e8ded5;margin-top:16px;padding-top:16px}
+.bh-subscription-purchase h3{font-size:17px;margin:0}
+.bh-subscription-purchase p{font-size:15px;margin:6px 0 12px}
+.bh-subscription-purchase [hidden]{display:none}
+.bh-subscription-purchase select{max-width:100%;overflow:hidden;text-overflow:ellipsis}
