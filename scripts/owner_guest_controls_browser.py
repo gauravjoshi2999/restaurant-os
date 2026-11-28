@@ -10,7 +10,27 @@ subprocess.run([sys.executable,'scripts/prepare_completion_preview.py'],check=Tr
 base=(ROOT/'dist/qa/owner-flow.html').read_text()
 needle=re.search(r'<script src="assets/owner-hospitality.js\?[^"\n]+"></script>',base).group()
 fixtures=''.join('<script>'+(ROOT/'scripts/fixtures'/name).read_text()+'</script>'for name in ['hospitality_backend.js','guest_documents_backend.js','checkin_scenarios.js','owner_guest_controls_backend.js'])
-(ROOT/'dist/qa/owner-guest-controls.html').write_text(base.replace(needle,'<script>window.__BITE_HOSPITALITY_TYPE="hotel";</script>'+fixtures+needle))
+trial_fixture = """<script>
+(function(){
+ const create=window.supabase.createClient;
+ window.supabase.createClient=(...args)=>{
+  const client=create(...args),rpc=client.rpc.bind(client);
+  window.__BITE_TRIAL_QA={calls:[],status:'trial'};
+  client.rpc=async(name,params)=>{
+   if(name!=='bite_property_trial_usage')return rpc(name,params);
+   const trial=window.__BITE_TRIAL_QA;
+   trial.calls.push(params.p_property);
+   if(trial.status==='error')return {error:{message:'Synthetic backend outage'}};
+   if(trial.status==='not_enrolled')return {data:{status:trial.status}};
+   return {data:{status:trial.status,ends_at:'2026-12-28T13:42:00Z',
+    pos_bills_used:125,pos_bill_limit:300,pos_bills_remaining:175,active_rooms:12,room_limit:15}};
+  };
+  return client;
+ };
+})();
+</script>"""
+property_fixture='<script>window.__BITE_HOSPITALITY_TYPE=new URLSearchParams(location.search).get("kind")||"hotel";</script>'
+(ROOT/'dist/qa/owner-guest-controls.html').write_text(base.replace(needle,property_fixture+fixtures+trial_fixture+needle))
 OUT=ROOT/'dist/launch-qa';OUT.mkdir(parents=True,exist_ok=True)
 server=ThreadingHTTPServer(('127.0.0.1',4194),lambda *a,**kw:SimpleHTTPRequestHandler(*a,directory=str(ROOT/'dist'),**kw));Thread(target=server.serve_forever,daemon=True).start()
 PNG=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRSEAAAAASUVORK5CYII=')
@@ -18,8 +38,8 @@ evidence=[];errors=[]
 def check(value,label):
  assert value,label
  evidence.append(label);print('PASS:',label,flush=True)
-def visit(browser,width=390,scenario=''):
- context=browser.new_context(viewport={'width':width,'height':950});page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4194/qa/owner-guest-controls.html?scenario='+scenario,wait_until='domcontentloaded');page.wait_for_function("document.body.dataset.businessType==='hotel'");return context,page
+def visit(browser,width=390,scenario='',kind='hotel'):
+ context=browser.new_context(viewport={'width':width,'height':950});page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4194/qa/owner-guest-controls.html?scenario='+scenario+'&kind='+kind,wait_until='domcontentloaded');page.wait_for_function("(kind)=>document.body.dataset.businessType===kind",arg=kind);return context,page
 def nav(page,route):
  page.evaluate('(id)=>showPage(id)',route);page.locator('#'+route+'.active').wait_for(state='visible')
 def photo(form,name):
@@ -78,6 +98,41 @@ try:
   f.locator('button[type=submit]').click()
   page.locator('#reservations.active').get_by_text('Check-in saved.',exact=True).wait_for()
   check(not page.locator('#folios').is_visible(),'Guest-entry check-in saves and returns to Reservations without opening a bill')
-  check(not errors,'No JavaScript page errors: '+str(errors[:2]));c.close();browser.close()
+  page.evaluate("showPage('settings')")
+  page.locator('#overview.active').wait_for()
+  check(not page.locator('#biteTrialUsage').count() and page.evaluate('__BITE_TRIAL_QA.calls.length')==0,
+        'Reception cannot see or fetch the Owner trial usage card')
+  c.close()
+  for width,kind in [(320,'hybrid'),(360,'hotel'),(390,'hybrid'),(430,'hybrid'),(1440,'restaurant')]:
+   c,page=visit(browser,width,kind=kind)
+   nav(page,'settings')
+   card=page.locator('#biteTrialUsage')
+   card.get_by_text('Trial ends 28 Dec 2026, 7:12 pm IST.',exact=True).wait_for()
+   if kind!='hotel':
+    check(card.get_by_text('125 of 300 used',exact=True).is_visible() and card.get_by_text('175',exact=True).is_visible(),
+          f'{width}px {kind} Owner sees issued and remaining POS bills')
+   else:
+    check(not card.get_by_text('POS bills',exact=True).count(),'Hotel-only Settings omits POS usage')
+   if kind!='restaurant':
+    check(card.get_by_text('12 of 15',exact=True).is_visible(),f'{width}px {kind} Owner sees active room usage')
+   else:
+    check(not card.get_by_text('Active rooms',exact=True).count(),'Restaurant-only Settings omits room usage')
+   check(page.evaluate("BiteHospitality.prop().id===__BITE_TRIAL_QA.calls.at(-1)"),'Trial loads for the selected property')
+   check(card.evaluate('(el)=>el.getBoundingClientRect().right<=innerWidth+1&&el.scrollWidth<=el.clientWidth+1'),
+         f'{width}px subscription card fits the viewport')
+   if width==390:
+    card.screenshot(path=str(OUT/'owner-trial-usage-390.png'))
+    page.evaluate("__BITE_TRIAL_QA.status='error'; showPage('settings')")
+    card.get_by_text('Could not load trial usage.',exact=True).wait_for()
+    check(not card.locator('dl').is_visible(),'Trial request failure clears previous figures')
+    page.evaluate("__BITE_TRIAL_QA.status='expired'")
+    card.get_by_role('button',name='Retry',exact=True).click()
+    card.get_by_text('Trial ended 28 Dec 2026, 7:12 pm IST.',exact=True).wait_for()
+    check(not card.get_by_text('POS bills left',exact=True).count(),'Expired trial omits remaining POS allowance')
+    page.evaluate("__BITE_TRIAL_QA.status='not_enrolled'; showPage('settings')")
+    card.get_by_text('This property has no trial yet.',exact=True).wait_for()
+    check(not card.locator('dl').is_visible(),'Unenrolled property does not show usage or payment prompts')
+   c.close()
+  check(not errors,'No JavaScript page errors: '+str(errors[:2]));browser.close()
 finally:
  server.shutdown();(OUT/'owner-guest-controls-evidence.json').write_text(json.dumps({'checks':evidence,'errors':errors},indent=2))
