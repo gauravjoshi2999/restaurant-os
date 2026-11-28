@@ -23,7 +23,7 @@ declare
  outlet uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  first_bill uuid;
 begin
- if exists(select from private.bite_property_trials except select from trial_initial)
+ if exists(select * from private.bite_property_trials except select * from trial_initial)
     or not exists(select from trial_initial where ends_at-starts_at=interval '720 hours') then
   raise exception 'Trial retry changed the enrollment or duration';
  end if;
@@ -104,6 +104,20 @@ do $$begin
 end $$;
 reset role;
 
+insert into public.orders(restaurant_id,order_code,channel,amount)
+values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','TRIAL-ABOVE-ALLOWANCE','POS - Counter',100);
+update public.bite_rooms set active=true where number='TRIAL-16';
+set local role authenticated;
+set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
+do $$begin
+ if exists(select from trial_test_properties
+  where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+   and not (public.bite_property_trial_usage(property_id) @> '{"pos_bills_used":301,"pos_bills_remaining":0,"active_rooms":16,"rooms_remaining":0}')) then
+  raise exception 'Shadow metering did not report the over-limit usage';
+ end if;
+end $$;
+reset role;
+
 -- Past the 30-day window, new sales still operate and do not add to trial usage.
 update private.bite_property_trials set starts_at=statement_timestamp()-interval '721 hours',
  ends_at=statement_timestamp()-interval '1 hour';
@@ -114,7 +128,7 @@ set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$begin
  if exists(select from trial_test_properties
   where restaurant_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-   and not (public.bite_property_trial_usage(property_id) @> '{"status":"expired","pos_bills_used":300}')) then
+   and not (public.bite_property_trial_usage(property_id) @> '{"status":"expired","pos_bills_used":301}')) then
   raise exception 'Expired trial counted a new bill or returned the wrong state';
  end if;
  raise notice 'PASS: 30-day trial, 300 issued POS bills, 15 active rooms, exclusions, duplicate write, rollback, expiry and Owner boundaries';
