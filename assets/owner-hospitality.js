@@ -70,8 +70,14 @@
   async function load(){
    if(!isCurrent())return;
    status.textContent='Loading trial usage…';retry.hidden=true;details.hidden=true;details.replaceChildren();
+   let timer;
    try{
-    const {data:usage,error}=await ctx.sb.rpc('bite_property_trial_usage',{p_property:property.id});
+    const deadline=new Promise((_,reject)=>{
+     timer=setTimeout(()=>reject(new Error('Trial usage request timed out')),8000);
+    });
+    const {data:usage,error}=await Promise.race([
+     ctx.sb.rpc('bite_property_trial_usage',{p_property:property.id}),deadline
+    ]);
     if(!isCurrent())return;
     if(error)throw error;
     if(usage?.status==='not_enrolled'){status.textContent='This property has no trial yet.';return;}
@@ -92,6 +98,8 @@
    }catch{
     if(!isCurrent())return;
     status.textContent='Could not load trial usage.';retry.hidden=false;
+   }finally{
+    clearTimeout(timer);
    }
   }
   retry.addEventListener('click',load);
