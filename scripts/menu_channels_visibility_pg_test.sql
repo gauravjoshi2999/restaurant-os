@@ -52,6 +52,42 @@ GRANT SELECT ON public.menu_option_groups,public.menu_option_choices,public.menu
 INSERT INTO public.menu_option_groups VALUES ('32000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','Size',1,1,true);
 INSERT INTO public.menu_option_choices VALUES ('33000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000001','Large',15,true);
 INSERT INTO public.menu_item_option_groups VALUES ('10000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000001',true);
+-- Model the pre-rollout public metadata access and the team exception.
+ALTER TABLE public.menu_option_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.menu_option_choices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY option_groups_fixture_read ON public.menu_option_groups FOR SELECT TO anon,authenticated USING(is_available);
+CREATE POLICY option_choices_fixture_read ON public.menu_option_choices FOR SELECT TO anon,authenticated USING(is_available);
+INSERT INTO public.menu_option_groups VALUES
+ ('32000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','Room options',0,1,true),
+ ('32000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','QR options',0,1,true);
+INSERT INTO public.menu_option_choices VALUES
+ ('33000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000002','Room extra',20,true),
+ ('33000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000001','32000000-0000-0000-0000-000000000003','QR extra',25,true);
+INSERT INTO public.menu_item_option_groups VALUES
+ ('10000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000002','32000000-0000-0000-0000-000000000002',true),
+ ('10000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000003','32000000-0000-0000-0000-000000000003',true);
+\ir ../docs/sql/menu_channels_options_candidate.sql
+SET LOCAL ROLE anon;
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.menu_option_groups)<>2 OR (SELECT count(*) FROM public.menu_option_choices)<>2 THEN
+  RAISE EXCEPTION 'Public option metadata must match the Online and QR catalog';
+ END IF;
+END $$;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000099',true);
+DO $$ BEGIN
+ IF EXISTS (SELECT 1 FROM public.menu_option_groups WHERE name='Room options')
+ OR EXISTS (SELECT 1 FROM public.menu_option_choices WHERE name='Room extra') THEN
+  RAISE EXCEPTION 'Signed-in customer can read room-only options';
+ END IF;
+END $$;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+DO $$ BEGIN
+ IF (SELECT count(*) FROM public.menu_option_groups)<>3 OR (SELECT count(*) FROM public.menu_option_choices)<>3 THEN
+  RAISE EXCEPTION 'Owner lost private options in own catalog';
+ END IF;
+END $$;
+RESET ROLE;
 \ir menu_channels_quote_candidate_fixture.sql
 -- Both quote versions must compute canonical pricing and reject direct or stale offline cart lines.
 SET LOCAL ROLE anon;

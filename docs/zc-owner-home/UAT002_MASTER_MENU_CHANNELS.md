@@ -34,3 +34,6 @@ The customer storefront now supports the deployment window before the new column
 ## Counter and room charges
 
 POS and guest-bill pickers now send the menu item ID through checkout. Reopened drafts and unpaid corrections already carry stored IDs. The shared POS writer validates each catalog item against its outlet and its sale channel, locks the selected item for the transaction, and retains its ID in the issued order line. Manual entries use the existing path with a blank catalog ID. The isolated PostgreSQL check exercises counter-only, room-only, paused and other-outlet items, plus manual charges and totals. Toast and Square both make channel visibility an explicit menu setting. This batch extends that distinction to BITE's room billing. The full rollout still needs the production-shaped migration rehearsal and review of owner option preview and option visibility. Existing paid bills keep their snapshots.
+
+
+Public option groups and choices must belong to an active dish available through Online or QR. The draft policy uses the existing indexed item-to-group links and retains the restaurant team's read access. The calculation of an online quote still checks the item's Online flag. PostgreSQL fixtures cover public readers, signed-in customers, the restaurant owner and an exact quote with the updated policies.
