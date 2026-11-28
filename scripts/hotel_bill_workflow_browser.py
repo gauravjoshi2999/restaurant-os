@@ -35,6 +35,7 @@ try:
    p=open_page(browser,width);seed(p,paid=True)
    check('Synthetic hotel guest'in p.locator('#folios').inner_text()and'9999999999'in p.locator('#folios').inner_text(),'Occupied room opens its guest details at '+str(width)+'px')
    check(p.locator('#folios summary').filter(has_text='Other services & refunds').count()==0,'Unused services panel is hidden')
+   check('Receipt review pending' in p.locator('.bh-guest-bill-due').inner_text(),'Pending receipt is visible even when guest balance is zero')
    p.locator('[data-ha-action=checkout]').click();form=p.locator('[data-bill-form=checkout]');form.wait_for()
    check(form.locator('button[type=submit]').is_disabled()and'₹400.00 UPI'in form.inner_text(),'Zero balance explains its exact pending UPI receipt')
    p.screenshot(path=str(OUT/f'ui-hotel-checkout-pending-{width}.png'))
