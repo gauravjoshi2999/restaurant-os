@@ -48,7 +48,7 @@ test('A04 existing restaurant table remains canonical write source',()=>{
 test('A04 Hotel reuses real property expense command without copying cashbook receipts',()=>{
  assert.match(hotel,/root\.BiteV3ExpenseView\?\.renderHotel/);
  assert.match(hotel,/if\(rendered\)return/);
- assert.match(hotel,/if\(type==='expense'\)\{action='expense';payload=/);
+ assert.match(hotel,/if\(type==='expense'\)\{\s*action='expense';payload=/);
  assert.match(source,/data-hotel-form="expense"/);
  assert.match(source,/name="expense_date"/);
  assert.match(source,/recorded paid expense/i);
