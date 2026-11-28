@@ -4,6 +4,7 @@
  const C=root.BiteCapabilities;
  const titles={'hotel-register':'Check-in','reservations':'Reservations','rooms':'Rooms','guests':'Guest register','folios':'Guest Bills','housekeeping':'Housekeeping','business-modules':'Business Modules','room-service':'Room service','daily-book':'Daily Book','checkouts':'Checkouts'};
  let ctx,properties=[],data=empty(),workspaceReady=false,selectedFolio=null,loadVersion=0,poll=null,setupStep=1,setupDraft=null,activeWrites=0,reportFrom='',reportTo='',hotelReportPeriod=null;
+ let sandboxCheckoutBusy=false,sandboxCashfree=null;
  let foodFolio=null,foodMenu=[],foodCart=new Map(),foodQuery='';
  let roomFilters={floor:'',type:''},reservationView='upcoming',reservationPeriod=null;
  let housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''},housekeepingRequest=0;
@@ -95,6 +96,120 @@
   }
   retry.addEventListener('click',load);
   void load();
+  mountSandboxSubscription(card,property,isCurrent);
+ }
+ function mountSandboxSubscription(card,property,isCurrent){
+  if(document.documentElement.dataset.biteSubscriptionSandbox!=='true')return;
+  const area=document.createElement('section');
+  area.className='bh-subscription-purchase';
+  area.innerHTML='<h3>Subscription plans</h3><p class="bh-note">Sandbox · test payments</p><p role="status" data-subscription-status></p><p data-subscription-summary></p><label class="bh-field" hidden><span>Choose a plan or recharge</span><select aria-label="Choose a plan or recharge"></select></label><div class="bh-actions"><button type="button" class="btn" data-subscription-pay hidden></button><button type="button" class="btn secondary" data-subscription-verify hidden>Check payment</button></div>';
+  card.append(area);
+  const status=area.querySelector('[data-subscription-status]'),summary=area.querySelector('[data-subscription-summary]');
+  const picker=area.querySelector('select'),pay=area.querySelector('[data-subscription-pay]'),verify=area.querySelector('[data-subscription-verify]');
+  const storageKey='bite_sandbox_subscription:'+identity();
+  const name={starter:'Starter',plus:'Plus',pro:'Pro'};
+  const endDate=new Intl.DateTimeFormat('en-IN',{dateStyle:'medium',timeZone:'Asia/Kolkata'});
+  let pending,plan,offers=[];
+  try{pending=JSON.parse(localStorage.getItem(storageKey)||'null');}catch{}
+  function remember(value){
+   if(value)localStorage.setItem(storageKey,JSON.stringify(value));else localStorage.removeItem(storageKey);
+   pending=value;
+  }
+  async function request(action,fields={}){
+   const {data,error}=await ctx.sb.functions.invoke('bite-subscription-sandbox',{body:{action,property_id:property.id,...fields}});
+   if(error||data?.environment!=='sandbox')throw Error('Sandbox subscription request failed');
+   return data;
+  }
+  function render(){
+   const selected=offers.find(offer=>offer.offer_code===picker.value);
+   const current=name[plan?.tier];
+   const bits=[];
+   if(plan?.status==='active'&&current){
+    bits.push(current+' until '+endDate.format(new Date(plan.ends_at)));
+    if(property.business_type!=='hotel')bits.push(plan.pos_bills_remaining===null?'Unlimited POS bills':plan.pos_bills_remaining+' POS bills left');
+    if(property.business_type!=='restaurant')bits.push(plan.room_limit+' rooms');
+   }else if(plan?.status==='expired')bits.push('Plan expired');
+   if(plan?.next_tier)bits.push(name[plan.next_tier]+' starts '+endDate.format(new Date(plan.next_starts_at)));
+   if(plan?.recharge_bills_saved)bits.push(plan.recharge_bills_saved+' unused recharge bills');
+   summary.textContent=bits.join(' · ');
+   picker.closest('label').hidden=!!pending||!offers.length;
+   pay.hidden=!pending&&!selected;
+   pay.textContent=pending?'Continue test payment':!selected?'':selected.extra_pos_bills?'Recharge':(plan.tier===selected.tier?'Renew ':'Choose ')+name[selected.tier];
+   verify.hidden=!pending?.attempt_id;
+  }
+  async function load(){
+   const data=await request('status');
+   if(!isCurrent())return;
+   plan=data.subscription;
+   offers=Array.isArray(plan?.offers)?plan.offers.filter(offer=>offer.tier
+    ?!!name[offer.tier]&&!plan.next_tier
+    :property.business_type!=='hotel'&&plan.tier==='starter'&&offer.extra_pos_bills>0):[];
+   picker.innerHTML=offers.map(offer=>option(offer.offer_code,offer.tier
+    ?name[offer.tier]+' · '+money(offer.amount_paise/100)+(offer.billing_months===12?'/year':'/month')+' · '+offer.room_limit+' rooms'+(property.business_type==='hotel'?'':' · '+(offer.pos_bill_limit===null?'Unlimited':offer.pos_bill_limit)+' POS bills')
+    :money(offer.amount_paise/100)+' · '+offer.extra_pos_bills+' extra POS bills')).join('');
+   render();
+  }
+  async function checkPayment(){
+   const result=await request('verify',{attempt_id:pending.attempt_id});
+   if(!isCurrent())return;
+   if(result.status==='verified'){
+    remember(null);render();status.textContent='Test payment verified.';await load();
+   }else if(result.status==='expired'){
+    remember(null);render();status.textContent='Test payment expired. You can start again.';
+   }else status.textContent='Payment is awaiting confirmation.';
+  }
+  async function openPayment(){
+   if(!pending){
+    const chosen=offers.find(offer=>offer.offer_code===picker.value);
+    if(!chosen)return;
+    const verb=chosen.extra_pos_bills?'Recharge':plan?.tier===chosen.tier?'Renew':'Purchase';
+    if(!root.confirm(verb+' for '+money(chosen.amount_paise/100)+' in Cashfree sandbox?'))return;
+    remember({request_id:crypto.randomUUID(),catalog_version:chosen.catalog_version,offer_code:chosen.offer_code});
+   }
+   const session=await request('checkout',{request_id:pending.request_id,catalog_version:pending.catalog_version,offer_code:pending.offer_code});
+   if(!isCurrent())return;
+   if(typeof session.payment_session_id!=='string'||!session.payment_session_id||!session.attempt_id)throw Error('Sandbox session unavailable');
+   remember({...pending,attempt_id:session.attempt_id});
+   render();
+   await loadSandboxCashfree();
+   if(!isCurrent())return;
+   try {
+    await root.Cashfree({mode:'sandbox'}).checkout({paymentSessionId:session.payment_session_id,redirectTarget:'_modal'});
+   }finally{
+    if(isCurrent())await checkPayment();
+   }
+  }
+  async function update(action){
+   if(sandboxCheckoutBusy||!isCurrent())return;
+   sandboxCheckoutBusy=true;area.setAttribute('aria-busy','true');pay.disabled=true;verify.disabled=true;
+   status.textContent='Connecting to sandbox…';
+   try{await action();}
+   catch{if(isCurrent())status.textContent=pending?'Could not confirm the test payment. Retry the same attempt.':'Subscription sandbox is unavailable.';}
+   finally{
+    sandboxCheckoutBusy=false;
+    if(isCurrent()){area.removeAttribute('aria-busy');pay.disabled=false;verify.disabled=false;render();}
+   }
+  }
+  picker.addEventListener('change',render);
+  pay.addEventListener('click',()=>void update(openPayment));
+  verify.addEventListener('click',()=>void update(checkPayment));
+  void load().then(()=>{if(isCurrent()&&pending)status.textContent='A test payment is saved for verification.';})
+   .catch(()=>{if(isCurrent()){status.textContent='Subscription sandbox is unavailable.';render();}});
+ }
+ function loadSandboxCashfree(){
+  if(typeof root.Cashfree==='function')return Promise.resolve();
+  if(!sandboxCashfree){
+   sandboxCashfree=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='https://sdk.cashfree.com/js/v3/cashfree.js';
+    const fail=()=>{clearTimeout(timeout);script.remove();reject(Error('Cashfree SDK unavailable'));};
+    const timeout=setTimeout(fail,12000);
+    script.onload=()=>{clearTimeout(timeout);if(typeof root.Cashfree==='function')resolve();else fail();};
+    script.onerror=fail;
+    document.head.append(script);
+   }).catch(error=>{sandboxCashfree=null;throw error;});
+  }
+  return sandboxCashfree;
  }
  function renderHousekeepingPreference(){
   const settings=$('settings'),p=prop();
@@ -210,7 +325,7 @@
   root.addEventListener('online',()=>{if(has('hotel_rooms')){const form=document.querySelector('#hotel-register.active #bhCheckinForm');if(form)void refreshRegistration(form).catch(()=>{});else void reload().catch(showError)}});
   startPolling();
  }
- function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&!!prop()&&!root.BiteGuestDocuments?.busy()&&!root.BiteHotelAccounts?.busy()&&!root.BiteGuestRegister?.busy()&&!$('bhFoodPicker')&&!document.querySelector('.bh-workspace form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))void reload().catch(()=>{});syncOrderBadge()},30000)}
+ function startPolling(){if(!poll)poll=root.setInterval(()=>{if(document.visibilityState==='visible'&&!sandboxCheckoutBusy&&!!prop()&&!root.BiteGuestDocuments?.busy()&&!root.BiteHotelAccounts?.busy()&&!root.BiteGuestRegister?.busy()&&!$('bhFoodPicker')&&!document.querySelector('.bh-workspace form:focus-within')&&!document.querySelector('#hotel-register.active #bhCheckinForm'))void reload().catch(()=>{});syncOrderBadge()},30000)}
  async function loadContext(){
   const {data:rows,error}=await ctx.sb.rpc('bite_owner_context');
   if(error){
@@ -1241,6 +1356,6 @@
  }
  function clear(){$('biteTrialUsage')?.remove();roomFilters={floor:'',type:''};reservationView='upcoming';reservationPeriod=null;root.BiteOwnerAccess?.clear();++housekeepingRequest;housekeepingDisplay={propertyId:null,enabled:false,loaded:false,saving:false,error:''};$('biteHousekeepingVisibilitySetting')?.remove();root.BiteOwnerOperations?.clear();root.BiteGuestDocuments?.clear();root.BiteHotelAccounts?.clear();root.BiteGuestRegister?.clear();loadVersion++;data=empty();workspaceReady=false;properties=[];selectedFolio=null;foodFolio=null;foodMenu=[];foodCart=new Map();if(poll){root.clearInterval(poll);poll=null}try{localStorage.removeItem('bite_register_draft:'+identity())}catch{}delete document.body.dataset.businessType;delete document.body.dataset.universalOwner;delete document.body.dataset.restaurantAccess;if($('biteHotelHome'))$('biteHotelHome').hidden=true}
  async function refreshContext(switchOutlet=false){const id=prop()?.id;await loadContext();ctx.getAccess().properties=properties;ctx.getAccess().property=properties.find(p=>p.id===id)||null;applyShell();if(switchOutlet)await ctx.switchProperty(id)}
- root.BiteHospitality={header,reservationRows,reservationAvailability,linkedPOSSource,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
+ root.BiteHospitality={header,reservationRows,reservationAvailability,linkedPOSSource,useGuest:async id=>{await ctx.navigate('hotel-register');renderRegister(id)},registrationPending:()=>pendingRegistration().length>0,discardRegistrationDraft:()=>{if(pendingRegistration().length)throw Error('Verify the pending check-in request first.');localStorage.removeItem('bite_register_draft:'+identity())},redraw:()=>{const id=document.querySelector('.page.active')?.id;if(id&&handles(id))renderPage(id)},editor,refreshContext,getWorkspace:()=>data,refreshRegistration,persistRegistration:persistDraft,dashboardSnapshot,checkoutDue,housekeepingVisible,init,loadContext,preferredProperty,setProperty,routeList,applyShell,reload,handles,open,titles,prop,has,roomTargets,command,syncOrderBadge,clear,augmentPage,preparePOS,roomPOSSelected,createRoomPOS,createPOSSale,postedOrder,statement,printStatement,openFolio:async id=>{selectedFolio=id;await ctx.navigate('folios')},navigate:id=>ctx.navigate(id),busy:()=>sandboxCheckoutBusy||activeWrites>0||!!root.BiteGuestDocuments?.busy()||!!root.BiteHotelAccounts?.busy()||!!root.BiteGuestRegister?.busy(),
   getTabs:()=>C.tabs(prop(),restaurantAccess()).filter(t=>t.page==='more'||allowed()?.includes(t.page)),getMore:()=>[...C.hotel,...C.restaurant,...C.common,['settings','Settings','membership']].filter(r=>allowed()?.includes(r[0])).map(([page,label])=>[page,page==='expenses'&&expenseOnly()?'Record expense':label,'Open '+label,'›'])};
 })(typeof window!=='undefined'?window:globalThis);

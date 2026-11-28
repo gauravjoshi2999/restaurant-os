@@ -36,6 +36,14 @@ async function verifyPayment({scope, receipt, fetchProvider, headers}) {
   if (order.order_status === 'ACTIVE') {
    return reply(200, {environment: 'sandbox', status: 'awaiting_payment'});
   }
+  if (['EXPIRED','TERMINATED'].includes(order.order_status)) {
+   const payments=await getProviderData(orderUrl+'/payments');
+   const closed=['FAILED','USER_DROPPED','NOT_ATTEMPTED','VOID','CANCELLED'];
+   if (Array.isArray(payments)&&payments.every(payment=>closed.includes(payment?.payment_status))) {
+    return reply(200, {environment:'sandbox',status:'expired'});
+   }
+   return reply(200, {environment:'sandbox',status:'awaiting_payment'});
+  }
   if (order.order_status !== 'PAID') {
    return reply(409, {error: 'Sandbox order is not confirmed paid'});
   }

@@ -151,3 +151,20 @@ test('pending, ambiguous, insufficient and unauthorized sandbox payments create 
  const denied=await handler({receipt:async()=>({error:{code:'42501'}})});
  assert.equal((await denied(verifyRequest())).status,403);
 });
+
+test('an expired order allows replacement only when no payment still needs reconciliation',async()=>{
+ for(const [payments,status] of [
+  [[{payment_status:'FAILED'}],'expired'],
+  [[{payment_status:'PENDING'}],'awaiting_payment'],
+  [[{payment_status:'SUCCESS'}],'awaiting_payment']
+ ]){
+  const edge=await handler({
+   receipt:async args=>{
+    assert.equal(args.p_payment_id,undefined);
+    return {data:{...attempt,receipt:null}};
+   },
+   fetchProvider:async url=>Response.json(url.endsWith('/payments')?payments:{...providerOrder,order_status:'EXPIRED'})
+  });
+  assert.deepEqual(await (await edge(verifyRequest())).json(),{environment:'sandbox',status});
+ }
+});

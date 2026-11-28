@@ -84,7 +84,10 @@ begin
   'tier',term.tier,'starts_at',term.starts_at,'ends_at',term.ends_at,
   'pos_bill_limit',term.pos_bill_limit,'pos_bills_remaining',term.pos_bill_limit-included_used,'room_limit',term.room_limit,
   'recharge_bills_saved',credits,'recharge_bills_available',case when term.tier='starter' then credits else 0 end,
-  'next_tier',upcoming.tier,'next_starts_at',upcoming.starts_at);
+  'next_tier',upcoming.tier,'next_starts_at',upcoming.starts_at,
+  'offers',(select coalesce(jsonb_agg(to_jsonb(o)-'sale_enabled' order by o.amount_paise),'[]'::jsonb)
+   from private.bite_subscription_offers o
+   where o.catalog_version=(select max(catalog_version) from private.bite_subscription_offers)));
 end;
 $$;
 revoke all on function public.bite_sandbox_subscription_status(uuid,uuid) from public,anon,authenticated,service_role;

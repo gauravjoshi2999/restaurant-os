@@ -30,7 +30,39 @@ trial_fixture = """<script>
 })();
 </script>"""
 property_fixture='<script>window.__BITE_HOSPITALITY_TYPE=new URLSearchParams(location.search).get("kind")||"hotel";</script>'
-(ROOT/'dist/qa/owner-guest-controls.html').write_text(base.replace(needle,property_fixture+fixtures+trial_fixture+needle))
+purchase_fixture = """<script>
+(function(){
+ if(new URLSearchParams(location.search).get('subscription')!=='sandbox')return;
+ document.documentElement.dataset.biteSubscriptionSandbox='true';
+ const state=window.__BITE_SUBSCRIPTION_QA={calls:[],mode:'pending',tier:null,openings:[]};
+ window.Cashfree=options=>({checkout:async args=>state.openings.push({options,args})});
+ const offers=[
+  {offer_code:'starter_year',catalog_version:1,tier:'starter',billing_months:12,amount_paise:149900,room_limit:15,pos_bill_limit:1000},
+  {offer_code:'plus_month',catalog_version:1,tier:'plus',billing_months:1,amount_paise:39900,room_limit:30,pos_bill_limit:null},
+  {offer_code:'pos_recharge_500',catalog_version:1,tier:null,amount_paise:19900,extra_pos_bills:500}
+ ];
+ const factory=window.supabase.createClient;
+ window.supabase.createClient=(...args)=>{
+  const client=factory(...args),invoke=client.functions.invoke.bind(client.functions);
+  return new Proxy(client, {get(target,key){
+   if(key!=='functions'){const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value;}
+   return {async invoke(name,options){
+    if(name!=='bite-subscription-sandbox')return invoke(name,options);
+    const data=options.body;
+    state.calls.push(data);
+    if(data.action==='status')return {data:{environment:'sandbox',subscription:{
+     status:state.tier?'active':'no_plan',tier:state.tier,ends_at:'2026-12-28T13:42:00Z',pos_bills_remaining:1000,
+     room_limit:15,offers
+    }}};
+    if(data.action==='checkout')return {data:{environment:'sandbox',attempt_id:data.request_id,payment_session_id:'synthetic-session'}};
+    if(state.mode==='verified')state.tier='starter';
+    return {data:{environment:'sandbox',status:state.mode==='pending'?'awaiting_payment':state.mode}};
+   }};
+  }});
+ };
+})();
+</script>"""
+(ROOT/'dist/qa/owner-guest-controls.html').write_text(base.replace(needle,property_fixture+fixtures+trial_fixture+purchase_fixture+needle))
 OUT=ROOT/'dist/launch-qa';OUT.mkdir(parents=True,exist_ok=True)
 server=ThreadingHTTPServer(('127.0.0.1',4194),lambda *a,**kw:SimpleHTTPRequestHandler(*a,directory=str(ROOT/'dist'),**kw));Thread(target=server.serve_forever,daemon=True).start()
 PNG=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRSEAAAAASUVORK5CYII=')
@@ -38,8 +70,8 @@ evidence=[];errors=[]
 def check(value,label):
  assert value,label
  evidence.append(label);print('PASS:',label,flush=True)
-def visit(browser,width=390,scenario='',kind='hotel'):
- context=browser.new_context(viewport={'width':width,'height':950});page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4194/qa/owner-guest-controls.html?scenario='+scenario+'&kind='+kind,wait_until='domcontentloaded');page.wait_for_function("(kind)=>document.body.dataset.businessType===kind",arg=kind);return context,page
+def visit(browser,width=390,scenario='',kind='hotel',subscription=''):
+ context=browser.new_context(viewport={'width':width,'height':950});page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)));page.on('dialog',lambda d:d.accept());page.route('**/*.supabase.co/**',lambda r:r.abort());page.goto('http://127.0.0.1:4194/qa/owner-guest-controls.html?scenario='+scenario+'&kind='+kind+'&subscription='+subscription,wait_until='domcontentloaded');page.wait_for_function("(kind)=>document.body.dataset.businessType===kind",arg=kind);return context,page
 def nav(page,route):
  page.evaluate('(id)=>showPage(id)',route);page.locator('#'+route+'.active').wait_for(state='visible')
 def photo(form,name):
@@ -133,6 +165,42 @@ try:
     card.get_by_text('This property has no trial yet.',exact=True).wait_for()
     check(not card.locator('dl').is_visible(),'Unenrolled property does not show usage or payment prompts')
    c.close()
+  c,page=visit(browser,390,kind='hybrid',subscription='sandbox')
+  nav(page,'settings')
+  purchase=page.locator('.bh-subscription-purchase')
+  chooser=purchase.get_by_role('combobox',name='Choose a plan or recharge')
+  chooser.wait_for()
+  chooser.select_option('starter_year')
+  purchase.get_by_role('button',name='Choose Starter').click()
+  purchase.get_by_text('Payment is awaiting confirmation.',exact=True).wait_for()
+  check(page.evaluate("__BITE_SUBSCRIPTION_QA.openings[0].options.mode")=='sandbox',
+        'Owner checkout opens Cashfree sandbox')
+  pending_id=page.evaluate("__BITE_SUBSCRIPTION_QA.calls.find(x=>x.action==='checkout').request_id")
+  page.reload(wait_until='domcontentloaded')
+  page.wait_for_function("document.body.dataset.businessType==='hybrid'")
+  nav(page,'settings')
+  purchase.get_by_role('button',name='Continue test payment').click()
+  purchase.get_by_text('Payment is awaiting confirmation.',exact=True).wait_for()
+  check(page.evaluate("__BITE_SUBSCRIPTION_QA.calls.find(x=>x.action==='checkout').request_id")==pending_id,
+        'Returning to Settings reuses the same attempt after reload')
+  page.evaluate("__BITE_SUBSCRIPTION_QA.mode='verified'")
+  purchase.get_by_role('button',name='Check payment').click()
+  purchase.get_by_text('Test payment verified.',exact=True).wait_for()
+  chooser.select_option('starter_year')
+  purchase.get_by_role('button',name='Renew Starter').wait_for()
+  chooser.select_option('pos_recharge_500')
+  purchase.get_by_role('button',name='Recharge',exact=True).wait_for()
+  purchase.screenshot(path=str(OUT/'guest-controls-subscription-checkout-390.png'))
+  c.close()
+  c,page=visit(browser,390,scenario='guest-entry',subscription='sandbox')
+  nav(page,'settings')
+  check(not page.locator('.bh-subscription-purchase').count(),'Reception cannot see sandbox subscription purchase controls')
+  c.close()
+  c,page=visit(browser,390,kind='hybrid')
+  nav(page,'settings')
+  page.locator('#biteTrialUsage').wait_for()
+  check(not page.locator('.bh-subscription-purchase').count(),'Normal Owner app exposes trial usage without paid checkout')
+  c.close()
   check(not errors,'No JavaScript page errors: '+str(errors[:2]));browser.close()
 finally:
  server.shutdown();(OUT/'owner-guest-controls-evidence.json').write_text(json.dumps({'checks':evidence,'errors':errors},indent=2))
