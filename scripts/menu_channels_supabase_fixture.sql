@@ -20,8 +20,21 @@ CREATE TABLE public.menu_item_option_groups (
 CREATE TABLE public.bite_live_checkout_intents (
  id uuid PRIMARY KEY, restaurant_id uuid NOT NULL, customer_id uuid NOT NULL,
  status text NOT NULL, priced_items jsonb NOT NULL, created_at timestamptz DEFAULT now(),
- provider_attempted_at timestamptz, provider_order_id text
+ provider_attempted_at timestamptz, provider_order_id text,
+ amount numeric DEFAULT 1, currency text DEFAULT 'INR', food_subtotal numeric DEFAULT 1,
+ delivery_fee numeric DEFAULT 0, discount_amount numeric DEFAULT 0,
+ confirmation_required boolean DEFAULT false, customer_snapshot jsonb,
+ activated_order_id uuid, updated_at timestamptz
 );
+
+CREATE TABLE public.bite_order_confirmations (
+ intent_id uuid PRIMARY KEY, state text, expires_at timestamptz, reviewed_at timestamptz
+);
+CREATE TABLE public.customer_contact_profiles (customer_id uuid PRIMARY KEY, full_name text, phone text);
+ALTER TABLE public.bite_order_confirmations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_contact_profiles ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT ON public.bite_order_confirmations TO service_role;
+GRANT SELECT ON public.customer_contact_profiles TO service_role;
 
 ALTER TABLE public.restaurant_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.menu_items ENABLE ROW LEVEL SECURITY;

@@ -50,3 +50,9 @@ The QR menu now uses the same staged-schema reader as the Customer catalog and r
 ## Customer recovery when menu changes before payment
 
 When first-attempt validation rejects the frozen basket because a dish is no longer available online, checkout offers Review updated menu. It keeps the cart and releases the unpaid request only through the existing authenticated cancellation flow. The normal checkout availability refresh runs before a replacement request. An unconfirmed cancellation keeps the saved request, and a restored provider attempt takes precedence over the local menu-review hint. Checkout and browser fixtures exercise the failure, review and retry behavior. Toast's online availability guidance provided the comparison for communicating sold-out status.
+
+## Candidate Cashfree rehearsal
+
+The isolated Supabase job also executes the actual checkout-session and payment-verification handler sources with a synthetic Cashfree transport. It checks owner approval, a dish going offline before the first payment request, first-attempt persistence, retry with the same provider reference and idempotency key, and verified unpaid status. The test cannot reach the live Cashfree API or a hosted Supabase project.
+
+To exercise the same checks against Cashfree's sandbox from a trusted runner, use a fresh local Supabase stack and the same fixture and command as the isolated workflow. Set `BITE_REHEARSAL_CASHFREE=sandbox` and supply `CASHFREE_TEST_APP_ID` and `CASHFREE_TEST_SECRET_KEY` through the runner's secret configuration. Missing keys fail before any provider request. The rehearsal creates a synthetic ₹1 sandbox order and verifies the unpaid state. Sandbox payment completion and finalization require a separate checkout test.

@@ -6,6 +6,8 @@ on:
       - '.github/workflows/master-menu-supabase-qa.yml'
       - 'docs/sql/menu_channels_*.sql'
       - 'scripts/menu_channels_*'
+      - 'supabase/functions/bite-live-create-session/**'
+      - 'supabase/functions/bite-live-verify-checkout/**'
   workflow_dispatch:
 
 permissions:
@@ -17,6 +19,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
@@ -37,7 +42,8 @@ jobs:
           trap 'rm -f "$credentials"' EXIT
           jq -e '{anon: .ANON_KEY, service: .SERVICE_ROLE_KEY}' <<<"$status" >"$credentials"
           psql "$db" -X -f scripts/menu_channels_supabase_fixture.sql
-          BITE_REHEARSAL_API="$api" node scripts/menu_channels_supabase_smoke.mjs "$credentials"
+          npm install --prefix "$RUNNER_TEMP/bite-rehearsal" --no-audit --no-fund @supabase/supabase-js@2.49.8
+          BITE_REHEARSAL_DEPENDENCIES="$RUNNER_TEMP/bite-rehearsal" BITE_REHEARSAL_API="$api" node scripts/menu_channels_supabase_smoke.mjs "$credentials"
       - name: Stop disposable stack
         if: always()
         working-directory: ${{ runner.temp }}

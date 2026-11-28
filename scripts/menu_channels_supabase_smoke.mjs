@@ -1,3 +1,4 @@
+import { rehearseCashfree } from './menu_channels_cashfree_rehearsal.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -89,3 +90,13 @@ await setOnline(false);
 assert.equal(await claim(), 'retry');
 assert.equal(await getStamp(), firstAttempt);
 console.log('PASS: service payment claim blocks stale baskets and preserves the first-attempt timestamp on retry');
+
+const edgeIntent = randomUUID();
+await request(intents, {
+  key: service, status: 201,
+  body: { id: edgeIntent, customer_id: customer.id, restaurant_id: outlet, status: 'awaiting_payment',
+    priced_items: [{ menu_item_id: onlineDish, quantity: 1, unit_price: 1 }],
+    confirmation_required: true, customer_snapshot: { full_name: 'BITE sandbox QA', phone: '9999999999' } }
+});
+const edgeStamp = async () => (await request(`${intents}?id=eq.${edgeIntent}&select=provider_attempted_at`, { key: service }))[0].provider_attempted_at;
+await rehearseCashfree({ api, anon, service, customer, intent: edgeIntent, setOnline, getStamp: edgeStamp, request });
