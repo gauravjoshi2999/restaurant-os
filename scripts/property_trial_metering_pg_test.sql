@@ -5,6 +5,12 @@ select property_id,restaurant_id from public.bite_property_outlets
 where restaurant_id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 grant select on trial_test_properties to authenticated,service_role;
 
+-- The shared suite changes outlet modules in its other cases. Set a known
+-- hybrid property state so the real module guard allows marketplace and POS.
+update public.bite_properties
+set business_type='hybrid',capabilities=private.bite_default_capabilities('hybrid')
+where id in (select property_id from trial_test_properties);
+
 insert into public.orders(restaurant_id,order_code,channel,amount)
 values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','TRIAL-PREVIOUS','POS - Counter',100);
 set local role service_role;
