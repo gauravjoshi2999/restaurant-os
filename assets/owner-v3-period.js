@@ -49,15 +49,14 @@
     '<label>From<input name="from" type="date" value="'+esc(draft.from||today())+'" max="'+esc(today())+'" required></label>'+
     '<label>To<input name="to" type="date" value="'+esc(draft.to||today())+'" max="'+esc(today())+'" required></label>';
    target.innerHTML='<section class="bv3-period" aria-label="Record period selection">'+
-    '<div class="bv3-period-head"><div><small>RECORD PERIOD · '+esc(options.basis||'Record date')+'</small><strong>'+esc(label(value))+'</strong>'+
-    '<span>'+esc(value.mode.toUpperCase())+' · '+esc(value.from)+(value.to!==value.from?' → '+esc(value.to):'')+'</span></div>'+
-    '<button type="button" data-bv3-period-toggle aria-expanded="'+editing+'">'+(editing?'Close':'Choose period')+'</button></div>'+
+    '<div class="bv3-period-head"><strong data-from="'+esc(value.from)+'" data-to="'+esc(value.to)+'">'+esc(label(value))+'</strong>'+
+    '<button type="button" data-bv3-period-toggle aria-expanded="'+editing+'">'+(editing?'Hide filter':'Change dates')+'</button></div>'+
     (editing?'<form data-bv3-period-form><div class="bv3-period-tabs" role="group" aria-label="Period mode">'+
      Object.entries(modes).map(([k,v])=>'<button type="button" data-bv3-period-mode="'+k+'" aria-pressed="'+String(mode===k)+'"'+(mode===k?' class="active"':'')+'>'+v+'</button>').join('')+'</div>'+
      '<div class="bv3-period-fields">'+editingFields+'</div><div class="bv3-period-actions">'+
      '<button type="button" data-bv3-period-today>Today</button><button type="button" data-bv3-period-cancel>Cancel</button>'+
      '<button type="submit" class="primary"'+(busy?' disabled':'')+'>Apply</button></div>'+
-     '<p class="bv3-period-help">Only report records change. A new bill or entry keeps its own date.</p>'+
+     '<p class="bv3-period-help">'+esc(options.basis||'Record date')+'. A new entry keeps its own date.</p>'+
      '<p data-bv3-period-error role="alert"></p></form>':'')+'</section>';
   }
   const onClick=event=>{

@@ -292,11 +292,10 @@
  function decorateFolio(target,folio,stay){
   if(!enabled())return;
   target.querySelector('h1').textContent='Guest Khata';
-  const actions=target.querySelector('.bh-guest-bill-buttons');
   if(folio.status==='open'&&['owner','manager','receptionist'].includes(p()?.role)){
-   if(H().has('hotel_incidentals'))actions?.insertAdjacentHTML('beforeend',button('extra','＋ Add extra charge',folio.id));
+   if(H().has('hotel_incidentals'))target.querySelector('[data-guest-more]')?.insertAdjacentHTML('beforeend',button('extra','＋ Add extra charge',folio.id));
    const old=target.querySelector('[data-hotel-action="checkout"]');
-   if(old){old.remove();actions?.insertAdjacentHTML('beforeend',button('checkout','Checkout & collect balance',folio.id))}
+   if(old)old.outerHTML=button('checkout','Checkout',folio.id);
   }
   root.BiteHotelBilling?.decorateFolio(target,folio,stay);
   if(stay?.register_number)target.querySelector('.bh-stay-dates')?.insertAdjacentHTML('beforeend',' · Register #'+esc(stay.register_number));
@@ -560,8 +559,8 @@
   month=month||today().slice(0,7);
   const picker=root.BiteV3Period;
   if(!picker){target.textContent='Date picker unavailable. Reload Bite to view accounts.';return}
-  const chosen=picker.normalize(viewPeriod||{mode:'month',month},today()),from=chosen.from,to=chosen.to;
-  target.innerHTML='<div class="bh-heading"><div><p class="bh-eyebrow">'+esc(p().name)+'</p><h1>Daily Book</h1><p>Sales, expenses, staff advances and cash / online balances.</p></div></div>'+
+  const chosen=picker.normalize(viewPeriod||{mode:'day',day:today()},today()),from=chosen.from,to=chosen.to;
+  target.innerHTML='<div class="bh-heading"><div><p class="bh-eyebrow">'+esc(p().name)+'</p><h1>Daily Book</h1><p>Sales, expenses and collections.</p></div></div>'+
    '<div id="haPeriod" aria-label="Daily Book period"></div><div id="haBookBody" role="status">Loading recorded accounts…</div>';
   picker.mount(target.querySelector('#haPeriod'),{value:chosen,today,
    basis:'Sales: bill / service date · Collections: money movement date',
@@ -578,15 +577,14 @@
   report=r.data;reportScope=key;
   const sum=k=>(report.days||[]).reduce((n,d)=>n+Number(d[k]||0),0),last=report.days?.at(-1)||{};
   body.innerHTML='<div class="bh-metrics">'+[['Billed sales',sum('gross_sales')],['Recorded expenses',sum('expenses')],['Staff advances paid',sum('staff_advance')],['Cash balance',last.cash_balance],['Online balance',last.online_balance],['Recorded profit / loss',sum('profit')]].map(([label,value])=>'<div class="bh-metric"><span>'+esc(label)+'</span><strong>'+money(value)+'</strong></div>').join('')+'</div>'+
-   '<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('staff_advance','＋ Staff advance')+button('salary','Staff salary')+button('accounts','Opening / transfer'):'')+'</div>'+
+   '<div class="ha-book-actions">'+(manager()?button('income','＋ Other income')+button('expense','＋ Expense')+button('accounts','Opening / transfer'):'')+'</div>'+
    '<details class="bh-panel"><summary>How these totals work</summary><p class="bh-note">Sales follow the bill date. Cash and online balances follow recorded payments, including advances. Profit uses recorded sales less output GST and recorded costs. Enter a starting balance for each account. Record earned salary once and its payout separately.</p></details>'+
    '<section class="bh-panel" id="haCollections" aria-label="Source-linked Collections"></section>'+
    '<section class="bh-panel"><div class="bh-heading"><h2>Daily totals</h2><div class="bh-actions">'+button('excel','Export period Excel')+button('gst','Bill-wise GST Excel')+'</div></div><div class="ha-table-wrap"><table class="ha-book-table '+(from===to?'ha-single-day':'ha-many-days')+'"><thead><tr><th>Date</th><th>Sale</th><th>Expense</th><th>Staff advance</th><th>Cash balance</th><th>Online balance</th><th>Profit / loss</th></tr></thead><tbody>'+
    report.days.slice().reverse().map(d=>'<tr><td>'+(from===to?esc(d.day):button('book-day',d.day,d.day,'aria-label="View Daily Book for '+esc(d.day)+'"'))+'</td><td>'+money(d.gross_sales)+'</td><td>'+money(d.expenses)+'</td><td>'+money(d.staff_advance)+'</td><td>'+money(d.cash_balance)+'</td><td>'+money(d.online_balance)+'</td><td>'+money(d.profit)+'</td></tr>').join('')+'</tbody><tfoot><tr><th>Period total / closing</th><th>'+money(sum('gross_sales'))+'</th><th>'+money(sum('expenses'))+'</th><th>'+money(sum('staff_advance'))+'</th><th>'+money(last.cash_balance)+'</th><th>'+money(last.online_balance)+'</th><th>'+money(sum('profit'))+'</th></tr></tfoot></table></div></section>'+
    '<section class="bh-panel"><h2>Cash & online accounts</h2>'+((report.accounts||[]).map(a=>'<div class="bh-room-line"><span>'+esc(a.account)+' · '+esc(a.method)+'</span><strong>'+money(a.balance)+'</strong></div>').join('')||'<p>No money recorded yet.</p>')+'</section>'+
-   '<section class="bh-panel" id="haHistoricalRoom" aria-label="Read-only historical guest collections"></section>'+
-   '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section>'+
-   '<details class="bh-panel"><summary>Staff salary & advances</summary><p class="bh-note">Earned salary is the expense. An advance and the remaining salary payout are money movements.</p>'+((report.staff||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>')+'</details>'+
+   '<details class="bh-panel"><summary>Old records · Unverified</summary><section class="bh-panel" id="haHistoricalRoom" aria-label="Read-only historical guest collections"></section>'+
+   '<section class="bh-panel" id="haHistoricalPOS" aria-label="Read-only old POS register"></section></details>'+
    '<details class="bh-panel"><summary>Original ledger and account notes</summary>'+((report.journal||[]).map(j=>'<article class="bh-record"><div><strong>'+esc(j.description)+'</strong><p>'+esc(j.day)+' · '+esc(j.category)+' · '+esc(j.method)+(j.method!=='Cash'&&j.account_note?' · '+esc(j.account_note):'')+'</p></div><strong>'+(j.direction==='out'?'−':j.direction==='noncash'?'':'+')+money(j.amount)+'</strong>'+(manager()&&['UPI','Card','Bank Transfer'].includes(j.method)&&j.source_type!=='property_expense'?button('note','Account note',j.id,'data-source="'+esc(j.source_type)+'"'):'')+'</article>').join('')||'<p>No transactions for this period.</p>')+'</details>';
   root.BiteV3Collections?.render?.(body.querySelector('#haCollections'),report,{scope:key,day:chosen.mode==='day'?chosen.from:'',isCurrent:()=>key===scope()&&version===reportVersion&&reportScope===key,onOpen:openCollectionSource});
   renderHistoricalRoomCollections(body,{from,to,key,version});
@@ -664,6 +662,35 @@
    check('reviewed','I reviewed this property’s GST registration, rates and invoice series.','required')+message()+'<button class="btn" type="submit">Save billing settings</button></form>';
   target.append(box);
  }
+ function mountStaffLedger(target){
+  if(!enabled()||!H().has('reporting')||root.BiteOwnerAccess?.can('reporting')===false)return;
+  target.querySelector('[data-ha-staff-ledger]')?.remove();
+  const details=document.createElement('details');
+  details.className='bh-panel';details.dataset.haStaffLedger='';
+  const canWrite=manager()&&root.BiteOwnerAccess?.can('daybook_entry')!==false;
+  details.innerHTML='<summary>Hotel salary & advances</summary>'+
+   (canWrite?'<div class="bh-actions">'+button('staff_advance','Record advance')+button('salary','Staff salary')+'</div>':'')+
+   '<label class="bh-field">Salary month<input type="month" value="'+today().slice(0,7)+'" max="'+today().slice(0,7)+'"></label><div role="status"></div>';
+  const input=details.querySelector('input'),status=details.querySelector('[role=status]'),key=scope();
+  let request=0;
+  async function load(){
+   const seq=++request;
+   if(!details.open)return;
+   status.textContent='Loading salary entries…';
+   try{
+    const period=root.BiteV3Period.normalize({mode:'month',month:input.value},today());
+    const result=await ctx.sb.rpc('bite_daily_book',{p_property:p().id,p_from:period.from,p_to:period.to});
+    if(!details.isConnected||key!==scope()||seq!==request)return;
+    if(result.error||result.data?.from!==period.from||result.data?.to!==period.to||!Array.isArray(result.data?.staff))throw Error('Unable to verify salary entries.');
+    const rows=result.data.staff;
+    status.innerHTML=((rows||[]).map(s=>'<article class="bh-record"><div><strong>'+esc(s.staff_name)+'</strong><p>Earned salary '+money(s.earned_salary)+' · Advances '+money(s.advances)+' · Salary paid '+money(s.salary_paid)+'</p><p>Recorded balance: '+money(Number(s.earned_salary||0)-Number(s.advances||0)-Number(s.salary_paid||0))+'</p></div></article>').join('')||'<p>No staff salary entries yet.</p>');
+   }catch(error){if(details.isConnected&&key===scope()&&seq===request)status.textContent=error.message}
+  }
+  details.addEventListener('toggle',load);
+  input.addEventListener('change',load);
+  details.addEventListener('bite-salary-refresh',load);
+  target.prepend(details);
+ }
  function entryEditor(kind){
   const headings={income:'Other income',expense:'Record expense',staff_advance:'Staff advance',salary_expense:'Earned monthly salary',salary_payment:'Pay remaining salary',opening:'Opening balance',transfer_in:'Money transferred in',transfer_out:'Money transferred out'};
   const staff=['staff_advance','salary_expense','salary_payment'].includes(kind);
@@ -738,10 +765,14 @@
     await H().command('checkout_collect',{...f,folio_id:form.dataset.id,amount:Number(f.amount),verified:f.verified==='on'});
     await H().reload();H().redraw();return;
    }
+   if(type==='book'&&document.querySelector('.page.active')?.id==='hr'){
+    document.getElementById('bhActionEditor')?.remove();
+    document.querySelector('#hr [data-ha-staff-ledger]')?.dispatchEvent(new Event('bite-salary-refresh'));return;
+   }
    await renderDailyBook(document.getElementById('daily-book'));
   }catch(err){if(msg)msg.textContent=err.message||String(err)}
   finally{if(b)b.disabled=false}
  }
- const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,invoicePDF,downloadInvoice,historicalRoomSummary};
+ const api={init,clear,enabled,findPosReceipt,focusPosReceipt,busy:()=>active>0||root.BiteCheckinFlow?.busy()||root.BiteHotelBilling?.busy(),decorateRegister,mountRegisterSteps,prepareRegister,showRegisterError,saveDocuments,registration,decorateFolio,decoratePayment,renderDailyBook,mountStaffLedger,reportOwnerHomeDay,selectOwnerHomeMonth,settings,printStatement,validateRegistration,wireAdvanceVerification,depositPayload,currentArrivalTime,validArrivalTime,reportRows,gstRows,billHTML,billTaxGroups,billTotalsReady,combinedBillHTML,invoicePDF,downloadInvoice,historicalRoomSummary};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.BiteHotelAccounts=api;
 })(typeof window!=='undefined'?window:globalThis);

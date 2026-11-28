@@ -4,6 +4,10 @@
 **Scope:** current production Supabase project `wedbgpybbgsszcmffoha`, restaurant `262aaba7-f48b-4fa5-9ff6-b334ededca84`; archived user-owned menu PDF; pre-existing repository historical audits.
 **Nature:** READ-ONLY audit. **No menu/room/publication/price, checkout, refund or customer record was changed.**
 
+## Owner confirmation on 28 November 2026
+
+The saved room list is the actual property inventory. The ₹1 Choklet entry was created for online order payment testing. Record it as a test listing in pilot preparation. Historical room counts and menu data below describe the 25 November audit.
+
 ## Exact current snapshot
 
 | Area | Production evidence | Interpretation |

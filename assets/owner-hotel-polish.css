@@ -285,3 +285,10 @@ body[data-role="owner"][data-universal-owner="true"] #mainApp #folios #bhFoodPic
  #mainApp #rooms .bh-room-filter-bar label{flex-basis:100%}
  #mainApp #rooms .bh-room-filter-bar .btn{width:100%}
 }
+
+#mainApp #folios .bh-folio-checkout{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;margin:.45rem 0}
+#mainApp #folios .bh-folio-checkout button.btn{background:#ac4611!important;color:#fff!important;border-color:#ac4611!important;min-height:44px;padding:.6rem 1.2rem}
+#mainApp #folios .bh-folio-checkout button:disabled{opacity:.65}
+#mainApp #folios .bh-guest-more{margin-top:1rem}
+#mainApp #folios .bh-guest-more summary{cursor:pointer;font-weight:650}
+#mainApp #folios .bh-guest-more .bh-actions{margin-top:.75rem}
