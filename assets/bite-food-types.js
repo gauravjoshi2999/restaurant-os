@@ -36,6 +36,15 @@
    return run(columns.split(',').filter(c=>c!=='dietary_type').join(','));
   return result;
  }
- const api={typeOf,declaredPureVeg,pureVegMenu,matches,label,readMenu};
+ async function readChannel(column,run){
+  const result=await run(true);
+  const error=result?.error;
+  // Older databases have no channel flags. A schema cache, permissions, or
+  // offline error on a deployed channel must preserve the requested filter.
+  if(error?.code==='42703'&&[...String(error.message||'').matchAll(/\bavailable_\w+\b/g)].some(match=>match[0]===column))
+   return run(false);
+  return result;
+ }
+ const api={typeOf,declaredPureVeg,pureVegMenu,matches,label,readMenu,readChannel};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BiteFoodTypes=api;
 })(typeof window!=='undefined'?window:globalThis);
