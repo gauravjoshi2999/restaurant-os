@@ -50,6 +50,41 @@
   if(lookup.error||!matching(lookup.data,request,userId))throw Error('Ticket not confirmed. Keep this form and retry the same request.');
   return lookup.data;
  }
+ const attachmentBucket='bite-owner-support';
+ const attachmentTypes=['image/jpeg','image/png','image/webp'];
+ function attachmentPath(id){
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw Error('Invalid ticket reference.');
+  return id+'/screenshot';
+ }
+ async function validateScreenshot(file){
+  if(!file||!attachmentTypes.includes(file.type)||file.size<12||file.size>3145728)throw Error('Choose a JPEG, PNG or WebP screenshot up to 3 MB.');
+  const b=new Uint8Array(await file.slice(0,12).arrayBuffer());
+  const png=[137,80,78,71,13,10,26,10].every((v,i)=>b[i]===v);
+  const jpeg=b[0]===255&&b[1]===216&&b[2]===255;
+  const webp=String.fromCharCode(...b.slice(0,4))==='RIFF'&&String.fromCharCode(...b.slice(8,12))==='WEBP';
+  if(!(file.type==='image/png'?png:file.type==='image/jpeg'?jpeg:webp))throw Error('Image content does not match its file type.');
+  return file;
+ }
+ async function screenshotInfo(client,id){
+  attachmentPath(id);
+  const {data,error}=await client.storage.from(attachmentBucket).list(id,{limit:2,search:'screenshot'});
+  if(error||!Array.isArray(data))throw Error('Screenshot availability could not be confirmed.');
+  return data.some(x=>x.name==='screenshot');
+ }
+ async function uploadScreenshot(client,id,file,active=()=>true){
+  await validateScreenshot(file);
+  if(!active())throw Error('Session changed.');
+  const path=attachmentPath(id),bucket=client.storage.from(attachmentBucket);
+  const result=await bucket.upload(path,file,{contentType:file.type,upsert:false});
+  if(result.error||result.data?.path!==path)throw Error('Upload not confirmed. Refresh screenshot status before retrying; existing files cannot be replaced.');
+  return true;
+ }
+ async function downloadScreenshot(client,id){
+  const {data,error}=await client.storage.from(attachmentBucket).download(attachmentPath(id));
+  if(error||!data)throw Error('Screenshot unavailable.');
+  await validateScreenshot(data);
+  return data;
+ }
  async function readHistory(client,ticketId){
   const {data,error,count}=await client.from('owner_support_ticket_events').select('id,ticket_id,event_kind,previous_status,status,response,occurred_at',{count:'exact'}).eq('ticket_id',ticketId).order('id',{ascending:false}).limit(100);
   if(error||!Array.isArray(data)||data.some(e=>e.ticket_id!==ticketId))throw Error('Ticket history could not be verified.');
@@ -138,6 +173,41 @@
      }
      history.ontoggle=()=>{if(history.open)void openHistory();else{historyVersion++;timeline.replaceChildren(historyNotice);historyNotice.textContent='';}};
      card.append(history);
+     const attach=node('details'),attachSummary=node('summary','Private screenshot'),attachmentStatus=node('p'),attachmentActions=node('div');
+     attachmentStatus.setAttribute('role','status');attachmentActions.style.cssText='display:grid;gap:8px;min-width:0';
+     attach.append(attachSummary,attachmentStatus,attachmentActions);card.append(attach);
+     let attachmentSeq=0,attachmentBusy=false;
+     async function refreshAttachment(){
+      const seq=++attachmentSeq,live=()=>valid()&&card.isConnected&&attach.open&&seq===attachmentSeq;
+      if(!live())return;
+      attachmentActions.replaceChildren();attachmentStatus.textContent='Checking screenshot…';
+      try{
+       const exists=await screenshotInfo(ctx.sb,row.id);if(!live())return;
+       if(exists){
+        attachmentStatus.textContent='Screenshot attached. Visible only to authorised ticket participants.';
+        attachmentActions.append(button('Download screenshot',async()=>{
+         if(!live()||attachmentBusy)return;attachmentBusy=true;
+         try{
+          const blob=await downloadScreenshot(ctx.sb,row.id);if(!live())return;
+          const url=URL.createObjectURL(new Blob([blob],{type:'application/octet-stream'})),a=node('a');
+          a.href=url;a.download='bite-support-screenshot.'+({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[blob.type]);a.rel='noopener';
+          document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+         }catch(e){if(live())attachmentStatus.textContent=e.message;}
+         finally{attachmentBusy=false;}
+        }));
+       }else if(!admin&&['Open','In Progress'].includes(row.status)){
+        attachmentStatus.textContent='Optional: one screenshot, up to 3 MB. Remove guest IDs, passwords and financial details before attaching. Cannot replace from the dashboard.';
+        const file=node('input');file.type='file';file.accept='image/jpeg,image/png,image/webp';file.setAttribute('aria-label','Select support screenshot');
+        const upload=button('Attach screenshot',async()=>{
+         if(!live()||attachmentBusy)return;attachmentBusy=true;upload.disabled=true;
+         try{await uploadScreenshot(ctx.sb,row.id,file.files?.[0],live);if(live()){attachmentStatus.textContent='Screenshot uploaded.';await refreshAttachment();}}
+         catch(e){if(live()){attachmentStatus.textContent=e.message;attachmentActions.append(button('Recheck attachment',()=>void refreshAttachment()));}}
+         finally{attachmentBusy=false;if(live())upload.disabled=false;}
+        });attachmentActions.append(file,upload);
+       }else{attachmentStatus.textContent='No screenshot attached.';}
+      }catch(e){if(live())attachmentStatus.textContent='Screenshot unavailable. Close and reopen to retry.';}
+     }
+     attach.ontoggle=()=>{if(attach.open)void refreshAttachment();else{attachmentSeq++;attachmentActions.replaceChildren();attachmentStatus.textContent='';}};
      if(admin){
       card.append(node('small','Restaurant '+row.restaurant_id));
       const st=control('select','status','Status',statuses),reply=control('textarea','response','Bite response');
@@ -161,5 +231,5 @@
   }
   void load();
  }
- return {init,mount,clear,sync,identity,normalize,matching,createOrRecover,updateTicket,readHistory};
+ return {init,mount,clear,sync,identity,normalize,matching,createOrRecover,updateTicket,readHistory,attachmentPath,validateScreenshot,screenshotInfo,uploadScreenshot,downloadScreenshot};
 });

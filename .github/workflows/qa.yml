@@ -102,6 +102,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/owner_support_ticket_history_candidate.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_support_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_support_history_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_support_storage_fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/owner_support_attachments_candidate.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/owner_support_storage_test.sql
+          node --check scripts/owner_support_storage_api_gate.mjs
 
   customer-reorder-postgres-qa:
     runs-on: ubuntu-latest
