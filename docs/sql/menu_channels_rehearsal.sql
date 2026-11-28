@@ -2,6 +2,7 @@
 -- Run against a disposable production-like clone. Always rolls back.
 BEGIN;
 \ir menu_channels_visibility_candidate.sql
+\ir menu_channels_first_attempt_candidate.sql
 -- Exact-match guard: abort on drift instead of silently editing unexpected server code.
 DO $patch$
 DECLARE item record; old_def text; new_def text; actual_count integer;

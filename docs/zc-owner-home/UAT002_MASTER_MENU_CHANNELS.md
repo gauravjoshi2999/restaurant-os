@@ -20,3 +20,10 @@ Run 45961052266: PostgreSQL first-attempt gate passed (job 140378694218). Static
 
 ## Customer smoke isolation checkpoint
 The live public smoke on run 45962922473 timed out waiting for restaurant cards. Read-only production catalog audit confirms all four availability columns are still absent; the candidate frontend requires them. The public live smoke remains an unmodified release gate, not waived. Updated the isolated customer fixture to reflect schema defaults and added an opt-in synthetic channel matrix testing discovery and menu exclusion of QR-only, room-only, POS-only and globally paused items. Run synthetic browser suite before live public smoke to obtain useful evidence before the production schema gate. No real database migration or provider calls. Main branch drift and full disposable DB rehearsal still block merge.
+
+
+## Launch branch reconciliation
+
+Resolved the script-version and tracker conflicts with the latest Owner checkout and accounts batch in the local integration branch. The rollback-only SQL rehearsal now includes the service-only payment attempt function alongside the four visibility columns. Verified frontend and Owner structure checks and 1,278 Node tests in the combined source. Run the complete isolated PostgreSQL rehearsal and authenticated channel tests before production changes. Confirm that the POS and room sale commands enforce their own availability flags and that the Owner can preview private options.
+
+Production function inspection confirmed that hotel room sales and counter sales both reach `create_pos_order_with_payment`, while the shared item writer currently stores the item name, quantity and price. Canonical menu items need their menu ID carried through these commands and through unpaid corrections, including drafts reopened after a channel change. Keep explicitly custom charges on their existing path. Validate channel eligibility before writing new sales. Preserve stored snapshots for issued bills and already-paid online orders.

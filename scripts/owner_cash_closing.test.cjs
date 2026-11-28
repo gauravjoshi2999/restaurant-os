@@ -186,3 +186,41 @@ test('Cashbook exact verified totals are restored after a successful load',async
  assert.match(w.el('cashbookModeRows').innerHTML,/Cashfree/);
  assert.equal(w.el('cashbookExpectedCash').textContent,'₹0.30');
 });
+
+test('Clearing the date hides previous drawer numbers and disables closing',async()=>{
+ const w=workspace();
+ await w.context.loadCashbook();
+ w.el('cashbookDate').value='';
+ await w.context.loadCashbook();
+ assert.equal(w.el('cashbookIncome').textContent,'—');
+ assert.equal(w.el('cashbookExpectedCash').textContent,'—');
+ assert.equal(w.el('cashbookRows').innerHTML,'');
+ assert.equal(w.el('cashbookReviewBtn').disabled,true);
+});
+
+test('Business Reports includes every recorded method and exposes the underlying day entries',()=>{
+ const rows=[entry('a','0.10','Cashfree'),entry('b','0.20','Cashfree'),entry('c','0.05','UPI','out')];
+ const elements=new Map();
+ const doc={getElementById(id){
+  if(!elements.has(id))elements.set(id,{style:{}});
+  return elements.get(id);
+ }};
+ const source=fs.readFileSync('index.html','utf8');
+ const start=source.indexOf('function showReportExclusions(rows){');
+ const end=source.indexOf('function ownerReportRows(){',start);
+ const context={document:doc,BiteCashClosing:closing,BiteOwner:{financialSummary:()=>({paid:[],gross:0,net:0,refunds:0,commission:0})},
+  reportOrders:[],reportFinancials:[],reportCashbook:rows,reportItems:[],reportCustomerBalances:[],money:n=>'₹'+Number(n).toFixed(2),esc:String};
+ vm.runInNewContext(source.slice(start,end)+'\nrenderReports();',context);
+ assert.equal(doc.getElementById('reportNetCash').textContent,'₹0.25');
+ assert.match(doc.getElementById('reportModeRows').innerHTML,/Cashfree<\/td><td>₹0\.30/);
+ const day=doc.getElementById('reportDailyRows').innerHTML;
+ assert.match(day,/View entries for 2026-11-13/);
+ assert.equal((day.match(/<li>/g)||[]).length,3);
+ assert.match(day,/−₹0\.05/);
+ const renderNote=vm.runInNewContext(source.slice(start,end)+'\nshowReportExclusions;',context);
+ renderNote([entry('demo','15.75','Cash','out')]);
+ assert.match(doc.getElementById('reportDemoDifference').textContent,/1 demo expense entry.*₹15.75 paid/);
+ renderNote([]);
+ assert.equal(doc.getElementById('reportDemoDifference').hidden,true);
+ assert.equal(doc.getElementById('reportDemoDifference').textContent,'');
+});
