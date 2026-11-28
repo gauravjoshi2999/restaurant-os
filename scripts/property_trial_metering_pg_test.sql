@@ -8,8 +8,8 @@ insert into trial_test_properties values
  ('fc020000-0000-4000-8000-000000000001','fc010000-0000-4000-8000-000000000001','11111111-1111-4111-8111-111111111111'),
  ('fc020000-0000-4000-8000-000000000002','fc010000-0000-4000-8000-000000000002','22222222-2222-4222-8222-222222222222');
 grant select on trial_test_properties to authenticated,service_role;
-insert into public.restaurants(id,name,address,phone)
-select restaurant_id,'Trial QA restaurant','','' from trial_test_properties;
+insert into public.restaurants(id,name,address,phone,created_by)
+select restaurant_id,'Trial QA restaurant','','',owner_id from trial_test_properties;
 insert into public.bite_properties(id,business_id,name,business_type,capabilities)
 select t.property_id,b.id,'Trial QA property','hybrid',private.bite_default_capabilities('hybrid')
 from trial_test_properties t join public.bite_businesses b on b.owner_id=t.owner_id;
