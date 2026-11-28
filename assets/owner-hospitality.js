@@ -715,7 +715,10 @@
   if(!['owner','manager'].includes(prop().role))throw Error('Only an authorized restaurant-linked owner or manager can add menu food.');
   $('bhActionEditor')?.remove();
   const mount=$('bhFolioEditor');mount.innerHTML='<section class="bh-panel" role="status">Loading restaurant menu…</section>';
-  const response=await ctx.sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true).eq('available_room',true).order('name');
+  const response=await root.BiteFoodTypes.readChannel('available_room',filtered=>{
+   const query=ctx.sb.from('menu_items').select('id,name,price,category_id').eq('restaurant_id',restaurantId).eq('is_available',true);
+   return (filtered?query.eq('available_room',true):query).order('name');
+  });
   if(prop()?.id!==propertyId||selectedFolio!==folioId)return;
   if(response.error){mount.innerHTML='';throw response.error;}
   foodMenu=(response.data||[]).filter(x=>x.id&&x.name&&Number.isFinite(Number(x.price))&&Number(x.price)>=0);
@@ -727,7 +730,9 @@
   if(!foodFolio||selectedFolio!==foodFolio)throw Error('Guest bill changed. Reopen the food menu.');
   const f=data.folios.find(x=>x.id===foodFolio),s=data.stays.find(x=>x.id===f?.stay_id),room=data.rooms.find(x=>x.id===s?.room_id);
   if(f?.status!=='open'||s?.status!=='in_house')throw Error('This guest is no longer checked in.');
-  const items=foodMenu.filter(x=>(foodCart.get(x.id)||0)>0).map(x=>({name:x.name,quantity:foodCart.get(x.id),unit_price:Number(x.price)}));
+  const items=foodMenu.filter(x=>(foodCart.get(x.id)||0)>0).map(x=>({
+   name:x.name,quantity:foodCart.get(x.id),unit_price:Number(x.price),...(x.custom?{}:{menu_item_id:x.id})
+  }));
   if(!items.length)throw Error('Choose at least one food item.');
   const total=items.reduce((n,x)=>n+Math.round(x.quantity*x.unit_price*100)/100,0);
   if(!root.confirm('Room '+(room?.number||'—')+' mein '+money(total)+' ka food add karna hai? Payment abhi record nahi hoga.'))return;
@@ -894,7 +899,7 @@
    else if(action==='folio-list'){selectedFolio=null;foodFolio=null;renderFolios()}
    else if(action==='original-pos')await openOriginalPOS(id,b);
    else if(action==='food-menu')await openFoodPicker();
-   else if(action==='food-custom-add'){const panel=b.closest('[data-bh-custom-food]'),msg=panel?.querySelector('[data-custom-food-error]');if(!panel||!msg||!foodFolio||selectedFolio!==foodFolio||!['owner','manager'].includes(prop()?.role)||!has('charge_to_room'))throw Error('Open an active guest bill first.');const name=panel.querySelector('[name=custom_food_name]').value.trim(),qty=Number(panel.querySelector('[name=custom_food_qty]').value),price=Number(panel.querySelector('[name=custom_food_price]').value);if(!name||name.length>120||!Number.isInteger(qty)||qty<1||qty>999||!Number.isFinite(price)||price<=0||price>99999999||Math.abs(price*100-Math.round(price*100))>0.00001){msg.textContent='Enter item name, quantity and a valid price.';return}const customId='custom-'+crypto.randomUUID();foodMenu.push({id:customId,name,price:Math.round(price*100)/100});foodCart.set(customId,qty);foodQuery='';renderFoodPicker()}
+   else if(action==='food-custom-add'){const panel=b.closest('[data-bh-custom-food]'),msg=panel?.querySelector('[data-custom-food-error]');if(!panel||!msg||!foodFolio||selectedFolio!==foodFolio||!['owner','manager'].includes(prop()?.role)||!has('charge_to_room'))throw Error('Open an active guest bill first.');const name=panel.querySelector('[name=custom_food_name]').value.trim(),qty=Number(panel.querySelector('[name=custom_food_qty]').value),price=Number(panel.querySelector('[name=custom_food_price]').value);if(!name||name.length>120||!Number.isInteger(qty)||qty<1||qty>999||!Number.isFinite(price)||price<=0||price>99999999||Math.abs(price*100-Math.round(price*100))>0.00001){msg.textContent='Enter item name, quantity and a valid price.';return}const customId='custom-'+crypto.randomUUID();foodMenu.push({id:customId,name,price:Math.round(price*100)/100,custom:true});foodCart.set(customId,qty);foodQuery='';renderFoodPicker()}
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
    else if(action==='food-save')await postFoodToBill();
