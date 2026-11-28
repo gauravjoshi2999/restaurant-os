@@ -230,7 +230,15 @@ jobs:
           "$BUILD_TOOLS/apksigner" verify --verbose "android/app/build/outputs/apk/release/bite-${{ matrix.app }}-release.apk"
           # OAuth Android registration requires the public release certificate SHA-1, not the key.
           if [ "${{ matrix.app }}" = "customer" ]; then
-            "$BUILD_TOOLS/apksigner" verify --print-certs "android/app/build/outputs/apk/release/bite-customer-release.apk" | grep -E "certificate SHA-1 digest:" | tee -a "$GITHUB_STEP_SUMMARY"
+            CERT_REPORT="$("$BUILD_TOOLS/apksigner" verify --print-certs "android/app/build/outputs/apk/release/bite-customer-release.apk")"
+            ACTUAL_SHA256="$(printf '%s\n' "$CERT_REPORT" | awk '/certificate SHA-256 digest:/ {print $NF}' | tr '[:upper:]' '[:lower:]' | sort -u)"
+            EXPECTED_SHA256="a1e9c24b1bf379fa264fcddfae77766fa1d5be9681c8f65a638aaa654b0f9b3b"
+            printf '%s\n' "$CERT_REPORT" | grep -E "certificate SHA-(1|256) digest:" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+              echo "::error::Customer signed release blocked: signing certificate differs from the verified historical Customer APK. Restore the original signing key; do not ask users to uninstall."
+              exit 1
+            fi
+            echo "Verified original Customer release certificate."
           fi
           rm -f "$RUNNER_TEMP/bite-release.jks"
       - uses: actions/upload-artifact@v4
