@@ -464,6 +464,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118035815_staff_entry_retry_guard.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118040512_staff_room_charge_scope.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128044500_staff_hotel_expense_entry.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118130000_owner_historical_date_entries.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261128113352_staff_guest_entry_without_folios.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_guest_controls_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f scripts/owner_staff_expense_entry_pg_test.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261121061528_owner_h10_checkin_deposit.sql

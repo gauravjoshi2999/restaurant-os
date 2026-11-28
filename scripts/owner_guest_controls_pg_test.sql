@@ -42,17 +42,41 @@ declare p uuid;r1 uuid;r2 uuid;r3 uuid;r4 uuid;g uuid;subject uuid;d uuid;front 
  payload:=payload||jsonb_build_object('advance_amount',0,'rooms',jsonb_build_array(jsonb_build_object('room_id',r3,'adults',3,'children',0,'nightly_rate',1500,'registration',reg),jsonb_build_object('room_id',r4,'adults',1,'children',0,'nightly_rate',1500,'registration',(reg-'family_guest_ids')||jsonb_build_object('male',1,'additional_ids','[]'::jsonb))));
  perform pg_temp.denied(format('select public.bite_family_booking(%L,%L,gen_random_uuid())',p,(payload||jsonb_build_object('rooms',jsonb_build_array((payload->'rooms'->0)||jsonb_build_object('registration',reg||jsonb_build_object('family_guest_ids','[]'::jsonb)),payload->'rooms'->1)))::text));
  perform public.bite_family_booking(p,payload,gen_random_uuid());
+ insert into public.bite_owner_historical_entries(request_id,entry_kind,property_id,record_date,departure_date,customer_name,amount,received_amount,payment_method)
+ values(gen_random_uuid(),'room',p,day-2,day-1,'Synthetic old entry',300,200,'Cash');
  perform public.bite_save_staff_access(p,'33333333-3333-4333-8333-333333333333','', 'manager',true, array['guest_entry','reservation_entry','checkin']);
- insert into controls_state values('p',p),('g',g),('r1',r1),('family_request',request),('family_payload',payload::text),('front',lead_front);
+ insert into controls_state values('p',p),('g',g),('r1',r1),('r2',r2),('family_request',request),('family_payload',payload::text),('front',lead_front);
  raise notice 'PASS: 4 adults / 2 rooms / 2 IDs, optional 3rd ID, exact 2000 cash advance and stable retry';
 end $$;
 select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
-do $$declare p uuid;v jsonb;begin
+do $$declare p uuid;v jsonb; family jsonb; begin
  select s.v::uuid into p from controls_state s where k='p';
- if not private.bite_can(p,'guest_register') or private.bite_can(p,'reporting') then raise exception 'Entry-only manager permissions are incorrect';end if;
- v:=public.bite_owner_context();
- if v->0->>'can_delete_data'<>'false' or (v->0->'capabilities')?'reporting' then raise exception 'Staff context advertised owner permissions';end if;
+ if not private.bite_can(p,'guest_register') or private.bite_can(p,'reporting') or private.bite_can(p,'folios') then raise exception 'Entry-only manager permissions are incorrect';end if;
+ select x into v from jsonb_array_elements(public.bite_owner_context()) x where x->>'id'=p::text;
+ if v->>'can_delete_data' is distinct from 'false' or (v->'capabilities')?'reporting' then raise exception 'Staff context advertised owner permissions';end if;
  perform public.bite_property_command(p,'guest_save','{"full_name":"Staff entered guest","phone":"6666666660","country":"India"}',gen_random_uuid());
+ if (v->'capabilities')?'folios' then raise exception 'Entry-only context exposed guest bills'; end if;
+ if exists(select from public.bite_folios where property_id=p) then raise exception 'Entry-only manager received folios'; end if;
+ if exists(select from public.bite_folio_entries where property_id=p) then raise exception 'Entry-only manager received folio entries'; end if;
+ if exists(select from public.bite_owner_historical_entries where property_id=p) then raise exception 'Entry-only manager received historical bills'; end if;
+ v:=public.bite_hotel_workspace(p);
+ if v->'folios' is distinct from '[]'::jsonb or v->'entries' is distinct from '[]'::jsonb then
+  raise exception 'Entry-only workspace returned financial history';
+ end if;
+ family:=jsonb_build_object('name','Reception family QA','mode','reserve',
+  'guest_id',(select s.v from controls_state s where k='g'),'arrival',current_date+20,'departure',current_date+21,'arrival_time','14:00',
+  'rooms',jsonb_build_array(
+   jsonb_build_object('room_id',(select s.v from controls_state s where k='r1'),'adults',1,'children',0,'nightly_rate',1200),
+   jsonb_build_object('room_id',(select s.v from controls_state s where k='r2'),'adults',1,'children',0,'nightly_rate',1300)));
+ begin
+  perform public.bite_family_booking(p,family||jsonb_build_object('advance_amount',50,'advance_method','Cash'),gen_random_uuid());
+  raise exception 'Entry-only manager recorded a family advance';
+ exception when insufficient_privilege then null;
+ end;
+ v:=public.bite_family_booking(p,family,gen_random_uuid());
+ if jsonb_array_length(v->'stays')<>2 then raise exception 'Entry-only family reservation failed';end if;
+ raise notice 'PASS: entry-only staff can save guest and family reservations while direct bill reads and advances are denied';
+
  -- A normal Check-in form resubmits an unchanged saved room/dates/counts before
  -- sending checkin. It must not require the ability to modify unrelated stays.
  v:=public.bite_property_command(p,'reserve',jsonb_build_object('guest_id',(select s.v::uuid from controls_state s where k='g'),'room_id',(select s.v::uuid from controls_state s where k='r1'),'arrival',current_date+10,'departure',current_date+11,'adults',1,'children',0,'nightly_rate',1200),gen_random_uuid());
@@ -80,6 +104,7 @@ select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333'
 do $$declare p uuid;begin
  select s.v::uuid into p from controls_state s where k='p';
  if not private.bite_can(p,'reporting') or not private.bite_staff_can(p,'checkout') then raise exception 'Explicit owner grant was not applied';end if;
+ if not exists(select from public.bite_owner_historical_entries where property_id=p) then raise exception 'Explicit billing access did not restore historical room read'; end if;
  perform public.bite_daily_book(p,current_date,current_date);
 end $$;
 select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
@@ -88,11 +113,11 @@ do $$declare p uuid;v jsonb;r jsonb;request uuid:=gen_random_uuid();begin
  perform public.bite_save_staff_access(p,'33333333-3333-4333-8333-333333333333','','manager',false,'{}');
  perform pg_temp.denied(format('select public.bite_owner_data_preview(%L,''invalid_scope'',''{}'')',p));
  v:=public.bite_owner_data_preview(p,'stays','{}');
- if (v->>'count')::integer<>5 then raise exception 'Removal preview count wrong';end if;
+ if (v->>'count')::integer<>7 then raise exception 'Removal preview count wrong';end if;
  perform pg_temp.denied(format('select public.bite_owner_data_delete(%L,''stays'',''{}'',''stale-hash'',''Synthetic Controls Hotel'',gen_random_uuid())',p));
  perform pg_temp.denied(format('select public.bite_owner_data_delete(%L,''stays'',''{}'',%L,''wrong hotel'',gen_random_uuid())',p,v->>'preview_hash'));
  r:=public.bite_owner_data_delete(p,'stays','{}',v->>'preview_hash','Synthetic Controls Hotel',request);
- if (r->>'deleted')::integer<>5 then raise exception 'Owner removal did not delete selected stays';end if;
+ if (r->>'deleted')::integer<>7 then raise exception 'Owner removal did not delete selected stays';end if;
  if exists(select 1 from public.bite_stays where property_id=p) or exists(select 1 from public.bite_folios where property_id=p) or exists(select 1 from public.bite_folio_entries where property_id=p) then raise exception 'Hotel reset left bills or ledger rows on dashboard';end if;
  r:=public.bite_owner_data_delete(p,'stays','{}',v->>'preview_hash','Synthetic Controls Hotel',request);
  if r->>'already_complete'<>'true' then raise exception 'Removal retry was not idempotent';end if;
