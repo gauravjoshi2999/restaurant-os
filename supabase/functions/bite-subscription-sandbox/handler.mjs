@@ -128,9 +128,13 @@ export function createSandboxHandler({env, authenticate, prepare, receipt, subsc
   const expiryMs = Date.parse(attempt?.expires_at);
   if (!isUuid(attempt?.attempt_id) || !Number.isSafeInteger(attempt.amount_paise)
       || attempt.amount_paise < 100 || attempt.currency !== 'INR'
-      || !Number.isFinite(expiryMs) || expiryMs <= now() + 5 * 60_000) {
-   return reply(409, {error: 'Sandbox attempt expired or unavailable'});
+      || !Number.isFinite(expiryMs)) {
+   return reply(409, {error: 'Sandbox attempt unavailable'});
   }
+  const checkPayment = () => reply(200, {
+   environment: 'sandbox', status: 'check_payment', attempt_id: attempt.attempt_id
+  });
+  if (expiryMs <= now() + 5 * 60_000) return checkPayment();
 
   const orderId = 'bite_st_' + attempt.attempt_id.replaceAll('-', '');
   const amount = attempt.amount_paise / 100;
@@ -156,6 +160,7 @@ export function createSandboxHandler({env, authenticate, prepare, receipt, subsc
       || Number(order.order_amount) !== amount) {
    return reply(503, {error: 'Sandbox provider order could not be confirmed'});
   }
+  if (['PAID', 'EXPIRED', 'TERMINATED'].includes(order.order_status)) return checkPayment();
   const orderExpiry = Date.parse(order.order_expiry_time);
   if (order.order_status !== 'ACTIVE' || typeof order.payment_session_id !== 'string' || !order.payment_session_id
       || !Number.isFinite(orderExpiry) || orderExpiry <= now() + 5 * 60_000 || orderExpiry > expiryMs) {

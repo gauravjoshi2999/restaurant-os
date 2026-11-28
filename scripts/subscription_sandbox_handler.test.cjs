@@ -69,7 +69,10 @@ test('disabled, expired and unauthorized attempts cannot request a provider orde
  assert.equal((await (await handler({authenticate:async()=>null}))(request())).status,401);
  assert.equal((await (await handler({prepare:async()=>({error:{code:'42501'}})}))(request())).status,403);
  assert.equal((await (await handler({prepare:async()=>({error:{code:'22023'}})}))(request())).status,409);
- assert.equal((await (await handler({now:()=>Date.parse(expiry)}))(request())).status,409);
+ const expired=await handler({now:()=>Date.parse(expiry)});
+ const result=await expired(request());
+ assert.equal(result.status,200);
+ assert.deepEqual(await result.json(),{environment:'sandbox',status:'check_payment',attempt_id:attemptId});
 });
 
 test('provider conflict reuses the same order and withholds unverified sessions',async()=>{
@@ -82,8 +85,12 @@ test('provider conflict reuses the same order and withholds unverified sessions'
  assert.deepEqual(urls,[endpoint,endpoint+'/'+orderId]);
  const incorrect=await handler({fetchProvider:async()=>Response.json({...providerOrder,order_amount:1})});
  assert.equal((await incorrect(request())).status,503);
- const paid=await handler({fetchProvider:async()=>Response.json({...providerOrder,order_status:'PAID'})});
- assert.equal((await paid(request())).status,409);
+ for(const order_status of ['PAID','EXPIRED','TERMINATED']){
+  const closed=await handler({fetchProvider:async()=>Response.json({...providerOrder,order_status})});
+  const result=await closed(request());
+  assert.equal(result.status,200);
+  assert.deepEqual(await result.json(),{environment:'sandbox',status:'check_payment',attempt_id:attemptId});
+ }
 });
 
 const verifyRequest = () => request({action:'verify',attempt_id:attemptId,cf_payment_id:'0000'});

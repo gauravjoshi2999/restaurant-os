@@ -54,9 +54,13 @@ purchase_fixture = """<script>
      status:state.tier?'active':'no_plan',tier:state.tier,ends_at:'2026-12-28T13:42:00Z',pos_bills_remaining:1000,
      room_limit:15,offers
     }}};
-    if(data.action==='checkout')return {data:{environment:'sandbox',attempt_id:data.request_id,payment_session_id:'synthetic-session'}};
+    if(data.action==='checkout'){
+     if(state.mode==='create_lost')return {error:{message:'Synthetic lost checkout response'}};
+     if(state.mode==='recover')return {data:{environment:'sandbox',status:'check_payment',attempt_id:data.request_id}};
+     return {data:{environment:'sandbox',attempt_id:data.request_id,payment_session_id:'synthetic-session'}};
+    }
     if(state.mode==='verified')state.tier='starter';
-    return {data:{environment:'sandbox',status:state.mode==='pending'?'awaiting_payment':state.mode}};
+    return {data:{environment:'sandbox',status:['pending','recover'].includes(state.mode)?'awaiting_payment':state.mode}};
    }};
   }});
  };
@@ -191,6 +195,18 @@ try:
   chooser.select_option('pos_recharge_500')
   purchase.get_by_role('button',name='Recharge',exact=True).wait_for()
   purchase.screenshot(path=str(OUT/'guest-controls-subscription-checkout-390.png'))
+  page.evaluate("__BITE_SUBSCRIPTION_QA.mode='create_lost'")
+  purchase.get_by_role('button',name='Recharge',exact=True).click()
+  purchase.get_by_text('Could not confirm the test payment. Retry the same attempt.',exact=True).wait_for()
+  page.evaluate("__BITE_SUBSCRIPTION_QA.mode='recover'")
+  purchase.get_by_role('button',name='Continue test payment').click()
+  purchase.get_by_text('Payment is awaiting confirmation.',exact=True).wait_for()
+  check(purchase.get_by_role('button',name='Check payment').is_visible()
+        and not purchase.get_by_role('button',name='Continue test payment').count(),
+        'A lost checkout response can return the same attempt for verification only')
+  check(page.evaluate("new Set(__BITE_SUBSCRIPTION_QA.calls.filter(x=>x.offer_code==='pos_recharge_500').map(x=>x.request_id)).size===1"
+                      "&& __BITE_SUBSCRIPTION_QA.openings.length===1"),
+        'Recovering the original recharge opens no second provider modal')
   c.close()
   c,page=visit(browser,390,scenario='guest-entry',subscription='sandbox')
   nav(page,'settings')

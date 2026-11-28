@@ -133,7 +133,7 @@
    if(plan?.recharge_bills_saved)bits.push(plan.recharge_bills_saved+' unused recharge bills');
    summary.textContent=bits.join(' · ');
    picker.closest('label').hidden=!!pending||!offers.length;
-   pay.hidden=!pending&&!selected;
+   pay.hidden=pending?pending.check_only===true:!selected;
    pay.textContent=pending?'Continue test payment':!selected?'':selected.extra_pos_bills?'Recharge':(plan.tier===selected.tier?'Renew ':'Choose ')+name[selected.tier];
    verify.hidden=!pending?.attempt_id;
   }
@@ -168,7 +168,12 @@
    }
    const session=await request('checkout',{request_id:pending.request_id,catalog_version:pending.catalog_version,offer_code:pending.offer_code});
    if(!isCurrent())return;
-   if(typeof session.payment_session_id!=='string'||!session.payment_session_id||!session.attempt_id)throw Error('Sandbox session unavailable');
+   if(!session.attempt_id)throw Error('Sandbox attempt unavailable');
+   if(session.status==='check_payment'){
+    remember({...pending,attempt_id:session.attempt_id,check_only:true});
+    return checkPayment();
+   }
+   if(typeof session.payment_session_id!=='string'||!session.payment_session_id)throw Error('Sandbox session unavailable');
    remember({...pending,attempt_id:session.attempt_id});
    render();
    await loadSandboxCashfree();
