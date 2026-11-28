@@ -101,3 +101,18 @@ test('Owner save maps Veg/Non-veg consistently and fails closed on invalid type/
  for(const options of [{type:'bogus'},{allowed:false},{activeRid:'r-2'},{formRid:'r-2'}])assert.equal((await saveOwner(options)).payload,undefined);
  const r=await saveOwner({response:[]});assert.match(r.error,/Save not confirmed/);assert.ok(!r.calls.some(c=>c[0]==='close'));
 });
+
+test('Channel reads accept a legacy database only when the requested column is absent',async()=>{
+ const {readChannel}=require('../assets/bite-food-types.js');
+ const cases=[
+  [{code:'42703',message:'column menu_items.available_online does not exist'},[true,false]],
+  [{code:'42703',message:'column menu_items.available_qr does not exist'},[true]],
+  [{code:'PGRST204',message:'available_online missing in the schema cache'},[true]],
+  [{code:'42501',message:'available_online permission denied'},[true]],
+ ];
+ for(const [error,expected] of cases){
+  const calls=[];
+  await readChannel('available_online',filtered=>{calls.push(filtered);return filtered?{error}:{data:[]};});
+  assert.deepEqual(calls,expected);
+ }
+});

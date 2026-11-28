@@ -106,7 +106,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-<script src="assets/bite-food-types.js?v=20261125-diet1"></script>
+<script src="assets/bite-food-types.js?v=20261125-diet1-channel-read1"></script>
 <script src="assets/customer-discovery.js?v=20261125-diet1"></script><script src="assets/customer-menu-search.js?v=20261125-diet1"></script><script src="assets/customer-menu-personalization.js?v=20261116-choice1"></script>
 <script src="assets/customer-item-notes.js?v=20261113-presets1"></script>
 <script src="assets/customer-cutlery-preference.js?v=20261116-cutlery1"></script><script src="assets/customer-order-confirmation.js?v=20261117-confirm1"></script><link rel="stylesheet" href="assets/owner-order-confirmations.css?v=20261117-confirm1">
@@ -360,11 +360,12 @@ async function loadRestaurants(){
     return;
    }
   }
-  const {data:items,error:itemError}=await BiteFoodTypes.readMenu(columns=>{
+  const {data:items,error:itemError}=await BiteFoodTypes.readChannel('available_online',filtered=>BiteFoodTypes.readMenu(columns=>{
    let query=sb.from('menu_items').select(columns).eq('is_available',true);
+   if(filtered)query=query.eq('available_online',true);
    if(BITE_DIRECT_MODE)query=query.eq('restaurant_id',BITE_DIRECT_RESTAURANT_ID);
    return query.limit(1000);
-  },'restaurant_id,name,description,price,is_vegetarian,dietary_type,image_url');
+  },'restaurant_id,name,description,price,is_vegetarian,dietary_type,image_url'));
   if(!current())return;
   if(itemError)throw itemError;
   const nextMenuItems=items||[];
@@ -551,7 +552,7 @@ async function openRestaurant(id,options={}){
  // Non-blocking refresh: the latest Owner-uploaded cover appears when opening
  // an already loaded restaurant, without resetting menu/cart/payment details.
  void refreshCustomerCoverPhotos();
- window.BiteCustomerExtras?.renderFavouriteButton();appliedCheckoutCoupon=null;checkoutRequestKey=null;$('menuItems').innerHTML='<div class="empty">Menu load ho raha hai...</div>';try{const [cats,items,reviews]=await Promise.all([sb.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',id).eq('is_active',true).order('sort_order'),BiteFoodTypes.readMenu(columns=>sb.from('menu_items').select(columns).eq('restaurant_id',id).eq('is_available',true).order('sort_order'),'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url'),sb.from('restaurant_reviews').select('id,rating,review,response,created_at').eq('restaurant_id',id).eq('status','Published').order('created_at',{ascending:false}).limit(30)]);if(cats.error)throw cats.error;if(items.error)throw items.error;if(reviews.error)throw reviews.error;if(openSequence!==biteRestaurantOpenSequence)return false;const nextMenuItems=items.data||[];if(Array.isArray(options.requiredMenuIds)&&options.requiredMenuIds.length&&!options.requiredMenuIds.every(itemId=>nextMenuItems.some(item=>item.id===itemId&&item.is_available!==false)))throw Error('Reorder items are no longer available. Your previous cart is safe.');menuItems=nextMenuItems;renderRestaurantReviews(reviews.data||[]);cart=Object.fromEntries(Object.entries(cart).filter(([itemId,q])=>menuItems.some(i=>i.id===itemId)&&Number.isInteger(Number(q))&&Number(q)>0).map(([itemId,q])=>[itemId,Math.min(99,Number(q))]));itemNotes=BiteItemNotes.normalizeNotes(itemNotes,Object.keys(cart));renderMenu(cats.data||[]);window.BiteRestaurantDetails?.render(activeRestaurant,menuItems);renderCart()}catch(e){
+ window.BiteCustomerExtras?.renderFavouriteButton();appliedCheckoutCoupon=null;checkoutRequestKey=null;$('menuItems').innerHTML='<div class="empty">Menu load ho raha hai...</div>';try{const [cats,items,reviews]=await Promise.all([sb.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',id).eq('is_active',true).order('sort_order'),BiteFoodTypes.readChannel('available_online',filtered=>BiteFoodTypes.readMenu(columns=>{const query=sb.from('menu_items').select(columns).eq('restaurant_id',id).eq('is_available',true);return (filtered?query.eq('available_online',true):query).order('sort_order');},'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url')),sb.from('restaurant_reviews').select('id,rating,review,response,created_at').eq('restaurant_id',id).eq('status','Published').order('created_at',{ascending:false}).limit(30)]);if(cats.error)throw cats.error;if(items.error)throw items.error;if(reviews.error)throw reviews.error;if(openSequence!==biteRestaurantOpenSequence)return false;const nextMenuItems=items.data||[];if(Array.isArray(options.requiredMenuIds)&&options.requiredMenuIds.length&&!options.requiredMenuIds.every(itemId=>nextMenuItems.some(item=>item.id===itemId&&item.is_available!==false)))throw Error('Reorder items are no longer available. Your previous cart is safe.');menuItems=nextMenuItems;renderRestaurantReviews(reviews.data||[]);cart=Object.fromEntries(Object.entries(cart).filter(([itemId,q])=>menuItems.some(i=>i.id===itemId)&&Number.isInteger(Number(q))&&Number(q)>0).map(([itemId,q])=>[itemId,Math.min(99,Number(q))]));itemNotes=BiteItemNotes.normalizeNotes(itemNotes,Object.keys(cart));renderMenu(cats.data||[]);window.BiteRestaurantDetails?.render(activeRestaurant,menuItems);renderCart()}catch(e){
   if(openSequence!==biteRestaurantOpenSequence)return false;
   activeRestaurant=previousState.restaurant;
   menuItems=previousState.menuItems;
@@ -1970,7 +1971,7 @@ async function openCheckout(){
   window.BiteCheckoutUX.freshCartRequested=true;
   if(!window.BiteCheckoutUX.cancelBusy)void cancelPendingCustomerCheckout({background:true});
  }
- if(!activeRestaurant||!cartEntries().length)return;const selectedBeforeRefresh=cartEntries();try{const {data:freshItems,error:menuRefreshError}=await BiteFoodTypes.readMenu(columns=>sb.from('menu_items').select(columns).eq('restaurant_id',activeRestaurant.id).eq('is_available',true).order('sort_order'),'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url');if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(menuRefreshError)throw menuRefreshError;const freshMenu=freshItems||[];const freshIds=new Set(freshMenu.map(i=>i.id));const removed=selectedBeforeRefresh.filter(([id])=>!freshIds.has(id));const priceChanged=selectedBeforeRefresh.some(([id])=>{const oldItem=menuItems.find(i=>i.id===id),newItem=freshMenu.find(i=>i.id===id);return !!oldItem&&!!newItem&&Number(oldItem.price)!==Number(newItem.price)});menuItems=freshMenu;if(removed.length){removed.forEach(([id])=>{delete cart[id];delete itemNotes[id];});renderCart();closeCartModal();alert('Kuch items ab available nahi hain. Cart update kar diya hai; please dobara review karein.');return;}renderCart();if(priceChanged){openCartModal();alert('Restaurant ne menu prices update ki hain. Updated cart total review karke checkout dobara kholein.');return;}}catch(refreshError){if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;alert('Latest menu price check nahi ho paaya: '+(refreshError.message||'Please try again.'));return;}$('checkoutError').textContent='';$('checkoutRestaurant').textContent=activeRestaurant.name+' • '+cartEntries().reduce((n,[,q])=>n+q,0)+' items';$('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');$('checkoutName').value='';$('checkoutPhone').value='';$('savedAddress').innerHTML='<option value="new">New address</option>';checkoutAddresses=[];$('savedAddressSection').classList.add('hidden');$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.remove('hidden');try{const [profileRes,legacyProfileRes,addressRes]=await Promise.all([sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle(),sb.from('profiles').select('full_name').eq('id',data.session.user.id).maybeSingle(),sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false})]);if(profileRes.error)throw profileRes.error;if(legacyProfileRes.error)throw legacyProfileRes.error;if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(addressRes.error)throw addressRes.error;const p=profileRes.data||{};const accountName=p.full_name||legacyProfileRes.data?.full_name||data.session.user.user_metadata?.full_name||'';const accountPhone=p.phone||data.session.user.user_metadata?.phone||'';$('checkoutName').value=accountName;$('checkoutPhone').value=accountPhone;checkoutAddresses=addressRes.data||[];checkoutAddresses.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=(a.label||'Address')+' — '+a.address_line+', '+a.city;$('savedAddress').appendChild(o);});const def=checkoutAddresses.find(a=>a.id===window.discoveryAddressId&&a.postal_code===currentDiscoveryPin)||checkoutAddresses.find(a=>currentDiscoveryPin&&a.postal_code===currentDiscoveryPin)||(!currentDiscoveryPin?(checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0]):null);if(def){$('savedAddressSection').classList.remove('hidden');$('savedAddress').value=def.id;$('checkoutName').value=accountName||def.recipient_name||'';$('checkoutPhone').value=accountPhone||def.recipient_phone||'';$('newAddressFields').classList.add('hidden');$('addressLabel').value=def.label||'Home';$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';}else{$('savedAddressSection').classList.add('hidden');$('savedAddress').value='new';$('newAddressFields').classList.remove('hidden');if(currentDiscoveryPin)$('addressPostal').value=currentDiscoveryPin;}}catch(e){if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;$('checkoutError').textContent='Saved details load nahi ho paaye: '+(e.message||'Try again');return;}const canDelivery=!!activeRestaurant.accepts_delivery,canPickup=!!activeRestaurant.accepts_pickup;if(canPickup&&(!canDelivery||window.restaurantServiceFilter==='pickup'))document.querySelector('input[name="deliveryMode"][value="pickup"]').checked=true;if(canDelivery&&BiteDiscovery.isClosed(activeRestaurant)&&window.BiteSchedule?.canSchedule?.(activeRestaurant))document.querySelector('input[name="deliveryMode"][value="delivery"]').checked=true;document.querySelector('input[name="deliveryMode"][value="delivery"]').disabled=!canDelivery;document.querySelector('input[name="deliveryMode"][value="pickup"]').disabled=!canPickup;toggleCheckoutDelivery();await refreshCheckoutPaymentReadiness();if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;window.BiteCustomerExtras?.loadOffers();}
+ if(!activeRestaurant||!cartEntries().length)return;const selectedBeforeRefresh=cartEntries();try{const {data:freshItems,error:menuRefreshError}=await BiteFoodTypes.readChannel('available_online',filtered=>BiteFoodTypes.readMenu(columns=>{const query=sb.from('menu_items').select(columns).eq('restaurant_id',activeRestaurant.id).eq('is_available',true);return (filtered?query.eq('available_online',true):query).order('sort_order');},'id,category_id,name,description,price,is_vegetarian,dietary_type,is_kids_choice,image_url'));if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(menuRefreshError)throw menuRefreshError;const freshMenu=freshItems||[];const freshIds=new Set(freshMenu.map(i=>i.id));const removed=selectedBeforeRefresh.filter(([id])=>!freshIds.has(id));const priceChanged=selectedBeforeRefresh.some(([id])=>{const oldItem=menuItems.find(i=>i.id===id),newItem=freshMenu.find(i=>i.id===id);return !!oldItem&&!!newItem&&Number(oldItem.price)!==Number(newItem.price)});menuItems=freshMenu;if(removed.length){removed.forEach(([id])=>{delete cart[id];delete itemNotes[id];});renderCart();closeCartModal();alert('Kuch items ab available nahi hain. Cart update kar diya hai; please dobara review karein.');return;}renderCart();if(priceChanged){openCartModal();alert('Restaurant ne menu prices update ki hain. Updated cart total review karke checkout dobara kholein.');return;}}catch(refreshError){if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;alert('Latest menu price check nahi ho paaya: '+(refreshError.message||'Please try again.'));return;}$('checkoutError').textContent='';$('checkoutRestaurant').textContent=activeRestaurant.name+' • '+cartEntries().reduce((n,[,q])=>n+q,0)+' items';$('checkoutModal').classList.remove('hidden');$('checkoutModal').classList.add('show');$('checkoutName').value='';$('checkoutPhone').value='';$('savedAddress').innerHTML='<option value="new">New address</option>';checkoutAddresses=[];$('savedAddressSection').classList.add('hidden');$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.remove('hidden');try{const [profileRes,legacyProfileRes,addressRes]=await Promise.all([sb.from('customer_contact_profiles').select('full_name,phone').maybeSingle(),sb.from('profiles').select('full_name').eq('id',data.session.user.id).maybeSingle(),sb.from('customer_addresses').select('id,label,recipient_name,recipient_phone,address_line,landmark,city,state,postal_code,is_default').order('is_default',{ascending:false}).order('created_at',{ascending:false})]);if(profileRes.error)throw profileRes.error;if(legacyProfileRes.error)throw legacyProfileRes.error;if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;if(addressRes.error)throw addressRes.error;const p=profileRes.data||{};const accountName=p.full_name||legacyProfileRes.data?.full_name||data.session.user.user_metadata?.full_name||'';const accountPhone=p.phone||data.session.user.user_metadata?.phone||'';$('checkoutName').value=accountName;$('checkoutPhone').value=accountPhone;checkoutAddresses=addressRes.data||[];checkoutAddresses.forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent=(a.label||'Address')+' — '+a.address_line+', '+a.city;$('savedAddress').appendChild(o);});const def=checkoutAddresses.find(a=>a.id===window.discoveryAddressId&&a.postal_code===currentDiscoveryPin)||checkoutAddresses.find(a=>currentDiscoveryPin&&a.postal_code===currentDiscoveryPin)||(!currentDiscoveryPin?(checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0]):null);if(def){$('savedAddressSection').classList.remove('hidden');$('savedAddress').value=def.id;$('checkoutName').value=accountName||def.recipient_name||'';$('checkoutPhone').value=accountPhone||def.recipient_phone||'';$('newAddressFields').classList.add('hidden');$('addressLabel').value=def.label||'Home';$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';}else{$('savedAddressSection').classList.add('hidden');$('savedAddress').value='new';$('newAddressFields').classList.remove('hidden');if(currentDiscoveryPin)$('addressPostal').value=currentDiscoveryPin;}}catch(e){if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;$('checkoutError').textContent='Saved details load nahi ho paaye: '+(e.message||'Try again');return;}const canDelivery=!!activeRestaurant.accepts_delivery,canPickup=!!activeRestaurant.accepts_pickup;if(canPickup&&(!canDelivery||window.restaurantServiceFilter==='pickup'))document.querySelector('input[name="deliveryMode"][value="pickup"]').checked=true;if(canDelivery&&BiteDiscovery.isClosed(activeRestaurant)&&window.BiteSchedule?.canSchedule?.(activeRestaurant))document.querySelector('input[name="deliveryMode"][value="delivery"]').checked=true;document.querySelector('input[name="deliveryMode"][value="delivery"]').disabled=!canDelivery;document.querySelector('input[name="deliveryMode"][value="pickup"]').disabled=!canPickup;toggleCheckoutDelivery();await refreshCheckoutPaymentReadiness();if(!biteCheckoutOpenMatches(checkoutSequence,checkoutRestaurantId,checkoutCartSignature))return;window.BiteCustomerExtras?.loadOffers();}
 $('savedAddress').addEventListener('change',()=>{const isNew=$('savedAddress').value==='new';$('newAddressFields').classList.toggle('hidden',!isNew);if(!isNew){const a=checkoutAddresses.find(x=>x.id===$('savedAddress').value);if(a){$('checkoutName').value=$('checkoutName').value||a.recipient_name||'';$('checkoutPhone').value=$('checkoutPhone').value||a.recipient_phone||'';$('addressLabel').value=a.label||'Home';$('addressLine').value=a.address_line||'';$('addressLandmark').value=a.landmark||'';$('addressCity').value=a.city||'';$('addressState').value=a.state||'Rajasthan';$('addressPostal').value=a.postal_code||'';}}refreshCheckoutZoneEstimate();});
 $('addAnotherAddress').addEventListener('click',()=>{if($('savedAddress').value==='new'&&checkoutAddresses.length){const def=checkoutAddresses.find(a=>a.is_default)||checkoutAddresses[0];$('savedAddress').value=def.id;$('savedAddressPicker').classList.remove('hidden');$('addAnotherAddress').textContent='＋ Add a new address';$('newAddressFields').classList.add('hidden');$('addressLine').value=def.address_line||'';$('addressLandmark').value=def.landmark||'';$('addressCity').value=def.city||'';$('addressState').value=def.state||'Rajasthan';$('addressPostal').value=def.postal_code||'';$('addressLabel').value=def.label||'Home';return;}$('savedAddress').value='new';$('savedAddressPicker').classList.add('hidden');$('addAnotherAddress').textContent='← Use saved address';$('newAddressFields').classList.remove('hidden');$('addressLine').value='';$('addressLandmark').value='';$('addressCity').value='';$('addressPostal').value='';$('addressLabel').value='Home';addressPin=null;if(addressMarker&&addressMap){addressMap.removeLayer(addressMarker);addressMarker=null;}refreshCheckoutZoneEstimate();});
 document.querySelectorAll('input[name="deliveryMode"]').forEach(x=>x.addEventListener('change',toggleCheckoutDelivery));
@@ -2015,16 +2016,17 @@ function syncCheckoutPaymentButton(){
  const approvalRequired=!BITE_SANDBOX_CHECKOUT&&!!pendingLiveCheckout?.confirmationRequired;
  if(approvalRequired)window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
  const approval=approvalRequired?window.BiteOrderConfirmation?.view(pendingLiveCheckout.id):null;
- const confirmationLocked=approvalRequired&&approval?.state!=='approved';
+ const menuReviewRequired=!BITE_SANDBOX_CHECKOUT&&pendingLiveCheckout?.menuReviewRequired===true;
+ const confirmationLocked=approvalRequired&&!menuReviewRequired&&approval?.state!=='approved';
  // Never show an actionable payment button for a closed restaurant without a future slot.
  const needsScheduleTime=!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&typeof activeRestaurant!=='undefined'&&
   !!activeRestaurant&&checkoutMode()==='delivery'&&window.BiteDiscovery?.isClosed?.(activeRestaurant)===true&&
   window.BiteSchedule?.canSchedule?.(activeRestaurant)===true;
  const missingSchedule=needsScheduleTime&&!window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id);
- btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
+ btn.disabled=checkoutPaymentBusy||(menuReviewRequired&&window.BiteCheckoutUX?.cancelBusy===true)||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
  btn.setAttribute('aria-disabled',String(btn.disabled));
  if($('quickCancelCheckout')&&approvalRequired)$('quickCancelCheckout').textContent='Cancel confirmation request';
- btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
+ btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):menuReviewRequired?(window.BiteCheckoutUX?.cancelBusy?'Closing unpaid checkout…':'Review updated menu'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
  // Reopen a pending approval, including after refresh/login, without
 // replacing its frozen cart or generating a second payment attempt.
 
@@ -2032,10 +2034,10 @@ function syncCheckoutPaymentButton(){
  // hidden while Cashfree is being prepared or opened, so they never flash
  // between Pay online and the secure payment sheet.
  const showRecovery=Boolean(pendingLiveCheckout)&&!checkoutPaymentBusy;
- $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery);
- $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||pendingLiveCheckout.verifyOnly);
+ $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery||menuReviewRequired);
+ $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||menuReviewRequired||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
- if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':confirmationLocked?'No payment yet. Restaurant approval ke baad yahin Pay online button aayega.':pendingLiveCheckout?'Restaurant confirmed. Payment is secured by Cashfree; please complete within the shown time.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Send order to restaurant first; pay only after they confirm.':'Payment temporarily unavailable.';
+ if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':menuReviewRequired?'Menu changed before payment. Review the available items and confirm your order again.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':confirmationLocked?'No payment yet. Restaurant approval ke baad yahin Pay online button aayega.':pendingLiveCheckout?'Restaurant confirmed. Payment is secured by Cashfree; please complete within the shown time.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Send order to restaurant first; pay only after they confirm.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
   if(pendingLiveCheckout&&!freshPending){if(!('paymentWasDisabled' in el.dataset))el.dataset.paymentWasDisabled=String(el.disabled);el.disabled=true;}
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
@@ -2049,7 +2051,7 @@ window.BiteCustomerConfirmationOpen=function(){
  $('checkoutFormPanel').classList.remove('hidden');
  $('checkoutPendingPanel').classList.add('hidden');
  $('checkoutOutcomePanel').classList.add('hidden');
- $('checkoutError').textContent='';
+ $('checkoutError').textContent=pendingLiveCheckout.menuReviewRequired?'Menu availability changed. No payment was started.':'';
  window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
  syncCheckoutPaymentButton();
  return true;
@@ -2107,6 +2109,7 @@ async function continueLiveCheckout(){
  if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
  const pending=pendingLiveCheckout,accountSequence=bitePaymentAccountSequence;
  if(!pending?.id)throw new Error('No current checkout. Sign in to see your orders.');
+ if(pending.menuReviewRequired)return;
  if(pending.confirmationRequired)await window.BiteOrderConfirmation.assertApproved(sb,pending.id);
  const createdMs=Date.parse(pending.intentCreatedAt||'');
  if(Number.isFinite(createdMs)&&Date.now()-createdMs>15*60*1000){
@@ -2136,7 +2139,16 @@ async function continueLiveCheckout(){
  if(!pending.session){
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{intent_id:pending.id}});
   if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
-  if(error||!data?.payment_session_id){let detail=null;try{detail=await error?.context?.json?.();}catch{}
+  if(error||!data?.payment_session_id){
+   let detail=data;
+   try{detail=(await error?.context?.json?.())??detail;}catch{}
+   if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
+   if(detail?.status==='menu_changed'&&!pending.started&&!pending.verifyOnly){
+    pending.menuReviewRequired=true;
+    window.BiteCustomerExtras?.savePendingCheckout();
+    $('checkoutError').textContent='Menu availability changed. No payment was started.';
+    return;
+   }
    if(detail?.status==='payment_check_required'){
     const last=await verifyPendingLiveCheckout();
     if(last?.status==='activated'){await finishVerifiedCheckout(last);return;}
@@ -2320,10 +2332,12 @@ async function cancelPendingCustomerCheckout(options={}){
  }catch(e){
   if(!bitePaymentContextCurrent(accountSequence,id))return false;
   console.warn('Checkout cancellation not confirmed',e);
-  $('checkoutError').textContent='Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
+  $('checkoutError').textContent=pendingLiveCheckout?.menuReviewRequired?'Could not close the earlier checkout. Your cart is saved. Try Review updated menu again.':'Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
   if(background){if(!$('checkoutFormPanel').classList.contains('hidden')&&!$('checkoutModal').classList.contains('hidden'))$('checkoutError').textContent='Earlier payment is still being checked. Cart is saved; payment is paused.';}
-  else if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
-  else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
+  else if(!pendingLiveCheckout?.menuReviewRequired){
+   if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
+   else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
+  }
   return false;
  }
  finally{if(accountSequence===bitePaymentAccountSequence){window.BiteCheckoutUX.cancelBusy=false;button.disabled=false;fresh.disabled=false;fresh.textContent='Start a new order';button.textContent='Cancel old checkout · Start fresh';}}
@@ -2331,6 +2345,13 @@ async function cancelPendingCustomerCheckout(options={}){
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
  const accountSequence=bitePaymentAccountSequence;
+ if(!BITE_SANDBOX_CHECKOUT&&pendingLiveCheckout?.menuReviewRequired){
+  const review=cancelPendingCustomerCheckout({startFresh:true});
+  syncCheckoutPaymentButton();
+  await review;
+  if(accountSequence===bitePaymentAccountSequence)syncCheckoutPaymentButton();
+  return;
+ }
  if(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested){
   // A new cart may be edited but payment must never be sent to an old Cashfree intent.
   if(!window.BiteCheckoutUX.cancelBusy)await cancelPendingCustomerCheckout({background:true});
@@ -2755,7 +2776,7 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
  verify();
 })();
 </script>
-<script src="assets/customer-reorder-review.js?v=20261119-reorder1"></script><script src="assets/customer-completion.js?v=20261117-ownerconfirm1"></script><script src="./android-update-check.js" defer></script>
+<script src="assets/customer-reorder-review.js?v=20261119-reorder1"></script><script src="assets/customer-completion.js?v=20261128-menu-review1"></script><script src="./android-update-check.js" defer></script>
 <script id="bite-customer-update-prompt">
 /* Only offer a reload after comparing the actual deployed SHA; never reload during payment. */
 (async function(){

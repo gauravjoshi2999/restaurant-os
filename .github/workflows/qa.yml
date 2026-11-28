@@ -38,6 +38,12 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f scripts/menu_dietary_pg_fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/menu_dietary_classification.sql
           psql -v ON_ERROR_STOP=1 -f scripts/menu_dietary_pg_test.sql
+          psql -v ON_ERROR_STOP=1 -f scripts/menu_channels_visibility_pg_test.sql
+          awk '/^create or replace function private.create_order_with_items_and_table\(/ {copy=1}
+               /^revoke all on function private.create_order_with_items_and_table/ {copy=0}
+               copy' supabase/restaurant_table_management_reference.sql > /tmp/bite-menu-writer.sql
+          test -s /tmp/bite-menu-writer.sql
+          psql -v ON_ERROR_STOP=1 -v writer_file=/tmp/bite-menu-writer.sql -f scripts/menu_channels_pos_pg_test.sql
 
   refund-provider-sync-postgres-qa:
     runs-on: ubuntu-latest
@@ -174,8 +180,8 @@ jobs:
           python scripts/menu_qr_browser_smoke.py
           python scripts/owner_feedback_mobile_browser.py
           python scripts/delivery_handoff_mobile_browser.py
-          python scripts/browser_smoke.py
           python scripts/browser_completion.py
+          python scripts/browser_smoke.py
           python scripts/customer_reorder_review_browser.py
           python scripts/customer_support_topics_browser.py
           python scripts/owner_cash_closing_smoke.py

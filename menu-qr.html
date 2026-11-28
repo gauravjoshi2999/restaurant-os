@@ -82,7 +82,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #9270d6;outline-offse
 <div id="menu" class="menu" hidden aria-live="polite"></div>
 </main>
 <footer>Bite — Eat. Repeat. · Menu only. Prices/availability restaurant se confirm karein.</footer>
-<script src="assets/bite-food-types.js?v=20261125-diet1"></script>
+<script src="assets/bite-food-types.js?v=20261125-diet1-channel-read1"></script>
 <script src="assets/bite-restaurant-covers.js?v=20261113-cover-sync2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -213,7 +213,10 @@ async function loadMenu({quiet=false}={}){
   }
   const [catResult,itemResult]=await Promise.all([
    client.from('menu_categories').select('id,name,sort_order').eq('restaurant_id',restaurantId).eq('is_active',true).order('sort_order'),
-   BiteFoodTypes.readMenu(columns=>client.from('menu_items').select(columns).eq('restaurant_id',restaurantId).eq('is_available',true).order('sort_order').limit(1000),'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type')
+   BiteFoodTypes.readChannel('available_qr',filtered=>BiteFoodTypes.readMenu(columns=>{
+    const query=client.from('menu_items').select(columns).eq('restaurant_id',restaurantId).eq('is_available',true);
+    return (filtered?query.eq('available_qr',true):query).order('sort_order').limit(1000);
+   },'id,category_id,name,description,price,image_url,is_vegetarian,dietary_type'))
   ]);
   if(catResult.error)throw catResult.error;
   if(itemResult.error)throw itemResult.error;
