@@ -3,12 +3,20 @@
  const factory=window.supabase.createClient;
  window.supabase.createClient=(...args)=>{
   const c=factory(...args),rpc=c.rpc.bind(c),q=window.__BITE_HOTEL_QA,db=q.db,p=q.property,requests=new Map();
-  const expenseEntryScenario=new URLSearchParams(location.search).get('scenario')==='expense-entry';
+  const scenario=new URLSearchParams(location.search).get('scenario');
+  const expenseEntryScenario=scenario==='expense-entry', guestEntryScenario=scenario==='guest-entry';
   if(expenseEntryScenario){
    p.role='receptionist';p.can_configure=false;p.capabilities=['hotel_rooms'];
    p.permissions=['hotel_rooms','expense_entry'];
   }
+  if(guestEntryScenario){
+   p.role='receptionist';p.can_configure=false;p.capabilities=['hotel_rooms','guest_register','reservations'];
+   p.permissions=[...p.capabilities,'guest_entry','reservation_entry','checkin'];
+  }
   c.rpc=async(name,a={})=>{
+   if(guestEntryScenario&&name==='bite_hotel_workspace'){
+    const result=await rpc(name,a);return {...result,data:{...result.data,folios:[],entries:[],expenses:[],audit:[]}};
+   }
    if(expenseEntryScenario&&name==='bite_property_command'&&a.p_action==='expense'){
     q.expense=structuredClone(a);
     return{data:{id:'synthetic-expense',confirmed:true},error:null};
