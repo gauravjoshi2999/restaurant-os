@@ -62,7 +62,8 @@ begin
 end $$;
 
 insert into public.bite_property_members(property_id,user_id,role)
-select property_id,'33333333-3333-4333-8333-333333333333','receptionist' from trial_initial;
+select property_id,'33333333-3333-4333-8333-333333333333','receptionist' from trial_initial
+on conflict (property_id,user_id) do update set role=excluded.role,active=true;
 set local role authenticated;
 set local request.jwt.claim.sub='11111111-1111-4111-8111-111111111111';
 do $$
