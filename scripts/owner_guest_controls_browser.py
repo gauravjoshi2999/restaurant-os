@@ -98,8 +98,8 @@ try:
   f.locator('button[type=submit]').click()
   page.locator('#reservations.active').get_by_text('Check-in saved.',exact=True).wait_for()
   check(not page.locator('#folios').is_visible(),'Guest-entry check-in saves and returns to Reservations without opening a bill')
-  page.evaluate("showPage('settings')")
-  page.locator('#overview.active').wait_for()
+  nav(page,'settings')
+  page.locator('#settings').get_by_role('heading',name='Settings',exact=True).wait_for()
   check(not page.locator('#biteTrialUsage').count() and page.evaluate('__BITE_TRIAL_QA.calls.length')==0,
         'Reception cannot see or fetch the Owner trial usage card')
   c.close()
@@ -121,7 +121,7 @@ try:
    check(card.evaluate('(el)=>el.getBoundingClientRect().right<=innerWidth+1&&el.scrollWidth<=el.clientWidth+1'),
          f'{width}px subscription card fits the viewport')
    if width==390:
-    card.screenshot(path=str(OUT/'owner-trial-usage-390.png'))
+    card.screenshot(path=str(OUT/'guest-controls-trial-usage-390.png'))
     page.evaluate("__BITE_TRIAL_QA.status='error'; showPage('settings')")
     card.get_by_text('Could not load trial usage.',exact=True).wait_for()
     check(not card.locator('dl').is_visible(),'Trial request failure clears previous figures')
