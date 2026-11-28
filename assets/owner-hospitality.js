@@ -487,6 +487,18 @@
   const empty=target.querySelector('[data-room-filter-empty]');
   if(empty)empty.hidden=shown>0||!cards.length;
  }
+ async function finishRegistration(folioId,message){
+  selectedFolio=has('folios')?folioId||null:null;
+  if(has('folios')){await ctx.navigate('folios');return;}
+  const key=identity();
+  await ctx.navigate('reservations');
+  if(key!==identity())return;
+  const target=$('reservations');
+  if(!target?.classList.contains('active'))return;
+  const status=document.createElement('p');
+  status.className='bh-note';status.setAttribute('role','status');status.textContent=message;
+  target.prepend(status);
+ }
  function pendingRegistration(){
   const out=[],prefix='bite_property_request:'+identity()+':';
   try{for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key?.startsWith(prefix))continue;const action=key.slice(prefix.length).split(':')[0];if(!['guest_save','reserve','checkin'].includes(action))continue;const attempt=JSON.parse(localStorage.getItem(key)||'null');if(attempt?.id)out.push({key,action,attempt})}}catch{}
@@ -535,7 +547,7 @@
   const banner=offer?'<aside class="ha-draft-choice" role="status"><strong>'+(pending?'Earlier check-in needs verification':state.kind==='reserved'?'An earlier reservation is saved':'You have an unfinished check-in')+'</strong><p>'+esc(state.fields?.full_name||'Guest details')+' · Choose Resume to continue that entry. New check-ins start with empty guest details.</p><div class="bh-actions">'+btn('resume-register',pending?'Verify & resume':'Resume draft')+btn('fresh-register','Start fresh')+'</div></aside>':'';
 
   const g=data.guests.find(g=>g.id===draft.guest_id);
-  $('hotel-register').innerHTML=header('Check-in','',root.BiteGuestRegister?'<button type="button" class="btn secondary" data-gr-action="register">Guest register</button><button type="button" class="ha-text-button" data-gr-action="open-past">Past records</button><button type="button" class="ha-text-button" data-gr-action="close-checkin">Close check-in ×</button>':'')+banner+
+  $('hotel-register').innerHTML=header('Check-in','',root.BiteGuestRegister?'<button type="button" class="btn secondary" data-gr-action="register">Guest register</button>'+(has('folios')?'<button type="button" class="ha-text-button" data-gr-action="open-past">Past records</button>':'')+'<button type="button" class="ha-text-button" data-gr-action="close-checkin">Close check-in ×</button>':'')+banner+
    `<form id="bhCheckinForm" class="bh-form bh-panel" data-hotel-form="register" data-stay-id="${esc(draft.stay_id||'')}">
    <h2>1 · Guest</h2>${field('guest_search','Search returning guest by name / phone','search','','autocomplete="off" data-guest-search')}${select('guest_id','Returning guest',option('','New guest')+data.guests.map(g=>option(g.id,g.full_name+' · '+g.phone,g.id===draft.guest_id)).join(''),'data-guest-picker')}
    <div class="bh-form-grid">${field('full_name','Guest name *','text',g?.full_name||draft.full_name||'','required maxlength="120" autocomplete="name"')}${field('phone','Phone *','tel',g?.phone||draft.phone||'','required minlength="7" maxlength="20" inputmode="tel"')}${field('country','Nationality / country *','text',g?.country||draft.country||'India','required maxlength="60"')}${field('email','Email (optional)','email',g?.email||draft.email||'','maxlength="120"')}${field('address','Address','text',g?.address||draft.address||'','maxlength="500"')}${field('id_type','Identity type','text',g?.id_type||draft.id_type||'','maxlength="40"')}${field('id_last4','ID last 4 characters only','text',g?.id_last4||draft.id_last4||'','maxlength="4" autocomplete="off"')}</div>
@@ -903,7 +915,7 @@
    else if(action==='food-plus'||action==='food-minus'){if(!foodMenu.some(x=>x.id===id))throw Error('Dish not found. Reopen menu.');const old=foodCart.get(id)||0,next=Math.max(0,Math.min(999,old+(action==='food-plus'?1:-1)));if(next)foodCart.set(id,next);else foodCart.delete(id);renderFoodPicker()}
    else if(action==='food-close'){foodFolio=null;foodMenu=[];foodCart=new Map();$('bhFoodPicker')?.remove()}
    else if(action==='food-save')await postFoodToBill();
-   else if(action==='resume-register'){const raw=await resolveRegistration(false),stay=data.stays.find(s=>s.id===raw.fields.stay_id);if(stay&&['in_house','checked_out'].includes(stay.status)){localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=data.folios.find(f=>f.stay_id===stay.id)?.id||null;await ctx.navigate('folios')}else renderRegister('',true)}
+   else if(action==='resume-register'){const raw=await resolveRegistration(false),stay=data.stays.find(s=>s.id===raw.fields.stay_id);if(stay&&['in_house','checked_out'].includes(stay.status)){localStorage.removeItem('bite_register_draft:'+identity());await finishRegistration(data.folios.find(f=>f.stay_id===stay.id)?.id,'Guest entry already saved.')}else renderRegister('',true)}
    else if(action==='fresh-register'){if(pendingRegistration().length)await resolveRegistration(true);localStorage.removeItem('bite_register_draft:'+identity());renderRegister()}
    else if(action==='room-release'){await command('room_status',{id,status:'ready'});$('bhActionEditor')?.remove();await refreshRegistration($('bhCheckinForm'))}
    else if(action==='guest-use'){await ctx.navigate('hotel-register');renderRegister(id)}
@@ -995,7 +1007,7 @@
     if(form.dataset.stayId){
      await reload();
      const existing=data.stays.find(s=>s.id===form.dataset.stayId);
-     if(existing?.status==='in_house'||existing?.status==='checked_out'){selectedFolio=data.folios.find(x=>x.stay_id===existing.id)?.id||null;await ctx.navigate('folios');return}
+     if(existing?.status==='in_house'||existing?.status==='checked_out'){await finishRegistration(data.folios.find(x=>x.stay_id===existing.id)?.id,'Guest entry already saved.');return}
     }
     if(form.dataset.reviewed!=='true'){
      if(!f.room_id)throw Error('Choose a room');if(f.departure<=f.arrival)throw Error('Departure must be after arrival.');
@@ -1048,18 +1060,17 @@
      const response=await root.BiteFamilyCheckin.commit(sent,prop().id,identity(),ctx.sb);
      const first=response.booking?.stays?.[0];
      if(!first?.folio_id)throw Error('Booking response needs verification. Retry the same family details; do not make another booking.');
-     selectedFolio=first.folio_id;
      await reload();
      localStorage.removeItem('bite_register_draft:'+identity());
      root.BiteFamilyCheckin.clearAttempt(response.requestKey);
-     await ctx.navigate('folios');
+     await finishRegistration(first.folio_id,f.mode==='checkin'?'Family check-in saved.':'Family reservation saved.');
      return;
     }
     let stayId=form.dataset.stayId,folioId,checkinDone=false;
     if(!stayId){const s=await command('reserve',{guest_id:guestId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),compliance_note:f.compliance_note,booking_source:f.booking_source||'walk_in',booking_reference:f.booking_reference||'',advance_amount:Number(f.advance_amount||0),advance_method:f.advance_method||'Cash',advance_reference:f.advance_reference||'',advance_verified:f.advance_verified==='on',booking_mode:f.mode,quote_hash:form.dataset.quoteHash,...(deposit?{checkin_deposit:deposit}:{}),...(root.BiteHotelAccounts?.registration(form,f,savedDocs)||{})});stayId=s.id;folioId=s.folio_id;checkinDone=s.checkin_completed===true;form.dataset.stayId=stayId;persistDraft(form)}
     else{await command('reservation_edit',{id:stayId,room_id:f.room_id,arrival:f.arrival,departure:f.departure,adults:Number(f.adults),children:Number(f.children),...(f.arrival_time!==undefined?{arrival_time:f.arrival_time,terms_at_checkin:true}:{})})}
     if(f.mode==='checkin'&&!checkinDone){const s=await command('checkin',{id:stayId});folioId=s.folio_id}
-    localStorage.removeItem('bite_register_draft:'+identity());selectedFolio=folioId||null;await ctx.navigate('folios');
+    localStorage.removeItem('bite_register_draft:'+identity());await finishRegistration(folioId,f.mode==='checkin'?'Check-in saved.':'Reservation saved.');
    }else{
     let action,payload;
     if(type==='room'){action='room_save';payload={...f,id:form.dataset.roomId||null,active:f.active==='true'}}

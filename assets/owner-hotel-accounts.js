@@ -139,6 +139,18 @@
    wireMoneyFields(form,'advance_method','advance_account','advance_verified','advance_reference');
    wireAdvanceVerification(form);
    addDepositFields(form,booking,draft);
+   const access=p();
+   if(access?.role!=='owner'&&Array.isArray(access?.permissions)&&!access.permissions.includes('payment_entry')){
+    booking.querySelector('h3').textContent='Booking details';
+    booking.querySelector('.bh-note').textContent='Guest entry will be saved. Ask an authorized staff member to record any payment.';
+    booking.querySelectorAll('[name^="advance_"],[name^="deposit_"]').forEach(input=>{
+     if(input.type==='checkbox')input.checked=false;
+     else if(input.tagName!=='SELECT')input.value='';
+     input.disabled=true;
+     const label=input.closest('label');if(label)label.hidden=true;
+    });
+    const depositBox=booking.querySelector('.ha-checkin-deposit');if(depositBox)depositBox.hidden=true;
+   }
    // Hide irrelevant controls in step mode only; keep values and existing validation/payload intact.
    const refreshPayment=()=>{const source=form.elements.booking_source,advance=form.elements.advance_amount,deposit=form.elements.deposit_amount;
     form.dataset.haExternal=String(source?.value==='external_booking'||!!form.elements.booking_reference?.value);

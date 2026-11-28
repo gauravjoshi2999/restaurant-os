@@ -26,3 +26,9 @@ This release candidate covers three owner tasks. Wider launch acceptance remains
 | Pilot economics | Track activation, time to first bill, day-close discrepancies, support minutes, collection fees, infrastructure costs and willingness to renew over the planned 20–30-business pilot. Use measured costs and paid retention in the commercial decision. |
 
 [Technical completion tracker](../BITE_MASTER_COMPLETION_TRACKER.md) · [Owner usability review](UAT002_OWNER_SIMPLE_LANGUAGE.md)
+
+## Reception entry and guest bills
+
+The Owner can grant guest entry, reservations and check-in without granting Guest Bills. The new entry template returns staff to Reservations after saving. Payment entry is a separate choice. Restricted staff also lose the ability to read or enter old financial records through the guest register. Existing stored grants stay in place until the Owner edits them.
+
+The authorization checks cover the workspace response, direct database reads, family reservations and an attempted family advance. Cloudbeds also groups reservation work and access to financial reports into separate controls. [Role privileges and permissions](https://myfrontdesk.cloudbeds.com/hc/en-us/articles/19300997644443-Role-privileges-and-permissions-in-Cloudbeds-PMS)
