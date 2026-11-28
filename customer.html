@@ -2016,16 +2016,17 @@ function syncCheckoutPaymentButton(){
  const approvalRequired=!BITE_SANDBOX_CHECKOUT&&!!pendingLiveCheckout?.confirmationRequired;
  if(approvalRequired)window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
  const approval=approvalRequired?window.BiteOrderConfirmation?.view(pendingLiveCheckout.id):null;
- const confirmationLocked=approvalRequired&&approval?.state!=='approved';
+ const menuReviewRequired=!BITE_SANDBOX_CHECKOUT&&pendingLiveCheckout?.menuReviewRequired===true;
+ const confirmationLocked=approvalRequired&&!menuReviewRequired&&approval?.state!=='approved';
  // Never show an actionable payment button for a closed restaurant without a future slot.
  const needsScheduleTime=!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&typeof activeRestaurant!=='undefined'&&
   !!activeRestaurant&&checkoutMode()==='delivery'&&window.BiteDiscovery?.isClosed?.(activeRestaurant)===true&&
   window.BiteSchedule?.canSchedule?.(activeRestaurant)===true;
  const missingSchedule=needsScheduleTime&&!window.BiteSchedule?.getSelectedFor?.(activeRestaurant.id);
- btn.disabled=checkoutPaymentBusy||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
+ btn.disabled=checkoutPaymentBusy||(menuReviewRequired&&window.BiteCheckoutUX?.cancelBusy===true)||Boolean(window.BiteCheckoutUX?.sandboxSuccess)||(!BITE_SANDBOX_CHECKOUT&&!pendingLiveCheckout&&!checkoutPaymentReady)||missingSchedule||confirmationLocked;
  btn.setAttribute('aria-disabled',String(btn.disabled));
  if($('quickCancelCheckout')&&approvalRequired)$('quickCancelCheckout').textContent='Cancel confirmation request';
- btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
+ btn.textContent=checkoutPaymentBusy?'Opening secure payment…':BITE_SANDBOX_CHECKOUT?(window.BiteCheckoutUX?.sandboxPending?'Check test status':'Pay (test only)'):menuReviewRequired?(window.BiteCheckoutUX?.cancelBusy?'Closing unpaid checkout…':'Review updated menu'):freshPending?'Check earlier payment':confirmationLocked?(approval?.label||'Waiting for restaurant confirmation'):pendingLiveCheckout?(pendingLiveCheckout.amountReviewRequired?'Pay updated total ₹'+pendingLiveCheckout.amountReviewRequired:pendingLiveCheckout.verifyOnly?'Check payment status':'Pay online'):missingSchedule?'Choose delivery time':checkoutPaymentReady?'Request restaurant confirmation':'Online payment unavailable';
  // Reopen a pending approval, including after refresh/login, without
 // replacing its frozen cart or generating a second payment attempt.
 
@@ -2033,10 +2034,10 @@ function syncCheckoutPaymentButton(){
  // hidden while Cashfree is being prepared or opened, so they never flash
  // between Pay online and the secure payment sheet.
  const showRecovery=Boolean(pendingLiveCheckout)&&!checkoutPaymentBusy;
- $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery);
- $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||pendingLiveCheckout.verifyOnly);
+ $('quickCancelCheckout')?.classList.toggle('hidden',!showRecovery||menuReviewRequired);
+ $('checkPendingPaymentBtn')?.classList.toggle('hidden',!showRecovery||menuReviewRequired||pendingLiveCheckout.verifyOnly);
  if($('checkPendingPaymentBtn'))$('checkPendingPaymentBtn').disabled=checkoutPaymentBusy;
- if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':confirmationLocked?'No payment yet. Restaurant approval ke baad yahin Pay online button aayega.':pendingLiveCheckout?'Restaurant confirmed. Payment is secured by Cashfree; please complete within the shown time.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Send order to restaurant first; pay only after they confirm.':'Payment temporarily unavailable.';
+ if(note)note.textContent=BITE_SANDBOX_CHECKOUT?'Test mode · No real money charged.':menuReviewRequired?'Menu changed before payment. Review the available items and confirm your order again.':freshPending?'Closing previous payment. Pay online will unlock automatically when safe.':confirmationLocked?'No payment yet. Restaurant approval ke baad yahin Pay online button aayega.':pendingLiveCheckout?'Restaurant confirmed. Payment is secured by Cashfree; please complete within the shown time.':missingSchedule?'Restaurant is closed now. Select a preferred delivery slot before paying.':checkoutPaymentReady?'Send order to restaurant first; pay only after they confirm.':'Payment temporarily unavailable.';
  document.querySelectorAll('#checkoutModal input,#checkoutModal select,#checkoutModal textarea,#addAnotherAddress,#openAddressMap,#useCurrentLocation').forEach(el=>{
   if(pendingLiveCheckout&&!freshPending){if(!('paymentWasDisabled' in el.dataset))el.dataset.paymentWasDisabled=String(el.disabled);el.disabled=true;}
   else if('paymentWasDisabled' in el.dataset){el.disabled=el.dataset.paymentWasDisabled==='true';delete el.dataset.paymentWasDisabled;}
@@ -2050,7 +2051,7 @@ window.BiteCustomerConfirmationOpen=function(){
  $('checkoutFormPanel').classList.remove('hidden');
  $('checkoutPendingPanel').classList.add('hidden');
  $('checkoutOutcomePanel').classList.add('hidden');
- $('checkoutError').textContent='';
+ $('checkoutError').textContent=pendingLiveCheckout.menuReviewRequired?'Menu availability changed. No payment was started.':'';
  window.BiteOrderConfirmation?.watch(sb,pendingLiveCheckout.id,()=>syncCheckoutPaymentButton(),pendingLiveCheckout.intentCreatedAt);
  syncCheckoutPaymentButton();
  return true;
@@ -2108,6 +2109,7 @@ async function continueLiveCheckout(){
  if(BITE_SANDBOX_CHECKOUT)throw new Error('Sandbox mode mein live payment resume nahi hoga. Normal checkout par uska status check karein.');
  const pending=pendingLiveCheckout,accountSequence=bitePaymentAccountSequence;
  if(!pending?.id)throw new Error('No current checkout. Sign in to see your orders.');
+ if(pending.menuReviewRequired)return;
  if(pending.confirmationRequired)await window.BiteOrderConfirmation.assertApproved(sb,pending.id);
  const createdMs=Date.parse(pending.intentCreatedAt||'');
  if(Number.isFinite(createdMs)&&Date.now()-createdMs>15*60*1000){
@@ -2137,7 +2139,16 @@ async function continueLiveCheckout(){
  if(!pending.session){
   const {data,error}=await sb.functions.invoke('bite-live-create-session',{body:{intent_id:pending.id}});
   if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
-  if(error||!data?.payment_session_id){let detail=null;try{detail=await error?.context?.json?.();}catch{}
+  if(error||!data?.payment_session_id){
+   let detail=data;
+   try{detail=(await error?.context?.json?.())??detail;}catch{}
+   if(!bitePaymentContextCurrent(accountSequence,pending.id))return;
+   if(detail?.status==='menu_changed'&&!pending.started&&!pending.verifyOnly){
+    pending.menuReviewRequired=true;
+    window.BiteCustomerExtras?.savePendingCheckout();
+    $('checkoutError').textContent='Menu availability changed. No payment was started.';
+    return;
+   }
    if(detail?.status==='payment_check_required'){
     const last=await verifyPendingLiveCheckout();
     if(last?.status==='activated'){await finishVerifiedCheckout(last);return;}
@@ -2321,7 +2332,7 @@ async function cancelPendingCustomerCheckout(options={}){
  }catch(e){
   if(!bitePaymentContextCurrent(accountSequence,id))return false;
   console.warn('Checkout cancellation not confirmed',e);
-  $('checkoutError').textContent='Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
+  $('checkoutError').textContent=pendingLiveCheckout?.menuReviewRequired?'Could not close the earlier checkout. Your cart is saved. Try Review updated menu again.':'Cashfree could not confirm cancellation yet. Your cart is saved; try again shortly.';
   if(background){if(!$('checkoutFormPanel').classList.contains('hidden')&&!$('checkoutModal').classList.contains('hidden'))$('checkoutError').textContent='Earlier payment is still being checked. Cart is saved; payment is paused.';}
   else if(startFresh)window.BiteCheckoutUX?.showPending?.('Previous payment could not be safely closed. Check status; your menu is still available.');
   else window.BiteCheckoutUX?.setPendingMessage?.('Payment status is uncertain. You can return to the menu.');
@@ -2332,6 +2343,13 @@ async function cancelPendingCustomerCheckout(options={}){
 async function submitCustomerOrder(){
  if(checkoutPaymentBusy)return;
  const accountSequence=bitePaymentAccountSequence;
+ if(!BITE_SANDBOX_CHECKOUT&&pendingLiveCheckout?.menuReviewRequired){
+  const review=cancelPendingCustomerCheckout({startFresh:true});
+  syncCheckoutPaymentButton();
+  await review;
+  if(accountSequence===bitePaymentAccountSequence)syncCheckoutPaymentButton();
+  return;
+ }
  if(pendingLiveCheckout&&window.BiteCheckoutUX?.freshCartRequested){
   // A new cart may be edited but payment must never be sent to an old Cashfree intent.
   if(!window.BiteCheckoutUX.cancelBusy)await cancelPendingCustomerCheckout({background:true});
@@ -2756,7 +2774,7 @@ function showOrderActionResult(message,type='success'){const root=ensureOrderAct
  verify();
 })();
 </script>
-<script src="assets/customer-reorder-review.js?v=20261119-reorder1"></script><script src="assets/customer-completion.js?v=20261117-ownerconfirm1"></script><script src="./android-update-check.js" defer></script>
+<script src="assets/customer-reorder-review.js?v=20261119-reorder1"></script><script src="assets/customer-completion.js?v=20261128-menu-review1"></script><script src="./android-update-check.js" defer></script>
 <script id="bite-customer-update-prompt">
 /* Only offer a reload after comparing the actual deployed SHA; never reload during payment. */
 (async function(){

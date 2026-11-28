@@ -14,16 +14,17 @@ function setup(options={}){
  let displayedOrders=0,writes=0,returnedToMenu=0;
  const db={upsert:async()=>{writes++;return{};},select:()=>db,eq:()=>db,single:async()=>({data:{postal_code:options.savedPostal||'313324'}}),update:()=>{writes++;return db;},then:resolve=>resolve({})};
  const context={
-  window:{matchMedia:()=>({matches:!!options.mobile}),BiteOrderConfirmation:{
+  window:{BiteCheckoutUX:{},matchMedia:()=>({matches:!!options.mobile}),BiteOrderConfirmation:{
    watch(){},view:()=>restaurantApproved?{state:'approved',label:'Confirmed'}:{state:'pending',label:'Restaurant confirmation · 02:59'},
    async request(sb,id){calls.push({kind:'confirmation',id});return {intent_id:id,state:'pending'};},
    async assertApproved(){if(!restaurantApproved)throw Error('Restaurant confirmation ka wait karein.');},
-   async cancel(){return{state:'cancelled'};},stop(){}
+   async cancel(sb,id){calls.push({kind:'cancel',id});if(options.cancelError)throw Error('Checkout could not close');return{state:'cancelled'};},stop(){}
   }},checkoutRequestKey:null,appliedCheckoutCoupon:null,checkoutQuotedTotal:150,crypto:{randomUUID:()=>'request-key-1'},
   $:element,document:{querySelectorAll:()=>[]},BITE_SANDBOX_CHECKOUT:!!options.sandbox,
   sb:{auth:{getSession:async()=>({data:{session:{user:{id:'test-customer'}}}})},from:()=>db,rpc:async(name,args)=>{calls.push({kind:'rpc',name,args});return{data:'checkout-1'};},functions:{invoke:async(name,args)=>{
    calls.push({kind:'function',name,args});
    if(name==='bite-live-create-session'&&args.body.action==='readiness')return options.unavailable?{error:{message:'disabled'}}:{data:{ready:true,provider:'cashfree',environment:'production'}};
+   if(name==='bite-live-create-session'&&options.menuChanged)return {error:{context:{json:async()=>({status:'menu_changed'})}}};
    if(name==='bite-live-create-session'||name==='cashfree-sandbox-draft-checkout')return{data:{payment_session_id:'test-session',amount:options.paymentAmount??150,currency:'INR',issued_at:new Date().toISOString(),expires_at:new Date(Date.now()+20*60*1000).toISOString()}};
    if(name==='bite-live-verify-checkout'){const result=verify.shift()||{status:'awaiting_payment'};return result.error?{error:{message:'network'}}:{data:result};}
    if(name==='cashfree-sandbox-verify-draft')return{data:{verified:true}};
@@ -31,7 +32,7 @@ function setup(options={}){
   }}},
   Cashfree:({mode})=>({checkout:async args=>{calls.push({kind:'sdk',mode,args});if(options.sdkThrows)throw Error('Window closed');return{paymentDetails:{paymentStatus:'SUCCESS'}};}}),
   checkoutMode:()=>options.delivery?'delivery':'pickup',cartEntries:()=>[['dish-1',1]],cartInstructionSnapshot:()=>({note:values.customerNote||'',tooLong:!!options.overlongInstructions}),getCheckoutDeliveryZone:async()=>{if(options.outsideArea)throw Error('Outside delivery area');},
-  activeRestaurant:{id:'restaurant-1'},checkoutAddresses:[],addressPin:null,cart:{'dish-1':1},renderCart(){},closeCheckoutAndReturnToMenu(){returnedToMenu++;},showCustomerView(){displayedOrders++;},loadMyOrders:async()=>{},
+  openCheckout:async()=>{calls.push({kind:'review'});},menuItems:[],clearTimeout(){},activeRestaurant:{id:'restaurant-1'},checkoutAddresses:[],addressPin:null,cart:{'dish-1':1},renderCart(){},closeCheckoutAndReturnToMenu(){returnedToMenu++;},showCustomerView(){displayedOrders++;},loadMyOrders:async()=>{},
   localStorage:{setItem(){}},biteRefreshSandboxStatus(){},Date,console
  };
  vm.createContext(context);vm.runInContext(source,context);
@@ -58,6 +59,31 @@ test('new customer request waits for restaurant and does not invoke payment prov
  assert.equal(t.element('placeOrderBtn').disabled,false);
  await t.submit();
  assert.equal(t.calls.filter(x=>x.kind==='sdk').length,1);
+});
+test('changed menu replaces Pay with one cart review action and waits for confirmed cancellation',async()=>{
+ const t=setup({menuChanged:true});
+ await t.submit();
+ assert.equal(t.element('placeOrderBtn').textContent,'Review updated menu');
+ assert.match(t.element('checkoutError').textContent,/Menu availability changed/);
+ assert.equal(t.calls.filter(c=>c.kind==='sdk'||c.kind==='cancel').length,0);
+ assert.equal(vm.runInContext('pendingLiveCheckout.menuReviewRequired',t.context),true);
+ await t.context.submitCustomerOrder();
+ assert.deepEqual(t.calls.filter(c=>['cancel','review'].includes(c.kind)).map(c=>c.kind),['cancel','review']);
+ assert.equal(t.calls.filter(c=>c.kind==='rpc').length,1);
+ assert.equal(t.calls.filter(c=>c.name==='bite-live-create-session'&&!c.args.body.action).length,1);
+ assert.equal(t.calls.filter(c=>c.kind==='sdk').length,0);
+ assert.equal(vm.runInContext('pendingLiveCheckout',t.context),null);
+ assert.equal(t.context.cart['dish-1'],1,'menu review leaves the cart for the normal refresh');
+});
+test('unconfirmed cancellation keeps menu review and never retries the old payment',async()=>{
+ const t=setup({menuChanged:true,cancelError:true});
+ await t.submit();
+ await t.context.submitCustomerOrder();
+ assert.equal(t.element('placeOrderBtn').textContent,'Review updated menu');
+ assert.equal(vm.runInContext('pendingLiveCheckout.id',t.context),'checkout-1');
+ assert.match(t.element('checkoutError').textContent,/Your cart is saved/);
+ assert.equal(t.calls.filter(c=>c.kind==='review'||c.kind==='sdk').length,0);
+ assert.equal(t.calls.filter(c=>c.name==='bite-live-create-session'&&!c.args.body.action).length,1);
 });
 test('production mobile checkout stays in Bite modal with a freshly issued session',async()=>{
  const t=setup({mobile:true});await t.submit();

@@ -59,6 +59,41 @@ try:
   channels.locator('#restaurantGrid .restaurant').first.click()
   channels.locator('#menuItems .menuitem').first.wait_for(state='visible')
   check(channels.evaluate("menuItems.length===1 && menuItems[0].name==='QA Veg Thali'"),'Online restaurant menu exposes only eligible synthetic dish')
+  channels.locator('#menuItems [data-add]').first.click()
+  channels.evaluate("""() => {
+    const id='55555555-5555-4555-8555-555555555555';
+    const state=window.__menuReviewQa={sessions:0,cancellations:0,sdk:0};
+    window.Cashfree=()=>({checkout:async()=>{state.sdk++;}});
+    const invoke=sb.functions.invoke.bind(sb.functions);
+    sb.functions.invoke=async (name,args)=>{
+      if(name!=='bite-live-create-session')return invoke(name,args);
+      if(args.body.action==='readiness')return {data:{ready:true,provider:'cashfree',environment:'production'}};
+      state.sessions++;
+      return {error:{context:{json:async()=>({status:'menu_changed'})}}};
+    };
+    window.BiteOrderConfirmation={
+      watch(){},view:()=>({state:'approved'}),assertApproved:async()=>{},stop(){},
+      async cancel(){state.cancellations++;await new Promise(resolve=>state.finishCancel=resolve);}
+    };
+    pendingLiveCheckout={id,restaurantId:activeRestaurant.id,confirmationRequired:true,
+      intentCreatedAt:new Date().toISOString(),started:false,verifyOnly:false};
+    window.BiteCustomerConfirmationOpen();
+  }""")
+  channels.locator('#placeOrderBtn').click()
+  channels.wait_for_function("document.getElementById('placeOrderBtn').textContent==='Review updated menu'")
+  check(channels.locator('#quickCancelCheckout').is_hidden() and
+        channels.locator('#checkPendingPaymentBtn').is_hidden(),
+        'Menu change shows one checkout recovery action')
+  check(channels.locator('#checkoutError').inner_text()=='Menu availability changed. No payment was started.',
+        'Checkout explains why payment was interrupted')
+  channels.locator('#placeOrderBtn').click()
+  channels.wait_for_function("window.__menuReviewQa.cancellations===1 && document.getElementById('placeOrderBtn').disabled")
+  check(channels.locator('#placeOrderBtn').inner_text()=='Closing unpaid checkout…',
+        'Review waits for server cancellation before reopening a cart')
+  channels.evaluate('window.__menuReviewQa.finishCancel()')
+  channels.wait_for_function("pendingLiveCheckout===null")
+  check(channels.evaluate("window.__menuReviewQa.sessions===1 && window.__menuReviewQa.sdk===0 && cartEntries().length===1"),
+        'Review preserves the cart and never repeats the stale Cashfree session')
   channels.close()
   customer=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);observe(customer)
   # Mock owner-uploaded photo bytes; no production data, Supabase, or external photos used.

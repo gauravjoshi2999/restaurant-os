@@ -46,3 +46,7 @@ The Owner option modal requests a server quote in preview mode. Owner and Manage
 ## Printed QR compatibility rehearsal
 
 The QR menu now uses the same staged-schema reader as the Customer catalog and room picker. With the four channel columns in place it requests active QR items for the scanned outlet. On the known older schema it retries only when PostgreSQL reports that the QR column itself is absent. The retry keeps the restaurant and global availability filters. A permission error keeps the previous menu marked stale. Browser fixtures cover QR-only, online-only, room-only and paused dishes, the legacy retry, and a denied query at five viewport widths. No live migration or Cashfree payment was run. The integrated Supabase and Cashfree sandbox rehearsal remains a release gate.
+
+## Customer recovery when menu changes before payment
+
+When first-attempt validation rejects the frozen basket because a dish is no longer available online, checkout offers Review updated menu. It keeps the cart and releases the unpaid request only through the existing authenticated cancellation flow. The normal checkout availability refresh runs before a replacement request. An unconfirmed cancellation keeps the saved request, and a restored provider attempt takes precedence over the local menu-review hint. Checkout and browser fixtures exercise the failure, review and retry behavior. Toast's online availability guidance provided the comparison for communicating sold-out status.

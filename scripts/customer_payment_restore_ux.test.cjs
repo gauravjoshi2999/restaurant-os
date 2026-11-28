@@ -25,7 +25,7 @@ function fixture(response,options={}){
  const db={select(){return this;},eq(){return this;},async maybeSingle(){requests++;
   return typeof response==='function'?response():response;}};
  const ctx=vm.createContext({
-  BITE_SANDBOX_CHECKOUT:false,
+  BITE_SANDBOX_CHECKOUT:false,window:{},
   activeCustomerId:'user-1',pendingLiveCheckout:null,checkoutRequestKey:null,
   restoreToken:0,lastRestoreAttemptKey:null,recoveryBusy:false,
   readPending:()=>stored,
@@ -111,8 +111,21 @@ test('late lookup must not show account A payment in account B session',async()=
 });
 test('account switch clears attempt guard and mobile cache loads corrected script',()=>{
  assert.match(source,/lastRestoreAttemptKey=null;recoveryBusy=false/);
- assert.match(html,/assets\/customer-completion\.js\?v=20261117-ownerconfirm1/);
+ assert.match(html,/assets\/customer-completion\.js\?v=20261128-menu-review1/);
  assert.doesNotMatch(restore,/notice\('Could not check the previous payment/);
  assert.match(source,/restoreUnavailable\?'Previous payment status unavailable'/);
  assert.match(source,/lastRestoreAttemptKey=null;recoveryBusy=false;pendingLiveCheckout=null/);
+});
+test('menu review restores only for a checkout with no provider attempt',async()=>{
+ const saved={customerId:'user-1',id:'intent-1',menuReviewRequired:true};
+ const data={id:'intent-1',status:'awaiting_payment',restaurant_id:'restaurant-1',confirmation_required:true};
+ const unpaid=fixture({data,error:null},{saved});
+ await unpaid.run();
+ assert.equal(unpaid.ctx.pendingLiveCheckout.menuReviewRequired,true);
+ assert.equal(unpaid.stats().autoChecks,0);
+ const attempted=fixture({data:{...data,provider_attempted_at:'2026-11-28T00:00:00Z'},error:null},{saved});
+ await attempted.run();
+ assert.equal(attempted.ctx.pendingLiveCheckout.menuReviewRequired,false);
+ assert.equal(attempted.ctx.pendingLiveCheckout.verifyOnly,true);
+ assert.equal(attempted.stats().autoChecks,1);
 });

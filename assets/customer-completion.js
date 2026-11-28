@@ -4,7 +4,7 @@
  const pendingKey='bite_pending_checkout_v2',dismissedPendingKey='bite_hidden_payment_reminder';let favouritesUser=null,offersToken=0,restoreToken=0,recoveryBusy=false,lastRestoreAttemptKey=null;
  const notice=(message)=>{let el=document.getElementById('biteCustomerNotice');if(!el){el=document.createElement('div');el.id='biteCustomerNotice';el.className='bite-toast';el.setAttribute('role','status');document.body.append(el);}el.textContent=message;el.hidden=false;clearTimeout(notice.timer);notice.timer=setTimeout(()=>el.hidden=true,7000);};
  const readPending=()=>{try{return JSON.parse(localStorage.getItem(pendingKey)||'null');}catch{return null;}};
- function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,cartSignature:pendingLiveCheckout.cartSignature||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,confirmationRequired:!!pendingLiveCheckout.confirmationRequired,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired}));}catch{}}
+ function savePendingCheckout(){try{if(!pendingLiveCheckout){localStorage.removeItem(pendingKey);return;}localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,id:pendingLiveCheckout.id,key:checkoutRequestKey,restaurantId:pendingLiveCheckout.restaurantId||null,cartSignature:pendingLiveCheckout.cartSignature||null,intentCreatedAt:pendingLiveCheckout.intentCreatedAt||null,started:pendingLiveCheckout.started,verifyOnly:pendingLiveCheckout.verifyOnly,confirmationRequired:!!pendingLiveCheckout.confirmationRequired,expectedAmount:pendingLiveCheckout.expectedAmount,amountReviewRequired:pendingLiveCheckout.amountReviewRequired,menuReviewRequired:pendingLiveCheckout.menuReviewRequired===true}));}catch{}}
  function saveCheckoutKey(key){try{localStorage.setItem(pendingKey,JSON.stringify({customerId:activeCustomerId,key}));}catch{}}
  function dismissPendingPaymentBanner(id){
   if(id)try{sessionStorage.setItem(dismissedPendingKey,id);}catch{}
@@ -18,8 +18,8 @@
   if(dismissed||window.BiteCheckoutUX?.freshCartRequested){bar?.remove();return;}
   if(!bar){bar=document.createElement('div');bar.id='pendingPaymentBanner';bar.className='bite-pending-banner';$('homeView').prepend(bar);}
   bar.replaceChildren();
-  const message=document.createElement('span');message.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'Restaurant confirmation pending · No payment collected':pendingLiveCheckout.restoreUnavailable?'Previous payment status unavailable':'Previous payment not confirmed';
-  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent=pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'View confirmation':'Check status';check.dataset.pendingCheck='';
+  const message=document.createElement('span');message.textContent=pendingLiveCheckout.menuReviewRequired?'Menu changed before payment':pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'Restaurant confirmation pending · No payment collected':pendingLiveCheckout.restoreUnavailable?'Previous payment status unavailable':'Previous payment not confirmed';
+  const check=document.createElement('button');check.type='button';check.className='secondary';check.textContent=pendingLiveCheckout.menuReviewRequired&&pendingLiveCheckout.confirmationRequired?'Review updated menu':pendingLiveCheckout.confirmationRequired&&!pendingLiveCheckout.started?'View confirmation':'Check status';check.dataset.pendingCheck='';
   const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='bite-pending-dismiss';dismiss.textContent='×';dismiss.setAttribute('aria-label','Dismiss payment reminder');
   check.addEventListener('click',()=>{
    if(pendingLiveCheckout?.confirmationRequired&&!pendingLiveCheckout.started&&
@@ -73,7 +73,8 @@
     intentCreatedAt:data.created_at,session:null,
     started:!!data.provider_order_id||!!data.provider_attempted_at||!!saved.started,
     verifyOnly:!!data.provider_order_id||!!data.provider_attempted_at||!!saved.started,
-    confirmationRequired:!!data.confirmation_required||!!saved.confirmationRequired,expectedAmount:Number(data.amount)
+    confirmationRequired:!!data.confirmation_required||!!saved.confirmationRequired,expectedAmount:Number(data.amount),
+    menuReviewRequired:saved.menuReviewRequired===true&&!saved.started&&!data.provider_order_id&&!data.provider_attempted_at
    };
    savePendingCheckout();
    $('checkoutRestaurant').textContent=(restaurants.find(r=>r.id===data.restaurant_id)?.name||'Pending restaurant checkout')+' · Saved payment';
@@ -118,7 +119,7 @@
    if(token===restoreToken){
     recoveryBusy=false;
     // Never launch a second provider request after a failed database restore.
-    if(verifiedRead&&pendingLiveCheckout?.id===saved.id&&(!pendingLiveCheckout.confirmationRequired||pendingLiveCheckout.started)){
+    if(verifiedRead&&pendingLiveCheckout?.id===saved.id&&!pendingLiveCheckout.menuReviewRequired&&(!pendingLiveCheckout.confirmationRequired||pendingLiveCheckout.started)){
      void checkPendingCustomerPayment({background:true});
     }
    }
